@@ -208,7 +208,9 @@ Dikkat'ten, Genel bakış'tan ve kenar çubuğundaki sayaçtan çıkarır ve
 siparişin işaretini de kaldırır; siparişte "Dikkat işaretini kaldır" da
 iadeyi numarasız kapatır. Önceden bu iade hiçbir yoldan kapanmıyordu: satır
 Dikkat'te ve sayaçta sonsuza dek kalıyordu. Sonra yeni bir iade gelirse
-satır yeniden işaretlenir (`refundNotedAt` > `refundHandledAt`).
+satır yeniden işaretlenir (`refundNotedAt` > `refundHandledAt`). İade
+belgesini site kesmez; Paraşüt'te hangi türde durduğu ve köşkün panelinin
+onu nasıl görmesi gerektiği §9.3'te.
 
 ## 4. Günlük rutin
 
@@ -387,3 +389,184 @@ adım), `src/app/admin/faturalar/actions.ts` `createOrderInvoiceAction`,
 **Muhasebeciye:** (10) e-Fatura senaryosu TEMELFATURA mı TİCARİFATURA mı
 olmalı? Bugün temel. (11) e-Fatura'ya kesilen online siparişin notunda
 "Sipariş no" yeterli mi?
+
+## 9. Panel bu kayıtları okur (23 Ekim 2026)
+
+Köşkün paneli (ladmin.laffogato.net, `RiosenBeq/lafmaliyet`) aynı Paraşüt
+firmasından **gider faturalarını** (`purchase_bills`) ve **gelen
+e-Faturaları** okur. Denetimde iki projenin de aynı beş değişkeni
+(`PARASUT_CLIENT_ID`, `_SECRET`, `_USERNAME`, `_PASSWORD`, `_COMPANY_ID`)
+tanımladığı görüldü; değerler okunamadığı için firmanın aynı olduğu
+doğrulanamadı. Vercel'de iki projenin `PARASUT_COMPANY_ID`'si yan yana
+karşılaştırılmalı; kullanıcılar ayrı olmalı (§1 adım 1), firma aynıdır.
+
+Panel sitenin açtığı kayıtları kendi gideri ya da tedarikçisi sanmasın diye
+burada sitenin Paraşüt'e **tam olarak** ne yazdığı durur. Kaynak kod
+(`src/lib/invoice/`), alan adları Paraşüt API v4 şartnamesi
+(`github.com/parasutcom/api-doc`, `spec/swagger.yaml`, 5d48af8; aynı dosyayı
+apidocs.parasut.com gösterir; `tests/_support/parasut-fields.ts`). Bu
+bölümdeki kod gerçeklerini `tests/earsiv-panel-records.test.ts` tutar.
+
+### 9.1 Sitenin attığı istekler (tam liste)
+
+| İstek | Ne zaman |
+|---|---|
+| `POST /oauth/token` | giriş ve oturum yenileme |
+| `GET contacts?page[size]=1` | "Paraşüt bağlantısını sına" (yazmaz) |
+| `POST contacts`, `PUT contacts/{id}` | müşteri kaydı yoksa açılır; ad, adres ya da şirket bilgisi değişince güncellenir |
+| `GET products?filter[code]=`, `POST products` | faturanın ürün kodu Paraşüt'te yoksa bir kez açılır |
+| `POST sales_invoices` | satış faturası (taslak) |
+| `GET sales_invoices/{id}?include=active_e_document`, `GET sales_invoices?filter[contact_id]=&filter[issue_date]=` | okuma; yanıtı kaybolan oluşturmayı arama |
+| `DELETE sales_invoices/{id}` | **yalnız resmileşmemiş taslak** (tutar tutmadı, "Taslağı yenile", alıcı değişti, sipariş kapsam dışı kaldı) |
+| `GET e_invoice_inboxes?filter[vkn]=` | yalnız kurumsal alıcıda, kesinleştirirken |
+| `POST e_archives` ya da `POST e_invoices` | resmileştirme |
+| `GET trackable_jobs/{id}` | resmileştirme işinin sonucu |
+| `GET e_archives/{id}/pdf`, `GET e_invoices/{id}/pdf` | PDF (e-posta, "Faturayı yazdır / indir", üye indirmesi) |
+
+Site **hiç** dokunmaz: `purchase_bills` (gider faturası; okumaz da),
+`sales_invoices/{id}/cancel` (iptal), `item_type: "refund"` olan hiçbir
+belge, `item_categories`, `tags`, ayrı tahsilat isteği (`payments`).
+Tahsilat yalnız `EARSIV_PAYMENT_ACCOUNT_ID` verilince faturanın kendi
+`cash_sale` alanlarıyla, aynı istekte yazılır.
+
+### 9.2 Kayıt kayıt ne oluşur
+
+**Müşteri (`contacts`), `contactAttributes`:**
+
+- `account_type: "customer"`: **her zaman**, açarken de güncellerken de.
+  Site tedarikçi (`supplier`) kaydı açmaz.
+- `contact_type`: bireyselde `person`, sihirbazdaki kurumsal alıcıda
+  `company`.
+- `name`: bireyselde siparişteki ad (boşsa "Nihai tüketici"), kurumsalda
+  ticaret unvanı. Sabit bir ek ya da kod yok.
+- `tax_number`: bireyselde `11111111111` (nihai tüketici yer tutucusu),
+  kurumsalda VKN; `tax_office` yalnız kurumsalda.
+- `email` (yalnız gerçek bir adres), `address`, `district`, `city`,
+  `country: "Türkiye"`, `is_abroad: false`. Telefon, TCKN, IBAN, kategori
+  (`category`), `short_name` gönderilmez.
+- Sitede e-postaya (kurumsalda `vkn:<numara>`) göre önbelleklenir; e-postası
+  olmayan sipariş her faturada yeni bir müşteri kaydı açar.
+
+**Ürün (`products`), `productBody`:** kod hep **`LAF-`** ile başlar:
+`LAF-KAFE-10` "Kafe siparişi (KDV %10)", `LAF-MAGAZA-10` / `LAF-MAGAZA-20`
+"Mağaza ürünü (KDV %…)", `LAF-TESLIMAT-20` "Kargo / kurye bedeli (KDV %20)",
+`LAF-HIZMET-20` "Hizmet" (karaoke; eski `LAF-KARAOKE-20` "Karaoke odası
+(KDV %20)" kullanılmadan kalır). `vat_rate`, `unit: "Adet"`,
+`currency: "TRL"`; alış fiyatı, stok takibi, kategori yok.
+
+**Satış faturası (`sales_invoices`), `salesInvoiceBody`:**
+`item_type: "invoice"` (hiçbir zaman `refund`, `cancelled`, `estimate`);
+`description` sabit işaret: `L'Affogato #10234` ya da `Karaoke krk-…`;
+`order_no`, `order_date`; `invoice_note` "Sipariş no: 10234." (kolide
+"… İrsaliye yerine geçer."), karaokede "Karaoke rezervasyonu: krk-…";
+`issue_date` = `due_date` = kesildiği gün; `currency: "TRL"`; alıcının
+vergi numarası ve fatura adresi; varsa `cash_sale`, `payment_account_id`,
+`payment_date`, `payment_description: "PayNkolay"`. İlişkiler: `contact`
+(yukarıdaki müşteri), `details` (satırlar, her biri bir `LAF-` ürünüyle).
+
+**e-Belge:** satış faturasının `active_e_document`'ı.
+
+- `e_archives` (bireysel ve e-Fatura kullanıcısı olmayan şirket):
+  `internet_sale` (`url`, `payment_type: "KREDIKARTI/BANKAKARTI"`,
+  `payment_platform: "PayNkolay"`, `payment_date`) ve kolide / kuryede
+  `shipment`. e-Arşiv'in yönü yoktur, GİB'e raporlanır, kimsenin gelen
+  kutusuna düşmez.
+- `e_invoices` (GİB'de kayıtlı şirket): `scenario: "basic"`, `to` = alıcının
+  kutusu. Paraşüt'te **giden** (`direction: "outbound"`, `from_vkn` köşkün
+  VKN'si) bir e-Fatura'dır.
+
+### 9.3 İade ve iptal: site belge kesmez
+
+Sitenin kodunda iade ya da iptal belgesi oluşturan bir istek **yoktur**.
+Faturası kesilmiş siparişte sonradan iade olursa site yalnız işaret koyar
+(§3 "Faturadan sonra iade"); iade belgesini operatör ya da muhasebeci
+Paraşüt'te **elle** keser, sitede yalnız numarası (`refundDocNo`, "İade
+belgesini kestim") tutulur. Belgenin Paraşüt'teki türü onu nasıl açtığına
+bağlıdır (Paraşüt kullanım kılavuzu "İade faturası oluşturmak" ve
+"Elektronik faturada iptal / iade işlemleri"; parasut.com buradan
+açılamadı, arama sonuçlarındaki metinlerden okundu):
+
+- **Önerilen yol: sitenin satış faturasında "Düzenle ▾ → İade oluştur".**
+  Paraşüt bu iadeyi **Giderler > Gider listesi**ne kaydeder: API'de
+  `purchase_bills`, `item_type: "refund"` (satış iadesi), `supplier`
+  ilişkisi sitenin açtığı **müşteri** kaydıdır (`account_type: "customer"`),
+  satırlar aynı `LAF-` ürünleriyle gelir. Panelin "eksi tutarlı tedarikçi
+  faturası" olarak gördüğü belge budur. İade kalemleri ve tutarı
+  muhasebeciyle (nihai tüketicide gider pusulası mı iade faturası mı, §7
+  soru 5).
+- **e-Arşiv'i 7 gün içinde iptal** ("Düzenle ▾ → İptal et"): satış faturası
+  `item_type: "cancelled"` olur (API'de `DELETE sales_invoices/{id}/cancel`),
+  gider tarafında kayıt açılmaz. Site iptal etmez ve iptali görmez:
+  kesilmiş faturanın durumunu bir daha okumaz, kayıt sitede "kesildi"
+  kalır; siparişin iadesi §3'teki gibi kapatılır.
+- **e-Fatura kesilmiş şirketin iadesi:** TEMELFATURA reddedilemez; alıcı
+  kendi iade e-Faturasını keser (`invoice_type_code: "IADE"`). Paraşüt'te
+  **gelen** e-Fatura olarak düşer (`direction: "inbound"`, `from_vkn` =
+  alıcının VKN'si, yani sitenin kurumsal müşteri carisindeki
+  `tax_number`). Panel onu iki yoldan görür:
+  - Paraşüt'te içeri alınırsa `purchase_bills`'te; iade (`item_type:
+    "refund"`) olarak kaydedilmelidir.
+  - İçeri alınmasa da `GET e_invoices` listesinde. Bu liste ucu v4
+    şartnamesinde yoktur ama çalışır: panel gelen e-Faturaları onunla okur
+    (lafmaliyet `src/server/parasut/einvoice.ts`, canlı denemeyle 20 Ekim
+    2026; yalnız `sort=-issue_date` kabul eder, süzgeç almaz). İçeri
+    alınmamış iade e-Faturası orada `relationships.invoice` boş bir
+    kayıttır: `supplier` ilişkisi ve `LAF-` ürün kodu yoktur, satırları
+    yalnız imzalı UBL'dedir ve alıcının kendi adlarını taşır. §9.4'ün ilk
+    üç kuralı bu kayda uygulanamaz; onu kural 5 ayırır.
+
+### 9.4 Panel bunları nasıl ayırt eder
+
+1. **`purchase_bills` içinde `item_type: "refund"` gider değildir.**
+   Paraşüt'ün modelinde gider tarafındaki iade, bir satışın iadesidir
+   (alış iadesi tersine Satışlar > Faturalar'a düşer). `refund` kayıtlar
+   giderden değil, ayrı (satış iadesi, gelirden düşüm) sayılmalıdır.
+   Liste **süzülmeden** okunmaya devam etmeli: panel `item_type:
+   "cancelled"` olanı görünce daha önce aldığı kaydı kaldırır (lafmaliyet
+   `shouldImport`); `filter[item_type]=purchase_bill` ile okumak hem bu
+   temizliği hem daha önce alınmış `refund` kayıtların düzeltilmesini
+   keser, kullanılmamalıdır.
+2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
+   (`include=supplier`) `account_type: "customer"` ise tedarikçi değildir.
+   Sitenin açtığı her cari `customer`'dır; panelin tedarikçi listesi
+   `GET contacts?filter[account_type]=supplier` ile alınırsa bunlar hiç
+   gelmez.
+3. **Ürün kodu `LAF-`.** Satırındaki ürünün kodu `LAF-` ile başlayan belge
+   sitenin bir satışından türemiştir (`include=details.product`).
+4. **Satış faturaları.** Site yalnız `sales_invoices` yazar; açıklaması
+   `L'Affogato #…` ya da `Karaoke …` ile başlar. Sitenin e-Fatura'ları
+   `outbound`'dur; gelen e-Fatura okuması `inbound` ile sınırlıysa sitenin
+   hiçbir belgesi oraya girmez. Sitenin satışından doğan tek `inbound`
+   belge kurumsal alıcının iade e-Faturasıdır (kural 5).
+5. **Gelen iade e-Faturası (`GET e_invoices`, `invoice_type_code:
+   "IADE"`).** İade faturasını malı geri veren keser: köşke gelen bir
+   `IADE`, köşkün sattığı bir şeyin iadesidir, tedarikçi gideri değildir.
+   `from_vkn` sitenin bir carisinin `tax_number`'ı ise (cari `account_type:
+   "customer"`; `GET contacts?filter[tax_number]=…`) belge sitenin
+   satışının iadesidir. Panel onu gider olarak açmamalı ya da açtığı kaydı
+   satış iadesi (gelirden düşüm) olarak ayırmalıdır. Site kurumsal alıcıya
+   §8'den beri e-Fatura kestiği için bu belge artık gelebilir.
+
+### 9.5 Siteye ayrı bir etiket: öneri, uygulanmadı
+
+Paraşüt buna izin verir: v4'te `contacts` ve `products` bir
+`relationships.category` alır (`item_categories`, `category_type: "Contact"`
+ya da `"Product"`); `tags` yalnız satış ve gider faturalarında vardır,
+carinin `code` alanı yoktur. Sabit bir kategori ("L'Affogato site") bu
+yüzden mümkündür, ama bugün eklenmedi:
+
+- Ayırt etmek için gerekmiyor: `account_type: "customer"`, `LAF-` kodu ve
+  `item_type: "refund"` yukarıdaki kuralları zaten verir. Asıl sorunlu
+  belge iadedir: operatörün elle açtığı `purchase_bills` kaydı ya da
+  kurumsal alıcının gelen iade e-Faturası (kural 5). İkisini de site
+  yazmaz; carinin ya da ürünün kategorisi onları işaretlemez.
+- Yeni bir istek ve yetki ister (kategoriyi bulmak ya da açmak), canlı
+  bilgi olmadan burada sınanamaz.
+- 15 Ekim'den beri açılmış cariler ve ürünler işaretsiz kalır: ürünler bir
+  kez açılıp önbelleğe alınır, cariler yalnız değişince güncellenir; geriye
+  dönük işaret her kayda ayrı `PUT` ister. `PUT` her seferinde kategoriyi
+  yazarsa muhasebecinin elle verdiği kategoriyi ezer.
+
+Gerekirse ayrı bir PR: operatör kategoriyi Paraşüt'te elle açar (tür
+Müşteri / Ürün), numarası bir ortam değişkeniyle verilir, site onu yalnız
+yeni cari ve ürün açarken (`POST`) gönderir.
