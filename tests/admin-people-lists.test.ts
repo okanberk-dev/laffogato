@@ -642,23 +642,41 @@ describe("users list and view", () => {
   });
 
   it("who is in the panel now, and when the others were last seen", async () => {
-    const { default: Page } = await import("@/app/admin/kullanicilar/page");
-    const now = Date.now();
-    // The manager answered a minute ago; the owner three hours ago.
-    h.activity = new Map([
-      ["mudur@ornek.com", new Date(now - 60_000).toISOString()],
-      ["sahip@ornek.com", new Date(now - 3 * 3_600_000).toISOString()],
-    ]);
-    const page = html(await Page({ searchParams: Promise.resolve({}) }));
-    expect(page).toMatch(
-      /<time dateTime="[^"]+" title="[^"]+">Şu an aktif<\/time>/,
-    );
-    expect(page.match(/Şu an aktif/g)).toHaveLength(2); // table + card
-    expect(page).toMatch(
-      /<time dateTime="[^"]+" title="[^"]+">3 saat önce<\/time>/,
-    );
-    // The cashier: neither a sign-in nor a request, both read.
-    expect(page).toContain("Hiç girmedi");
+    // At noon on the köşk's clock: three hours ago is still today. Between
+    // 00:00 and 03:00 it is yesterday ("dün 23:58", rule 22), which made
+    // this test fail three hours a night on the real clock.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-23T09:00:00.000Z"));
+      const { default: Page } = await import("@/app/admin/kullanicilar/page");
+      const now = Date.now();
+      // The manager answered a minute ago; the owner three hours ago.
+      h.activity = new Map([
+        ["mudur@ornek.com", new Date(now - 60_000).toISOString()],
+        ["sahip@ornek.com", new Date(now - 3 * 3_600_000).toISOString()],
+      ]);
+      let page = html(await Page({ searchParams: Promise.resolve({}) }));
+      expect(page).toMatch(
+        /<time dateTime="[^"]+" title="[^"]+">Şu an aktif<\/time>/,
+      );
+      expect(page.match(/Şu an aktif/g)).toHaveLength(2); // table + card
+      expect(page).toMatch(
+        /<time dateTime="[^"]+" title="[^"]+">3 saat önce<\/time>/,
+      );
+      // The cashier: neither a sign-in nor a request, both read.
+      expect(page).toContain("Hiç girmedi");
+      // At 02:00 the same three hours reach back past midnight: yesterday.
+      vi.setSystemTime(new Date("2026-10-23T23:00:00.000Z"));
+      h.activity = new Map([
+        ["sahip@ornek.com", new Date(Date.now() - 3 * 3_600_000).toISOString()],
+      ]);
+      page = html(await Page({ searchParams: Promise.resolve({}) }));
+      expect(page).toMatch(
+        /<time dateTime="[^"]+" title="[^"]+">dün 23:00<\/time>/,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("never calls a signed-out, deactivated or since-changed account in the panel (review of #234)", async () => {
