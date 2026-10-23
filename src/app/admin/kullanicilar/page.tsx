@@ -1,4 +1,5 @@
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { CARD, CARD_TITLE } from "@/components/admin/ui/styles";
 import {
   Badge,
   CardLink,
@@ -16,8 +17,17 @@ import {
   parseAdminUserTab,
 } from "@/lib/admin/admin-users-list";
 import { requireRole } from "@/lib/admin/auth";
-import { roleSectionLabels } from "@/lib/admin/role-summary";
-import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
+import {
+  roleMatrix,
+  roleSectionLabels,
+  sectionShortLabel,
+} from "@/lib/admin/role-summary";
+import {
+  ADMIN_ROLES,
+  ROLE_LABELS,
+  sectionsFor,
+  type AdminRole,
+} from "@/lib/admin/roles";
 import { listStaffMembers } from "@/lib/admin/staff-members";
 import { has2FA } from "@/lib/admin/twofa";
 import {
@@ -40,6 +50,40 @@ interface PageProps {
 }
 
 type ListedUser = PublicAdminUser & { has2FA: boolean };
+
+/** How many of a role's sections its row names before "+n". */
+const ROLE_CHIPS = 3;
+
+/**
+ * What a role opens, in its row (Innex's permission chips): the owner's
+ * "Tüm bölümler", else its first sections and "+n" for the rest, the whole
+ * list in the title.
+ */
+function RoleChips({ role }: { role: AdminRole }) {
+  const all = roleSectionLabels(role);
+  const sections = sectionsFor(role).filter((s) => sectionShortLabel(s));
+  const chip =
+    "inline-flex items-center rounded-full border border-[var(--admin-border-strong)] px-2 py-px text-[11px] leading-4 font-medium whitespace-nowrap text-[var(--admin-text-soft)]";
+  if (role === "owner") {
+    return (
+      <span className="mt-1 flex flex-wrap gap-1" title={all.join(", ")}>
+        <span className={chip}>Tüm bölümler</span>
+      </span>
+    );
+  }
+  const shown = sections.slice(0, ROLE_CHIPS);
+  const rest = sections.length - shown.length;
+  return (
+    <span className="mt-1 flex flex-wrap gap-1" title={all.join(", ")}>
+      {shown.map((s) => (
+        <span key={s} className={chip}>
+          {sectionShortLabel(s)}
+        </span>
+      ))}
+      {rest > 0 ? <span className={chip}>+{rest}</span> : null}
+    </span>
+  );
+}
 
 function UserBadges({ user }: { user: ListedUser }) {
   return (
@@ -147,8 +191,15 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                 },
                 {
                   key: "rol",
-                  header: "Rol",
-                  cell: (u) => ROLE_LABELS[u.role] ?? u.role,
+                  header: "Rol ve erişim",
+                  cell: (u) => (
+                    <span className="block min-w-0">
+                      <span className="font-medium">
+                        {ROLE_LABELS[u.role] ?? u.role}
+                      </span>
+                      <RoleChips role={u.role} />
+                    </span>
+                  ),
                 },
                 {
                   key: "durum",
@@ -194,6 +245,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   ) : null}
                   <span className="text-sm text-[var(--admin-text-soft)]">
                     {ROLE_LABELS[u.role] ?? u.role}
+                    <RoleChips role={u.role} />
                   </span>
                   <UserBadges user={u} />
                 </div>
@@ -216,28 +268,90 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           <CreateAdminUserForm minPasswordLength={MIN_ADMIN_PASSWORD_LENGTH} />
         </section>
 
-        <Card>
+        <section
+          aria-label="Roller neyi açar"
+          className={`${CARD} min-w-0 overflow-hidden`}
+        >
           {/* From the matrix the server gates read (roles.ts), not a
               sentence of its own: the old one hid refunds, member deletion
-              and mass e-mail behind "Yönetici". */}
-          <h2 className="mb-3 text-base font-semibold">Roller neyi açar</h2>
-          <dl className="grid gap-3 text-sm">
-            {ADMIN_ROLES.map((role) => (
-              <div key={role} className="grid gap-0.5">
-                <dt className="font-medium text-[var(--admin-text)]">
-                  {ROLE_LABELS[role]}
-                </dt>
-                <dd className="text-xs leading-relaxed text-[var(--admin-text-soft)]">
-                  {roleSectionLabels(role).join(", ")}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-3 text-xs leading-relaxed text-[var(--admin-text-mute)]">
-            Son aktif sahip hesabı kapatılamaz; ortam değişkenindeki hesaplar bu
-            listede görünmez ve acil giriş için durur.
-          </p>
-        </Card>
+              and mass e-mail behind "Yönetici". Innex shows the permissions
+              instead of describing them: one row per section, a tick per
+              role that opens it. */}
+          <div className="border-b border-[var(--admin-border)] px-4 py-3 sm:px-5">
+            <h2 className={CARD_TITLE}>Roller neyi açar</h2>
+            <p className="mt-0.5 text-[13px] text-[var(--admin-text-mute)]">
+              Son aktif sahip hesabı kapatılamaz; ortam değişkenindeki hesaplar
+              bu listede görünmez ve acil giriş için durur.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <caption className="sr-only">
+                Roller neyi açar: bölümler ve onları açan roller
+              </caption>
+              <thead>
+                <tr className="bg-[var(--admin-surface-2)] text-left text-[13px] font-medium text-[var(--admin-text-mute)]">
+                  <th scope="col" className="px-4 py-2.5 sm:px-5">
+                    Bölüm
+                  </th>
+                  {ADMIN_ROLES.map((role) => (
+                    <th
+                      key={role}
+                      scope="col"
+                      className="px-3 py-2.5 text-center whitespace-nowrap"
+                    >
+                      {ROLE_LABELS[role]}
+                      <span className="block text-[11px] font-normal">
+                        {roleSectionLabels(role).length} bölüm
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {roleMatrix().map((row) => (
+                  <tr
+                    key={row.section}
+                    className="border-t border-[var(--admin-divider)]"
+                  >
+                    <th
+                      scope="row"
+                      className="px-4 py-2 text-left font-normal text-[var(--admin-text)] sm:px-5"
+                    >
+                      {row.label}
+                    </th>
+                    {ADMIN_ROLES.map((role) => (
+                      <td key={role} className="px-3 py-2 text-center">
+                        {row.roles[role] ? (
+                          <span className="inline-flex size-5 items-center justify-center rounded-full bg-[var(--admin-success-soft)] text-[var(--admin-success)]">
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2.5}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="size-3"
+                            >
+                              <path d="M5 12.5 10 17 19 7" />
+                            </svg>
+                            <span className="sr-only">açar</span>
+                          </span>
+                        ) : (
+                          <span className="text-[var(--admin-text-mute)]">
+                            <span aria-hidden="true">-</span>
+                            <span className="sr-only">açmaz</span>
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <Card>
           <div className="grid gap-4">
