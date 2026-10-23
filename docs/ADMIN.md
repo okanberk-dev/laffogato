@@ -495,9 +495,13 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
 - **Genel bakış**: şerit sahip ve yöneticiye beş rakam verir. Bugün net ciro
   ve bugünkü sipariş, **geçen haftanın aynı günü bu saate kadar** ile
   karşılaştırılır (`dashboardRevenue`: 14 günün tek okuması; bir kafenin
-  cumartesisi cumasına, yarım günü tam güne benzemez). Açık sipariş kafe /
-  mağaza diye ayrılır ve barda en uzun bekleyen kafe siparişinin süresini
-  söyler; 15 dakikayı geçince rakam turuncu. Dikkat isteyen ve Stokta yok
+  cumartesisi cumasına, yarım günü tam güne benzemez); bugünkü siparişin
+  bağlantısı saydığını açar (Siparişler → Ödeme: **Raporda sayılan**,
+  iptal ve ödeme bekleyen hariç). Açık sipariş kafe / mağaza diye ayrılır
+  ve barda en uzun bekleyen kafe siparişinin süresini söyler, bar
+  ekranının kuralıyla: bekleme planlı saatten, yoksa ödemeden sayılır,
+  vakti gelmemiş ön sipariş beklemez, 24 saati geçen (bar ekranının
+  düşürdüğü) sayılmaz; 15 dakikayı geçince rakam turuncu. Dikkat isteyen ve Stokta yok
   kendi gerçeğini yazar ("Azalan stokta 3 ürün"); 0'ın altına iş istemez.
   Personel ciro görmez, okunmaz da (D1). "Hızlı ekle"nin on iki çipi
   başlıkta tek **Yeni** düğmesine döndü (birden fazla sayfada menü, tekte
@@ -542,7 +546,11 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   ve Profil sekmesi yok.
 - **Raporlar**: dönem başlıkta segment denetimi (`ui/segmented.tsx`); beş
   rakam şeritte, her biri **bir önceki aynı uzunluktaki dönemle**
-  (`analyticsHeadlineCompared`, iki dönemin tek okuması). İadede artış
+  (`analyticsHeadlineCompared`, iki dönemin tek okuması); önceki dönem
+  şimdiki gibi yarım kalan son kovasının aynı noktasında kesilir
+  (`previousPeriodEnd`: aynı saat, gün, hafta ya da ay geri; ayın 31'i
+  kısa ayın son günü), yoksa düz satış pazartesi sabahı ve ayın 1'inde
+  düşüş gibi okunurdu. İadede artış
   kırmızı. Her rakam bir **kart sekmesi** (`?m=`, `report-metrics.ts`):
   altındaki grafik seçileni kova kova çizer (net, brüt, iade, sipariş,
   ortalama sepet), başlığı ve "en yüksek"i ona göre yazılır, başka dönem
@@ -555,8 +563,10 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   rengi parasının durumu (ödendi yeşil, ödeme bekliyor turuncu, köşkte
   ödenecek mavi, işlem bekliyor kırmızı). Bugün vurgulu, saat çizgisi
   kırmızı. İptaller takvimde değil, listede. Telefonda günlük liste.
-  Genel bakış'ın karaoke kartı odanın **doluluğunu** yazar (iptal
-  edilmemiş rezervasyonların açık saatlerdeki saatleri / açık saatler) ve
+  Genel bakış'ın karaoke kartı odanın **doluluğunu** yazar (odayı tutan
+  rezervasyonların açık saatlerdeki saatleri / açık saatler: iptal
+  edilmemişler ve Gün sonu'nun "gelmedi" saydığı, köşkte ödenecekken akşamı
+  bittikten sonra iptale düşen rezervasyon, `heldTheRoom`) ve
   geçen haftanın aynı günüyle puan farkını: "%42 · 5/12 saat, +17 puan,
   geçen cuma %25".
 - **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
@@ -598,15 +608,18 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   yığını üst katmanın altında kalır: çekmecenin kendi bildirimleri vardır
   (`ToastScope`).
 - **Faturalar**: kenar çubuğunda **sayaç** (Dikkat sekmesinin kümesi: son
-  gün yakın ya da geçmiş, hata, elle kesilecek, okunacak taslak, kesimden
-  sonra iade); yalnız e-Arşiv açıkken ve Faturalar'ı açan rollere. Diğer
-  rozetler gibi ucuz yoklanır: `invoices` tablosuna her yazım kendi
-  işaretini (`live:invoices`) düşürür, anahtar köşkün günüdür (son gün
-  yazımla değil saatle yaklaşır). Her satırda ⋯'nin yanında **tek adım**:
-  taslak için "Taslağı gör" (siparişin ya da rezervasyonun Fatura
-  sekmesi; taslak satırları okunmadan kesinleşmez), vadesi gelene
-  "Faturayı kes", hataya "Yeniden dene", elle kesilecek olana "Kestim",
-  kesilene PDF.
+  gün yakın ya da geçmiş, hata, elle kesilecek, okunacak taslak, PDF
+  e-postası gitmeyen, belgesi kesilmemiş iade); yalnız e-Arşiv açıkken ve
+  Faturalar'ı açan rollere. Diğer rozetler gibi ucuz yoklanır: `invoices`
+  tablosuna her yazım kendi işaretini (`live:invoices`) düşürür, anahtar
+  köşkün günüdür (son gün yazımla değil saatle yaklaşır). Her satırda
+  ⋯'nin yanında **tek adım**: taslak için "Taslağı gör" (siparişin ya da
+  rezervasyonun Fatura sekmesi; taslak satırları okunmadan kesinleşmez:
+  ⋯ menüsü de taslağı kesinleştirmez, aynı sekmeye "Taslağı gör ve
+  kesinleştir" ile götürür), vadesi gelene "Faturayı kes", hataya
+  "Yeniden dene", elle kesilecek olana "Kestim", kesimden sonra iadesi
+  olana "Belgeyi kestim" (iade faturasının ya da gider pusulasının
+  numarası; `docs/EARSIV.md` "Faturadan sonra iade"), kesilene PDF.
 - **Yapılmayan**: §3.10'un bütçe ve gerçekleşen çubukları (gider ve bütçe
   köşkün panelinde, lafmaliyet'te; sitede veri yok) ve Genel bakış'ta
   "Sistem sağlığı" kartı (Neon CU-saati, Vercel kotası: sitenin bu
@@ -614,9 +627,17 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
 
 ## Kayıtlı görünümler
 
-Siparişler listesinde süzgeç çipleriyle aynı satırdaki **Görünümler**
-menüsü, sık açılan bir listeyi tek dokunuşla geri getirir ("Masa
-siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
+Süzgeç çubuğu olan her listede, çubuğun satırındaki **Görünümler**
+menüsü sık açılan bir listeyi tek dokunuşla geri getirir ("Masa
+siparişleri", "Kargoya verilecek"): Siparişler, Karaoke, Ürünler, Kafe
+menüsü, Müşteriler, Promosyon, Stok hareketleri, Olay kaydı, Bülten ve
+Masalar (23 Eki 2026'dan beri; önce yalnız ilk ikisi). Her listenin
+görünümleri ayrıdır (`views.key`). Sekmesi StatusTabs'ın varsayılan
+`durum`'u olmayan liste onu bildirir (Karaoke `sekme`, Müşteriler
+`filter`; `views.tabParam`): bildirmeyen Karaoke, 23 Eki 2026'ya kadar
+"Dikkat" gibi bir sekmeyi kaydetmiyor, o sekmedeki listeyi boş sayıyordu.
+Ürünler ve Kafe menüsünde bağlantıyla açılan hızlı bakış (`?gor=`)
+varsayılan görünüme kapanmaz (`views.hold`).
 
 - **Bu görünümü kaydet**: sekme, açılır listeler ve sıralama bir adla
   kaydedilir (en çok 30 karakter, liste başına en çok 8 görünüm). Arama

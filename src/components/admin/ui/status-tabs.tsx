@@ -62,6 +62,7 @@ export function StatusTabs({
   return (
     <nav
       aria-label={label}
+      data-focus-inset=""
       className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
     >
       <ul className="inline-flex min-w-max gap-1.5 sm:max-w-full sm:min-w-0 sm:flex-wrap">

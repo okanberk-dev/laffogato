@@ -147,7 +147,11 @@ describe("the order's invoice wizard", () => {
       expect.stringContaining("Taslak hazır"),
       "success",
     );
-    expect(h.redirect).toHaveBeenCalledWith("/admin/siparisler/ord-1");
+    // The order's Fatura tab, where the draft's lines and "Faturayı
+    // kesinleştir" are (review of #231: it opened on Kalemler).
+    expect(h.redirect).toHaveBeenCalledWith(
+      "/admin/siparisler/ord-1?sekme=fatura",
+    );
   });
 
   it('a company: title, VKN and tax office ("V.D." dropped), the invoice e-mail; the audit row names the company, not the e-mail', async () => {

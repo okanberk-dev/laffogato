@@ -1589,3 +1589,70 @@ Açık (bu turda değişmedi):
 | 🟡 | 2FA isteğe bağlı | Operatör kararı (§11); durum hesap menüsünün "Güvenlik / 2FA" sayfasında ve Kullanıcılar'da. Genel bakış'a bir sürüm eklenen uyarı operatörün isteğiyle kaldırıldı (21 Eki 2026) |
 | 🟢 | Çıkış kopyalanmış bir çerezi iptal etmez (7 gün) | Sunucu tarafı oturum sürümü bir migration ister (§11) |
 
+
+### Panel: Innex görünümü ve düzenleri sonrası inceleme (#230, #231; 23 Eki 2026)
+
+Operatör: _"Sen tüm hepsini yap maine yolla"_. #230 ve #231 birleştikten
+sonra beş ayrı okuma yapıldı: faturalar, kayıt sayfaları, rakamlar, hızlı
+bakış, kabuk ve takvim. Doğrulanan bulgular:
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Kesilmiş faturadan sonraki iade bir kez not ediliyor, hiçbir şey kapatmıyordu: Dikkat, Genel bakış ve yeni kenar rozeti onu sonsuza dek sayıyordu | "İade belgesini kestim" (satır adımı "Belgeyi kestim", kart, ⋯) belge numarasını yazıp kapatır; siparişin "Faturalı siparişte iade" işaretini kaldırmak da kapatır; sonraki iade yeniden açar (`refundNotedAt > refundHandledAt`). Migration `20261023100000` | `invoice-run`, `invoice-admin-actions`, `admin-invoice-row-step`, `db-integration-invoices` |
+| 🟡 | Listenin ⋯ menüsü kimsenin görmediği taslak için "Faturayı kesinleştir" sunuyordu | ⋯ taslağın satırlarını Fatura sekmesinde açar | `admin-invoice-row-step` |
+| 🟢 | Rozet, PDF e-postasından vazgeçilen kesilmiş faturaları saymıyordu (Dikkat sayıyordu) | `listAttentionInvoices` onları da verir, her satır bir kez | `db-integration-invoices` |
+| 🟢 | PDF adımının erişilebilir adı "PDF" ile başlamıyordu (WCAG 2.5.3) | `aria-label="PDF indir: …"` | `admin-invoice-row-step` |
+| 🟡 | Kural 29 tutması POS'a sorulmadan bırakılan karaoke rezervasyonunun tek talimatı Ödeme sekmesindeydi, sayfa Rezervasyon'da açılıyordu | Sayfa Ödeme'de açılır | `admin-karaoke-pages` |
+| 🟡 | `DetailTabs` adresi Next'in geçmiş durumuyla yazıyordu: yönlendirici eski adresi tutup sonraki server action'da geri koyuyordu | `replaceState(null, …)`; sekme bağlantısı yalnız denetlenmiş dönüş yolunu taşır (ham `geri` asla), bozuk çapa atılmaz okunur | `admin-detail-tabs`, `admin-karaoke-pages` |
+| 🟢 | "Fatura oluştur" Kalemler sekmesinde açılan sipariş sayfasına dönüyordu; taslak ve "Faturayı kesinleştir" görünmüyordu | Sihirbazın yönlendirmesi, geri ve vazgeç bağlantıları Fatura sekmesine (`invoiceCardHref`) | `invoice-wizard-action`, `admin-order-detail` |
+| 🟢 | Müşteri sayfası `?sekme=`'yi okumuyordu | Diğer kayıt sayfaları gibi istenen sekmeyi çizer | `admin-customer-detail` |
+| 🟢 | Hiç ödenmemiş iptal sipariş turuncu "Ödenmedi" çipi gösteriyordu | Rozetiyle aynı "Ödeme yok"; beklenen ödeme iki kez söylenmez | `admin-order-detail` |
+| 🟡 | Raporlar, son dilimi yarım kalan dönemi önceki dönemin tamamıyla karşılaştırıyordu: düz satış her pazartesi sabahı ve ayın 1'inde kırmızı düşüş okunuyordu | Önceki dönem aynı noktada durur (`previousPeriodEnd`, köşkün saatiyle) | `admin-reports-compare` |
+| 🟡 | "Barda en eskisi" ön siparişi ödemesinden ölçüyor, bar ekranının düşürdüğü siparişi sonsuza dek turuncu tutuyordu | Bar ekranının kuralı: planlı saatten, yoksa ödemeden; vakti gelmemiş beklemez, 24 saati geçen sayılmaz | `admin-dashboard` |
+| 🟢 | "Bugünkü sipariş" raporda sayılanı sayıp iptaller dahil her ödenmişi açıyordu | Siparişler'e Ödeme → "Raporda sayılan"; kutu onu açar | `admin-order-reads`, `admin-dashboard` |
+| 🟢 | Karaoke doluluğu geçen haftanın gelmeyenlerini (köşkte ödeme, akşamdan sonra iptal yazılan) düşürüyordu | `heldTheRoom` onları Gün sonu gibi sayar | `admin-karaoke-attention`, `admin-dashboard` |
+| 🟡 | Hızlı bakış, açan satır listeden çıkınca (kendi "Pasif yap" / "Tükendi" adımı) adresi değiştiriyordu: liste geçmişe iki kez giriyor, sonraki Geri hiçbir şey yapmıyordu | Bu sayfanın bir satırı açtıysa Geri | `admin-quick-look` |
+| 🟢 | Hızlı bakış tarihi geçmiş karşılaştırma fiyatını üstü çizili gösteriyordu | Listenin okuduğu canlı indirim (`liveCompareAtMinor`) | `admin-quick-look` |
+| 🟢 | Menü kaleminin her kaydı olay kaydına "Alerjenler güncellendi" yazıyordu; köşkün yalnız L fiyatı adsızdı, listenin gösteremediği daha yeni değişiklik (toplu Tükendi) söylenmiyordu | Alerjen yalnız değişince; "L fiyatı ₺x" / "L boyu kalktı"; altında not | `admin-quick-look` |
+| 🟢 | "Tümünü göster" odaktaki özetini gizleyip klavyeyi düşürüyordu; çekmece kapandıktan sonra gelen yanıt kaybolan bir yığına yazılıyordu; "Fiyatı değiştir" `lg` altında yapışkan çubuğun altına iniyordu | Özet "Daha az göster" olarak satırın sonunda kalır; yanıt panelin yığınına gider; `max-lg:scroll-mt-20` | `admin-quick-look` |
+| 🟡 | Sonuçlar açıkken arama kutusu `invisible`'dı: kapanınca odak `<body>`'ye düşüyordu | `opacity-0`; odak kutuya döner | `admin-palette-core` |
+| 🟡 | `?hafta=9999-12-27` haftası 9999'u aşıp sayfayı düşürüyordu; 0099 1999 okunuyordu | En çok beş yıl öteye; ötesi bu hafta | `admin-karaoke-calendar` |
+| 🟢 | Arama kutusu `lg`'de dokunmatikte 36 px'ti (yatay iPad) | Dokunmatikte 44, farede 36 | `admin-palette-core` |
+| 🟢 | Yana kayan satırlarda (durum sekmeleri, bölüm sekmeleri, parçalı denetim) odak halkası kaydırıcının kenarında kesiliyordu | `data-focus-inset`: halka denetimin içinde | `admin-ui-kit` |
+| 🟢 | Alanlar açıkken araç çubuğunun uç grubu ilk satırda kalıyordu: klavye "Uygula"dan yukarı sıçrıyordu | Uç grup son satırda "Uygula"nın ardında | `admin-saved-views-bar` |
+| 🟢 | Sayfalayıcıda geçerli sayfa gri rayda yalnız beyaz kutuydu (1.1:1) | Alan koyusu çerçeve (3:1) ve birincil mürekkep | `admin-ui-kit` |
+| 🟢 | Takvim: 390 px'te uzun hafta adı oklara sığmıyordu; başka haftaya da "Bu hafta" deniyordu; üstüne gelince koyulaşan blok mürekkebi AA altına düşürüyordu | Telefonda üç harfli ay; "Bu hafta" yalnız bu hafta; gölgeyle kalkar | `admin-karaoke-calendar` |
+| 🟢 | Liste ↔ Takvim geçişi listenin sekmesini ve süzgeçlerini sıfırlıyordu (tarif §3.7) | Takvimin her bağlantısı listenin parametrelerini taşır; yazılan arama çerezinde kalır | `admin-karaoke-calendar` |
+
+**Ölçüm** (23 Eki 2026, `NODE_ENV=production next build`, Turbopack; her
+admin rotasının `rootMainFiles` + `entryJSFiles` dosyaları, gzip -9, UI-14'ün
+yöntemi). #230 öncesi `98c630e`, #231 sonrası `19c881b` ve bu incelemenin dört
+dalı birleşmiş hâli karşılaştırıldı; 76 admin rotası:
+
+| Rota | 98c630e | #231 sonrası | Dört dal sonrası |
+| --- | --- | --- | --- |
+| `/admin` | 212,0 | 212,5 | 212,6 |
+| `/admin/siparisler` | 225,1 | 226,0 | 226,2 |
+| `/admin/siparisler/[id]` | 222,5 | 224,4 | 224,5 |
+| `/admin/kasa` | 215,8 | 216,2 | 216,4 |
+| `/admin/mobil/karaoke` | 217,3 | 218,2 | 218,4 |
+| `/admin/urunler` | 219,8 | 230,6 | 230,7 |
+| `/admin/urunler/[id]` | 219,8 | 228,5 | 228,6 |
+| `/admin/menu` | 225,3 | 228,8 | 228,9 |
+| `/admin/ayarlar` | 229,6 | 231,2 | 231,3 |
+
+- Dört dal hiçbir rotaya 0,2 KB'tan fazla eklemiyor.
+- #231 iki ürün rotası dışında en çok 3,6 KB ekledi. `/admin/urunler`'in
+  10,8 KB'ı modül modül: 6,6 KB lucide (ikon haritası 5,5 + ikon fabrikası
+  1,1; hızlı bakış çekmecesi `AdminIcon`'u istemcide kullanıyor), kalanı
+  çekmecenin kendi kodu. Kütüphane payı 8 KB sınırının altında.
+- React Aria ve tarih paketi hiçbir admin rotasının ilk yüklemesinde yok.
+- `/admin/kasa`'ya kütüphane kodu girmedi.
+
+Açık (bilerek bırakıldı):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Kullanıcılar'ın "Son giriş" sütunu hesap başına bir sorgu atıyor | Bugünkü hesap sayısında önemsiz; tek sorgu (`DISTINCT ON`) bir SQL fonksiyonu ister |
+| 🟢 | `invoice_claim` her çalıştırmada fatura rozetinin önbellek etiketini düşürüyor | Veritabanını uyandırmaz (okuma yalnız panel açıkken); etiket sözleşmesini değiştirmek bayat rozet riski taşır |
+| 🟢 | `AdminIcon`'u kullanan bir istemci bileşeni `ui/icons.tsx`'in bütün ikon haritasını (5,5 KB gz) rotaya getiriyor; 24 admin rotasında var (22'si #230'dan önce) | Kütüphane sınırının altında; ikonları istemcide tek tek almak `ui/icons.tsx`'in "her ikon bir kez adlandırılır" düzenini değiştirir, ayrı iş |

@@ -1690,7 +1690,11 @@ export function ProductWizard({
             // değiştir" opens at the prices (productPriceEditHref).
             id={mode === "tabs" ? productStepAnchor(s.id) : undefined}
             hidden={!visible}
-            className={mode === "tabs" ? "scroll-mt-4" : undefined}
+            // Below lg the top bar is sticky (56 px): the card's title lands
+            // under it without the larger margin (review of #231).
+            className={
+              mode === "tabs" ? "scroll-mt-4 max-lg:scroll-mt-20" : undefined
+            }
           >
             <Card>
               {mode === "tabs" && (

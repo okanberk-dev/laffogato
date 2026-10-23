@@ -141,7 +141,16 @@ export interface InvoiceRow {
   manualReason: string;
   manualCode: string;
   actor: string;
+  /** The last time the runner saw a refund after issue ('' for none). */
   refundNotedAt: string;
+  /**
+   * When a person said that refund's return document was cut ('' for
+   * none); open while refundNotedAt is later (panel-core `refundOpen`).
+   */
+  refundHandledAt: string;
+  refundHandledBy: string;
+  /** The return document's number ('' when cleared from the order). */
+  refundDocNo: string;
   /** consumer | company (the order's invoice wizard). */
   buyerKind: string;
   buyerTitle: string;

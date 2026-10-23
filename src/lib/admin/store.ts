@@ -32,7 +32,11 @@ import {
   karaokeMoneyOf,
   type KaraokeRevenueRow,
 } from "@/lib/admin/karaoke-money";
-import type { PanelOrderSourceRow } from "@/lib/panel/orders-feed-core";
+import {
+  PANEL_ORDER_STALE_MS,
+  panelOrderDueAt,
+  type PanelOrderSourceRow,
+} from "@/lib/panel/orders-feed-core";
 import {
   PANEL_SALES_STATUSES,
   type PanelSalesBookingRow,
@@ -2553,6 +2557,10 @@ function withOrderQuery<Q extends OrderFilterable<Q>>(
   if (query.payment === "paid") out = out.neq("paidAt", "");
   else if (query.payment === "unpaid") out = out.eq("paidAt", "");
   else if (query.payment === "refunded") out = out.neq("refunds", []);
+  // isReportableOrder's own rule, as a filter: what the reports count.
+  else if (query.payment === "counted") {
+    out = out.neq("status", "cancelled").neq("status", "pending_payment");
+  }
   if (query.attention) out = out.neq("attention", "");
   if (query.fromIso) out = out.gte("createdAt", query.fromIso);
   if (query.beforeIso) out = out.lt("createdAt", query.beforeIso);
@@ -6568,30 +6576,39 @@ export function dashboardStockFrom(
 
 /** The open order columns the dashboard reads: no money, no customer. */
 export type DashboardOpenOrder = Pick<AdminOrder, "status"> &
-  Partial<Pick<AdminOrder, "kind" | "paidAt" | "createdAt">>;
+  Partial<Pick<AdminOrder, "kind" | "paidAt" | "createdAt" | "scheduledFor">>;
 
 /**
  * The pure half of the dashboard's open order figures, exported for tests:
- * the count by status and by kind, and when the café order that has waited
- * longest for the bar was paid.
+ * the count by status and by kind, and since when the café order that has
+ * waited longest at the bar has been due. Due is the bar screen's own
+ * rule (`panelOrderDueAt`: the planned time, else the payment): a pre-order
+ * paid at 08:00 for 14:00 does not wait from 08:00, and one not due yet
+ * does not wait at all. One the bar screen has dropped as forgotten (24
+ * hours) does not keep the tile orange for good (review of #231).
  */
 export function dashboardOpenFrom(
   open: readonly DashboardOpenOrder[],
+  now: Date = new Date(),
 ): Pick<
   DashboardStats,
   "openOrderCount" | "openByStatus" | "openByKind" | "oldestCafeWaitingAt"
 > {
   let cafe = 0;
-  let oldest: { at: string; ms: number } | null = null;
+  let oldest: number | null = null;
+  const nowMs = now.getTime();
   for (const o of open) {
     if (orderKind(o) !== "cafe") continue;
     cafe += 1;
     if (o.status !== "paid" && o.status !== "preparing") continue;
-    const at = o.paidAt || o.createdAt || "";
-    const ms = Date.parse(at);
-    if (Number.isFinite(ms) && (!oldest || ms < oldest.ms)) {
-      oldest = { at, ms };
-    }
+    const due =
+      panelOrderDueAt(o) ??
+      (Number.isFinite(Date.parse(o.createdAt ?? ""))
+        ? Date.parse(o.createdAt ?? "")
+        : null);
+    if (due === null || due > nowMs) continue;
+    if (nowMs - due > PANEL_ORDER_STALE_MS) continue;
+    if (oldest === null || due < oldest) oldest = due;
   }
   return {
     openOrderCount: open.length,
@@ -6600,7 +6617,7 @@ export function dashboardOpenFrom(
       count: open.filter((o) => o.status === status).length,
     })),
     openByKind: { cafe, shop: open.length - cafe },
-    oldestCafeWaitingAt: oldest?.at ?? null,
+    oldestCafeWaitingAt: oldest === null ? null : new Date(oldest).toISOString(),
   };
 }
 
@@ -6616,7 +6633,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const [open, attentionOrderCount, products] = await Promise.all([
     sb
       .from(TABLES.orders)
-      .select("status, kind, paidAt, createdAt")
+      .select("status, kind, paidAt, createdAt, scheduledFor")
       .in("status", [...OPEN_ORDER_STATUSES])
       .then((r) => rows<DashboardOpenOrder>(r, `${ctx}.open`)),
     sb
@@ -7979,16 +7996,52 @@ export async function analyticsHeadline(
 export interface AnalyticsCompared {
   current: AnalyticsHeadline;
   /**
-   * The `count` buckets before the period's first: "önceki 30 gün" for
-   * the last 30 days, the 12 weeks before the last 12, and so on.
+   * The `count` buckets before the period's first, cut at the same point
+   * of its last bucket as now is of today's: "önceki 30 gün" for the last
+   * 30 days, the 12 weeks before the last 12, and so on.
    */
   previous: AnalyticsHeadline;
 }
 
 /**
+ * The end of the previous period: now, `count` days, weeks or calendar
+ * months back on the köşk's clock (a 31st is the shorter month's last
+ * day). The current period runs up to now, its last bucket only partly
+ * gone; the previous one has to stop at the same point, or every figure
+ * reads as a fall on a Monday morning or the 1st of a month (review of
+ * #231: "Son 12 hafta" showed a red %8 for flat sales).
+ */
+export function previousPeriodEnd(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): Date {
+  if (granularity === "day") return new Date(now.getTime() - count * DAY_MS);
+  if (granularity === "week") {
+    return new Date(now.getTime() - count * 7 * DAY_MS);
+  }
+  const wall = istanbulWall(now);
+  const target = new Date(
+    Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth() - count, 1),
+  );
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  target.setUTCDate(Math.min(wall.getUTCDate(), lastDay));
+  target.setUTCHours(
+    wall.getUTCHours(),
+    wall.getUTCMinutes(),
+    wall.getUTCSeconds(),
+    wall.getUTCMilliseconds(),
+  );
+  return new Date(target.getTime() - REPORT_TZ_OFFSET_MS);
+}
+
+/**
  * {@link analyticsHeadline} and the period before it, from one read of
  * twice the period: every figure on Raporlar is read against the same
- * stretch of time just before it (Innex, 22 Eki 2026).
+ * stretch of time just before it (Innex, 22 Eki 2026), cut at the same
+ * point ({@link previousPeriodEnd}).
  */
 export async function analyticsHeadlineCompared(
   granularity: BucketGranularity,
@@ -8000,12 +8053,28 @@ export async function analyticsHeadlineCompared(
     "analyticsHeadlineCompared",
     reportPeriodSince(granularity, count * 2, now),
   );
+  return comparedHeadlines(orders, granularity, count, now);
+}
+
+/** The pure half of {@link analyticsHeadlineCompared}, exported for tests. */
+export function comparedHeadlines(
+  orders: readonly RevenueOrder[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): AnalyticsCompared {
   const inCurrent = reportPeriodFilter(granularity, count, now);
   const inBoth = reportPeriodFilter(granularity, count * 2, now);
+  const end = previousPeriodEnd(granularity, count, now).getTime();
   return {
     current: headlineFrom(orders.filter((o) => inCurrent(o.createdAt))),
     previous: headlineFrom(
-      orders.filter((o) => inBoth(o.createdAt) && !inCurrent(o.createdAt)),
+      orders.filter(
+        (o) =>
+          inBoth(o.createdAt) &&
+          !inCurrent(o.createdAt) &&
+          Date.parse(o.createdAt) <= end,
+      ),
     ),
   };
 }

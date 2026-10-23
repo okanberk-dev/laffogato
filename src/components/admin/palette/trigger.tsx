@@ -292,8 +292,13 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
           "group/search grid shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-150 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] max-lg:size-11 max-lg:pointer-fine:size-9",
           // From `lg` a real search field, Innex's: a pale box with the
           // magnifier and the words, the results open from it.
-          "lg:flex lg:h-9 lg:w-72 lg:justify-start lg:gap-2 lg:bg-[var(--admin-surface-2)] lg:px-3 lg:text-[var(--admin-text-mute)] lg:hover:bg-[var(--admin-surface)] xl:w-96",
-          open && "lg:invisible",
+          // 44 px on touch (an iPad in landscape is `lg` too), 36 with a
+          // mouse.
+          "lg:flex lg:h-11 lg:w-72 lg:justify-start lg:gap-2 lg:bg-[var(--admin-surface-2)] lg:px-3 lg:text-[var(--admin-text-mute)] lg:hover:bg-[var(--admin-surface)] xl:w-96 lg:pointer-fine:h-9",
+          // Under the open results, transparent, never `invisible`: a
+          // hidden field cannot take the focus back when they close, and
+          // it fell to <body> (review of #231).
+          open && "lg:opacity-0",
         )}
       >
         <SearchIcon />

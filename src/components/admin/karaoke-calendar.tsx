@@ -7,6 +7,8 @@ import {
   nowOffset,
   weekDays,
   weekLabel,
+  weekLabelShort,
+  weekStart,
 } from "@/lib/admin/karaoke-calendar-core";
 import {
   karaokeDetailHref,
@@ -83,7 +85,7 @@ export function KaraokeWeekCalendar({
   return (
     <section aria-label={`Hafta: ${weekLabel(monday)}`} className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)]">
             <Link
               href={prevHref}
@@ -97,7 +99,10 @@ export function KaraokeWeekCalendar({
               className="border-x border-[var(--admin-border)] px-3 text-sm font-medium whitespace-nowrap text-[var(--admin-text)]"
               style={NUMERIC_STYLE}
             >
-              {weekLabel(monday)}
+              {/* Three-letter months on a phone: the long label did not
+                  fit beside the arrows at 390 px (review of #231). */}
+              <span className="sm:hidden">{weekLabelShort(monday)}</span>
+              <span className="hidden sm:inline">{weekLabel(monday)}</span>
             </span>
             <Link
               href={nextHref}
@@ -118,9 +123,15 @@ export function KaraokeWeekCalendar({
           ) : null}
         </div>
         <p className="text-[13px] text-[var(--admin-text-mute)]">
-          {total > 0
-            ? `Bu hafta ${total} rezervasyon`
-            : "Bu hafta rezervasyon yok"}
+          {/* "Bu hafta" only for this week: another week's count stands
+              beside its own label (review of #231). */}
+          {monday === weekStart(today)
+            ? total > 0
+              ? `Bu hafta ${total} rezervasyon`
+              : "Bu hafta rezervasyon yok"
+            : total > 0
+              ? `${total} rezervasyon`
+              : "Rezervasyon yok"}
           <span className="hidden sm:inline">
             {" "}
             · iptaller takvimde yok, listede
@@ -208,7 +219,11 @@ export function KaraokeWeekCalendar({
                         <Link
                           href={karaokeDetailHref(v.r.id, back)}
                           className={cx(
-                            "flex h-full min-w-0 flex-col overflow-hidden rounded-md border-l-2 px-2 py-1 text-xs transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/50 focus-visible:outline-none",
+                            // A lift on hover, not a darker fill: the
+                            // tone inks are AA on their fill as drawn
+                            // (review of #231: brightness and opacity
+                            // took them under 4.5:1).
+                            "flex h-full min-w-0 flex-col overflow-hidden rounded-md border-l-2 px-2 py-1 text-xs transition-shadow hover:shadow-[0_1px_4px_rgba(12,14,27,0.18)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/50 focus-visible:outline-none",
                             TONE_SOFT[tone],
                             TONE_RULE[tone],
                           )}
@@ -220,7 +235,7 @@ export function KaraokeWeekCalendar({
                             {v.r.customerName || "İsimsiz"}
                           </span>
                           {v.r.hours > 1 ? (
-                            <span className="truncate opacity-90">
+                            <span className="truncate">
                               {v.r.guests} kişi · {v.paymentLabel}
                             </span>
                           ) : (

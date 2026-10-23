@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import { withParams, type SearchParamsInput } from "@/lib/admin/list-params";
 
 /** One tab of a record's page: its words, an optional count, its sections. */
 export interface DetailTab {
@@ -38,6 +39,7 @@ export function DetailTabs({
   label,
   initial,
   param = "sekme",
+  query,
 }: {
   tabs: readonly DetailTab[];
   /** The tab row's accessible name ("Sipariş ayrıntıları"). */
@@ -45,6 +47,12 @@ export function DetailTabs({
   /** The tab the server drew (pickDetailTab); the first without. */
   initial?: string;
   param?: string;
+  /**
+   * The page's address, so a tab's link keeps its other params (a
+   * booking's way back, `geri`) when opened without JavaScript, in a new
+   * tab or before hydration.
+   */
+  query?: SearchParamsInput;
 }) {
   const baseId = useId();
   const [active, setActive] = useState(initial ?? tabs[0]?.id ?? "");
@@ -58,16 +66,26 @@ export function DetailTabs({
     const url = new URL(window.location.href);
     url.searchParams.set(param, id);
     url.hash = "";
-    window.history.replaceState(window.history.state, "", url);
+    // `null`, as Next's docs write it: Next's own history state marks the
+    // call as the router's, which then keeps the old address and puts it
+    // back on the next server action (review of #231).
+    window.history.replaceState(null, "", url);
   };
 
   // An anchor in the address opens the tab that holds it, on load and when
   // a link on the page changes it.
   useEffect(() => {
     const openFromHash = () => {
-      const hash = window.location.hash.slice(1);
-      if (!hash) return;
-      const target = document.getElementById(decodeURIComponent(hash));
+      const raw = window.location.hash.slice(1);
+      if (!raw) return;
+      // A malformed escape (`#%E0`) is read as written, never thrown.
+      let hash = raw;
+      try {
+        hash = decodeURIComponent(raw);
+      } catch {
+        // keep the raw anchor
+      }
+      const target = document.getElementById(hash);
       const panel = target?.closest<HTMLElement>("[data-detail-panel]");
       const id = panel?.dataset.detailPanel;
       if (!id) return;
@@ -121,7 +139,7 @@ export function DetailTabs({
               }}
               role="tab"
               id={tabId(tab.id)}
-              href={`?${param}=${encodeURIComponent(tab.id)}`}
+              href={withParams(query, { [param]: tab.id })}
               aria-selected={current}
               aria-controls={panelId(tab.id)}
               tabIndex={current ? 0 : -1}

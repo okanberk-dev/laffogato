@@ -26,6 +26,7 @@ import {
 } from "@/components/admin/ui";
 import { DetailLayout } from "@/components/admin/ui/detail-layout";
 import { DetailTabs, type DetailTab } from "@/components/admin/ui/detail-tabs";
+import { pickDetailTab } from "@/components/admin/ui/detail-tabs-core";
 import { CARD_TITLE, MONO_STYLE } from "@/components/admin/ui/styles";
 import {
   SummaryCard,
@@ -75,6 +76,8 @@ export const metadata = { title: "Admin · Müşteri" };
 
 interface PageProps {
   params: Promise<{ email: string }>;
+  /** `?sekme=`: the tab the server draws (Sadakat, Profil…). */
+  searchParams?: Promise<{ sekme?: string | string[] }>;
 }
 
 /** `invites.status` in the member's own words. */
@@ -130,10 +133,14 @@ function customerHref(email: string): string {
   return `/admin/musteriler/${encodeURIComponent(email)}`;
 }
 
-export default async function CustomerDetailPage({ params }: PageProps) {
+export default async function CustomerDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const session = await requireRole("customers");
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
+  const { sekme } = (await searchParams) ?? {};
 
   const [
     member,
@@ -645,7 +652,19 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               facts={facts}
             />
           }
-          tabs={<DetailTabs label="Müşteri ayrıntıları" tabs={tabs} />}
+          tabs={
+            // The asked-for tab is drawn by the server, as on an order and
+            // a booking (review of #231: a reload, a link or a save's
+            // redirect back to Profil landed on Siparişler).
+            <DetailTabs
+              label="Müşteri ayrıntıları"
+              tabs={tabs}
+              initial={pickDetailTab(
+                tabs.map((t) => ({ id: t.id })),
+                sekme,
+              )}
+            />
+          }
           asideLabel="Hesap"
           asideSplit={false}
           aside={

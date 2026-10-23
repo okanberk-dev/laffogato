@@ -97,8 +97,11 @@ export function Pagination({
                   aria-label={`Sayfa ${n}`}
                   className={cx(
                     CELL,
+                    // The current page by more than a white box on the
+                    // grey rail (1.1:1): a field-dark outline (3:1) and
+                    // the primary ink, semibold (review of #231).
                     n === current
-                      ? "bg-[var(--admin-surface)] text-[var(--admin-text)] shadow-[0_1px_2px_rgba(12,14,27,0.08)]"
+                      ? "bg-[var(--admin-surface)] font-semibold text-[var(--admin-primary)] shadow-[0_1px_2px_rgba(12,14,27,0.08)] ring-1 ring-[var(--admin-border-field)] ring-inset"
                       : "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)]",
                   )}
                   style={MONO_STYLE}

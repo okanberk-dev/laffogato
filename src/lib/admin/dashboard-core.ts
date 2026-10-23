@@ -2,6 +2,7 @@
 // lead, per role. Pure, so the role rules and the köşk's clock are tested
 // without rendering the page.
 
+import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import { canAccess, type AdminRole } from "./roles";
@@ -236,7 +237,8 @@ export function dashboardTiles(
         value: String(r.todayOrders),
         reference: `Geçen ${weekday} bu saate kadar ${r.lastWeekOrders}`,
         delta: dashboardDelta(r.todayOrders, r.lastWeekOrders, "count"),
-        href: `/admin/siparisler?odeme=odendi&bas=${day}&bit=${day}`,
+        // The orders it counts: a paid order cancelled since is not one.
+        href: `/admin/siparisler?odeme=sayilan&bas=${day}&bit=${day}`,
       });
     }
   }
@@ -293,6 +295,31 @@ export interface OccupancySlot {
   startHour: number;
   hours: number;
   status: string;
+  /** For a no-show (heldTheRoom): the evening, its money and last write. */
+  date?: string;
+  paymentStatus?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Whether a booking held the room's hours: every one not cancelled, and a
+ * pay-at-venue booking written down as cancelled once its evening was over
+ * (Gün sonu's no-show, karar D7): the guest did not come, but nobody else
+ * could have had the room. Without it, last week's no-shows dropped out of
+ * the comparison while today's same bookings still counted (review of
+ * #231).
+ */
+export function heldTheRoom(r: OccupancySlot): boolean {
+  if (r.status !== "cancelled") return true;
+  if ((r.paymentStatus || "none") !== "none") return false;
+  if (!r.date || !r.updatedAt) return false;
+  const end = karaokeEndInstant({
+    date: r.date,
+    startHour: r.startHour,
+    hours: r.hours,
+  }).getTime();
+  const written = Date.parse(r.updatedAt);
+  return Number.isFinite(end) && Number.isFinite(written) && written >= end;
 }
 
 /** How full the karaoke room is on a day. */
@@ -307,9 +334,10 @@ export interface KaraokeOccupancy {
 
 /**
  * The share of the karaoke room's hours a day's bookings hold (Innex's
- * "Karaoke doluluğu %70 · geçen cuma %55", recipe §3.5): every booking not
- * cancelled holds its hours (an unpaid request too, the hour is not on
- * sale), counted inside the room's opening hours only, over those hours.
+ * "Karaoke doluluğu %70 · geçen cuma %55", recipe §3.5): every booking that
+ * held the room ({@link heldTheRoom}: not cancelled, an unpaid request too,
+ * the hour is not on sale, or a no-show) counts its hours, inside the
+ * room's opening hours only, over those hours.
  */
 export function karaokeOccupancy(
   rows: readonly OccupancySlot[],
@@ -318,7 +346,7 @@ export function karaokeOccupancy(
   const capacity = Math.max(0, rules.closeHour - rules.firstHour);
   let hours = 0;
   for (const r of rows) {
-    if (r.status === "cancelled") continue;
+    if (!heldTheRoom(r)) continue;
     const from = Math.max(rules.firstHour, r.startHour);
     const to = Math.min(rules.closeHour, r.startHour + r.hours);
     hours += Math.max(0, to - from);

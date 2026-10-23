@@ -54,10 +54,28 @@ describe("the week", () => {
     );
   });
 
+  it("goes at most five years either way (review of #231)", () => {
+    // 9999-12-27's week ran past 9999 and threw; 0099 read as 1999.
+    for (const far of [
+      "9999-12-27",
+      "0099-06-01",
+      "2032-01-05",
+      "2020-12-31",
+    ]) {
+      expect(core.parseWeekParam(far, "2026-10-23"), far).toBe("2026-10-19");
+    }
+    expect(core.parseWeekParam("2031-12-31", "2026-10-23")).toBe("2031-12-29");
+    expect(core.parseWeekParam("2021-01-04", "2026-10-23")).toBe("2021-01-04");
+  });
+
   it("names the week across a month and a year", () => {
     expect(core.weekLabel("2026-10-19")).toBe("19 - 25 Ekim 2026");
     expect(core.weekLabel("2026-10-26")).toBe("26 Ekim - 1 Kasım 2026");
     expect(core.weekLabel("2026-12-28")).toBe("28 Aralık 2026 - 3 Ocak 2027");
+    // A phone's: three-letter months, the same shape.
+    expect(core.weekLabelShort("2026-10-19")).toBe("19 - 25 Eki 2026");
+    expect(core.weekLabelShort("2026-10-26")).toBe("26 Eki - 1 Kas 2026");
+    expect(core.weekLabelShort("2026-12-28")).toBe("28 Ara 2026 - 3 Oca 2027");
     expect(core.dayHead("2026-10-23")).toEqual({
       short: "Cum",
       long: "Cuma",
@@ -83,6 +101,70 @@ describe("the week", () => {
     expect(core.karaokeCalendarHref("2026-10-26")).toBe(
       "/admin/mobil/karaoke?gorunum=takvim&hafta=2026-10-26",
     );
+  });
+});
+
+describe("the list's state across the two views (recipe §3.7)", () => {
+  const listed = {
+    sekme: "dikkat",
+    odeme: "paid",
+    bas: "2026-11-02",
+    bit: "2026-11-08",
+    sirala: "date",
+    yon: "asc",
+    sayfa: "2",
+  };
+
+  it("keeps the list's own params and nothing else", () => {
+    const kept = core.karaokeListParams({
+      ...listed,
+      // The typed search lives in its cookie, never in an address; the
+      // calendar's own params and anything else written by hand go.
+      q: "ayse@example.com",
+      gorunum: "takvim",
+      hafta: "2026-11-02",
+      denied: "1",
+      utm: "x",
+    });
+    expect(Object.fromEntries(kept)).toEqual(listed);
+    // A repeated name keeps its first value, as the list reads it.
+    expect(
+      core
+        .karaokeListParams(new URLSearchParams("sekme=iptal&sekme=dikkat"))
+        .getAll("sekme"),
+    ).toEqual(["iptal"]);
+  });
+
+  it("the calendar carries it on, and the list gets it back", () => {
+    const calendar = core.karaokeCalendarHref("2026-11-02", listed);
+    expect(calendar).toBe(
+      "/admin/mobil/karaoke?gorunum=takvim&hafta=2026-11-02&sekme=dikkat&odeme=paid&bas=2026-11-02&bit=2026-11-08&sirala=date&yon=asc&sayfa=2",
+    );
+    const back = core.karaokeListHref(
+      new URL(calendar, "https://x").searchParams,
+    );
+    expect(back).toBe(
+      "/admin/mobil/karaoke?sekme=dikkat&odeme=paid&bas=2026-11-02&bit=2026-11-08&sirala=date&yon=asc&sayfa=2",
+    );
+    expect(core.karaokeListHref({ gorunum: "takvim" })).toBe(
+      "/admin/mobil/karaoke",
+    );
+  });
+
+  it("every link of the page passes it", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync("src/app/admin/mobil/karaoke/page.tsx", "utf8");
+    // The list's switch reads the list's address; the calendar's every link
+    // (the switch, the weeks, a booking's way back, Dikkat) its own.
+    expect(page).toMatch(/<ViewSwitch\s+calendar=\{false\}\s+list=\{sp\}/);
+    expect(page).toContain("<ViewSwitch calendar list={params} />");
+    expect(page).toContain("karaokeCalendarHref(addDays(monday, -7), params)");
+    expect(page).toContain("karaokeCalendarHref(addDays(monday, 7), params)");
+    expect(page).toContain("karaokeCalendarHref(undefined, params)");
+    expect(page).toMatch(
+      /const here = karaokeCalendarHref\(\s*monday === thisWeek \? undefined : monday,\s*params,\s*\)/,
+    );
+    expect(page).toContain("karaokeListParams(params),");
   });
 });
 
@@ -152,6 +234,45 @@ describe("the calendar", () => {
     expect(html).toContain("/admin/mobil/karaoke/a");
     expect(html).not.toContain("/admin/mobil/karaoke/b");
     expect(html).toContain("Bu hafta 2 rezervasyon");
+  });
+
+  it("a phone gets the short label, a wider screen the long one", () => {
+    expect(html).toContain('<span class="sm:hidden">19 - 25 Eki 2026</span>');
+    expect(html).toContain(
+      '<span class="hidden sm:inline">19 - 25 Ekim 2026</span>',
+    );
+  });
+
+  it('says "Bu hafta" only of this week', () => {
+    const other = (views: KaraokeRowView[]) =>
+      renderToStaticMarkup(
+        createElement(KaraokeWeekCalendar, {
+          monday: "2026-10-26",
+          today: "2026-10-23",
+          clock: { hour: 18, minute: 0 },
+          views,
+          prevHref: "/p",
+          nextHref: "/n",
+          thisWeekHref: "/t",
+          back: "/admin/mobil/karaoke?gorunum=takvim",
+        }),
+      );
+    // The count beside the label ("Bu hafta" is also the link back).
+    const count = (markup: string) =>
+      /<p class="text-\[13px\][^"]*">([^<]*)/.exec(markup)?.[1];
+    expect(count(html)).toBe("Bu hafta 2 rezervasyon");
+    expect(
+      count(
+        other([view({ id: "d", date: "2026-10-27", startHour: 20, hours: 1 })]),
+      ),
+    ).toBe("1 rezervasyon");
+    expect(count(other([]))).toBe("Rezervasyon yok");
+  });
+
+  it("lifts a booking on hover and keeps its ink as drawn (AA)", () => {
+    expect(html).toContain("hover:shadow-[0_1px_4px_rgba(12,14,27,0.18)]");
+    expect(html).not.toContain("brightness");
+    expect(html).not.toContain("opacity-90");
   });
 
   it("colours a booking by its money, leads back to the calendar and marks today", () => {

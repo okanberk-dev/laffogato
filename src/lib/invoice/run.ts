@@ -271,9 +271,35 @@ function changed(row: InvoiceRow, patch: InvoicePatch): boolean {
 }
 
 /**
+ * A source's refunds as the sync reads them: whether one counts as made
+ * after the invoice, and when the newest was recorded ("" when unknown).
+ */
+interface SourceRefund {
+  after: boolean;
+  at: string;
+}
+
+/**
+ * The latest of these times as ISO, "" for none readable: an odd stored
+ * value must not read as newer than every noting and note it on each run.
+ */
+function latestIso(times: ReadonlyArray<string | null | undefined>): string {
+  let latest = "";
+  for (const t of times) {
+    const ms = Date.parse(t ?? "");
+    if (!Number.isFinite(ms)) continue;
+    const iso = new Date(ms).toISOString();
+    if (iso > latest) latest = iso;
+  }
+  return latest;
+}
+
+/**
  * Brings one source's row in line with its plan. Only rows nothing has
  * been formalised for are re-planned; an issued row only learns of a refund
- * made after it (the flag on the order, the warning on the invoice).
+ * made after it (the flag on the order, the warning on the invoice): once,
+ * and again for a refund recorded after the last noting, so a refund a
+ * person marked handled (refundHandledAt) opens again on a later one.
  */
 async function syncRow(
   ctx: Ctx,
@@ -281,7 +307,7 @@ async function syncRow(
   sourceId: string,
   plan: InvoicePlan | null,
   row: InvoiceRow | undefined,
-  refundAfterIssue: boolean,
+  refund: SourceRefund,
   summary: RunSummary,
 ): Promise<void> {
   const { store } = ctx.deps;
@@ -296,7 +322,8 @@ async function syncRow(
     return;
   }
   if (row.status === "issued") {
-    if (refundAfterIssue && !row.refundNotedAt) {
+    const newer = refund.at !== "" && refund.at > row.refundNotedAt;
+    if (refund.after && (!row.refundNotedAt || newer)) {
       if (await store.updateRow(row, { refundNotedAt: now, updatedAt: now })) {
         summary.updated += 1;
         if (kind === "order") await store.flagOrderRefund(sourceId);
@@ -412,10 +439,14 @@ export async function syncInvoices(
     for (const order of orders) {
       const row = byId.get(order.id);
       const plan = await orderPlan(ctx, order, payments, coupons, row);
-      const refunded = (order.refunds ?? []).some(
+      const refunds = (order.refunds ?? []).filter(
         (r) => Number(r.amountMinor) > 0,
       );
-      await syncRow(ctx, "order", order.id, plan, row, refunded, summary);
+      const refund = {
+        after: refunds.length > 0,
+        at: latestIso(refunds.map((r) => r.createdAt)),
+      };
+      await syncRow(ctx, "order", order.id, plan, row, refund, summary);
     }
   }
   if (only?.orderId) return;
@@ -457,7 +488,7 @@ export async function syncInvoices(
         booking.id,
         plan,
         row,
-        refundAfter,
+        { after: refundAfter, at: latestIso([booking.refundedAt]) },
         summary,
       );
     }

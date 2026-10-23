@@ -4,7 +4,19 @@
 
 import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
 
-import { KARAOKE_PANEL_PATH } from "./karaoke-panel";
+import {
+  KARAOKE_FILTER_FIELDS,
+  KARAOKE_PANEL_PATH,
+  KARAOKE_TAB_PARAM,
+} from "./karaoke-panel";
+import {
+  DEFAULT_DIR_PARAM,
+  DEFAULT_PAGE_PARAM,
+  DEFAULT_SORT_PARAM,
+  filterParamNames,
+  toSearchParams,
+  type SearchParamsInput,
+} from "./list-params";
 
 /** `?gorunum=takvim`: the karaoke page's calendar. */
 export const KARAOKE_VIEW_PARAM = "gorunum";
@@ -37,9 +49,14 @@ export function weekStart(day: string): string {
   return addDays(day, -back);
 }
 
+/** How far `?hafta=` may go from this year, either way. */
+const WEEK_YEARS_AROUND = 5;
+
 /**
  * The week the address asks for (`?hafta=`, any day of it), else this
- * week. A malformed or impossible date falls back to this week.
+ * week. A malformed or impossible date falls back to this week, and so
+ * does one more than five years away: 9999-12-27's week ran past 9999 and
+ * threw, a year before 100 read as 19xx (review of #231).
  */
 export function parseWeekParam(
   value: string | string[] | undefined,
@@ -47,7 +64,8 @@ export function parseWeekParam(
 ): string {
   const raw = Array.isArray(value) ? value[0] : value;
   if (raw && DAY_RE.test(raw) && isoDay(toUtc(raw)) === raw) {
-    return weekStart(raw);
+    const years = Math.abs(Number(raw.slice(0, 4)) - Number(today.slice(0, 4)));
+    if (years <= WEEK_YEARS_AROUND) return weekStart(raw);
   }
   return weekStart(today);
 }
@@ -88,6 +106,25 @@ export function weekLabel(monday: string): string {
   const b = toUtc(addDays(monday, 6));
   const am = MONTHS[a.getUTCMonth()];
   const bm = MONTHS[b.getUTCMonth()];
+  if (a.getUTCFullYear() !== b.getUTCFullYear()) {
+    return `${a.getUTCDate()} ${am} ${a.getUTCFullYear()} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
+  }
+  if (am !== bm) {
+    return `${a.getUTCDate()} ${am} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
+  }
+  return `${a.getUTCDate()} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
+}
+
+/**
+ * weekLabel with three-letter months, for a phone: "28 Aralık 2026 - 3
+ * Ocak 2027" needs 377 px with the arrows, more than a 390 px screen has
+ * (review of #231).
+ */
+export function weekLabelShort(monday: string): string {
+  const a = toUtc(monday);
+  const b = toUtc(addDays(monday, 6));
+  const am = MONTHS[a.getUTCMonth()].slice(0, 3);
+  const bm = MONTHS[b.getUTCMonth()].slice(0, 3);
   if (a.getUTCFullYear() !== b.getUTCFullYear()) {
     return `${a.getUTCDate()} ${am} ${a.getUTCFullYear()} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
   }
@@ -139,12 +176,49 @@ export function calendarHours(
   return { first: Math.max(0, first), close: Math.min(24, close) };
 }
 
-/** The calendar's address for a week (and the list's, without one). */
-export function karaokeCalendarHref(monday?: string): string {
+/**
+ * The list's own params: its tab, its filters, its sort and its page. The
+ * typed search is not one: it lives in its cookie, never in an address
+ * (list-search-core.ts).
+ */
+const LIST_PARAMS: ReadonlySet<string> = new Set([
+  KARAOKE_TAB_PARAM,
+  ...filterParamNames(KARAOKE_FILTER_FIELDS.filter((f) => f.type !== "search")),
+  DEFAULT_SORT_PARAM,
+  DEFAULT_DIR_PARAM,
+  DEFAULT_PAGE_PARAM,
+]);
+
+/**
+ * The list's state out of an address, the list's or the calendar's: the
+ * calendar carries it on every link, so "Liste" returns to the list as it
+ * was left (recipe §3.7, 23 Eki 2026). Only the list's own names; a
+ * repeated one keeps its first value, as the list reads it.
+ */
+export function karaokeListParams(address: SearchParamsInput): URLSearchParams {
+  const out = new URLSearchParams();
+  for (const [key, value] of toSearchParams(address)) {
+    if (LIST_PARAMS.has(key) && !out.has(key)) out.set(key, value);
+  }
+  return out;
+}
+
+/** The list's address with the state `list` carries. */
+export function karaokeListHref(list?: SearchParamsInput): string {
+  const query = karaokeListParams(list).toString();
+  return query ? `${KARAOKE_PANEL_PATH}?${query}` : KARAOKE_PANEL_PATH;
+}
+
+/** The calendar's address for a week, carrying the list's state. */
+export function karaokeCalendarHref(
+  monday?: string,
+  list?: SearchParamsInput,
+): string {
   const params = new URLSearchParams({
     [KARAOKE_VIEW_PARAM]: KARAOKE_CALENDAR_VIEW,
   });
   if (monday) params.set(KARAOKE_WEEK_PARAM, monday);
+  for (const [key, value] of karaokeListParams(list)) params.set(key, value);
   return `${KARAOKE_PANEL_PATH}?${params.toString()}`;
 }
 

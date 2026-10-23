@@ -37,6 +37,7 @@ import { listKaraokeAudit } from "@/lib/admin/karaoke-audit";
 import {
   channelLabel,
   KARAOKE_BACK_PARAM,
+  KARAOKE_PANEL_PATH,
   karaokeBackHref,
   karaokeBillableMinor,
   karaokeDetailHref,
@@ -738,12 +739,25 @@ export default async function KaraokeReservationPage({
             <DetailTabs
               label="Rezervasyon ayrıntıları"
               tabs={tabs}
+              // A tab's link keeps the way back to the filtered list: the
+              // checked one (KAR-20), never the address's raw `geri`.
+              query={
+                back === KARAOKE_PANEL_PATH
+                  ? undefined
+                  : { [KARAOKE_BACK_PARAM]: back }
+              }
               // Money owed back opens on the payment: the notice above
-              // says what, the tab has the amounts.
+              // says what, the tab has the amounts. So does a hold let go
+              // without the POS's answer (rule 29): its only instruction,
+              // "check PayNkolay and refund there", is on that tab (review
+              // of #231: it opened on Rezervasyon, the instruction hidden).
               initial={pickDetailTab(
                 tabs.map((t) => ({ id: t.id })),
                 sp.sekme,
-                view.refundOwed || view.makeGood === "open"
+                view.refundOwed ||
+                  view.makeGood === "open" ||
+                  releaseUnknown ||
+                  (view.money === "expired" && unverified.has(r.id))
                   ? "odeme"
                   : undefined,
               )}

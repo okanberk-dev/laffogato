@@ -86,6 +86,20 @@ export function normalizeMenuAllergens(raw: unknown): MenuAllergen[] | null {
   return MENU_ALLERGEN_KEYS.filter((k) => present.has(k));
 }
 
+/**
+ * Whether two stored or posted values say the same thing: the same groups
+ * in any order, or both "not entered". "Not entered" and "none" differ.
+ * The edit form always posts its allergens: the audit trail writes them
+ * only when they changed (review of #231: every save read "Alerjenler
+ * güncellendi", a false trail for information the law requires).
+ */
+export function sameMenuAllergens(a: unknown, b: unknown): boolean {
+  const x = normalizeMenuAllergens(a);
+  const y = normalizeMenuAllergens(b);
+  if (x === null || y === null) return x === y;
+  return x.length === y.length && x.every((k, i) => k === y[i]);
+}
+
 /** The groups as words for a sentence ("gluten, süt"), or null. */
 export function menuAllergenWords(raw: unknown): string[] | null {
   const keys = normalizeMenuAllergens(raw);

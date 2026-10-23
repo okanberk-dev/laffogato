@@ -48,6 +48,7 @@ import {
   invoiceWizardHref,
   invoiceWizardOpen,
   parseInvoiceTab,
+  refundOpen,
 } from "@/lib/invoice/panel-core";
 import type { RunSummary } from "@/lib/invoice/run";
 import {
@@ -80,7 +81,10 @@ function Status({ row, now }: { row: InvoiceRow; now: Date }) {
         {invoiceStatusLabel(row)}
       </Badge>
       {deadline ? <Badge tone={deadline.tone}>{deadline.label}</Badge> : null}
-      {row.refundNotedAt ? <Badge tone="danger">İade</Badge> : null}
+      {/* A refund after issue: red until its return document is cut. */}
+      {row.refundNotedAt ? (
+        <Badge tone={refundOpen(row) ? "danger" : "neutral"}>İade</Badge>
+      ) : null}
     </span>
   );
 }

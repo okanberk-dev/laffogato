@@ -1123,6 +1123,62 @@ describe("after the invoice", () => {
     expect(store.flagged).toEqual(["ord-1"]);
     expect(parasut.posts.length).toBe(calls);
     expect(parasut.deletes).toEqual([]);
+    // An unreadable refund time is noted once, never on every run.
+    clock += 60_000;
+    await run();
+    expect(store.flagged).toEqual(["ord-1"]);
+  });
+
+  it("a refund marked handled stays closed; a later one is noted again", async () => {
+    await run();
+    const order = store.orders.get("ord-1")!;
+    const refundAt = (ms: number) => new Date(ms).toISOString();
+    store.orders.set("ord-1", {
+      ...order,
+      refunds: [
+        {
+          id: "r1",
+          amountMinor: 3_000,
+          reason: "x",
+          createdAt: refundAt(clock - 1_000),
+        },
+      ],
+    });
+    await run();
+    const noted = store.row().refundNotedAt;
+    expect(noted).not.toBe("");
+    // A person cut the return document (markInvoiceRefundHandled).
+    clock += 60_000;
+    const handled = new Date(clock).toISOString();
+    const id = store.row().id;
+    store.rows.set(id, { ...store.row(), refundHandledAt: handled });
+    clock += 60_000;
+    await run();
+    expect(store.row().refundNotedAt).toBe(noted);
+    expect(
+      (await import("@/lib/invoice/panel-core")).refundOpen(store.row()),
+    ).toBe(false);
+    // A second refund, recorded after the handling: open again.
+    clock += 60_000;
+    store.orders.set("ord-1", {
+      ...store.orders.get("ord-1")!,
+      refunds: [
+        ...(store.orders.get("ord-1")!.refunds ?? []),
+        {
+          id: "r2",
+          amountMinor: 2_000,
+          reason: "y",
+          createdAt: refundAt(clock),
+        },
+      ],
+    });
+    clock += 1_000;
+    await run();
+    expect(store.row().refundNotedAt > handled).toBe(true);
+    expect(
+      (await import("@/lib/invoice/panel-core")).refundOpen(store.row()),
+    ).toBe(true);
+    expect(store.flagged).toEqual(["ord-1", "ord-1"]);
   });
 
   it("deletes a draft for an order cancelled before it was formalised", async () => {

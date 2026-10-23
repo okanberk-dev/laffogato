@@ -307,6 +307,32 @@ describe("the booking's page", () => {
     expect(page).toContain("denetlenemedi");
   });
 
+  it("such a hold opens on Ödeme, where its instruction is (review of #231)", async () => {
+    h.reservation = booking({
+      status: "cancelled",
+      paymentStatus: "expired",
+      paidMinor: 0,
+      paidAt: "",
+      paymentRef: "",
+    });
+    h.audit = new Error("audit down");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const page = await detail();
+    spy.mockRestore();
+    expect(page).toMatch(/id="[^"]*-tab-odeme"[^>]*aria-selected="true"/);
+  });
+
+  it("its tabs keep the checked way back, never a rejected one (review of #231)", async () => {
+    const from = "/admin/mobil/karaoke?sekme=dikkat";
+    expect(await detail("krk-00042", { geri: from })).toContain(
+      `href="?geri=${encodeURIComponent(from)}&amp;sekme=odeme"`,
+    );
+    const evil = await detail("krk-00042", {
+      geri: "https://evil.example/admin/mobil/karaoke",
+    });
+    expect(evil).toContain('href="?sekme=odeme"');
+  });
+
   it("goes back to the list it was opened from, and only to that list (KAR-20)", async () => {
     const from = "/admin/mobil/karaoke?sekme=dikkat&q=eda";
     expect(await detail("krk-00042", { geri: from })).toContain(

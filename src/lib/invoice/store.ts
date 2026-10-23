@@ -17,6 +17,7 @@ import type {
   InvoiceSourceKind,
   InvoiceStatus,
 } from "./invoice-core";
+import { refundOpen } from "./panel-core";
 import type { TokenStore } from "./parasut-client";
 
 /**
@@ -104,6 +105,9 @@ export function blankInvoice(
     manualCode: "",
     actor: "",
     refundNotedAt: "",
+    refundHandledAt: "",
+    refundHandledBy: "",
+    refundDocNo: "",
     buyerKind: "consumer",
     buyerTitle: "",
     buyerTaxNumber: "",
@@ -486,8 +490,13 @@ export async function listInvoices(limit = 500): Promise<InvoiceRow[]> {
 }
 
 /**
- * Rows that need a person, for the dashboard: open rows (deadline badges
- * read them) and every issued row with a refund after it.
+ * Rows that might need a person, for the dashboard and the sidebar badge:
+ * open rows (deadline badges read them), the issued rows with a refund
+ * after them (the newest first: a handled one stays in the table) and the
+ * issued rows whose PDF mail failed. `needsAttention` decides; this only
+ * has to hand it every row the Faturalar "Dikkat" tab would count (review
+ * of #231: the mail rows were missing, so the badge said 0 while Dikkat
+ * listed them). Each row once.
  */
 export async function listAttentionInvoices(): Promise<InvoiceRow[]> {
   const open = await dbInvoiceStore.openRows();
@@ -497,10 +506,27 @@ export async function listAttentionInvoices(): Promise<InvoiceRow[]> {
       .select("*")
       .eq("status", "issued")
       .neq("refundNotedAt", "")
+      .order("refundNotedAt", { ascending: false })
       .limit(200),
     "invoice.refundedAfterIssue",
   ).map(invoiceFromDb);
-  return [...open, ...refunded];
+  const unmailed = rowsOf<Record<string, unknown>>(
+    await getDb()
+      .from(TABLES.invoices)
+      .select("*")
+      .eq("status", "issued")
+      .eq("emailedAt", "")
+      .neq("emailError", "")
+      .order("issuedAt", { ascending: false })
+      .limit(200),
+    "invoice.mailFailed",
+  ).map(invoiceFromDb);
+  const seen = new Set<string>();
+  return [...open, ...refunded, ...unmailed].filter((row) => {
+    if (seen.has(row.id)) return false;
+    seen.add(row.id);
+    return true;
+  });
 }
 
 export async function readLastRun<T>(): Promise<T | null> {
@@ -607,6 +633,72 @@ export async function markInvoiceManualDone(
     };
   }
   return { ok: true, row: { ...row, ...patch } };
+}
+
+/** Takes the order's "Faturalı siparişte iade" mark off, and no other. */
+async function clearOrderRefundFlag(orderId: string): Promise<void> {
+  checked(
+    await getDb()
+      .from(TABLES.orders)
+      .update({ attention: "" })
+      .eq("id", orderId)
+      .eq("attention", "invoice_refund"),
+    "invoice.clearOrderRefundFlag",
+  );
+}
+
+/**
+ * "İade belgesini kestim": a refund after an issued invoice is handled once
+ * its return document (iade faturası / gider pusulası) is cut in Paraşüt.
+ * The row leaves "Dikkat", the badge and the dashboard (review of #231:
+ * nothing cleared it before), and the order's own mark goes with it. A
+ * later refund notes the row again (run.ts).
+ */
+export async function markInvoiceRefundHandled(
+  id: string,
+  docNo: string,
+  actor: string,
+): Promise<{ ok: true; row: InvoiceRow } | { ok: false; error: string }> {
+  const row = await getInvoice(id);
+  if (!row) return { ok: false, error: "Fatura kaydı bulunamadı." };
+  if (!refundOpen(row)) {
+    return { ok: false, error: "Bu faturada belge bekleyen bir iade yok." };
+  }
+  const now = new Date().toISOString();
+  const patch = {
+    refundHandledAt: now,
+    refundHandledBy: actor,
+    refundDocNo: docNo,
+    updatedAt: now,
+  };
+  if (!(await dbInvoiceStore.updateRow(row, patch))) {
+    return {
+      ok: false,
+      error: "Kayıt bu arada değişti. Sayfayı yenileyip tekrar dene.",
+    };
+  }
+  if (row.sourceKind === "order") await clearOrderRefundFlag(row.sourceId);
+  return { ok: true, row: { ...row, ...patch } };
+}
+
+/**
+ * The order's "Faturalı siparişte iade" mark was taken off by hand (the
+ * order page's "Dikkat işaretini kaldır", docs/EARSIV.md): its invoice's
+ * refund is handled too, without a document number. True when a row was
+ * marked.
+ */
+export async function noteOrderRefundHandled(
+  orderId: string,
+  actor: string,
+): Promise<boolean> {
+  const [row] = await dbInvoiceStore.rowsForSources("order", [orderId]);
+  if (!row || !refundOpen(row)) return false;
+  const now = new Date().toISOString();
+  return dbInvoiceStore.updateRow(row, {
+    refundHandledAt: now,
+    refundHandledBy: actor,
+    updatedAt: now,
+  });
 }
 
 /** "Yeniden dene": back to the queue, attempts from zero. */

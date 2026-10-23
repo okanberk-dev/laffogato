@@ -140,6 +140,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         pathname={PRODUCTS_PATH}
         values={filters}
         label="Ürün süzgeci"
+        views={{ key: "products", hold: look !== null }}
       />
 
       {/* Keyed by the address and the search: a new tab, filter, sort,

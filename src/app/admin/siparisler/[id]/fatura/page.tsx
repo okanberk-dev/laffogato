@@ -13,7 +13,7 @@ import {
   linesKdvRows,
 } from "@/lib/invoice/invoice-core";
 import { loadOrderInvoiceRequest } from "@/lib/invoice/order-request";
-import { invoiceSourceHref } from "@/lib/invoice/panel-core";
+import { invoiceCardHref } from "@/lib/invoice/panel-core";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,9 @@ export default async function OrderInvoiceWizardPage({ params }: PageProps) {
   const view = await loadOrderInvoiceRequest(id);
   if (!view) notFound();
   const { order, row, plan, refusal, lines, billing, mode } = view;
-  const orderHref = invoiceSourceHref({
+  // Back, cancel and the way out of a refusal land on the order's Fatura
+  // tab, where its invoice card is (the order page opens elsewhere).
+  const orderHref = invoiceCardHref({
     sourceKind: "order",
     sourceId: order.id,
   });

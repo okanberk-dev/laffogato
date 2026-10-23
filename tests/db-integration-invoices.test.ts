@@ -523,4 +523,54 @@ maybe("e-Arşiv invoices in a real Postgres", () => {
       ).ok,
     ).toBe(false);
   });
+
+  it("hands the badge every row Dikkat counts, each once; a cut return document closes a refund", async () => {
+    const ISSUED = {
+      status: "issued" as const,
+      eDocumentId: "e-1",
+      issuedAt: "2026-10-20T10:00:00.000Z",
+    };
+    await seed(
+      row("ord-20", { ...ISSUED, refundNotedAt: "2026-10-21T10:00:00.000Z" }),
+      // The PDF mail given up on (mailGivenUp): Dikkat counts it, the
+      // badge's read used to miss it (review of #231).
+      row("ord-21", { ...ISSUED, emailError: "adres yok", emailAttempts: 5 }),
+      row("ord-22", {
+        ...ISSUED,
+        refundNotedAt: "2026-10-21T10:00:00.000Z",
+        emailError: "adres yok",
+        emailAttempts: 5,
+      }),
+      row("ord-23", { ...ISSUED, emailedAt: "2026-10-20T10:05:00.000Z" }),
+    );
+    const listed = await mod.listAttentionInvoices();
+    const ids = listed.map((r) => r.sourceId).sort();
+    expect(ids).toEqual(["ord-20", "ord-21", "ord-22"]);
+    // A person cut the return document: closed, with its number.
+    const open = await mod.getInvoiceForSource("order", "ord-20");
+    const done = await mod.markInvoiceRefundHandled(
+      open!.id,
+      "GP-42",
+      "a@x.co",
+    );
+    expect(done.ok).toBe(true);
+    expect(await mod.getInvoice(open!.id)).toMatchObject({
+      refundDocNo: "GP-42",
+      refundHandledBy: "a@x.co",
+    });
+    const { needsAttention } = await import("@/lib/invoice/panel-core");
+    const after = (await mod.getInvoice(open!.id))!;
+    expect(needsAttention(after, new Date(NOW))).toBe(false);
+    // Nothing left to close: said so, not stamped twice.
+    expect(
+      (await mod.markInvoiceRefundHandled(open!.id, "GP-43", "b")).ok,
+    ).toBe(false);
+    // Clearing the order's own mark closes its invoice's refund too.
+    expect(await mod.noteOrderRefundHandled("ord-22", "c@x.co")).toBe(true);
+    expect(await mod.noteOrderRefundHandled("ord-22", "c@x.co")).toBe(false);
+    expect(await mod.getInvoiceForSource("order", "ord-22")).toMatchObject({
+      refundHandledBy: "c@x.co",
+      refundDocNo: "",
+    });
+  });
 });
