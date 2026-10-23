@@ -6958,6 +6958,56 @@ export async function listMenuItems(): Promise<AdminMenuItem[]> {
 }
 
 /**
+ * The columns of a menu item the köşk's panel reads (menu-link-core
+ * `toPanelMenuItem`), and nothing else: not the photo, a data URL of up to
+ * 2 MB that every panel read and write would otherwise carry.
+ */
+const MENU_PANEL_FIELDS = [
+  "id",
+  "name",
+  "categoryKey",
+  "priceMinor",
+  "priceMinorL",
+  "isActive",
+  "sortOrder",
+  "updatedAt",
+] as const;
+
+const MENU_PANEL_COLUMNS = MENU_PANEL_FIELDS.join(", ");
+
+/** A menu item as the panel link reads and writes it. */
+export type MenuItemPanelView = Pick<
+  AdminMenuItem,
+  (typeof MENU_PANEL_FIELDS)[number]
+>;
+
+/** Every menu item in the panel's columns, unsorted (the route sorts). */
+export async function listMenuItemsForPanel(): Promise<MenuItemPanelView[]> {
+  await ensureSeed();
+  const sb = getDb();
+  return rows<MenuItemPanelView>(
+    await sb.from(TABLES.menuItems).select(MENU_PANEL_COLUMNS),
+    "listMenuItemsForPanel",
+  );
+}
+
+/** One menu item in the panel's columns, or null. */
+export async function getMenuItemForPanel(
+  id: string,
+): Promise<MenuItemPanelView | null> {
+  await ensureSeed();
+  const sb = getDb();
+  return one<MenuItemPanelView>(
+    await sb
+      .from(TABLES.menuItems)
+      .select(MENU_PANEL_COLUMNS)
+      .eq("id", id)
+      .maybeSingle(),
+    "getMenuItemForPanel",
+  );
+}
+
+/**
  * The menu list's ↑ / ↓: within the item's own category, in the order the
  * list draws it (menu-panel.ts compareMenuRows). Reads the three columns it
  * needs, not the photos (data URLs of up to 2 MB, admin audit CAT-08).
@@ -7087,20 +7137,21 @@ export type MenuItemSaleFields = Partial<
  * menu - in one UPDATE of those columns. The köşk's panel changes them
  * (src/app/api/panel/menu/route.ts) while someone here may be saving the
  * same item's name or photo; reading the whole row and writing it back
- * would put back what the other wrote. Null when the item is gone.
+ * would put back what the other wrote. Answers the item in the panel's
+ * columns, the photo left in the database; null when the item is gone.
  */
 export async function setMenuItemSaleFields(
   id: string,
   fields: MenuItemSaleFields,
-): Promise<AdminMenuItem | null> {
+): Promise<MenuItemPanelView | null> {
   await ensureSeed();
   const sb = getDb();
-  const updated = rows<AdminMenuItem>(
+  const updated = rows<MenuItemPanelView>(
     await sb
       .from(TABLES.menuItems)
       .update({ ...fields, updatedAt: new Date().toISOString() })
       .eq("id", id)
-      .select("*"),
+      .select(MENU_PANEL_COLUMNS),
     "setMenuItemSaleFields",
   );
   return updated[0] ?? null;

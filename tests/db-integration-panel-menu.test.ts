@@ -99,8 +99,25 @@ maybe("the menu link's writes in a real Postgres", () => {
       priceMinor: 11500,
       isActive: false,
     });
-    expect(next).toMatchObject({
+    // The answer is the panel's columns alone: no photo comes back.
+    expect(next).toEqual({
       id: "mnu-t-9",
+      name: "Espresso (yeni)",
+      categoryKey: "espresso",
+      priceMinor: 11500,
+      priceMinorL: 14000,
+      isActive: false,
+      sortOrder: 0,
+      updatedAt: next!.updatedAt,
+    });
+    expect(next!.updatedAt > "2026-10-01T08:00:00.000Z").toBe(true);
+    const row = (
+      await q(
+        `select name, "desc", image, "priceMinor", "priceMinorL", "isActive"
+           from public.menu_items where id = 'mnu-t-9'`,
+      )
+    ).rows[0];
+    expect(row).toEqual({
       name: "Espresso (yeni)",
       desc: "Tek shot",
       image: "/menu/e.webp",
@@ -108,19 +125,24 @@ maybe("the menu link's writes in a real Postgres", () => {
       priceMinorL: 14000,
       isActive: false,
     });
-    expect(next!.updatedAt > "2026-10-01T08:00:00.000Z").toBe(true);
-    const row = (
-      await q(
-        `select name, "priceMinor", "priceMinorL", "isActive"
-           from public.menu_items where id = 'mnu-t-9'`,
-      )
-    ).rows[0];
-    expect(row).toEqual({
-      name: "Espresso (yeni)",
-      priceMinor: 11500,
-      priceMinorL: 14000,
-      isActive: false,
-    });
+  });
+
+  it("reads the panel's eight columns, the same values as the full row", async () => {
+    const full = await store.getMenuItem("mnu-t-9");
+    const narrow = await store.getMenuItemForPanel("mnu-t-9");
+    const pick = {
+      id: full!.id,
+      name: full!.name,
+      categoryKey: full!.categoryKey,
+      priceMinor: full!.priceMinor,
+      priceMinorL: full!.priceMinorL,
+      isActive: full!.isActive,
+      sortOrder: full!.sortOrder,
+      updatedAt: full!.updatedAt,
+    };
+    expect(narrow).toEqual(pick);
+    expect(await store.listMenuItemsForPanel()).toEqual([pick]);
+    expect(await store.getMenuItemForPanel("mnu-yok")).toBeNull();
   });
 
   it("answers null for an item the menu no longer has", async () => {
