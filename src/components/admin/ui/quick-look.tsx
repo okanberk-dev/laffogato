@@ -155,14 +155,12 @@ export function QuickLook({
     const from = openedFrom;
     openedFrom = null;
     opener.current = from?.link ?? null;
-    // Back only to the list a row of this page left: a link noted on a
-    // page left since (the drawer reopened by Back, then closed) is not
-    // on the page any more.
-    if (
-      from &&
-      from.link.isConnected &&
-      sameListAddress(from.list, closeHref)
-    ) {
+    // Back only to the list a row of this page opened it from (the list
+    // page's unmount forgets the note). Not whether that row is still on
+    // the page: the drawer's own step often takes it out of the list
+    // (Pasif yap on "Aktif", Tükendi on "Satışta"), and a replace there
+    // wrote the list into history twice (review of #231).
+    if (from && sameListAddress(from.list, closeHref)) {
       router.back();
     } else {
       router.replace(closeHref, { scroll: false });

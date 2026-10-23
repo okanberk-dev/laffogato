@@ -148,7 +148,9 @@ describe("tiles by role (SHE-14, SHE-22, SHE-31)", () => {
     const owner = core.dashboardTiles(input, "owner");
     expect(Object.fromEntries(owner.map((t) => [t.key, t.href]))).toEqual({
       revenue: "/admin/raporlar",
-      orders: "/admin/siparisler?odeme=odendi&bas=2026-10-23&bit=2026-10-23",
+      // What the figure counts (isReportableOrder): a paid order cancelled
+      // since is not in it, nor in its list (review of #231).
+      orders: "/admin/siparisler?odeme=sayilan&bas=2026-10-23&bit=2026-10-23",
       open: "/admin/siparisler?durum=acik",
       attention: "/admin/siparisler?dikkat=1",
       soldOut: "/admin/urunler?status=out_of_stock",
@@ -267,9 +269,65 @@ describe("the stat tile (SHE-06)", () => {
   });
 });
 
+describe("the bar's longest wait (review of #231)", () => {
+  const NOW = new Date("2026-10-23T09:00:00.000Z");
+  const cafe = (over: { paidAt?: string; scheduledFor?: string }) => ({
+    status: "paid" as const,
+    kind: "cafe" as const,
+    createdAt: "",
+    ...over,
+  });
+
+  it("is counted from when an order is due, as the bar screen counts it", async () => {
+    const { dashboardOpenFrom } = await import("@/lib/admin/store");
+    // Paid at 08:00 for 14:00: not due, not waiting, not orange.
+    expect(
+      dashboardOpenFrom(
+        [
+          cafe({
+            paidAt: "2026-10-23T05:00:00.000Z",
+            scheduledFor: "2026-10-23T11:00:00.000Z",
+          }),
+        ],
+        NOW,
+      ).oldestCafeWaitingAt,
+    ).toBeNull();
+    // A planned order that came due at 08:30 waits from 08:30.
+    expect(
+      dashboardOpenFrom(
+        [
+          cafe({
+            paidAt: "2026-10-22T18:00:00.000Z",
+            scheduledFor: "2026-10-23T05:30:00.000Z",
+          }),
+          cafe({ paidAt: "2026-10-23T05:50:00.000Z" }),
+        ],
+        NOW,
+      ).oldestCafeWaitingAt,
+    ).toBe("2026-10-23T05:30:00.000Z");
+  });
+
+  it("forgets one the bar screen dropped: never orange for good", async () => {
+    const { dashboardOpenFrom } = await import("@/lib/admin/store");
+    const stats = dashboardOpenFrom(
+      [
+        cafe({ paidAt: "2026-10-20T09:00:00.000Z" }),
+        cafe({ paidAt: "2026-10-23T08:40:00.000Z" }),
+      ],
+      NOW,
+    );
+    expect(stats.oldestCafeWaitingAt).toBe("2026-10-23T08:40:00.000Z");
+    // Still counted as open: it is, until someone closes it.
+    expect(stats.openByKind.cafe).toBe(2);
+  });
+});
+
 describe("getDashboardStats", () => {
   it("counts the open orders by status and reads no revenue", async () => {
     const store = await import("@/lib/admin/store");
+    // The bar's wait is measured on the clock: pin it to that morning.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-23T09:00:00.000Z"));
     openRows = [
       {
         status: "paid",

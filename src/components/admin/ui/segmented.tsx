@@ -33,6 +33,7 @@ export function SegmentedLinks({
   return (
     <nav
       aria-label={label}
+      data-focus-inset=""
       className={cx(
         "inline-flex max-w-full [scrollbar-width:none] overflow-x-auto rounded-lg bg-[var(--admin-panel)] p-0.5 [&::-webkit-scrollbar]:hidden",
         className,

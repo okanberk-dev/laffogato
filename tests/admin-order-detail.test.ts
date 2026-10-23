@@ -436,6 +436,40 @@ describe("KDV on the page and the receipt (17 Eki 2026)", () => {
   });
 });
 
+describe("the money card's chips (review of #231)", () => {
+  const unpaid = (o: AdminOrder) => {
+    const html = renderToStaticMarkup(
+      createElement(OrderDetail, {
+        order: o,
+        settings,
+        money: { collected: false, collectedMinor: 0, destination: "card" },
+        actions: orderActions(o, "owner", false, 0),
+        payments: [],
+        timeline: [],
+        notices: [],
+        customerHref: null,
+        detailsRules: orderDetailsRules(o, "owner"),
+        canSeeEvidence: true,
+      }),
+    );
+    // The left column's money card only.
+    return html.split('aria-label="Tutar"')[1].split("</section>")[0];
+  };
+
+  it("a cancelled order never paid says Ödeme yok, as its badge does", () => {
+    const card = unpaid(order({ status: "cancelled", paidAt: "" }));
+    expect(card).toContain(">Ödeme yok<");
+    expect(card).not.toContain("Ödenmedi");
+  });
+
+  it("an awaited payment is the big figure; no chip says it again", () => {
+    const card = unpaid(order({ status: "pending_payment", paidAt: "" }));
+    expect(card).toContain("Ödeme bekleniyor");
+    expect(card).not.toContain("Ödenmedi");
+    expect(card).not.toContain("Ödeme yok");
+  });
+});
+
 describe("the order page", () => {
   it("shows the cafe details on the line, as the list does", () => {
     expect(detail(order())).toContain("Büyük · yulaf sütü · +1 shot");

@@ -70,6 +70,10 @@ export const ORDER_FILTER_FIELDS: readonly FilterField[] = [
       { value: "odendi", label: "Ödendi" },
       { value: "odenmedi", label: "Ödenmedi" },
       { value: "iadeli", label: "İadeli" },
+      // What Raporlar and Genel bakış count (isReportableOrder): neither
+      // cancelled nor awaiting payment. The dashboard's "Bugünkü sipariş"
+      // opens this, so its figure and its list agree (review of #231).
+      { value: "sayilan", label: "Raporda sayılan" },
     ],
   },
   {
@@ -142,7 +146,7 @@ export interface OrderListQuery {
   channel: "web" | "app" | "manual" | null;
   kind: OrderKind | null;
   fulfillment: OrderFulfillment | null;
-  payment: "paid" | "unpaid" | "refunded" | null;
+  payment: "paid" | "unpaid" | "refunded" | "counted" | null;
   attention: boolean;
   /** createdAt >= this instant (the first day's Istanbul midnight). */
   fromIso: string | null;
@@ -247,7 +251,9 @@ export function parseOrderListParams(sp: SearchParamsInput): ParsedOrderList {
           ? "unpaid"
           : odeme === "iadeli"
             ? "refunded"
-            : null,
+            : odeme === "sayilan"
+              ? "counted"
+              : null,
     attention: values.dikkat === "1",
     fromIso: values.bas ? istanbulDayStartIso(values.bas) : null,
     beforeIso: values.bit ? istanbulDayStartIso(values.bit, 1) : null,

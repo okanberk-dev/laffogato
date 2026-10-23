@@ -386,6 +386,17 @@ describe("member page layout and words (package 4b)", () => {
     expect("generateMetadata" in mod).toBe(false);
   });
 
+  it("draws the tab the address asks for, as an order does (review of #231)", async () => {
+    h.member = member();
+    const el = await CustomerDetailPage({
+      params: Promise.resolve({ email: MEMBER_URL }),
+      searchParams: Promise.resolve({ sekme: "sadakat" }),
+    });
+    const html = renderToStaticMarkup(el);
+    expect(html).toMatch(/id="[^"]*-tab-sadakat"[^>]*aria-selected="true"/);
+    expect(html).toMatch(/id="[^"]*-tab-siparisler"[^>]*aria-selected="false"/);
+  });
+
   it("lets a long address wrap instead of widening a phone screen (PEO-03)", async () => {
     h.member = member();
     const html = await render(MEMBER_URL);

@@ -33,6 +33,7 @@ vi.mock("@/app/admin/faturalar/actions", () => ({
   formalizeInvoiceAction: vi.fn(),
   markInvoiceManualAction: vi.fn(),
   markInvoiceManualDoneAction: vi.fn(),
+  markInvoiceRefundHandledAction: vi.fn(),
   rebuildInvoiceDraftAction: vi.fn(),
   retryInvoiceAction: vi.fn(),
   setInvoiceBillingAction: vi.fn(),
@@ -41,7 +42,9 @@ vi.mock("@/lib/invoice/pdf", () => ({
   invoicePdfAvailable: () => h.pdf,
 }));
 
-const { InvoiceRowStep } = await import("@/components/admin/invoice-actions");
+const { InvoiceActions, InvoiceRowStep } =
+  await import("@/components/admin/invoice-actions");
+const { needsAttention, refundOpen } = await import("@/lib/invoice/panel-core");
 
 const row = (over: Partial<InvoiceRow>): InvoiceRow =>
   ({
@@ -104,5 +107,53 @@ describe("the invoice row's one step", () => {
     expect(step({ status: "issued", eDocumentId: "77" })).not.toContain(
       "bg-[var(--admin-primary)]",
     );
+  });
+});
+
+describe("review of #231", () => {
+  const NOTED = "2026-10-22T10:00:00.000Z";
+  const issued = { status: "issued" as const, eDocumentId: "77" };
+
+  it("the PDF step's name starts with the word on it (WCAG 2.5.3)", () => {
+    expect(step(issued)).toContain('aria-label="PDF indir: #10042"');
+  });
+
+  it("a refund after issue waits for its return document, then closes", () => {
+    const open = { ...issued, refundNotedAt: NOTED, refundHandledAt: "" };
+    expect(refundOpen(open)).toBe(true);
+    const html = step(open);
+    expect(html).toContain(">Belgeyi kestim<");
+    expect(html).toContain('aria-label="İade belgesini kestim: #10042"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).not.toContain(">PDF<");
+    // Handled after it was noted: closed, the PDF again; a row from
+    // before the stamp existed (no field) stays open.
+    const handled = { ...open, refundHandledAt: "2026-10-22T11:00:00.000Z" };
+    expect(refundOpen(handled)).toBe(false);
+    expect(step(handled)).toContain(">PDF<");
+    expect(refundOpen({ refundNotedAt: NOTED })).toBe(true);
+    // Noted again by a later refund: open again.
+    expect(
+      refundOpen({ ...handled, refundNotedAt: "2026-10-23T09:00:00.000Z" }),
+    ).toBe(true);
+    const now = new Date("2026-10-23T12:00:00.000Z");
+    expect(needsAttention(row(open), now)).toBe(true);
+    expect(needsAttention(row(handled), now)).toBe(false);
+  });
+
+  it("the list's ⋯ never formalises a draft: it opens the draft's lines", () => {
+    const draft = row({ status: "draft", salesInvoiceId: "1042" });
+    const source = { kind: "order" as const, id: "ord-10042", label: "#10042" };
+    const menu = renderToStaticMarkup(
+      createElement(InvoiceActions, { row: draft, source, menu: true }),
+    );
+    expect(menu).toContain('href="/admin/siparisler/ord-10042?sekme=fatura"');
+    expect(menu).toContain(">Taslağı gör ve kesinleştir<");
+    expect(menu).not.toContain(">Faturayı kesinleştir<");
+    // The card, where the lines are on screen, still formalises.
+    const card = renderToStaticMarkup(
+      createElement(InvoiceActions, { row: draft, source }),
+    );
+    expect(card).toContain(">Faturayı kesinleştir<");
   });
 });

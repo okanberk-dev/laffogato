@@ -39,7 +39,7 @@ import {
   type BulkMenuOp,
   type MenuCategoryKey,
 } from "@/lib/admin/store";
-import type { MenuAllergen } from "@/lib/menu/allergens";
+import { sameMenuAllergens, type MenuAllergen } from "@/lib/menu/allergens";
 import { sceneColumns } from "@/lib/backdrop/scene";
 import {
   BACKDROP_FIELD,
@@ -295,8 +295,12 @@ export async function updateMenuItemAction(
       ...(priced
         ? { priceMinor: input.priceMinor, priceMinorL: input.priceMinorL }
         : {}),
-      // What the menu says an item contains is worth a trail.
-      ...(input.allergens === undefined ? {} : { allergens: input.allergens }),
+      // What the menu says an item contains is worth a trail, when it
+      // changed: the form posts it on every save.
+      ...(input.allergens === undefined ||
+      sameMenuAllergens(previous.allergens, input.allergens)
+        ? {}
+        : { allergens: input.allergens }),
     },
   });
   revalidateMenu();

@@ -251,6 +251,11 @@ export function menuAuditSummary(
         ? ` · L ${money(p.priceMinorL)}`
         : "";
     parts.push(`Fiyat ${money(p.priceMinor)}${large}`);
+  } else if (typeof p.priceMinorL === "number") {
+    // The köşk's panel moves the L price on its own (review of #231).
+    parts.push(
+      p.priceMinorL > 0 ? `L fiyatı ${money(p.priceMinorL)}` : "L boyu kalktı",
+    );
   }
   if ("allergens" in p) parts.push("Alerjenler güncellendi");
   if (typeof p.move === "string") parts.push("Sırası değişti");

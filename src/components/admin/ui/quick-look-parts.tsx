@@ -129,9 +129,15 @@ export function QuickLookChips({
         // `contents` down to the slot, so the folded chips wrap in the same
         // line as the others; each hides itself while the disclosure is
         // shut (a slot with no box of its own hides nothing).
+        // Open, the control stays (at the row's end) and says how to fold
+        // them back: hiding the focused summary dropped the keyboard on
+        // the page (review of #231).
         <details className="group contents details-content:contents">
-          <summary className="inline-flex min-h-8 cursor-pointer list-none items-center rounded-md px-1.5 text-xs font-medium text-[var(--admin-primary)] select-none group-open:hidden hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-            Tümünü göster ({shown.length + folded.length})
+          <summary className="inline-flex min-h-8 cursor-pointer list-none items-center rounded-md px-1.5 text-xs font-medium text-[var(--admin-primary)] select-none group-open:order-last hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+            <span className="group-open:hidden">
+              Tümünü göster ({shown.length + folded.length})
+            </span>
+            <span className="hidden group-open:inline">Daha az göster</span>
           </summary>
           {folded.map((c) => (
             <span key={c.key} className="hidden group-open:contents">

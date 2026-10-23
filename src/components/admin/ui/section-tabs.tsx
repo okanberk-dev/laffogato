@@ -39,7 +39,10 @@ export function SectionTabs({
         className,
       )}
     >
-      <ul className="flex h-full max-w-full [scrollbar-width:none] gap-5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+      <ul
+        data-focus-inset=""
+        className="flex h-full max-w-full [scrollbar-width:none] gap-5 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+      >
         {tabs.map((tab) => {
           const active = tab.href === activeHref;
           return (

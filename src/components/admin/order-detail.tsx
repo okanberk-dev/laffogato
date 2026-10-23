@@ -17,6 +17,7 @@ import {
   MANUAL_PROVIDER_PREFIX,
   REFUND_DESTINATION_LABELS,
   isManualProvider,
+  orderPaymentState,
   refundedMinor,
   type OrderActionMap,
 } from "@/lib/admin/order-actions";
@@ -894,14 +895,24 @@ function OrderMoneySummary({
   if (hero.label !== "Toplam") {
     chips.push({ label: `Toplam ${formatTRY(order.totalMinor)}` });
   }
-  chips.push(
-    money.collected
-      ? {
-          label: `Tahsil edilen ${formatTRY(money.collectedMinor ?? order.totalMinor)}`,
-          tone: "success",
-        }
-      : { label: "Ödenmedi", tone: "warning" },
-  );
+  if (money.collected) {
+    chips.push({
+      label: `Tahsil edilen ${formatTRY(money.collectedMinor ?? order.totalMinor)}`,
+      tone: "success",
+    });
+  } else if (hero.label !== "Ödeme bekleniyor") {
+    // The header badge's words: a cancelled order that was never paid has
+    // "Ödeme yok", not an orange "Ödenmedi" that reads as money still due;
+    // an awaited payment is the big figure already (review of #231).
+    const state = orderPaymentState(order, false);
+    chips.push({
+      label: state.label,
+      tone:
+        state.tone === "warning" || state.tone === "danger"
+          ? state.tone
+          : undefined,
+    });
+  }
   if (refunded > 0) {
     chips.push({ label: `İade edilen ${formatTRY(refunded)}`, tone: "danger" });
   }

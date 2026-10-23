@@ -15,15 +15,17 @@ import {
   formalizeInvoiceAction,
   markInvoiceManualAction,
   markInvoiceManualDoneAction,
+  markInvoiceRefundHandledAction,
   rebuildInvoiceDraftAction,
   retryInvoiceAction,
   setInvoiceBillingAction,
 } from "@/app/admin/faturalar/actions";
 import type { InvoiceRow, InvoiceSourceKind } from "@/lib/invoice/invoice-core";
 import {
+  invoiceCardHref,
   invoicePdfHref,
-  invoiceSourceHref,
   isEInvoice,
+  refundOpen,
 } from "@/lib/invoice/panel-core";
 import { invoicePdfAvailable } from "@/lib/invoice/pdf";
 
@@ -83,7 +85,7 @@ export function InvoiceRowStep({ row }: { row: InvoiceRow }) {
   if (row.status === "draft") {
     return (
       <Link
-        href={`${invoiceSourceHref(row)}?sekme=fatura`}
+        href={invoiceCardHref(row)}
         className={ROW_CONTROL.textStrong}
         aria-label={`Taslağı gör: ${row.sourceLabel}`}
       >
@@ -122,19 +124,68 @@ export function InvoiceRowStep({ row }: { row: InvoiceRow }) {
   if (row.status === "manual" && manualDone(row)) {
     return <ManualDoneModal row={row} variant="bare" label="Kestim" />;
   }
+  // A refund after issue: a person cuts its return document, then says so.
+  if (refundOpen(row)) {
+    return (
+      <RefundHandledModal row={row} variant="bare" label="Belgeyi kestim" />
+    );
+  }
   if (row.eDocumentId && invoicePdfAvailable()) {
     return (
       <a
         href={invoicePdfHref(row)}
         download
         className={ROW_CONTROL.text}
-        aria-label={`Faturayı indir: ${row.sourceLabel}`}
+        // The visible word first: a voice user says "PDF" (WCAG 2.5.3).
+        aria-label={`PDF indir: ${row.sourceLabel}`}
       >
         PDF
       </a>
     );
   }
   return null;
+}
+
+/**
+ * "İade belgesini kestim": the number of the return document (iade
+ * faturası / gider pusulası) of a refund after an issued invoice.
+ */
+function RefundHandledModal({
+  row,
+  variant,
+  label = "İade belgesini kestim",
+}: {
+  row: InvoiceRow;
+  variant: "menu" | "ghost" | "bare";
+  label?: string;
+}) {
+  return (
+    <ActionModal
+      action={markInvoiceRefundHandledAction}
+      title="İade belgesini kestim"
+      description="Bu faturalı siparişteki iadenin iade faturasını ya da gider pusulasını Paraşüt'te (ya da muhasebecin) düzenlediysen numarasını yaz: iade Dikkat'ten çıkar. Kesilmiş faturaya dokunulmaz; sonra yeni bir iade olursa yeniden işaretlenir."
+      trigger={label}
+      triggerVariant={variant}
+      triggerClassName={variant === "bare" ? ROW_CONTROL.textStrong : undefined}
+      ariaLabel={
+        variant === "bare"
+          ? `İade belgesini kestim: ${row.sourceLabel}`
+          : undefined
+      }
+      submitLabel="Kaydet"
+      hidden={{ id: row.id }}
+    >
+      <div className="flex flex-col gap-1.5">
+        <Field
+          label="Belge numarası"
+          hint="İade faturasının ya da gider pusulasının numarası."
+        >
+          <TextInput name="docNo" required maxLength={40} autoComplete="off" />
+        </Field>
+        <FieldError name="docNo" />
+      </div>
+    </ActionModal>
+  );
 }
 
 /** "Paraşüt'te elle kestim": the number of the invoice cut by hand. */
@@ -233,21 +284,30 @@ export function InvoiceActions({
   }
   if (row?.status === "draft") {
     items.push(
-      <ActionModal
-        key="formalize"
-        action={formalizeInvoiceAction}
-        title="Faturayı kesinleştir"
-        description={
-          row.buyerKind === "company"
-            ? "Paraşüt'teki taslak bugünün tarihiyle kesinleşir: şirket GİB'de e-Fatura kullanıcısıysa e-Fatura olarak kutusuna gider, değilse e-Arşiv olur ve PDF'i e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
-            : "Paraşüt'teki taslak bugünün tarihiyle e-Arşiv fatura olur ve PDF'i müşteriye e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten, 7 gün içinde iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
-        }
-        trigger="Faturayı kesinleştir"
-        triggerVariant={menu ? v : "primary"}
-        ariaLabel={`Faturayı kesinleştir: ${row.sourceLabel}`}
-        submitLabel="Kesinleştir"
-        hidden={{ id: row.id, draft: row.salesInvoiceId }}
-      />,
+      menu ? (
+        // The list never formalises: a draft is read before it is cut, on
+        // its order's or booking's Fatura tab, where its lines are (review
+        // of #231: the ⋯ still formalised a draft nobody had seen).
+        <Link key="formalize" href={invoiceCardHref(row)} className={BUTTON[v]}>
+          Taslağı gör ve kesinleştir
+        </Link>
+      ) : (
+        <ActionModal
+          key="formalize"
+          action={formalizeInvoiceAction}
+          title="Faturayı kesinleştir"
+          description={
+            row.buyerKind === "company"
+              ? "Paraşüt'teki taslak bugünün tarihiyle kesinleşir: şirket GİB'de e-Fatura kullanıcısıysa e-Fatura olarak kutusuna gider, değilse e-Arşiv olur ve PDF'i e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
+              : "Paraşüt'teki taslak bugünün tarihiyle e-Arşiv fatura olur ve PDF'i müşteriye e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten, 7 gün içinde iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
+          }
+          trigger="Faturayı kesinleştir"
+          triggerVariant="primary"
+          ariaLabel={`Faturayı kesinleştir: ${row.sourceLabel}`}
+          submitLabel="Kesinleştir"
+          hidden={{ id: row.id, draft: row.salesInvoiceId }}
+        />
+      ),
       <ActionModal
         key="rebuild"
         action={rebuildInvoiceDraftAction}

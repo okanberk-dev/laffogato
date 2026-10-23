@@ -134,7 +134,10 @@ export function ToastProvider({
  * toast raised there was drawn behind the backdrop, and a screen reader
  * never heard it (the page behind a modal is inert). Inside the scope,
  * `useToast()` raises its toasts in this stack, drawn by the caller where
- * `className` puts it inside the dialog; they go with the dialog.
+ * `className` puts it inside the dialog; they go with the dialog. An
+ * answer that arrives after the dialog closed (Esc while "Stoğu güncelle"
+ * ran) goes to the panel's stack, now in front again, instead of a stack
+ * that is gone (review of #231: a refusal appeared nowhere).
  */
 export function ToastScope({
   className,
@@ -144,11 +147,27 @@ export function ToastScope({
   className: string;
   children: ReactNode;
 }) {
-  const [toasts, , api] = useToastStack(() => []);
+  const panel = useContext(ToastContext);
+  const [toasts, , own] = useToastStack(() => []);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const api = useMemo<ToastApi>(
+    () => ({
+      show: (input) => (alive.current ? own : panel).show(input),
+      dismiss: (id) => (alive.current ? own : panel).dismiss(id),
+      fromResult: (result) => (alive.current ? own : panel).fromResult(result),
+    }),
+    [own, panel],
+  );
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <ToastStack toasts={toasts} dismiss={api.dismiss} className={className} />
+      <ToastStack toasts={toasts} dismiss={own.dismiss} className={className} />
     </ToastContext.Provider>
   );
 }

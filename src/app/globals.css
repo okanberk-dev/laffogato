@@ -6652,6 +6652,12 @@ select {
   outline-offset: 2px;
   box-shadow: none;
 }
+/* Inside a row that scrolls sideways (the status tabs, a section's tabs,
+   the segmented control) a ring 2px out is cut by the scroller's edge:
+   only a sliver showed. Drawn inside the control there (review of #231). */
+[data-admin-root] [data-focus-inset] :focus-visible {
+  outline-offset: -2px;
+}
 
 /* ────────────────────────────────────────────────────────────────
    Print rules - the pages with a receipt: the order's "Fiş yazdır" and
