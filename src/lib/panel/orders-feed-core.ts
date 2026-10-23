@@ -16,10 +16,11 @@ import { firstNameOf } from "./karaoke-sync-core";
  * (orders-stage-core.ts), and this site moves the order itself.
  *
  * What leaves: what the barista needs to make and hand over the order - the
- * lines with their options, where it goes ("Masa 4", "Gel-al", "Kurye"),
- * the planned time, the customer's first name. Never a surname, e-mail,
- * phone, address, courier note (a door code) or payment reference, and no
- * manual order (typed into this panel at the counter, rung on the till).
+ * lines with their options and notes, where it goes ("Masa 4", "Gel-al",
+ * "Kurye"), the planned time, the customer's first name, and the member's
+ * note on a table or gel-al order. Never a surname, e-mail, phone, address,
+ * courier note (a door code) or payment reference, and no manual order
+ * (typed into this panel at the counter, rung on the till).
  *
  * Deliberately pure (no `server-only`, no database): the route and the
  * tests share it.
@@ -47,6 +48,12 @@ export const PANEL_ORDER_STALE_MS = 24 * 60 * 60_000;
 /** A pickup order ready this long and not handed over leaves the screen. */
 export const PANEL_ORDER_READY_STALE_MS = 12 * 60 * 60_000;
 
+/** The order note the screen gets at most, in characters. */
+export const PANEL_ORDER_NOTE_MAX = 300;
+
+/** A line's barista note at most (the app takes 200). */
+export const PANEL_ORDER_LINE_NOTE_MAX = 200;
+
 /** The statuses the route reads; `toPanelOrder` decides which stay. */
 export const PANEL_ORDER_READ_STATUSES = [
   "paid",
@@ -73,6 +80,8 @@ export interface PanelOrderLine {
   size: PanelOrderLineSize;
   /** The options in words, "M · yulaf · +1 shot"; "" for none. */
   detail: string;
+  /** The member's note to the barista for this line; "" for none. */
+  note: string;
   qty: number;
 }
 
@@ -87,6 +96,12 @@ export interface PanelOrder {
   firstName: string;
   /** The planned time (ISO); "" = as soon as possible. */
   scheduledFor: string;
+  /**
+   * The member's note on a table or gel-al order ("Fındık alerjim var");
+   * always "" on a courier order, whose note carries the address note
+   * (a door code) as well.
+   */
+  note: string;
   paidAt: string;
   /** The lines to make, the cancelled ones left out. */
   lines: PanelOrderLine[];
@@ -109,6 +124,7 @@ export interface PanelOrderSourceRow {
   scheduledFor?: string;
   paidAt?: string;
   shippedAt?: string;
+  deliveryNote?: string;
   totalMinor: number;
   items?: ReadonlyArray<{
     productName?: string;
@@ -117,6 +133,7 @@ export interface PanelOrderSourceRow {
     menuItemId?: string;
     size?: string;
     detail?: string;
+    options?: Readonly<Record<string, unknown>> | null;
   }> | null;
 }
 
@@ -125,6 +142,41 @@ export function panelOrdersSince(now: Date): string {
   return new Date(
     now.getTime() - PANEL_ORDERS_LOOKBACK_DAYS * 24 * 60 * 60_000,
   ).toISOString();
+}
+
+/**
+ * The stale limits above as the read's lower bounds (ISO, which sorts as
+ * text). An open order is read when its planned time or its payment is at
+ * or after `dueSince`, a ready pickup when its readiness or its payment is
+ * at or after `readySince`: a superset of `toPanelOrder`'s rule (an order is
+ * planned after it is paid and ready after it is paid), which still
+ * decides. In the query, so forgotten orders cannot fill the read's limit
+ * and hide today's.
+ */
+export function panelOrdersLiveSince(now: Date): {
+  dueSince: string;
+  readySince: string;
+} {
+  return {
+    dueSince: new Date(now.getTime() - PANEL_ORDER_STALE_MS).toISOString(),
+    readySince: new Date(
+      now.getTime() - PANEL_ORDER_READY_STALE_MS,
+    ).toISOString(),
+  };
+}
+
+/**
+ * Whether the read brought every row: `listPanelOpenOrderRows` reads open
+ * (`paid`, `preparing`) and ready (`shipped`) orders in two reads of `limit`
+ * each, and one that came back full may have been cut. Counted on the raw
+ * rows, before `toPanelOrder` drops any.
+ */
+export function panelOrderRowsComplete(
+  rows: ReadonlyArray<{ status: string }>,
+  limit: number,
+): boolean {
+  const ready = rows.filter((r) => r.status === "shipped").length;
+  return ready < limit && rows.length - ready < limit;
 }
 
 function stageOf(row: PanelOrderSourceRow): PanelOrderStage | null {
@@ -154,6 +206,12 @@ export function panelOrderDueAt(row: {
 
 const SIZES: readonly string[] = ["M", "L"];
 
+/** Trimmed and cut to `max` characters (code points, not UTF-16 halves). */
+function clip(value: unknown, max: number): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  return Array.from(text).slice(0, max).join("").trim();
+}
+
 function lineOf(
   item: NonNullable<PanelOrderSourceRow["items"]>[number],
 ): PanelOrderLine {
@@ -164,6 +222,7 @@ function lineOf(
       ? (item.size as PanelOrderLineSize)
       : "single",
     detail: String(item.detail ?? "").trim(),
+    note: clip(item.options?.note, PANEL_ORDER_LINE_NOTE_MAX),
     qty: Math.max(1, Math.trunc(Number(item.qty) || 1)),
   };
 }
@@ -207,6 +266,12 @@ export function toPanelOrder(
     firstName: firstNameOf(row.customerName),
     scheduledFor:
       timeOf(row.scheduledFor) === null ? "" : String(row.scheduledFor),
+    // The staff e-mail's rule (staff-order-notice-core.ts): a courier
+    // order's note also carries the address note, a door code.
+    note:
+      fulfillment === "table" || fulfillment === "pickup"
+        ? clip(row.deliveryNote, PANEL_ORDER_NOTE_MAX)
+        : "",
     paidAt: String(row.paidAt),
     lines,
     totalMinor: Math.max(0, Math.round(Number(row.totalMinor) || 0)),

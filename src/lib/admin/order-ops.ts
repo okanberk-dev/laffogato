@@ -18,6 +18,7 @@ import { noteOrderRefundHandled } from "@/lib/invoice/store";
 import { creditWalletRefund } from "@/lib/mobile/wallet";
 import { getPaymentProvider } from "@/lib/payment";
 import { isPaymentRefused, type PaymentProvider } from "@/lib/payment/provider";
+import { isAlreadyReversed } from "@/lib/payment/refund-answer";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import { safeAudit } from "./audit";
@@ -363,7 +364,7 @@ export async function issueRefund(
         // "Bu kayıt daha önce iptal edilmiştir": refunded or cancelled in
         // PayNkolay's own panel already (the 22 Oct 2026 case). The panel
         // records that without a second request.
-        const already = /daha önce (iptal|iade)/i.test(
+        const already = isAlreadyReversed(
           err instanceof Error ? err.message : "",
         );
         // Two charges: the refund went to the newest one, most likely the

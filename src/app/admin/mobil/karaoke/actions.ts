@@ -51,6 +51,7 @@ import {
 } from "@/lib/mobile/karaoke-format";
 import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
+import { refundAnswerForStaff } from "@/lib/payment/refund-answer";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 import { parseMoneyInput } from "@/lib/utils/format";
 
@@ -376,7 +377,10 @@ export async function cancelReservationAction(
     if (result.reason === "refund_forbidden" && canRefund && !expectsRefund) {
       return actionError(PAID_MEANWHILE);
     }
-    const detail = result.message ? ` (${result.message})` : "";
+    // The POS's own text stays in the log: the operator reads a known case
+    // in plain words, or the fixed sentence alone.
+    const why = refundAnswerForStaff(result.message);
+    const detail = why ? ` (${why})` : "";
     return actionError(`${CANCEL_MESSAGE[result.reason]}${detail}`);
   }
   if (result.kept && result.silent) {
@@ -441,11 +445,12 @@ export async function retryKaraokeRefundAction(
   });
   revalidate(id);
   if (!result.ok) {
+    const why = refundAnswerForStaff(result.message);
     return actionError(
       result.reason === "refused"
-        ? `POS iadeyi reddetti: ${result.message ?? "?"}. İlk iade geçmiş olabilir; PayNkolay panelinden bak.`
+        ? `POS iadeyi reddetti${why ? `: ${why}` : ""}. İlk iade geçmiş olabilir; PayNkolay panelinden bak.`
         : result.reason === "unknown"
-          ? `İadenin sonucu belli değil: ${result.message ?? "POS yanıt vermedi"}. Rezervasyon 'iade sonucu bekleniyor' durumunda kaldı; PayNkolay panelinden bak.`
+          ? `İadenin sonucu belli değil: ${why || "POS yanıt vermedi"}. Rezervasyon 'iade sonucu bekleniyor' durumunda kaldı; PayNkolay panelinden bak.`
           : result.reason === "by_hand"
             ? 'Bu geç iptalin iadesi ödemenin bir kısmı; POS kısmi iade yapamıyor. Tutarı PayNkolay panelinden iade et, sonra "Elle iade edildi" ile kaydet.'
             : "Bu rezervasyonun iade edilecek ödemesi yok. Sayfayı yenile.",

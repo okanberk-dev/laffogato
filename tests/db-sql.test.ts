@@ -158,6 +158,28 @@ describe("select", () => {
     expect(q.params).toEqual(["paid", 10023, "%ay%", "a@b.c"]);
   });
 
+  it("takes a lower bound in an any-of group", () => {
+    // The bar screen: due by its planned time, else by its payment.
+    const q = compile({
+      ...base,
+      table: "orders",
+      filters: [
+        {
+          op: "any",
+          column: "",
+          value: [
+            { column: "scheduledFor", op: "gte", value: "2026-10-21T12:00Z" },
+            { column: "paidAt", op: "gte", value: "2026-10-21T12:00Z" },
+          ],
+        },
+      ],
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "orders" WHERE ("scheduledFor" >= $1 OR "paidAt" >= $2)',
+    );
+    expect(q.params).toEqual(["2026-10-21T12:00Z", "2026-10-21T12:00Z"]);
+  });
+
   it("matches nothing for an empty any-of group, and refuses other ops in it", () => {
     expect(
       compile({ ...base, filters: [{ op: "any", column: "", value: [] }] }).text,

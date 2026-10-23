@@ -29,10 +29,30 @@ Site kendi Raporlar ve Gün sonu ekranlarıyla aynı kuralla sayar
 - **Panelden elle girilen sipariş** (`source: "manual"`, telefonla alınıp
   kasada ödenen) kasanın cirosunda zaten var: `cafe` ve `shop`'a girmez,
   yalnız `manual` altında sayılır.
+- **Kasada kapatılan uygulama / web siparişi** (`counter`, 23 Eki 2026):
+  kart ödemesi düşen sipariş panelde "Ödendi olarak işaretle" ile nakit ya
+  da kasadaki kart cihazıyla kapatılınca kaynağı `app` / `web` kalır ama
+  parası ModPOS'tan geçmiştir (fişi kasanın ÖKC fişidir). Siparişin başarılı
+  ödeme kayıtları (`payment_transactions`, e-Arşiv planının okuduğu
+  `paymentsFor`) arasında `manual:nakit` ya da `manual:kart` varsa sipariş
+  `cafe`, `shop` ve `cafe.lines`'a girmez, yalnız `counter` altında sayılır
+  (`paidAtTill`). Kart ödemesinin başarısız denemesi bunu değiştirmez.
+  - `manual:havale` (havale / EFT) **online** kalır: para bankaya gelir,
+    kasadan geçmez, ModPOS'ta yoktur; faturası da e-postayla gider
+    (`receiptInvoiceNote`). `cafe` / `shop` ve satırlarda sayılır.
+  - `manual:diger` de **online** kalır: panel bu yolu adlandırmaz, kasada
+    olduğunu bilemeyiz; kasaya girmesi gereken para "Nakit" ya da "Kasadaki
+    kart cihazı" ile işaretlenir. Kasada alınıp "Diğer" seçilirse çift
+    sayılır ve işaret sonradan değiştirilemez (ödeme kaydı yazıldığı gibi
+    kalır, "Ödendi" geri alınmaz): seçim işaretlerken doğru yapılmalı.
+  - Panelden elle girilen sipariş hangi yolla ödenirse ödensin `manual`'da
+    kalır (önceki kural, değişmedi).
 - Gün sınırı köşkün gece yarısıdır (CLAUDE.md kural 22).
 
-`tests/panel-sales-export.test.ts` aynı veride Raporlar'ın aylık rakamı ve
-Gün sonu'nun günlük rakamıyla eşitliği sabitler.
+Raporlar ve Gün sonu bu ayrımı yapmaz: `cafe + shop + manual + counter`
+onların rakamıdır. `tests/panel-sales-export.test.ts` aynı veride
+Raporlar'ın aylık rakamı ve Gün sonu'nun günlük rakamıyla bu eşitliği
+sabitler.
 
 ## KDV
 
@@ -53,6 +73,30 @@ Tutarlar KDV dahildir. `kdvMinor`, ödenen ve köşkte kalan tutarın içindeki
   oranıyla ayırır.
 - Karaoke rezervasyonunun oranı rezervasyonda saklıdır (`taxRatePct`);
   yoksa aynı şekilde `unknownKdvNetMinor`.
+
+### Kafe satırlarının seçenekleri (23 Eki 2026)
+
+Uygulama siparişinin satırı seçimlerini taşır (`items[].options`,
+`docs/API-MOBILE.md` §3, `src/lib/mobile/customization.ts`). Satırlar
+yine menü kalemi × boy olarak gruplanır; seçimler satırın içinde, yapılan
+adetle çarpılarak sayılır (v1'e ekleme, isteğe bağlı alanlar):
+
+- `extraShots`: `extraShot: true` olan adet. Satırda en çok bir ekstra shot
+  seçilir, yani sayı shot sayısıdır.
+- `milks`: `lactose-free`, `oat`, `almond`. `normal` sayılmaz: tarifin kendi
+  sütüdür, sütsüz içecekte (Americano) de varsayılan odur.
+- `syrups`: `vanilla`, `caramel`, `hazelnut`. `none` sayılmaz.
+
+Hiçbiri yoksa alan **hiç yoktur** (boş nesne ya da 0 değil): seçeneksiz
+satırın biçimi eskisiyle aynıdır. Kavurma (`roast`), şeker ve not
+gönderilmez. Bilinmeyen kimlik sayılmaz.
+
+Panelin bu sayıları kullanması ayrı iştir (panelin satır şeması bugün
+bilmediği alanları atar). Kullanırken: `milks.oat` yulaf sütü ürününe
+eşlenir; tarifinde süt olan içecekte normal süt aynı adet kadar düşer,
+sütsüz içecekte (Americano) yalnız seçilen süt eklenir, düşülecek normal
+süt yoktur. `extraShots` bir shot'luk kahve, `syrups` bir pompa şurup
+olarak eklenir.
 
 ## Uç
 
@@ -90,7 +134,17 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
         "size": "M",
         "name": "Latte",
         "qty": 230,
-        "listMinor": 2760000
+        "listMinor": 2760000,
+        "extraShots": 18,
+        "milks": { "oat": 41, "lactose-free": 7 },
+        "syrups": { "vanilla": 12 }
+      },
+      {
+        "menuItemId": "mnu-0020",
+        "size": "single",
+        "name": "Cheesecake",
+        "qty": 15,
+        "listMinor": 225000
       }
     ]
   },
@@ -113,7 +167,17 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
     "kdvMinor": 341667,
     "unknownKdvNetMinor": 0
   },
-  "manual": { "orders": 3, "grossMinor": 96000, "netMinor": 96000 }
+  "manual": { "orders": 3, "grossMinor": 96000, "netMinor": 96000 },
+  "counter": {
+    "orders": 2,
+    "grossMinor": 36000,
+    "discountMinor": 0,
+    "deliveryMinor": 0,
+    "refundedMinor": 0,
+    "netMinor": 36000,
+    "kdvMinor": 3273,
+    "unknownKdvNetMinor": 0
+  }
 }
 ```
 
@@ -131,10 +195,23 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
 | `lines`              | Yapılan kafe satırları: iptal edilmeyen, tamamen iade edilmemiş siparişlerin    |
 | `lines[].size`       | `L` kalemin L fiyatına (`siteMenuSlot = L`), `M` ve `single` ilk fiyatına (`M`) |
 | `lines[].listMinor`  | Birim fiyat (seçenekler dahil) × adet: indirim ve iade düşülmeden, bilgi için   |
+| `lines[].extraShots` | Ekstra shot'lı yapılan adet (adet başına bir shot); yoksa alan yok              |
+| `lines[].milks`      | Tarifin sütü yerine başka sütle yapılan adet, süt kimliğine göre; yoksa yok     |
+| `lines[].syrups`     | Şurupla yapılan adet, şurup kimliğine göre; yoksa alan yok                      |
 | `karaoke.bookings`   | Parasının bir kısmı köşkte kalan rezervasyon                                    |
+| `counter`            | Kasada nakit ya da kasa kartıyla kapatılan uygulama / web siparişi; satırsız    |
 
 KDV hariç gelir: `netMinor − kdvMinor − unknownKdvNetMinor × r / (100 + r)`
 (`r` panelin varsayılan oranı).
+
+`counter` 23 Eki 2026'da eklendi (v1'e ekleme; `version` 1 kalır). Daha
+önce bu siparişler `cafe` / `shop`'ta ve `cafe.lines`'ta da sayılıyordu:
+para hem ModPOS'ta hem "Kafe online"da, KDV iki kez, içecekler
+tutarlılıkta iki kez. Artık `cafe` ve `shop` belgelendikleri anlamı
+("kasadan geçmez") taşır; panel hiçbir şey çıkarmaz. `counter` bilgi
+içindir: kâr-zarara ve tüketime **eklenmez** (ModPOS'ta zaten var). Eski
+panel alanı tanımaz ve yok sayar; onun gördüğü düzelme, çift sayımın
+kalkmasıdır.
 
 | Durum | Gövde                         | Ne zaman                                             |
 | ----- | ----------------------------- | ---------------------------------------------------- |
@@ -167,9 +244,14 @@ Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`):
   online. Kâr / zarar ve oranlar bu toplamla hesaplanır. ModPOS cirosu ve
   POS komisyonu değişmez. Hiç çekilmemiş ay boş kalır, 0 görünmez.
 - **Tüketim:** kafe satırları menü bağlantısıyla ürünlere eşlenip
-  tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer;
+  tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer
+  (satırın `extraShots` / `milks` / `syrups` sayıları panelde ayrıca
+  işlenecek);
   bağlı ürünü olmayan satır listelenir. Panelin satış raporuna
   (`sales_lines`) yazılmaz.
+- **Kasada kapatılan sipariş:** `counter` kâr-zarara, tüketime ve kasa
+  raporunun online satırına eklenmez; panel isterse "kasada kapatılan
+  online sipariş" olarak bilgi diye gösterir.
 - **Kasa raporu:** sayfada ve e-postada bilgi satırı, "Online (site +
   uygulama) … · Karaoke ön ödeme … — kasadan geçmez" (kafe + mağaza netini
   ve karaokeyi KDV dahil gösterir); kasa farkına girmez, saklanmaz. Site

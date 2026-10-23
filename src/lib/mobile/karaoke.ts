@@ -737,18 +737,27 @@ export const KARAOKE_ADMIN_LIST_LIMIT = 5000;
  * hour is a few thousand rows a year, so the panel sorts, searches and
  * counts its tabs in memory; the date range is the one filter the database
  * applies (`karaoke_reservations_date_idx`).
+ *
+ * `ascending` turns it earliest first (day, hour, then id), for the köşk's
+ * bar panel (`GET /api/panel/karaoke`): a window cut at `limit` must keep
+ * today and this week, not the far end of the window.
  */
 export async function listReservationsForAdmin(
-  opts: { from?: string; to?: string; limit?: number } = {},
+  opts: {
+    from?: string;
+    to?: string;
+    limit?: number;
+    ascending?: boolean;
+  } = {},
 ): Promise<KaraokeReservation[]> {
   let q = getDb().from(TABLES.karaokeReservations).select(ADMIN_LIST_COLUMNS);
   if (opts.from) q = q.gte("date", opts.from);
   if (opts.to) q = q.lt("date", nextDay(opts.to));
+  const ascending = opts.ascending === true;
+  q = q.order("date", { ascending }).order("startHour", { ascending });
+  if (ascending) q = q.order("id", { ascending: true });
   return rows<KaraokeReservation>(
-    await q
-      .order("date", { ascending: false })
-      .order("startHour", { ascending: false })
-      .limit(opts.limit ?? KARAOKE_ADMIN_LIST_LIMIT),
+    await q.limit(opts.limit ?? KARAOKE_ADMIN_LIST_LIMIT),
     "karaoke.listReservationsForAdmin",
   );
 }
