@@ -35,6 +35,7 @@ import {
   type KaraokeCancelCause,
   type KaraokeRequestChannel,
 } from "@/lib/mobile/karaoke-cancel-cause";
+import { refundAnswerForStaff } from "@/lib/payment/refund-answer";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import {
@@ -1150,7 +1151,8 @@ function auditEntry(
       ? `İstek: ${[channel, asked].filter(Boolean).join(", ")}`
       : "",
     reason ? `Neden: ${reason}` : "",
-    str(p.message),
+    // A refund's POS answer, in words: never PayNkolay's raw text.
+    refundAnswerForStaff(str(p.message)),
   ].filter(Boolean);
   return {
     id: row.id,
