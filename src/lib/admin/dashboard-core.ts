@@ -287,3 +287,46 @@ export function dashboardTiles(
   }
   return tiles;
 }
+
+/** A booking as the room's occupancy reads it. */
+export interface OccupancySlot {
+  startHour: number;
+  hours: number;
+  status: string;
+}
+
+/** How full the karaoke room is on a day. */
+export interface KaraokeOccupancy {
+  /** Hours held by bookings not cancelled, inside the opening hours. */
+  hours: number;
+  /** The room's opening hours that day. */
+  capacity: number;
+  /** hours / capacity, whole percent; 0 for a day the room is shut. */
+  pct: number;
+}
+
+/**
+ * The share of the karaoke room's hours a day's bookings hold (Innex's
+ * "Karaoke doluluğu %70 · geçen cuma %55", recipe §3.5): every booking not
+ * cancelled holds its hours (an unpaid request too, the hour is not on
+ * sale), counted inside the room's opening hours only, over those hours.
+ */
+export function karaokeOccupancy(
+  rows: readonly OccupancySlot[],
+  rules: { firstHour: number; closeHour: number },
+): KaraokeOccupancy {
+  const capacity = Math.max(0, rules.closeHour - rules.firstHour);
+  let hours = 0;
+  for (const r of rows) {
+    if (r.status === "cancelled") continue;
+    const from = Math.max(rules.firstHour, r.startHour);
+    const to = Math.min(rules.closeHour, r.startHour + r.hours);
+    hours += Math.max(0, to - from);
+  }
+  hours = Math.min(hours, capacity);
+  return {
+    hours,
+    capacity,
+    pct: capacity > 0 ? Math.round((hours / capacity) * 100) : 0,
+  };
+}

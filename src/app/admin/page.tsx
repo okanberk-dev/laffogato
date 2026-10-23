@@ -28,6 +28,7 @@ import {
   stockLinks,
 } from "@/lib/admin/dashboard-core";
 import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
+import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
 import { canAccess } from "@/lib/admin/roles";
 import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import {
@@ -158,12 +159,15 @@ export default async function AdminDashboardPage() {
   // nothing else, and comes back null rather than throwing.
   const karaokeRead = canAccess("karaoke", role)
     ? settingsRead.then((settings) =>
-        loadKaraokeTodayCard({
-          today: istanbulClock(now).date,
-          now,
-          prepay: settings.karaokePrepay,
-          canRefund: canAccess("refunds", role),
-        }),
+        loadKaraokeTodayCard(
+          {
+            today: istanbulClock(now).date,
+            now,
+            prepay: settings.karaokePrepay,
+            canRefund: canAccess("refunds", role),
+          },
+          settings.mobileApp?.karaoke ?? DEFAULT_KARAOKE_RULES,
+        ),
       )
     : null;
   // The settings read is awaited for its failure only: the header no longer
@@ -338,6 +342,7 @@ export default async function AdminDashboardPage() {
             <KaraokeTodayCard
               today={karaoke?.today ?? null}
               attention={karaoke?.attention ?? null}
+              occupancy={karaoke?.occupancy ?? null}
               now={now}
             />
           ) : null}

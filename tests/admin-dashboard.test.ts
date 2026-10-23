@@ -555,6 +555,11 @@ describe("the dashboard page", () => {
     const { loadKaraokeTodayCard, text } = await render("staff");
     expect(loadKaraokeTodayCard).toHaveBeenCalledWith(
       expect.objectContaining({ prepay: true, canRefund: false }),
+      // The room's hours, for its occupancy against last week.
+      expect.objectContaining({
+        firstHour: expect.any(Number),
+        closeHour: expect.any(Number),
+      }),
     );
     expect(text).toContain("Bugün karaoke");
   });

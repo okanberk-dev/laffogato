@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import {
+  venueWeekday,
+  type KaraokeOccupancy,
+} from "@/lib/admin/dashboard-core";
+import {
   KARAOKE_PANEL_PATH,
   KARAOKE_TAB_PARAM,
   karaokeDetailHref,
@@ -10,7 +14,68 @@ import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 
 import { WidgetCard } from "./dashboard/widget-card";
 import { Badge } from "./ui";
+import { AdminIcon } from "./ui/icons";
 import { NUMERIC_STYLE } from "./ui/styles";
+import { TONE_SOFT } from "./ui/tone";
+
+/**
+ * How full the room is today against the same weekday a week ago
+ * (Innex's "Karaoke doluluğu %70 · geçen cuma %55", recipe §3.5): the
+ * share and the hours, a bar, and the change in points, green when the
+ * room is fuller.
+ */
+function Occupancy({
+  today,
+  lastWeek,
+  weekday,
+}: {
+  today: KaraokeOccupancy;
+  lastWeek: KaraokeOccupancy;
+  /** "cuma": the reference's day. */
+  weekday: string;
+}) {
+  if (today.capacity === 0) return null;
+  const diff = today.pct - lastWeek.pct;
+  return (
+    <div className="mb-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm text-[var(--admin-text-soft)]">Doluluk</span>
+        <span
+          className="text-sm text-[var(--admin-text)]"
+          style={NUMERIC_STYLE}
+        >
+          <strong className="font-bold">%{today.pct}</strong> · {today.hours}/
+          {today.capacity} saat
+        </span>
+      </div>
+      <div
+        aria-hidden="true"
+        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--admin-panel)]"
+      >
+        <div
+          className="h-full rounded-full bg-[var(--admin-chart-line)]"
+          style={{ width: `${today.pct}%` }}
+        />
+      </div>
+      <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-[var(--admin-text-mute)]">
+        {diff !== 0 ? (
+          <span
+            className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-px font-medium ${diff > 0 ? TONE_SOFT.success : TONE_SOFT.danger}`}
+            style={NUMERIC_STYLE}
+          >
+            <AdminIcon name={diff > 0 ? "deltaUp" : "deltaDown"} size={12} />
+            {diff > 0 ? "+" : "−"}
+            {Math.abs(diff)} puan
+            <span className="sr-only"> {diff > 0 ? "artış" : "düşüş"}</span>
+          </span>
+        ) : null}
+        <span style={NUMERIC_STYLE}>
+          Geçen {weekday} %{lastWeek.pct}
+        </span>
+      </p>
+    </div>
+  );
+}
 
 /**
  * The dashboard's karaoke card: tonight's bookings at a glance and anything
@@ -23,10 +88,13 @@ import { NUMERIC_STYLE } from "./ui/styles";
 export function KaraokeTodayCard({
   today,
   attention: others,
+  occupancy = null,
   now,
 }: {
   today: readonly KaraokeRowView[] | null;
   attention: readonly KaraokeRowView[] | null;
+  /** Today's and a week ago's (loadKaraokeTodayCard); none, no line. */
+  occupancy?: { today: KaraokeOccupancy; lastWeek: KaraokeOccupancy } | null;
   now: Date;
 }) {
   if (!today || !others) {
@@ -64,6 +132,9 @@ export function KaraokeTodayCard({
 
   return (
     <WidgetCard title="Bugün karaoke" href={KARAOKE_PANEL_PATH}>
+      {occupancy ? (
+        <Occupancy {...occupancy} weekday={venueWeekday(now)} />
+      ) : null}
       {/* Innex's small stat row: the figures side by side, a hairline
           between them, two abreast in a narrow card. */}
       <dl
