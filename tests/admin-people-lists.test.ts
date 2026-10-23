@@ -29,6 +29,11 @@ const h = vi.hoisted(() => ({
   twoFA: new Set<string>(),
   /** Each address's last sign-in, as the audit log has it. */
   signIns: new Map<string, string>(),
+  /** Each address's last answered request (activity.ts). */
+  activity: new Map<string, string>(),
+  /** The log or the activity record cannot be read. */
+  signInsFail: false,
+  activityFail: false,
 }));
 
 vi.mock("next/link", () => ({
@@ -92,7 +97,16 @@ vi.mock("@/lib/admin/users", () => ({
 vi.mock("@/lib/admin/audit", () => ({
   logAudit: vi.fn(async () => {}),
   safeAudit: vi.fn(async () => true),
-  lastSignIns: vi.fn(async () => h.signIns),
+  lastSignIns: vi.fn(async () => {
+    if (h.signInsFail) throw new Error("audit_logs okunamadı");
+    return h.signIns;
+  }),
+}));
+vi.mock("@/lib/admin/activity", () => ({
+  lastActivity: vi.fn(async () => {
+    if (h.activityFail) throw new Error("admin_activity okunamadı");
+    return h.activity;
+  }),
 }));
 vi.mock("@/lib/admin/twofa", () => ({
   has2FA: vi.fn(async (email: string) => h.twoFA.has(email)),
@@ -223,6 +237,9 @@ beforeEach(() => {
   h.twoFA = new Set(["sahip@ornek.com"]);
   // The manager signed in a moment ago; the others never did.
   h.signIns = new Map([["mudur@ornek.com", new Date().toISOString()]]);
+  h.activity = new Map();
+  h.signInsFail = false;
+  h.activityFail = false;
 });
 
 // ── Promosyon ──────────────────────────────────────────────────────────
@@ -602,11 +619,12 @@ describe("users list and view", () => {
     expect(page).toContain("2FA açık");
     // When each one last signed in (Innex: activity in the row): a moment
     // ago, the exact time on hover; never, said so.
-    expect(page).toContain("Son giriş");
+    expect(page).toContain("Son etkinlik");
     expect(page).toMatch(
-      /<time dateTime="[^"]+" title="[^"]+">az önce<\/time>/,
+      /Giriş: <time dateTime="[^"]+" title="[^"]+">az önce<\/time>/,
     );
     expect(page).toContain("Hiç girmedi");
+    expect(page).not.toContain("Şu an aktif");
     // The per-account edit cards left the list for the account's page.
     expect(page).not.toContain("Parolayı sıfırla");
     // The new-user form stays here.
@@ -617,6 +635,42 @@ describe("users list and view", () => {
     );
     expect(pasif).toContain(`href="${adminUserHref("kasa@ornek.com")}"`);
     expect(pasif).not.toContain(`href="${adminUserHref("mudur@ornek.com")}"`);
+  });
+
+  it("who is in the panel now, and when the others were last seen", async () => {
+    const { default: Page } = await import("@/app/admin/kullanicilar/page");
+    const now = Date.now();
+    // The manager answered a minute ago; the owner three hours ago.
+    h.activity = new Map([
+      ["mudur@ornek.com", new Date(now - 60_000).toISOString()],
+      ["sahip@ornek.com", new Date(now - 3 * 3_600_000).toISOString()],
+    ]);
+    const page = html(await Page({ searchParams: Promise.resolve({}) }));
+    expect(page).toMatch(
+      /<time dateTime="[^"]+" title="[^"]+">Şu an aktif<\/time>/,
+    );
+    expect(page.match(/Şu an aktif/g)).toHaveLength(2); // table + card
+    expect(page).toMatch(
+      /<time dateTime="[^"]+" title="[^"]+">3 saat önce<\/time>/,
+    );
+    // The cashier: neither a sign-in nor a request, both read.
+    expect(page).toContain("Hiç girmedi");
+  });
+
+  it("an unreadable log or record is not a never", async () => {
+    const { default: Page } = await import("@/app/admin/kullanicilar/page");
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    h.signInsFail = true;
+    h.activityFail = true;
+    const page = html(await Page({ searchParams: Promise.resolve({}) }));
+    // Before 23 Eki 2026 every account read "Hiç girmedi" here.
+    expect(page).not.toContain("Hiç girmedi");
+    expect(page).toContain("Kayıt okunamadı");
+    // One read failing alone still says nothing it does not know.
+    h.activityFail = false;
+    const half = html(await Page({ searchParams: Promise.resolve({}) }));
+    expect(half).not.toContain("Hiç girmedi");
+    log.mockRestore();
   });
 
   it("an account's page shows its facts, its role's reach and its forms", async () => {
