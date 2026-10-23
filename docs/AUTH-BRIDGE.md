@@ -185,7 +185,9 @@ sunucusu beklenmez (`isSessionRefreshPath`; 9-17 Eki 2026'da her sayfada
 Server Action'dır: çerezi kendisi yazar, süresi dolmuş oturumu supabase-js
 çıkıştan önce kendisi yeniler. Süre aşılırsa ya da kimlik sunucusuna
 ulaşılamazsa istek geldiği çerezlerle sürer: hiçbir çerez silinmez ya da
-yeniden yazılmaz, üye girişte kalır (`tests/supabase-session-refresh.test.ts`). Süresi dolmuş oturum eskisi gibi kimlik sunucusunda
+yeniden yazılmaz, üye girişte kalır
+(`tests/supabase-session-refresh.test.ts`). Süresi dolmuş oturum eskisi gibi
+kimlik sunucusunda
 yenilenir; geçerli erişim token'ı ise projenin önbellekteki açık anahtarlarıyla
 yerelde doğrulanır, proje hâlâ ortak sırla imzalıyorsa kütüphane `getUser()`'a
 düşer (#100). Sonucu hiçbir şeye yetki vermez: sayfa kimliği sitenin kendi

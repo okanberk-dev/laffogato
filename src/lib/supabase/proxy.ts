@@ -15,8 +15,9 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
  * How long a page render may wait on the identity service.
  *
  * `updateSession` refreshes on every member-page request (`/uye`) that
- * carries a Supabase cookie. Without a bound, an identity service having a bad minute becomes the site
- * having a bad minute: each request sits on `getUser()` until the platform's
+ * carries a Supabase cookie. Without a bound, an identity service having a
+ * bad minute becomes the site having a bad minute: each request sits on
+ * `getUser()` until the platform's
  * own timeout. Past this, the request continues with the cookies it already
  * has - the session is refreshed on the next visit instead.
  */
