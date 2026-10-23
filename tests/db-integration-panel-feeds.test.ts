@@ -92,7 +92,14 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         menuItemId: "mnu-0003",
         size: "M",
         detail: "M · yulaf",
-        options: { milk: "oat", note: "az köpüklü" },
+        options: {
+          milk: "oat",
+          roast: "intense",
+          sugar: 0,
+          syrup: "none",
+          extraShot: false,
+          note: "az köpüklü",
+        },
         taxRatePct: 10,
       },
     ];
@@ -403,6 +410,11 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       grossMinor: 12_000,
       netMinor: 12_000,
     });
+    // The options come back from the jsonb: every Latte made was an oat one.
+    const latte = sales.cafe.lines.find((l) => l.menuItemId === "mnu-0003");
+    expect(latte?.qty).toBe(6);
+    expect(latte?.milks).toEqual({ oat: 6 });
+    expect(latte).not.toHaveProperty("syrups");
     expect(sales.karaoke).toMatchObject({
       bookings: 1,
       collectedMinor: 150_000,

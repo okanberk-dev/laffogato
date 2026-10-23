@@ -74,6 +74,30 @@ Tutarlar KDV dahildir. `kdvMinor`, ödenen ve köşkte kalan tutarın içindeki
 - Karaoke rezervasyonunun oranı rezervasyonda saklıdır (`taxRatePct`);
   yoksa aynı şekilde `unknownKdvNetMinor`.
 
+### Kafe satırlarının seçenekleri (23 Eki 2026)
+
+Uygulama siparişinin satırı seçimlerini taşır (`items[].options`,
+`docs/API-MOBILE.md` §3, `src/lib/mobile/customization.ts`). Satırlar
+yine menü kalemi × boy olarak gruplanır; seçimler satırın içinde, yapılan
+adetle çarpılarak sayılır (v1'e ekleme, isteğe bağlı alanlar):
+
+- `extraShots`: `extraShot: true` olan adet. Satırda en çok bir ekstra shot
+  seçilir, yani sayı shot sayısıdır.
+- `milks`: `lactose-free`, `oat`, `almond`. `normal` sayılmaz: tarifin kendi
+  sütüdür, sütsüz içecekte (Americano) de varsayılan odur.
+- `syrups`: `vanilla`, `caramel`, `hazelnut`. `none` sayılmaz.
+
+Hiçbiri yoksa alan **hiç yoktur** (boş nesne ya da 0 değil): seçeneksiz
+satırın biçimi eskisiyle aynıdır. Kavurma (`roast`), şeker ve not
+gönderilmez. Bilinmeyen kimlik sayılmaz.
+
+Panelin bu sayıları kullanması ayrı iştir (panelin satır şeması bugün
+bilmediği alanları atar). Kullanırken: `milks.oat` yulaf sütü ürününe
+eşlenir; tarifinde süt olan içecekte normal süt aynı adet kadar düşer,
+sütsüz içecekte (Americano) yalnız seçilen süt eklenir, düşülecek normal
+süt yoktur. `extraShots` bir shot'luk kahve, `syrups` bir pompa şurup
+olarak eklenir.
+
 ## Uç
 
 Karaoke bağlantısının imzası ve ortak anahtarı (`KARAOKE_SYNC_SECRET`,
@@ -110,7 +134,17 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
         "size": "M",
         "name": "Latte",
         "qty": 230,
-        "listMinor": 2760000
+        "listMinor": 2760000,
+        "extraShots": 18,
+        "milks": { "oat": 41, "lactose-free": 7 },
+        "syrups": { "vanilla": 12 }
+      },
+      {
+        "menuItemId": "mnu-0020",
+        "size": "single",
+        "name": "Cheesecake",
+        "qty": 15,
+        "listMinor": 225000
       }
     ]
   },
@@ -161,6 +195,9 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
 | `lines`              | Yapılan kafe satırları: iptal edilmeyen, tamamen iade edilmemiş siparişlerin    |
 | `lines[].size`       | `L` kalemin L fiyatına (`siteMenuSlot = L`), `M` ve `single` ilk fiyatına (`M`) |
 | `lines[].listMinor`  | Birim fiyat (seçenekler dahil) × adet: indirim ve iade düşülmeden, bilgi için   |
+| `lines[].extraShots` | Ekstra shot'lı yapılan adet (adet başına bir shot); yoksa alan yok              |
+| `lines[].milks`      | Tarifin sütü yerine başka sütle yapılan adet, süt kimliğine göre; yoksa yok     |
+| `lines[].syrups`     | Şurupla yapılan adet, şurup kimliğine göre; yoksa alan yok                      |
 | `karaoke.bookings`   | Parasının bir kısmı köşkte kalan rezervasyon                                    |
 | `counter`            | Kasada nakit ya da kasa kartıyla kapatılan uygulama / web siparişi; satırsız    |
 
@@ -207,7 +244,9 @@ Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`):
   online. Kâr / zarar ve oranlar bu toplamla hesaplanır. ModPOS cirosu ve
   POS komisyonu değişmez. Hiç çekilmemiş ay boş kalır, 0 görünmez.
 - **Tüketim:** kafe satırları menü bağlantısıyla ürünlere eşlenip
-  tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer;
+  tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer
+  (satırın `extraShots` / `milks` / `syrups` sayıları panelde ayrıca
+  işlenecek);
   bağlı ürünü olmayan satır listelenir. Panelin satış raporuna
   (`sales_lines`) yazılmaz.
 - **Kasada kapatılan sipariş:** `counter` kâr-zarara, tüketime ve kasa

@@ -24,8 +24,9 @@ import {
  * the same money Raporlar and Gün sonu count (orders by `createdAt`,
  * refunds per order, karaoke by its payment day), manual orders and orders
  * settled at the till apart, the invoice's KDV (a reward coupon at full
- * price), the café lines the panel maps to its products, and a route that
- * answers only a signed request and never a short P&L.
+ * price), the café lines the panel maps to its products with their milk,
+ * syrup and extra shot counts, and a route that answers only a signed
+ * request and never a short P&L.
  */
 
 /**
@@ -459,6 +460,121 @@ describe("buildPanelSales", () => {
       "qty",
       "size",
     ]);
+  });
+});
+
+describe("the choices made on the café lines", () => {
+  const opts = (over: Record<string, unknown>) => ({
+    milk: "normal",
+    roast: "intense",
+    sugar: 0,
+    syrup: "none",
+    extraShot: false,
+    note: "",
+    ...over,
+  });
+  const orders = [
+    order({
+      orderNo: 30_001,
+      items: [
+        line({
+          qty: 2,
+          options: opts({ milk: "oat", syrup: "vanilla", extraShot: true }),
+        }),
+        // The recipe as it is: nothing to add.
+        line({ options: opts({}) }),
+        // Cancelled: not made.
+        line({ status: "cancelled", options: opts({ milk: "oat" }) }),
+      ],
+    }),
+    order({
+      orderNo: 30_002,
+      items: [
+        line({
+          qty: 3,
+          options: opts({ milk: "almond", syrup: "vanilla", roast: "light" }),
+        }),
+        line({
+          size: "L",
+          options: opts({ milk: "oat", syrup: "caramel", extraShot: true }),
+        }),
+        // Not one of the menu's ids: never a key the panel cannot map.
+        line({
+          productName: "Mocha",
+          menuItemId: "mnu-0005",
+          options: { milk: "soy", syrup: 5, extraShot: "yes" },
+        }),
+        // A slice of cake, and a line from before options existed.
+        line({
+          productName: "Cheesecake",
+          menuItemId: "mnu-0020",
+          size: "single",
+          options: opts({}),
+        }),
+        line({
+          productName: "Americano",
+          menuItemId: "mnu-0002",
+          size: "single",
+          options: undefined,
+        }),
+      ],
+    }),
+    // Wholly refunded: nothing made, no oat milk used.
+    order({
+      orderNo: 30_003,
+      status: "refunded",
+      items: [line({ options: opts({ milk: "oat", extraShot: true }) })],
+      refunds: [{ amountMinor: 12_000 }],
+    }),
+  ];
+  const sales = buildPanelSales({
+    range: OCTOBER,
+    now: MID_OCTOBER,
+    orders,
+    bookings: [],
+    couponSourceOf: () => null,
+    paymentsOf: () => [],
+  });
+  const find = (id: string, size: string) =>
+    sales.cafe.lines.find((l) => l.menuItemId === id && l.size === size);
+
+  it("counts milks, syrups and extra shots by the units made", () => {
+    expect(find("mnu-0003", "M")).toEqual({
+      menuItemId: "mnu-0003",
+      size: "M",
+      name: "Latte",
+      qty: 6,
+      listMinor: 72_000,
+      extraShots: 2,
+      milks: { oat: 2, almond: 3 },
+      syrups: { vanilla: 5 },
+    });
+    expect(find("mnu-0003", "L")).toEqual({
+      menuItemId: "mnu-0003",
+      size: "L",
+      name: "Latte",
+      qty: 1,
+      listMinor: 12_000,
+      extraShots: 1,
+      milks: { oat: 1 },
+      syrups: { caramel: 1 },
+    });
+  });
+
+  it("leaves the fields out of a line made as the recipe", () => {
+    for (const [id, size] of [
+      ["mnu-0005", "M"],
+      ["mnu-0020", "single"],
+      ["mnu-0002", "single"],
+    ]) {
+      expect(Object.keys(find(id, size)!).sort()).toEqual([
+        "listMinor",
+        "menuItemId",
+        "name",
+        "qty",
+        "size",
+      ]);
+    }
   });
 });
 
