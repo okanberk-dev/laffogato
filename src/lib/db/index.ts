@@ -296,6 +296,7 @@ export const TABLES = {
   venueStatus: "venue_status",
   karaokeReservations: "karaoke_reservations",
   adminUsers: "admin_users",
+  adminActivity: "admin_activity",
   counterTokens: "counter_tokens",
   staffMembers: "staff_members",
   campaignEmails: "campaign_emails",

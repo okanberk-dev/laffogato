@@ -572,10 +572,18 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
 - **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
   ("Genel bakış · Kasa · damga · Siparişler +3"); "Roller neyi açar" artık
   bir tablo: her bölüm bir satır, her rol bir sütun, açtığı yerde tik
-  (`roleMatrix`). **Son giriş** sütunu ("3 saat önce", tam saat üstünde;
-  "Hiç girmedi"): adresin en yeni `login_success` olay kaydı
-  (`lastSignIns`). O kayıt parola doğru girilince yazılır; 2FA kodunun
-  kendi kaydı yok. Kayıt okunamazsa sütun boş kalır, sayfa düşmez.
+  (`roleMatrix`). **Son etkinlik** sütunu (Innex'in "Şu an aktif / 3 saat
+  önce"u, 23 Eki 2026): son beş dakikada yanıtlanan bir isteği olan
+  "Şu an aktif" (yeşil nokta), değilse ne zaman görüldüğü ("3 saat önce",
+  tam saat üstünde); altında **Giriş**: adresin en yeni `login_success`
+  olay kaydı (`lastSignIns`; o kayıt parola doğru girilince yazılır, 2FA
+  kodunun kendi kaydı yok). Etkinlik `admin_activity`'de, adres başına tek
+  satır: oturumu okunan her istek yanıttan sonra (`after()`) yazar, aynı
+  sunucu örneğinden dakikada en çok bir kez (`src/lib/admin/activity.ts`);
+  geçmiş tutulmaz, kullanıcı silinince satırı da silinir, önbelleğe girmez
+  ve rozetlerin işaretini düşürmez. "Hiç girmedi" yalnız iki kayıt da
+  okunup ikisi de boşsa yazar; biri okunamazsa hücre "-" der (eskiden
+  günlük okunamayınca her hesap "Hiç girmedi" görünüyordu). Sayfa düşmez.
 - **Müşteriler** özeti de KPI şeridi. **Boş durum**: noktalı kutuda gri bir
   simge, 15 px başlık, gri açıklama ve tek adım.
 - **Hızlı bakış** (ürünler ve kafe menüsü, Innex'in sağ çekmecesi;

@@ -16,6 +16,8 @@ import {
   adminUsersList,
   parseAdminUserTab,
 } from "@/lib/admin/admin-users-list";
+import { lastActivity } from "@/lib/admin/activity";
+import { isActiveNow } from "@/lib/admin/activity-core";
 import { lastSignIns } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -53,32 +55,74 @@ interface PageProps {
 
 type ListedUser = PublicAdminUser & {
   has2FA: boolean;
-  /** The last sign-in on record, ISO; "" for none (or an unread log). */
-  lastSignIn: string;
+  /** The last sign-in on record, ISO; "" for none; null: log unread. */
+  lastSignIn: string | null;
+  /** The last answered request, ISO; "" for none; null: record unread. */
+  lastSeen: string | null;
 };
 
-/** "3 saat önce", the exact time on hover; "Hiç girmedi" without one. */
-function LastSignIn({ at, now }: { at: string; now: Date }) {
-  if (!at) {
-    return <span className="text-[var(--admin-text-mute)]">Hiç girmedi</span>;
+/**
+ * Innex's "Şu an aktif / 3 saat önce" (recipe §3.9): a request answered in
+ * the last five minutes reads "Şu an aktif", an older one says when, the
+ * exact time on hover; the sign-in under it. An address seen before the
+ * record existed (23 Eki 2026) has its sign-in only. "Hiç girmedi" only
+ * when both were read and both are empty: an unread log is not a never
+ * (it read so for every account, and the owner may remove the "unused").
+ */
+function Activity({ user, now }: { user: ListedUser; now: Date }) {
+  const seen = user.lastSeen;
+  const signIn = user.lastSignIn ? (
+    <time dateTime={user.lastSignIn} title={formatDateTime(user.lastSignIn)}>
+      {timeAgo(user.lastSignIn, now)}
+    </time>
+  ) : null;
+  if (!seen && !signIn) {
+    return seen === "" && user.lastSignIn === "" ? (
+      <span className="text-[var(--admin-text-mute)]">Hiç girmedi</span>
+    ) : (
+      <span className="text-[var(--admin-text-mute)]" title="Kayıt okunamadı">
+        -<span className="sr-only">Kayıt okunamadı</span>
+      </span>
+    );
   }
   return (
-    <time dateTime={at} title={formatDateTime(at)}>
-      {timeAgo(at, now)}
-    </time>
+    <span className="flex flex-col gap-0.5">
+      {seen && isActiveNow(seen, now) ? (
+        <span className="inline-flex items-center gap-1.5 font-medium text-[var(--admin-success)]">
+          <span
+            aria-hidden
+            className="size-2 shrink-0 rounded-full bg-[var(--admin-success)]"
+          />
+          <time dateTime={seen} title={formatDateTime(seen)}>
+            Şu an aktif
+          </time>
+        </span>
+      ) : seen ? (
+        <time dateTime={seen} title={formatDateTime(seen)}>
+          {timeAgo(seen, now)}
+        </time>
+      ) : null}
+      {signIn ? (
+        <span className="text-[var(--admin-text-mute)]">Giriş: {signIn}</span>
+      ) : null}
+    </span>
   );
 }
 
 /**
- * The users' last sign-ins, or none when the log cannot be read: the page
- * is how the owner fixes access, it must not fall over with the log.
+ * A read the page can do without: an unreadable log or activity record is
+ * null (its column says so, never "Hiç girmedi"). The page is how the
+ * owner fixes access; it must not fall over with either.
  */
-async function readSignIns(emails: string[]): Promise<Map<string, string>> {
+async function readOrNull(
+  read: () => Promise<Map<string, string>>,
+  what: string,
+): Promise<Map<string, string> | null> {
   try {
-    return await lastSignIns(emails);
+    return await read();
   } catch (err) {
-    console.error("[admin/kullanicilar] son girişler okunamadı", err);
-    return new Map();
+    console.error(`[admin/kullanicilar] ${what} okunamadı`, err);
+    return null;
   }
 }
 
@@ -149,16 +193,19 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     listStaffMembers(),
   ]);
   // Who has an authenticator, so the owner can see who a lost phone locks
-  // out, and who has not signed in for a while (Innex: activity in the
-  // row). A handful of accounts: one small read each, all at once.
-  const [twoFA, signIns] = await Promise.all([
+  // out, who is in the panel now and who has not signed in for a while
+  // (Innex: activity in the row). A handful of accounts, all at once.
+  const emails = users.map((u) => u.email);
+  const [twoFA, signIns, seen] = await Promise.all([
     Promise.all(users.map((u) => has2FA(u.email))),
-    readSignIns(users.map((u) => u.email)),
+    readOrNull(() => lastSignIns(emails), "son girişler"),
+    readOrNull(() => lastActivity(emails), "son etkinlikler"),
   ]);
   const listed: ListedUser[] = users.map((u, i) => ({
     ...u,
     has2FA: twoFA[i],
-    lastSignIn: signIns.get(u.email) ?? "",
+    lastSignIn: signIns ? (signIns.get(u.email) ?? "") : null,
+    lastSeen: seen ? (seen.get(u.email.toLowerCase()) ?? "") : null,
   }));
   const now = new Date();
   const tab = parseAdminUserTab(sp);
@@ -257,11 +304,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   ),
                 },
                 {
-                  key: "giris",
-                  header: "Son giriş",
+                  key: "etkinlik",
+                  header: "Son etkinlik",
                   cell: (u) => (
-                    <span className="text-xs whitespace-nowrap text-[var(--admin-text-soft)]">
-                      <LastSignIn at={u.lastSignIn} now={now} />
+                    <span className="block text-xs whitespace-nowrap text-[var(--admin-text-soft)]">
+                      <Activity user={u} now={now} />
                     </span>
                   ),
                 },
@@ -285,7 +332,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   </span>
                   <UserBadges user={u} />
                   <span className="text-xs text-[var(--admin-text-soft)]">
-                    Son giriş: <LastSignIn at={u.lastSignIn} now={now} />
+                    <Activity user={u} now={now} />
                   </span>
                 </div>
               )}

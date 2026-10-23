@@ -102,6 +102,10 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   karaoke_reservations: KARAOKE,
   // Who may still read the panel: the change markers (change-marker.ts).
   admin_users: [TAG_ACCESS],
+  // Who is in the panel now (20261023090000): written once a minute per
+  // signed-in address, read live by Kullanıcılar only. Never TAG_ACCESS:
+  // every write would expire the badges' markers for nothing.
+  admin_activity: NONE,
 
   // Read live wherever they are read: nothing caches them.
   promos: NONE,

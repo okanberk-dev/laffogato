@@ -10291,6 +10291,32 @@ insert into public._migrations (name) values ('20261022220000_invoice_buyer.sql'
   on conflict (name) do nothing;
 
 -- ─────────────────────────────────────────────────────────────────────
+-- 20261023090000_admin_activity.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Who is in the panel now (Kullanıcılar: "Şu an aktif", Innex recipe §3.9;
+-- 23 Oct 2026). One row per panel address: the last time a signed-in
+-- request of theirs was answered. Written after the response (`after()`),
+-- at most once a minute per address and server instance
+-- (src/lib/admin/activity.ts), overwritten in place; never a history.
+-- Deleting a panel user deletes its row. Read live by the owner's
+-- Kullanıcılar page only; nothing caches it.
+--
+-- Re-runnable. Rollback:
+--   drop table if exists public.admin_activity;
+
+create table if not exists public.admin_activity (
+  email        text primary key,
+  "lastSeenAt" text not null
+);
+
+-- Row level security on, no policy, like every other table: the app's
+-- single owner connection bypasses it.
+alter table public.admin_activity enable row level security;
+
+insert into public._migrations (name) values ('20261023090000_admin_activity.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
 -- 20261023100000_invoice_refund_handled.sql
 -- ─────────────────────────────────────────────────────────────────────
 -- A refund after an issued invoice, handled (review of #231, 23 Oct 2026).

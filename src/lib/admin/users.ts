@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 
 import { getDb, TABLES, type DbError } from "@/lib/db";
 
+import { forgetAdminActivity } from "./activity";
 import { isAdminRole, type AdminRole } from "./roles";
 
 /**
@@ -304,5 +305,12 @@ export async function deleteAdminUser(
   const sb = getDb();
   const { error } = await sb.from(TABLE).delete().eq("email", needle);
   checkErr(error, "deleteAdminUser");
+  // Its "Şu an aktif" record goes with it. The account is gone either way:
+  // a failure leaves one timestamp under an address nobody signs in with.
+  try {
+    await forgetAdminActivity(needle);
+  } catch (err) {
+    console.error("[admin/users] etkinlik kaydı silinemedi", err);
+  }
   return { ok: true, value: toPublic(row) };
 }

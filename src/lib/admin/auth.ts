@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 
 import { getDb, TABLES } from "@/lib/db";
 
+import { noteAdminActivity } from "./activity";
 import { forgetListSearches } from "./list-search-core";
 import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
 import {
@@ -746,7 +747,11 @@ export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
     if (!token) return null;
-    return await sessionFromToken(token);
+    const session = await sessionFromToken(token);
+    // Kullanıcılar's "Şu an aktif": written after the response, once a
+    // minute at most, and never in this request's way (activity.ts).
+    if (session) noteAdminActivity(session.email);
+    return session;
   } catch (err) {
     if (isAdminSessionUnavailable(err)) throw err;
     return null;
