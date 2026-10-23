@@ -1703,7 +1703,7 @@ kendi tarafı ayrı oturumda yapılır; yeni alanlar PR gövdelerinde.
 | 🟢 | Panelin menü okuması ve yazımı her kalemin fotoğrafını (2 MB'a kadar data URL) da okuyordu | `listMenuItemsForPanel` / `getMenuItemForPanel` yalnız sekiz sütun; yazım da yalnız onları döndürür (#241) | `panel-menu-columns`, `db-integration-panel-menu` |
 | 🟢 | Karaoke okuması 2000 satırı aşarsa en yakın günleri düşürüyordu | Panel okuması erkenden geçe (`ascending`); kesilen uzak uç (#250) | `api-panel-karaoke-route`, `db-integration-karaoke-prepay` |
 | 🟢 | Online kafe satırları süt, şurup ve ekstra shot seçimini düşürüyordu | `cafe.lines[]` `extraShots`, `milks`, `syrups` (yalnız sıfırdan büyükse) (#247) | `panel-sales-export`, `db-integration-panel-feeds` |
-| 🟢 | Panelin okuduğu Paraşüt kayıtları (site ne açar, iadeyi kim keser) belgede yoktu | `docs/EARSIV.md` §9: site iade / iptal belgesi kesmez; panel gider faturalarını süzmeden okur (iptali listede görür; listeden düşen kaydı yeniden okuması dar: çalıştırma başına 8, eşitleme penceresi) ve gelen e-Faturaları `GET e_invoices`'tan okur, kurumsal alıcının iade e-Faturasını kural 5 ayırır; kategori işareti eklenmedi (nedeni §9.5) (#240) | `earsiv-panel-records` |
+| 🟢 | Panelin okuduğu Paraşüt kayıtları (site ne açar, iadeyi kim keser) belgede yoktu | `docs/EARSIV.md` §9: site iade / iptal belgesi kesmez; panel gider faturalarını süzmeden okur (iptali listede ve listeden düşen kaydı yeniden okuyarak görür, ikisi de ~75 günlük eşitleme penceresinde; yeniden okuma çalıştırma başına 8) ve gelen e-Faturaları `GET e_invoices`'tan okur, kurumsal alıcının iade e-Faturasını kural 5 ayırır; kategori işareti eklenmedi (nedeni §9.5) (#240) | `earsiv-panel-records` |
 
 Açık (operatörün):
 
