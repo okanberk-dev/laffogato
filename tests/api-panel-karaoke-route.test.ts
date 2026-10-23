@@ -132,6 +132,7 @@ describe("a signed read", () => {
       from: "2026-10-20",
       to: "2026-10-31",
       limit: PANEL_MAX_ROWS + 1,
+      ascending: true,
     });
     const body = await res.json();
     expect(body.from).toBe("2026-10-20");
@@ -179,6 +180,7 @@ describe("a signed read", () => {
         from: "2026-10-20",
         to: "2027-01-18",
         limit: PANEL_MAX_ROWS + 1,
+        ascending: true,
       });
     } finally {
       vi.useRealTimers();
@@ -194,6 +196,45 @@ describe("a signed read", () => {
     const body = await (await GET(signed())).json();
     expect(body.complete).toBe(false);
     expect(body.reservations).toHaveLength(PANEL_MAX_ROWS);
+  });
+
+  it("keeps the nearest days when the window is cut, and drops the far end", async () => {
+    // The database's side of the read: the window's rows in the order the
+    // route asks for, cut at its limit. Six bookings a day from 20 Oct on,
+    // two days more than the cap holds.
+    const pool = Array.from({ length: PANEL_MAX_ROWS + 12 }, (_, i) => {
+      const day = new Date(Date.UTC(2026, 9, 20 + Math.floor(i / 6)));
+      return booking({
+        id: `krk-${String(i).padStart(5, "0")}`,
+        date: day.toISOString().slice(0, 10),
+        startHour: 12 + 2 * (i % 6),
+      });
+    });
+    listReservationsForAdmin.mockImplementation(
+      async (opts: { limit: number; ascending?: boolean }) => {
+        const sorted = [...pool].sort(
+          (a, b) =>
+            (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) ||
+            a.startHour - b.startHour,
+        );
+        if (!opts.ascending) sorted.reverse();
+        return sorted.slice(0, opts.limit);
+      },
+    );
+    const body = await (
+      await GET(signed("?from=2026-10-20&to=2027-11-20"))
+    ).json();
+    expect(body.complete).toBe(false);
+    expect(body.reservations).toHaveLength(PANEL_MAX_ROWS);
+    expect(body.reservations[0]).toMatchObject({
+      id: "krk-00000",
+      date: "2026-10-20",
+      startHour: 12,
+    });
+    expect(body.reservations[1].id).toBe("krk-00001");
+    // The rows past the cap are the latest ones of the window.
+    const id = (i: number) => `krk-${String(i).padStart(5, "0")}`;
+    expect(body.reservations.at(-1).id).toBe(id(PANEL_MAX_ROWS - 1));
   });
 
   it("drops a row it cannot place in time and keeps the rest", async () => {

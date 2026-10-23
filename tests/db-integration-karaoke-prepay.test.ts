@@ -1464,6 +1464,17 @@ maybe("karaoke prepayment (real Postgres)", () => {
         to: dayAhead(4),
       });
       expect(one.map((r) => r.id)).toEqual([b.reservation.id]);
+      // The köşk panel's read: earliest first, so a cut keeps the near days.
+      const near = await karaoke.listReservationsForAdmin({
+        from: dayAhead(3),
+        to: dayAhead(5),
+        limit: 2,
+        ascending: true,
+      });
+      expect(near.map((r) => r.id)).toEqual([
+        a.reservation.id,
+        b.reservation.id,
+      ]);
       expect(
         (await karaoke.listReservationsForDate(dayAhead(5))).map((r) => r.id),
       ).toEqual([c.reservation.id]);
