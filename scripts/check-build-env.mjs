@@ -6,14 +6,17 @@
  * bundled content, the app's API answers 503, and the logs say
  * `[db] DATABASE_URL tanımlı değil` (src/lib/db/database-url.mjs,
  * docs/DATABASE.md). That is right for an outage, and it is how a build
- * without the variable served degraded pages between 15 and 17 Oct 2026
- * with only log lines to show for it. On production the missing variable
- * is a deployment mistake, so the build goes red instead and the previous
- * deployment keeps serving.
+ * with no connection string served degraded pages between 15 and 17 Oct
+ * 2026 with only log lines to show for it (the message of the time: "...
+ * DATABASE_URL (veya POSTGRES_URL) set edilmeli", so neither was set). On
+ * production the missing variable is a deployment mistake, so the build
+ * goes red instead and the previous deployment keeps serving.
  *
  * Only `VERCEL_ENV=production`. Previews, local builds and CI (which sets
- * no `VERCEL_ENV`) build without a database as before: `next build` itself
- * never connects (src/lib/db/index.ts opens the pool lazily). The rule for
+ * no `VERCEL_ENV`) build without a database as before: the static pages'
+ * prerender reads degrade to the bundled content. With the variable set,
+ * a production build does query the database while prerendering (and so
+ * applies bundled migrations, `ensureSchemaFresh`). The rule for
  * what counts as set is the app's own (`databaseUrlFrom`: unset, empty or
  * blank is missing; POSTGRES_URL is never read), and nothing here prints a
  * value.

@@ -8,9 +8,9 @@ import { buildEnvProblem } from "../scripts/check-build-env.mjs";
 
 /**
  * A Vercel production build without DATABASE_URL goes red (15-17 Oct 2026:
- * a build without it served degraded pages, `[db-degraded]`, with nothing
- * but log lines to show). Previews, local builds and CI build without a
- * database as before. The script uses the app's own rule
+ * a build with no connection string served degraded pages, `[db-degraded]`,
+ * with nothing but log lines to show). Previews, local builds and CI build
+ * without a database as before. The script uses the app's own rule
  * (src/lib/db/database-url.mjs) and never prints a value.
  */
 
