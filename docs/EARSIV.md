@@ -521,11 +521,16 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
    Paraşüt'ün modelinde gider tarafındaki iade, bir satışın iadesidir
    (alış iadesi tersine Satışlar > Faturalar'a düşer). `refund` kayıtlar
    giderden değil, ayrı (satış iadesi, gelirden düşüm) sayılmalıdır.
-   Liste **süzülmeden** okunmaya devam etmeli: panel `item_type:
-   "cancelled"` olanı görünce daha önce aldığı kaydı kaldırır (lafmaliyet
-   `shouldImport`); `filter[item_type]=purchase_bill` ile okumak hem bu
-   temizliği hem daha önce alınmış `refund` kayıtların düzeltilmesini
-   keser, kullanılmamalıdır.
+   Liste **süzülmeden** okunmaya devam etmeli. Panel Paraşüt'te iptal
+   edilen faturayı iki yoldan görür: listede `item_type: "cancelled"`
+   gelen kayıt ve tam turdan sonra listede artık görünmeyen kayıtlarının
+   tek tek yeniden okunması (`GET purchase_bills/{id}`, çalıştırma başına
+   en çok 8; lafmaliyet `shouldImport`, `retire`). Paraşüt'ten açtığı
+   kaydı siler, Excel'den ya da elle girilmiş kaydın bağını çözüp kontrol
+   notu düşer. İptal edilen faturanın varsayılan listede gelip gelmediği
+   doğrulanmadı. `filter[item_type]=purchase_bill` iptali ve daha önce
+   alınmış `refund` kayıtların güncellenmesini yalnız bu yeniden okumaya
+   bırakır (çalıştırma başına 8 kayıt), kullanılmamalıdır.
 2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
    (`include=supplier`) `account_type: "customer"` ise tedarikçi değildir.
    Sitenin açtığı her cari `customer`'dır; panelin tedarikçi listesi

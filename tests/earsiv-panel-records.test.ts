@@ -80,28 +80,39 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
       'direction: "inbound"',
       "filter[account_type]=supplier",
       "relationships.category",
-      'item_type: "cancelled"',
-      "GET e_invoices",
-      'invoice_type_code: "IADE"',
-      "from_vkn",
     ]) {
       expect(section, fact).toContain(fact);
     }
   });
 
   it("tells the panel what it actually reads: the e_invoices list and every purchase bill", () => {
-    const section = DOC.slice(DOC.indexOf("## 9. Panel bu kayıtları okur"));
-    // The panel lists inbound e-Faturas with GET e_invoices (lafmaliyet
-    // src/server/parasut/einvoice.ts): a company's return e-Fatura reaches
-    // it there even if never imported, so §9.4 must name it (rule 5).
-    expect(section).not.toMatch(/liste ucu yoktur/);
-    expect(section).toMatch(/^5\. \*\*Gelen iade e-Faturası/m);
-    // The panel retires a bill cancelled in Paraşüt only because it reads
-    // the list unfiltered; the doc must not advise filtering it.
-    expect(section).not.toMatch(
+    const between = (from: string, to: string) =>
+      DOC.slice(DOC.indexOf(from), DOC.indexOf(to));
+    const s93 = between("### 9.3 ", "### 9.4 ");
+    const s94 = between("### 9.4 ", "### 9.5 ");
+    // The panel lists inbound e-Faturas with `GET e_invoices` (lafmaliyet
+    // src/server/parasut/einvoice.ts; the backticked token, not §9.1's
+    // `GET e_invoices/{id}/pdf`): a company's return e-Fatura reaches it
+    // there even if never imported, so §9.4 must name it (rule 5).
+    expect(s93).not.toMatch(/için liste(leme)? ucu (yoktur|bulunmaz)/);
+    expect(s93).toContain("`GET e_invoices` listesinde");
+    expect(s93).toContain("panel gelen e-Faturaları onunla okur");
+    expect(s94).toMatch(/^5\. \*\*Gelen iade e-Faturası/m);
+    for (const fact of ['invoice_type_code:\n   "IADE"', "from_vkn"]) {
+      expect(s94.replace(/\n\s+/g, " "), fact).toContain(
+        fact.replace(/\n\s+/g, " "),
+      );
+    }
+    // Rule 1: the panel sees a cancellation in the list and by re-reading
+    // the records the list no longer shows (8 per run); a filter would
+    // leave both to the re-read alone, so the doc must not advise it.
+    expect(s94).not.toMatch(
       /okuması `filter\[item_type\]=purchase_bill` ile yapılmalı/,
     );
-    expect(section).toMatch(/\*\*süzülmeden\*\* okunmaya devam etmeli/);
+    expect(s94).toMatch(/\*\*süzülmeden\*\* okunmaya devam etmeli/);
+    const flat94 = s94.replace(/\n\s+/g, " ");
+    expect(flat94).toContain('item_type: "cancelled"');
+    expect(flat94).toContain("`GET purchase_bills/{id}`");
   });
 
   it("every contact the site opens is a customer, a consumer's and a company's", () => {
