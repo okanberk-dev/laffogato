@@ -16,6 +16,7 @@ import {
 import { auditActorLabel } from "@/lib/admin/karaoke-panel";
 import type { AdminProduct, AdminStockMove } from "@/lib/admin/store";
 import { timeAgo } from "@/lib/admin/time-ago";
+import { liveCompareAtMinor } from "@/lib/shop/discount";
 
 import { formatTRY } from "./forms";
 import { ProductActiveToggleRow } from "./products-list";
@@ -80,7 +81,10 @@ export function ProductQuickLook({
   const level = productStockLevel(product);
   const variants = product.variants ?? [];
   const tags = (product.tags ?? []).map((t) => MENU_TAG_LABEL[t] ?? t);
-  const discounted = product.compareAtPriceMinor > product.priceMinor;
+  // The discount the shop shows now, as the list reads it: a stored
+  // compare-at price whose dates are over is not one (review of #231).
+  const was = liveCompareAtMinor(product, now);
+  const discounted = was > product.priceMinor;
 
   return (
     <QuickLook
@@ -131,7 +135,7 @@ export function ProductQuickLook({
                     className="text-xs font-normal text-[var(--admin-text-soft)] line-through"
                     style={NUMERIC_STYLE}
                   >
-                    {formatTRY(product.compareAtPriceMinor)}
+                    {formatTRY(was)}
                   </span>
                 ) : null}
               </span>

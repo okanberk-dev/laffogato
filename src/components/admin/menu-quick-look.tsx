@@ -214,6 +214,18 @@ export function MenuQuickLook({
                 .join(" · "),
             }))}
           />
+          {/* A bulk Tükendi / Satışa aç is one audit row for many items,
+              under no item: the list above never shows it. The item's own
+              last write says there was a newer change (review of #231). */}
+          {Date.parse(item.updatedAt) -
+            Date.parse(changes[0]?.createdAt ?? "") >
+            60_000 ||
+          (changes.length === 0 && item.updatedAt) ? (
+            <p className="mt-2 text-xs text-[var(--admin-text-soft)]">
+              Son değişiklik {formatDateTime(item.updatedAt)}; toplu işlemler bu
+              listede görünmez.
+            </p>
+          ) : null}
         </QuickLookSection>
       ) : (
         <p className="text-xs text-[var(--admin-text-soft)]">

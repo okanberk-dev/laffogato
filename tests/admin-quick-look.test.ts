@@ -455,3 +455,107 @@ describe("the drawer's machinery", () => {
     }
   });
 });
+
+describe("review of #231", () => {
+  it("shows a discount only while the shop does: dates and all", async () => {
+    // A compare-at price whose dates are over (or never set) is not one.
+    h.products = [product({ discountStartsAt: "", discountEndsAt: "" })];
+    h.product = h.products[0];
+    h.moves = [];
+    h.listStockMoves.mockResolvedValue([]);
+    const ended = drawer(
+      await renderPage("@/app/admin/urunler/page", { gor: "prd-0006" }),
+    );
+    expect(ended).toContain("₺690,00");
+    expect(ended).not.toContain("line-through");
+    const day = 24 * 3_600_000;
+    h.products = [
+      product({
+        discountStartsAt: new Date(Date.now() - day).toISOString(),
+        discountEndsAt: new Date(Date.now() + day).toISOString(),
+      }),
+    ];
+    h.product = h.products[0];
+    const live = drawer(
+      await renderPage("@/app/admin/urunler/page", { gor: "prd-0006" }),
+    );
+    expect(live).toMatch(/line-through[^>]*>₺750,00</);
+  });
+
+  it("names a change of the L price alone, and an allergen save only when they changed", async () => {
+    expect(
+      menuAuditSummary(
+        { action: "update", payload: { priceMinorL: 32_000, via: "panel" } },
+        formatTRY,
+      ),
+    ).toBe("L fiyatı ₺320,00");
+    expect(
+      menuAuditSummary(
+        { action: "update", payload: { priceMinorL: 0 } },
+        formatTRY,
+      ),
+    ).toBe("L boyu kalktı");
+    const { sameMenuAllergens } = await import("@/lib/menu/allergens");
+    expect(sameMenuAllergens(["sut", "gluten"], ["gluten", "sut"])).toBe(true);
+    expect(sameMenuAllergens(null, undefined)).toBe(true);
+    // "Not entered" is not "none".
+    expect(sameMenuAllergens(null, [])).toBe(false);
+    expect(sameMenuAllergens(["sut"], ["sut", "yumurta"])).toBe(false);
+    const action = read("src/app/admin/menu/actions.ts");
+    expect(action).toMatch(
+      /sameMenuAllergens\(previous\.allergens, input\.allergens\)\s*\?\s*\{\}\s*:\s*\{ allergens: input\.allergens \}/,
+    );
+  });
+
+  it("the owner learns of a newer change the list cannot show (a bulk Tükendi)", async () => {
+    h.role = "owner";
+    h.menu = [menuItem({ updatedAt: "2026-10-22T10:00:00.000Z" })];
+    h.listAuditLogs.mockResolvedValue([
+      {
+        id: "aud-0000001",
+        actor: "sahip@ornek.com",
+        action: "update",
+        entity: "menu_item",
+        entityId: "mnu-0004",
+        payload: { name: "L'Affogato", priceMinor: 28_000 },
+        createdAt: STAMP,
+      },
+    ]);
+    const html = drawer(
+      await renderPage("@/app/admin/menu/page", { gor: "mnu-0004" }),
+    );
+    expect(html).toContain("toplu işlemler bu listede görünmez");
+    // Nothing newer than the last listed change: no note.
+    h.menu = [menuItem({ updatedAt: STAMP })];
+    expect(
+      drawer(await renderPage("@/app/admin/menu/page", { gor: "mnu-0004" })),
+    ).not.toContain("toplu işlemler");
+  });
+
+  it("closes with Back even when its step took the row out of the list", () => {
+    const src = read("src/components/admin/ui/quick-look.tsx");
+    expect(src).toContain("if (from && sameListAddress(from.list, closeHref))");
+    expect(src).not.toContain("from.link.isConnected");
+  });
+
+  it("keeps the chips' control focusable once open, at the row's end", () => {
+    const src = read("src/components/admin/ui/quick-look-parts.tsx");
+    expect(src).toContain("Daha az göster");
+    expect(src).toContain("group-open:order-last");
+    expect(src).not.toMatch(/<summary className="[^"]*group-open:hidden/);
+  });
+
+  it("an answer after the drawer closed goes to the panel's stack", () => {
+    const src = read("src/components/admin/ui/toast.tsx");
+    expect(src).toMatch(/\(alive\.current \? own : panel\)\.show\(input\)/);
+    expect(src).toMatch(
+      /\(alive\.current \? own : panel\)\.fromResult\(result\)/,
+    );
+  });
+
+  it("the price card clears the sticky top bar below lg", () => {
+    expect(read("src/components/admin/product-wizard.tsx")).toContain(
+      '"scroll-mt-4 max-lg:scroll-mt-20"',
+    );
+  });
+});
