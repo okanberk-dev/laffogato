@@ -9,10 +9,13 @@
 > metni koyulaştırıldı (§4), bilgi tonu camgöbeği ve vurgu tonu mor ("Ödendi",
 > "Kargoda" ve "Hazırlanıyor" üç ayrı renk kalsın). İlk PR yalnız tasarım
 > sistemini (§1) uyguladı; §3'teki yerleşim fikirlerinin uygulananları
-> (23 Eki 2026: KPI şeridi ve referanslar, üç bölgeli sipariş sayfası,
-> satırın durumuna göre adımı, rapor dönem karşılaştırması, karaoke
-> takvimi, kullanıcılarda izin tablosu, tek satırlık liste araç çubuğu) ve
-> bilinçli olarak yapılmayanlar `docs/ADMIN.md` "Innex düzenleri"nde.
+> (23 Eki 2026: KPI şeridi ve referanslar, üç bölgeli sipariş, karaoke
+> rezervasyonu ve müşteri sayfaları, satırın durumuna göre adımı (sipariş,
+> fatura), rapor dönem karşılaştırması ve grafiği değiştiren kart
+> sekmeleri, karaoke takvimi ve doluluk, ürün ve menü için sağ çekmece,
+> iş bekleyen sayaçlara Faturalar, kullanıcılarda izin tablosu ve son
+> giriş, tek satırlık liste araç çubuğu) ve bilinçli olarak yapılmayanlar
+> `docs/ADMIN.md` "Innex düzenleri"nde.
 >
 > Aşağıdaki metin operatörün incelemesidir; değiştirmeden saklanır.
 

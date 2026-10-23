@@ -518,7 +518,8 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   bulur); ödenmiş ve hazırlanmayı bekleyen siparişin adımı dolu mavi
   ("Hazırlamaya başla"), sonraki adımlar çerçeveli; "Ödeme bekleniyor"
   altında "Ödenmedi" tekrarı yok.
-- **Sipariş sayfası, üç bölge**: başlık ve tek birincil eylem üstte; solda
+- **Sipariş sayfası, üç bölge** (`ui/summary-card.tsx`,
+  `ui/detail-layout.tsx`): başlık ve tek birincil eylem üstte; solda
   **tutar kartı** (kararı veren tek büyük rakam: iade edilecek, ödeme
   bekleyen ya da toplam; diğerleri altında küçük çip; sipariş, ödeme ve
   kanal satırları), müşteri, teslimat ve iç not (etiket solda, değer sağda);
@@ -529,27 +530,79 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   Ödeme ve iade'de açılır; `#odeme` gibi bir çapa kendi sekmesini açar.
   Telefonda sıra: tutar, sekmeler, müşteri. Kargo ve takip numarası satırı
   koli kargoya verilince görünür.
+- **Karaoke rezervasyonu ve müşteri de üç bölge**, aynı parçalarla.
+  Rezervasyon: solda para (iade edilecek kırmızı, ödeme bekleyen turuncu,
+  yoksa tahsil edilen ya da köşkte ödenecek), giriş kodu, gün, saat, süre
+  ve kişi, kanal; altında iletişim ve varsa telafi; sağda Rezervasyon
+  (iptal kuralı dahil), Ödeme, Fatura, Onaylar, Geçmiş. İade borcu olan
+  rezervasyon Ödeme'de açılır. Müşteri: solda toplam harcama, durum,
+  ödenen sipariş, iade ve karaoke çipleri, iletişim satırları ve hesabın
+  Yönetim kartı; sağda Siparişler, Karaoke, Sadakat (damga, kupon, davet)
+  ve Profil (adresler, favoriler, bildirim tercihleri). Misafirin Sadakat
+  ve Profil sekmesi yok.
 - **Raporlar**: dönem başlıkta segment denetimi (`ui/segmented.tsx`); beş
   rakam şeritte, her biri **bir önceki aynı uzunluktaki dönemle**
   (`analyticsHeadlineCompared`, iki dönemin tek okuması). İadede artış
-  kırmızı. En çok satanlar ve karaoke ön ödemesi xl'den yan yana.
+  kırmızı. Her rakam bir **kart sekmesi** (`?m=`, `report-metrics.ts`):
+  altındaki grafik seçileni kova kova çizer (net, brüt, iade, sipariş,
+  ortalama sepet), başlığı ve "en yüksek"i ona göre yazılır, başka dönem
+  seçilince seçim kalır. Kovalar net yanında brüt ve iadeyi de taşır,
+  şeritle aynı kuralla toplanır. En çok satanlar ve karaoke ön ödemesi
+  xl'den yan yana.
 - **Karaoke: liste ve takvim** (`karaoke-calendar.tsx`): başlıkta Liste /
   Takvim. Takvim haftayı gösterir (`?gorunum=takvim&hafta=`): günler sütun,
   saatler satır, her rezervasyon ilk saatinden son saatine bir blok;
   rengi parasının durumu (ödendi yeşil, ödeme bekliyor turuncu, köşkte
   ödenecek mavi, işlem bekliyor kırmızı). Bugün vurgulu, saat çizgisi
   kırmızı. İptaller takvimde değil, listede. Telefonda günlük liste.
+  Genel bakış'ın karaoke kartı odanın **doluluğunu** yazar (iptal
+  edilmemiş rezervasyonların açık saatlerdeki saatleri / açık saatler) ve
+  geçen haftanın aynı günüyle puan farkını: "%42 · 5/12 saat, +17 puan,
+  geçen cuma %25".
 - **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
   ("Genel bakış · Kasa · damga · Siparişler +3"); "Roller neyi açar" artık
   bir tablo: her bölüm bir satır, her rol bir sütun, açtığı yerde tik
-  (`roleMatrix`).
+  (`roleMatrix`). **Son giriş** sütunu ("3 saat önce", tam saat üstünde;
+  "Hiç girmedi"): adresin en yeni `login_success` olay kaydı
+  (`lastSignIns`). O kayıt parola doğru girilince yazılır; 2FA kodunun
+  kendi kaydı yok. Kayıt okunamazsa sütun boş kalır, sayfa düşmez.
 - **Müşteriler** özeti de KPI şeridi. **Boş durum**: noktalı kutuda gri bir
   simge, 15 px başlık, gri açıklama ve tek adım.
-- **Yapılmayan**: ürün ve menü için sağ çekmece. Ürün listesi iki durumu
-  zaten yan yana gösteriyor (Aktif / Pasif ve stok rozeti), ayrıntı bir
-  tık ötede; çekmece aynı sayfayı ikinci kez yazmak olurdu. Kenar
-  çubuğunun grupları ve iş bekleyen sayaçları (Siparişler, Karaoke) zaten
-  vardı; Faturalar sayacı kendi canlı sinyalini ister, ayrı iş.
+- **Hızlı bakış** (ürünler ve kafe menüsü, Innex'in sağ çekmecesi;
+  `ui/quick-look.tsx`, `quick-look-core.ts`): satıra tıklayınca kayıt
+  listenin üstünde, 420 px'lik bir çekmecede açılır (telefonda tam ekran).
+  Çekmece listenin adresindedir (`?gor=<id>`): sunucu listeyle birlikte
+  çizer, yenilemede kalır, bağlantıyla paylaşılır, JavaScript'siz de
+  açılır. Tarayıcıda modaldır: Esc, karartılmış liste ya da tarayıcının
+  Geri'si kapatır; liste olduğu yerde kalır, odak açan satıra döner.
+  Satır bu sayfadan açtıysa kapatmak Geri'dir (açılış adresi eklemişti),
+  doğrudan gelinen çekmece listeye adresi değiştirerek döner. İçinde:
+  fotoğraf, kod ve rozetler, yan yana **Satış durumu / Stok durumu** (menüde
+  fiyatlar), varyantlar ve alerjenler çip olarak (dördünden sonrası
+  "Tümünü göster (n)"), **İşlemler** (gri kap, beyaz satırlar, renkli ikon
+  kutusu): Stok güncelle (formu satırın içinde açılır), Fiyatı değiştir
+  (düzenleme sayfasının fiyat kartına), Pasif / Aktif yap, Tükendi /
+  Satışa aç, Kopyala, Mağazada gör; **Son hareketler** (stok) ya da sahibe
+  **Son değişiklikler** (olay kaydı; yönetici son değişiklik zamanını
+  görür). Alt çubukta Tam sayfa ve tek dolu düğme Düzenle; Sil satırın ⋯
+  menüsünde kalır. Çekmece istemciye saklanan görseli, maliyeti, açıklamayı
+  ve SEO alanlarını vermez (CAT-07/08). Modal açıkken panelin bildirim
+  yığını üst katmanın altında kalır: çekmecenin kendi bildirimleri vardır
+  (`ToastScope`).
+- **Faturalar**: kenar çubuğunda **sayaç** (Dikkat sekmesinin kümesi: son
+  gün yakın ya da geçmiş, hata, elle kesilecek, okunacak taslak, kesimden
+  sonra iade); yalnız e-Arşiv açıkken ve Faturalar'ı açan rollere. Diğer
+  rozetler gibi ucuz yoklanır: `invoices` tablosuna her yazım kendi
+  işaretini (`live:invoices`) düşürür, anahtar köşkün günüdür (son gün
+  yazımla değil saatle yaklaşır). Her satırda ⋯'nin yanında **tek adım**:
+  taslak için "Taslağı gör" (siparişin ya da rezervasyonun Fatura
+  sekmesi; taslak satırları okunmadan kesinleşmez), vadesi gelene
+  "Faturayı kes", hataya "Yeniden dene", elle kesilecek olana "Kestim",
+  kesilene PDF.
+- **Yapılmayan**: §3.10'un bütçe ve gerçekleşen çubukları (gider ve bütçe
+  köşkün panelinde, lafmaliyet'te; sitede veri yok) ve Genel bakış'ta
+  "Sistem sağlığı" kartı (Neon CU-saati, Vercel kotası: sitenin bu
+  hesaplara okuma anahtarı yok, eklemek ayrı karar).
 
 ## Kayıtlı görünümler
 
