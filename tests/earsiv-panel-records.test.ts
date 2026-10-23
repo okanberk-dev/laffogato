@@ -103,9 +103,13 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
         fact.replace(/\n\s+/g, " "),
       );
     }
-    // Rule 1: the panel sees a cancellation in the list and by re-reading
-    // the records the list no longer shows (8 per run); a filter would
-    // leave both to the re-read alone, so the doc must not advise it.
+    // Rule 1 (lafmaliyet src/server/parasut/sync.ts, RECHECK_LIMIT and
+    // retire): the panel sees a cancellation in the list and by re-reading
+    // the records the list no longer shows, 8 per run, only after a fresh
+    // complete round, within the sync window (older ones only if unpaid).
+    // A filter leaves both to that narrow re-read, so the doc must not
+    // advise it, nor claim the filter stops the cleanup outright, nor that
+    // every record is deleted (Excel and manual ones are unlinked).
     expect(s94).not.toMatch(
       /okuması `filter\[item_type\]=purchase_bill` ile yapılmalı/,
     );
@@ -113,6 +117,14 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
     const flat94 = s94.replace(/\n\s+/g, " ");
     expect(flat94).toContain('item_type: "cancelled"');
     expect(flat94).toContain("`GET purchase_bills/{id}`");
+    expect(flat94).toContain("çalıştırma başına en çok 8 kayıt");
+    expect(flat94).toContain("eşitleme penceresindeki");
+    expect(flat94).toContain("yalnız ödenmemiş olanlar");
+    expect(flat94).toContain("Paraşüt'ten açtığı kaydı siler");
+    expect(flat94).toContain("bağını çözüp kontrol notu düşer");
+    expect(flat94).toContain("yalnız bu dar yeniden okumaya bırakır");
+    expect(flat94).not.toMatch(/düzeltilmesini keser|temizliği keser/);
+    expect(flat94).not.toMatch(/yeniden okumaz|her iki yolda da .* siler/i);
   });
 
   it("every contact the site opens is a customer, a consumer's and a company's", () => {

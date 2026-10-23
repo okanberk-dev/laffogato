@@ -523,14 +523,18 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
    giderden değil, ayrı (satış iadesi, gelirden düşüm) sayılmalıdır.
    Liste **süzülmeden** okunmaya devam etmeli. Panel Paraşüt'te iptal
    edilen faturayı iki yoldan görür: listede `item_type: "cancelled"`
-   gelen kayıt ve tam turdan sonra listede artık görünmeyen kayıtlarının
-   tek tek yeniden okunması (`GET purchase_bills/{id}`, çalıştırma başına
-   en çok 8; lafmaliyet `shouldImport`, `retire`). Paraşüt'ten açtığı
-   kaydı siler, Excel'den ya da elle girilmiş kaydın bağını çözüp kontrol
-   notu düşer. İptal edilen faturanın varsayılan listede gelip gelmediği
-   doğrulanmadı. `filter[item_type]=purchase_bill` iptali ve daha önce
-   alınmış `refund` kayıtların güncellenmesini yalnız bu yeniden okumaya
-   bırakır (çalıştırma başına 8 kayıt), kullanılmamalıdır.
+   gelen kayıt ve listede artık görünmeyen kayıtlarının tek tek yeniden
+   okunması (`GET purchase_bills/{id}`; lafmaliyet `shouldImport`,
+   `retire`). Yeniden okuma dardır: çalıştırma başına en çok 8 kayıt,
+   yalnız yarıda kalıp sürdürülmemiş tam bir turdan sonra ve yalnız
+   eşitleme penceresindeki (son ~75 gün) kayıtlar; pencereden eski
+   kayıtlardan yalnız ödenmemiş olanlar. Paraşüt'ten açtığı kaydı siler,
+   Excel'den ya da elle girilmiş kaydın bağını çözüp kontrol notu düşer.
+   İptal edilen faturanın varsayılan listede gelip gelmediği doğrulanmadı.
+   `filter[item_type]=purchase_bill` iptali ve daha önce alınmış `refund`
+   kayıtların güncellenmesini yalnız bu dar yeniden okumaya bırakır;
+   pencereden eski, ödenmiş bir kaydın iptali (bütün `refund`'lar ödenmiş
+   açılır) hiç görülmez. Kullanılmamalıdır.
 2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
    (`include=supplier`) `account_type: "customer"` ise tedarikçi değildir.
    Sitenin açtığı her cari `customer`'dır; panelin tedarikçi listesi
