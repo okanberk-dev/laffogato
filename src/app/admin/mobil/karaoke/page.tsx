@@ -17,6 +17,8 @@ import { requireRole } from "@/lib/admin/auth";
 import {
   addDays,
   karaokeCalendarHref,
+  karaokeListHref,
+  karaokeListParams,
   KARAOKE_CALENDAR_VIEW,
   KARAOKE_VIEW_PARAM,
   KARAOKE_WEEK_PARAM,
@@ -47,6 +49,7 @@ import {
   parsePage,
   parseSort,
   withParams,
+  type SearchParamsInput,
 } from "@/lib/admin/list-params";
 import { listSearchView } from "@/lib/admin/list-search";
 import { canAccess } from "@/lib/admin/roles";
@@ -122,15 +125,29 @@ async function attentionRows(
  * without the POS's answer, stays under İptal / İade. Amounts were fixed at
  * booking time.
  */
-/** The header's view switch: the list (the page as it was) or the week. */
-function ViewSwitch({ calendar }: { calendar: boolean }) {
+/**
+ * The header's view switch: the list (the page as it was) or the week.
+ * Both carry the list's state, so switching never resets its tab, filters,
+ * sort or page.
+ */
+function ViewSwitch({
+  calendar,
+  list,
+  week,
+}: {
+  calendar: boolean;
+  /** The address the list's state is read from. */
+  list: SearchParamsInput;
+  /** The week the calendar opens on, when not this one. */
+  week?: string;
+}) {
   return (
     <SegmentedLinks
       label="Görünüm"
       options={[
-        { href: KARAOKE_PANEL_PATH, label: "Liste", current: !calendar },
+        { href: karaokeListHref(list), label: "Liste", current: !calendar },
         {
-          href: karaokeCalendarHref(),
+          href: karaokeCalendarHref(week, list),
           label: "Takvim",
           current: calendar,
         },
@@ -226,7 +243,18 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
             </p>
           )
         }
-        action={<ViewSwitch calendar={false} />}
+        action={
+          <ViewSwitch
+            calendar={false}
+            list={sp}
+            // A list filtered to another week opens the calendar on it.
+            week={
+              filters.bas && weekStart(filters.bas) !== weekStart(today)
+                ? weekStart(filters.bas)
+                : undefined
+            }
+          />
+        }
         // One link per role: the owner's is the site's Karaoke tab (price,
         // prepay), the manager's the app's karaoke rules; staff get none.
         secondary={
@@ -342,7 +370,9 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
  * The karaoke page's week (Innex's calendar and list on one screen, 22 Eki
  * 2026): `?gorunum=takvim`, any week by `?hafta=`. It reads the week's
  * bookings only, and the Dikkat set for the band above it, so a booking
- * that needs a person is not missed from the calendar either.
+ * that needs a person is not missed from the calendar either. Every link
+ * carries the list's state from the address (karaokeListParams), so the
+ * way back to the list finds it as it was left.
  */
 async function KaraokeCalendarPage({
   role,
@@ -369,13 +399,16 @@ async function KaraokeCalendarPage({
   const views = karaokeRowViews(rows, ctx);
   const waiting = attention ? karaokeAttentionViews(attention, ctx).length : 0;
   const thisWeek = weekStart(today);
-  const here = karaokeCalendarHref(monday === thisWeek ? undefined : monday);
+  const here = karaokeCalendarHref(
+    monday === thisWeek ? undefined : monday,
+    params,
+  );
   return (
     <PageShell width="list">
       <PageHeader
         title="Karaoke"
         description="Haftanın rezervasyonları: her blok bir rezervasyon, rengi parasının durumu."
-        action={<ViewSwitch calendar />}
+        action={<ViewSwitch calendar list={params} />}
       />
       {waiting > 0 ? (
         <p
@@ -384,7 +417,11 @@ async function KaraokeCalendarPage({
         >
           {waiting} rezervasyon bir işlem bekliyor.{" "}
           <Link
-            href={`${KARAOKE_PANEL_PATH}?${KARAOKE_TAB_PARAM}=dikkat`}
+            href={withParams(
+              karaokeListParams(params),
+              { [KARAOKE_TAB_PARAM]: "dikkat", sayfa: null },
+              KARAOKE_PANEL_PATH,
+            )}
             className="font-medium underline underline-offset-4"
           >
             Dikkat sekmesine git
@@ -399,9 +436,11 @@ async function KaraokeCalendarPage({
           minute: clock.minutes % 60,
         }}
         views={views}
-        prevHref={karaokeCalendarHref(addDays(monday, -7))}
-        nextHref={karaokeCalendarHref(addDays(monday, 7))}
-        thisWeekHref={monday === thisWeek ? null : karaokeCalendarHref()}
+        prevHref={karaokeCalendarHref(addDays(monday, -7), params)}
+        nextHref={karaokeCalendarHref(addDays(monday, 7), params)}
+        thisWeekHref={
+          monday === thisWeek ? null : karaokeCalendarHref(undefined, params)
+        }
         back={here}
       />
     </PageShell>

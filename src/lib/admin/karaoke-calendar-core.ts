@@ -4,7 +4,19 @@
 
 import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
 
-import { KARAOKE_PANEL_PATH } from "./karaoke-panel";
+import {
+  KARAOKE_FILTER_FIELDS,
+  KARAOKE_PANEL_PATH,
+  KARAOKE_TAB_PARAM,
+} from "./karaoke-panel";
+import {
+  DEFAULT_DIR_PARAM,
+  DEFAULT_PAGE_PARAM,
+  DEFAULT_SORT_PARAM,
+  filterParamNames,
+  toSearchParams,
+  type SearchParamsInput,
+} from "./list-params";
 
 /** `?gorunum=takvim`: the karaoke page's calendar. */
 export const KARAOKE_VIEW_PARAM = "gorunum";
@@ -139,12 +151,49 @@ export function calendarHours(
   return { first: Math.max(0, first), close: Math.min(24, close) };
 }
 
-/** The calendar's address for a week (and the list's, without one). */
-export function karaokeCalendarHref(monday?: string): string {
+/**
+ * The list's own params: its tab, its filters, its sort and its page. The
+ * typed search is not one: it lives in its cookie, never in an address
+ * (list-search-core.ts).
+ */
+const LIST_PARAMS: ReadonlySet<string> = new Set([
+  KARAOKE_TAB_PARAM,
+  ...filterParamNames(KARAOKE_FILTER_FIELDS.filter((f) => f.type !== "search")),
+  DEFAULT_SORT_PARAM,
+  DEFAULT_DIR_PARAM,
+  DEFAULT_PAGE_PARAM,
+]);
+
+/**
+ * The list's state out of an address, the list's or the calendar's: the
+ * calendar carries it on every link, so "Liste" returns to the list as it
+ * was left (recipe §3.7, 23 Eki 2026). Only the list's own names; a
+ * repeated one keeps its first value, as the list reads it.
+ */
+export function karaokeListParams(address: SearchParamsInput): URLSearchParams {
+  const out = new URLSearchParams();
+  for (const [key, value] of toSearchParams(address)) {
+    if (LIST_PARAMS.has(key) && !out.has(key)) out.set(key, value);
+  }
+  return out;
+}
+
+/** The list's address with the state `list` carries. */
+export function karaokeListHref(list?: SearchParamsInput): string {
+  const query = karaokeListParams(list).toString();
+  return query ? `${KARAOKE_PANEL_PATH}?${query}` : KARAOKE_PANEL_PATH;
+}
+
+/** The calendar's address for a week, carrying the list's state. */
+export function karaokeCalendarHref(
+  monday?: string,
+  list?: SearchParamsInput,
+): string {
   const params = new URLSearchParams({
     [KARAOKE_VIEW_PARAM]: KARAOKE_CALENDAR_VIEW,
   });
   if (monday) params.set(KARAOKE_WEEK_PARAM, monday);
+  for (const [key, value] of karaokeListParams(list)) params.set(key, value);
   return `${KARAOKE_PANEL_PATH}?${params.toString()}`;
 }
 

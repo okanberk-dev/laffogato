@@ -86,6 +86,70 @@ describe("the week", () => {
   });
 });
 
+describe("the list's state across the two views (recipe §3.7)", () => {
+  const listed = {
+    sekme: "dikkat",
+    odeme: "paid",
+    bas: "2026-11-02",
+    bit: "2026-11-08",
+    sirala: "date",
+    yon: "asc",
+    sayfa: "2",
+  };
+
+  it("keeps the list's own params and nothing else", () => {
+    const kept = core.karaokeListParams({
+      ...listed,
+      // The typed search lives in its cookie, never in an address; the
+      // calendar's own params and anything else written by hand go.
+      q: "ayse@example.com",
+      gorunum: "takvim",
+      hafta: "2026-11-02",
+      denied: "1",
+      utm: "x",
+    });
+    expect(Object.fromEntries(kept)).toEqual(listed);
+    // A repeated name keeps its first value, as the list reads it.
+    expect(
+      core
+        .karaokeListParams(new URLSearchParams("sekme=iptal&sekme=dikkat"))
+        .getAll("sekme"),
+    ).toEqual(["iptal"]);
+  });
+
+  it("the calendar carries it on, and the list gets it back", () => {
+    const calendar = core.karaokeCalendarHref("2026-11-02", listed);
+    expect(calendar).toBe(
+      "/admin/mobil/karaoke?gorunum=takvim&hafta=2026-11-02&sekme=dikkat&odeme=paid&bas=2026-11-02&bit=2026-11-08&sirala=date&yon=asc&sayfa=2",
+    );
+    const back = core.karaokeListHref(
+      new URL(calendar, "https://x").searchParams,
+    );
+    expect(back).toBe(
+      "/admin/mobil/karaoke?sekme=dikkat&odeme=paid&bas=2026-11-02&bit=2026-11-08&sirala=date&yon=asc&sayfa=2",
+    );
+    expect(core.karaokeListHref({ gorunum: "takvim" })).toBe(
+      "/admin/mobil/karaoke",
+    );
+  });
+
+  it("every link of the page passes it", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync("src/app/admin/mobil/karaoke/page.tsx", "utf8");
+    // The list's switch reads the list's address; the calendar's every link
+    // (the switch, the weeks, a booking's way back, Dikkat) its own.
+    expect(page).toMatch(/<ViewSwitch\s+calendar=\{false\}\s+list=\{sp\}/);
+    expect(page).toContain("<ViewSwitch calendar list={params} />");
+    expect(page).toContain("karaokeCalendarHref(addDays(monday, -7), params)");
+    expect(page).toContain("karaokeCalendarHref(addDays(monday, 7), params)");
+    expect(page).toContain("karaokeCalendarHref(undefined, params)");
+    expect(page).toMatch(
+      /const here = karaokeCalendarHref\(\s*monday === thisWeek \? undefined : monday,\s*params,\s*\)/,
+    );
+    expect(page).toContain("karaokeListParams(params),");
+  });
+});
+
 describe("the calendar", () => {
   const view = (over: {
     id: string;
