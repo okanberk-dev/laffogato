@@ -7545,8 +7545,13 @@ export function isReportableOrder(o: Pick<AdminOrder, "status">): boolean {
 export interface RevenueBucket {
   bucket: string;
   label: string;
+  /** Net of refunds, clamped per order (the chart's default line). */
   revenueMinor: number;
   orderCount: number;
+  /** What the counted orders were placed for (Raporlar's "Brüt ciro"). */
+  grossMinor: number;
+  /** Refunds on the counted orders (Raporlar's "İade"). */
+  refundedMinor: number;
 }
 
 function pad2(n: number): string {
@@ -7813,6 +7818,8 @@ export function bucketRevenue(
       label: bucketLabel(d, granularity),
       revenueMinor: 0,
       orderCount: 0,
+      grossMinor: 0,
+      refundedMinor: 0,
     });
   }
   const byKey = new Map(buckets.map((b) => [b.bucket, b]));
@@ -7828,6 +7835,10 @@ export function bucketRevenue(
       const refunded = o.refunds.reduce((r, entry) => r + entry.amountMinor, 0);
       slot.revenueMinor += Math.max(0, o.totalMinor - refunded);
       slot.orderCount += 1;
+      // The same order's gross and refunds, as headlineFrom sums them: a
+      // bucket's figures add up to the strip's above the chart.
+      slot.grossMinor += o.totalMinor;
+      slot.refundedMinor += refunded;
     }
   }
   return buckets;

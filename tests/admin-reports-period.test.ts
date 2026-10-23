@@ -238,6 +238,7 @@ describe("top products", () => {
 describe("the reports page", () => {
   async function render(
     top: Array<{ productName: string; qty: number; revenueMinor: number }>,
+    sp: Record<string, string> = { g: "week" },
   ) {
     vi.resetModules();
     vi.doMock("next/link", () => ({
@@ -285,7 +286,7 @@ describe("the reports page", () => {
     }));
     const { default: ReportsPage } = await import("@/app/admin/raporlar/page");
     const html = renderToStaticMarkup(
-      await ReportsPage({ searchParams: Promise.resolve({ g: "week" }) }),
+      await ReportsPage({ searchParams: Promise.resolve(sp) }),
     );
     return { html, calls };
   }
@@ -349,6 +350,29 @@ describe("the reports page", () => {
     expect(html).toMatch(
       /<nav aria-label="Dönem"[^>]*>[\s\S]*href="\/admin\/raporlar\?g=week"[^>]*aria-current="page"/,
     );
+  });
+
+  it("each figure is a tab: the chart draws the chosen one, the period keeps it", async () => {
+    // Net by default: its cell is the current tab, the address has no m.
+    let { html } = await render([]);
+    expect(html).toMatch(
+      /<a href="\/admin\/raporlar\?g=week" aria-current="true"[^>]*>[\s\S]*?Net ciro/,
+    );
+    expect(html).toContain("Haftalık net ciro");
+    // Sipariş chosen: its cell is current, the chart says so, and another
+    // period keeps the figure.
+    ({ html } = await render([], { g: "week", m: "orders" }));
+    expect(html).toMatch(
+      /<a href="\/admin\/raporlar\?g=week&amp;m=orders" aria-current="true"/,
+    );
+    expect(html).not.toMatch(
+      /<a href="\/admin\/raporlar\?g=week" aria-current="true"/,
+    );
+    expect(html).toContain("Haftalık sipariş");
+    expect(html).toContain('href="/admin/raporlar?g=month&amp;m=orders"');
+    // An unknown figure is net.
+    ({ html } = await render([], { g: "week", m: "toString" }));
+    expect(html).toContain("Haftalık net ciro");
   });
 
   it("has no Dönüşüm card and no promise of one", async () => {

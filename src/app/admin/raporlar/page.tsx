@@ -13,6 +13,12 @@ import { requireRole } from "@/lib/admin/auth";
 import { dashboardDelta } from "@/lib/admin/dashboard-core";
 import { DAY_CLOSE_PATH } from "@/lib/admin/day-close-core";
 import {
+  REPORT_METRICS,
+  parseReportMetric,
+  reportsHref,
+  type ReportMetric,
+} from "@/lib/admin/report-metrics";
+import {
   analyticsHeadlineCompared,
   karaokeRevenue,
   parseGranularity,
@@ -25,7 +31,7 @@ export const metadata = { title: "Admin · Raporlar" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ g?: string | string[] }>;
+  searchParams: Promise<{ g?: string | string[]; m?: string | string[] }>;
 }
 
 const G_OPTIONS: Array<{
@@ -74,6 +80,9 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   // An unknown ?g= falls back to the daily view AND marks its tab.
   const g = parseGranularity(sp.g);
   const opt = G_OPTIONS.find((x) => x.value === g) ?? G_OPTIONS[0];
+  // The card tab the chart draws (Innex: the answer on the tab).
+  const metric = parseReportMetric(sp.m);
+  const spec = REPORT_METRICS[metric];
 
   const [compared, buckets, top, karaoke] = await Promise.all([
     analyticsHeadlineCompared(opt.value, opt.count),
@@ -84,9 +93,13 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const head = compared.current;
   const prev = compared.previous;
 
-  const peak = buckets.reduce(
-    (best, b) => (b.revenueMinor > best.revenueMinor ? b : best),
-    buckets[0] ?? { label: "-", revenueMinor: 0, orderCount: 0, bucket: "" },
+  // The chosen figure's best bucket, for the line beside the chart's title.
+  const peak = buckets.reduce<{ label: string; value: number }>(
+    (best, b) => {
+      const value = spec.of(b);
+      return value > best.value ? { label: b.label, value } : best;
+    },
+    { label: "-", value: 0 },
   );
   const maxRevenue = Math.max(1, ...top.map((t) => t.revenueMinor));
   const period = opt.label.toLocaleLowerCase("tr-TR");
@@ -169,6 +182,13 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     },
   ];
 
+  // Each figure is a tab: the chart under the strip draws it per bucket.
+  const tabs: KpiCell[] = cells.map((cell) => ({
+    ...cell,
+    href: reportsHref(opt.value, cell.key as ReportMetric),
+    current: cell.key === metric,
+  }));
+
   return (
     <PageShell width="list">
       <PageHeader
@@ -185,7 +205,8 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           <SegmentedLinks
             label="Dönem"
             options={G_OPTIONS.map((o) => ({
-              href: `/admin/raporlar?g=${o.value}`,
+              // Another period keeps the figure the chart draws.
+              href: reportsHref(o.value, metric),
               label: o.label,
               current: o.value === opt.value,
             }))}
@@ -194,19 +215,34 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         secondary={{ href: DAY_CLOSE_PATH, label: "Gün sonu" }}
       />
 
-      <KpiStrip label={`${opt.label}: özet`} cells={cells} className="mb-5" />
+      <KpiStrip
+        label={`${opt.label}: özet`}
+        cells={tabs}
+        linkScroll={false}
+        className="mb-5"
+      />
 
       <Card className="mb-5">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className={CARD_TITLE}>{opt.chart} net ciro</h2>
-          {peak.revenueMinor > 0 ? (
+          <h2 className={CARD_TITLE}>
+            {opt.chart} {spec.chart}
+          </h2>
+          {peak.value > 0 ? (
             <p className="text-sm text-[var(--admin-text-soft)]">
               En yüksek: {peak.label} ·{" "}
-              <span style={NUMERIC_STYLE}>{formatTRY(peak.revenueMinor)}</span>
+              <span style={NUMERIC_STYLE}>
+                {spec.unit === "money"
+                  ? formatTRY(peak.value)
+                  : peak.value.toLocaleString("tr-TR")}
+              </span>
             </p>
           ) : null}
         </div>
-        <RevenueChart data={buckets} caption={`${opt.chart} net ciro`} />
+        <RevenueChart
+          data={buckets}
+          caption={`${opt.chart} ${spec.chart}`}
+          metric={metric}
+        />
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-3">

@@ -79,11 +79,17 @@ export function KpiStrip({
   cells,
   label,
   className,
+  linkScroll = true,
 }: {
   cells: readonly KpiCell[];
   /** The list's accessible name ("Bugünün özeti"). */
   label: string;
   className?: string;
+  /**
+   * False when the cells are card tabs of the same page (Raporlar): a tab
+   * keeps the page where it is, the chart it switches is right under it.
+   */
+  linkScroll?: boolean;
 }) {
   if (cells.length === 0) return null;
   return (
@@ -103,14 +109,14 @@ export function KpiStrip({
             kpiSpan(i, cells.length),
           )}
         >
-          <KpiBody cell={cell} />
+          <KpiBody cell={cell} scroll={linkScroll} />
         </li>
       ))}
     </ul>
   );
 }
 
-function KpiBody({ cell }: { cell: KpiCell }) {
+function KpiBody({ cell, scroll }: { cell: KpiCell; scroll: boolean }) {
   const inner = (
     <>
       <span className="flex min-w-0 items-center gap-2">
@@ -189,6 +195,7 @@ function KpiBody({ cell }: { cell: KpiCell }) {
   return (
     <Link
       href={cell.href}
+      scroll={scroll}
       aria-current={cell.current ? "true" : undefined}
       className={cx(
         frame,
