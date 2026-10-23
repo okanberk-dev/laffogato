@@ -91,10 +91,16 @@ export const LIST_VIEW_PARAMS: readonly string[] = [
   DEFAULT_DIR_PARAM,
 ];
 
-/** The rules for a list with these FilterBar fields: what the menu uses. */
+/**
+ * The rules for a list with these FilterBar fields: what the menu uses.
+ * `tabParam` names a tab that is not StatusTabs' default (Karaoke's
+ * `sekme`, Müşteriler' `filter`): without it a view dropped the tab, and a
+ * list on one of its tabs read as bare (23 Eki 2026).
+ */
 export function viewRulesFor(
   fields: readonly FilterField[],
   pageParam: string,
+  tabParam?: string,
 ): ViewRules {
   const boxes = fields.filter((f) => f.type === "search");
   return {
@@ -103,6 +109,7 @@ export function viewRulesFor(
     names: [
       ...filterParamNames(fields.filter((f) => f.type !== "search")),
       ...LIST_VIEW_PARAMS,
+      ...(tabParam ? [tabParam] : []),
     ],
   };
 }

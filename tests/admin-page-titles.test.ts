@@ -65,7 +65,10 @@ describe("record pages use the kit's header", () => {
   });
 
   it("the karaoke list offers saved views, like the orders list", () => {
-    expect(source("mobil/karaoke")).toContain('views={{ key: "karaoke" }}');
+    // Its tab is `sekme`, not StatusTabs' default: the view keeps it too.
+    expect(source("mobil/karaoke")).toContain(
+      'views={{ key: "karaoke", tabParam: KARAOKE_TAB_PARAM }}',
+    );
   });
 });
 

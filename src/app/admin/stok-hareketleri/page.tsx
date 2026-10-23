@@ -117,6 +117,7 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
         pathname={STOCK_MOVES_PATH}
         values={filters}
         label="Stok hareketi süzgeci"
+        views={{ key: "stock-moves" }}
       />
 
       <p

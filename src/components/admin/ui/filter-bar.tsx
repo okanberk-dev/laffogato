@@ -70,8 +70,12 @@ export interface FilterBarProps {
    * list, e.g. "orders"). Kept in this browser per signed-in account and
    * drawn only once the page is in the browser, so the bar's markup
    * without JavaScript, and before hydration, is the same as without it.
+   * `tabParam`: the list's StatusTabs param when it is not the default
+   * `durum`, so a view keeps the tab. `hold`: the page shows a record over
+   * the list (a quick look, `?gor=`) whose param the bar never sees; the
+   * default view would replace the address and close it.
    */
-  views?: { key: string };
+  views?: { key: string; tabParam?: string; hold?: boolean };
   /**
    * The list's own controls for the row under the bar (the orders' sound
    * switch): drawn at its end, before "Görünümler", so a list has one row
@@ -681,6 +685,8 @@ export function FilterBar({
                   fields={fields}
                   values={values}
                   pageParam={pageParam}
+                  tabParam={views?.tabParam}
+                  hold={views?.hold}
                   touched={touched}
                 />
               </SavedViewsBoundary>

@@ -606,9 +606,17 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
 
 ## Kayıtlı görünümler
 
-Siparişler listesinde süzgeç çipleriyle aynı satırdaki **Görünümler**
-menüsü, sık açılan bir listeyi tek dokunuşla geri getirir ("Masa
-siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
+Süzgeç çubuğu olan her listede, çubuğun satırındaki **Görünümler**
+menüsü sık açılan bir listeyi tek dokunuşla geri getirir ("Masa
+siparişleri", "Kargoya verilecek"): Siparişler, Karaoke, Ürünler, Kafe
+menüsü, Müşteriler, Promosyon, Stok hareketleri, Olay kaydı, Bülten ve
+Masalar (23 Eki 2026'dan beri; önce yalnız ilk ikisi). Her listenin
+görünümleri ayrıdır (`views.key`). Sekmesi StatusTabs'ın varsayılan
+`durum`'u olmayan liste onu bildirir (Karaoke `sekme`, Müşteriler
+`filter`; `views.tabParam`): bildirmeyen Karaoke, 23 Eki 2026'ya kadar
+"Dikkat" gibi bir sekmeyi kaydetmiyor, o sekmedeki listeyi boş sayıyordu.
+Ürünler ve Kafe menüsünde bağlantıyla açılan hızlı bakış (`?gor=`)
+varsayılan görünüme kapanmaz (`views.hold`).
 
 - **Bu görünümü kaydet**: sekme, açılır listeler ve sıralama bir adla
   kaydedilir (en çok 30 karakter, liste başına en çok 8 görünüm). Arama

@@ -142,6 +142,7 @@ export default async function PromoCodesPage({ searchParams }: PageProps) {
             searchParams={sp}
             pathname={PROMOS_PATH}
             values={filters}
+            views={{ key: "promos" }}
           />
 
           <DataTable<AdminPromo>

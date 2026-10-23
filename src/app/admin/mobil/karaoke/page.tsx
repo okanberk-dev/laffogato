@@ -276,7 +276,7 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
           searchParams={sp}
           pathname={KARAOKE_PANEL_PATH}
           values={filters}
-          views={{ key: "karaoke" }}
+          views={{ key: "karaoke", tabParam: KARAOKE_TAB_PARAM }}
         />
       </div>
 
