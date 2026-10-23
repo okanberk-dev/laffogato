@@ -252,11 +252,25 @@ da aynı cümleyi gösterir; saatler dolunca kırmızı. Sınır `NEON_CU_HOURS_
 - **Anahtar:** Neon'da salt okunur anahtar yok. En dar olanı projeye özel
   anahtar: projeyi silemez, ama içindeki dalları ve veritabanlarını
   yönetebilir. Yalnız sunucuda okunur, yalnız Neon'a gider, loglanmaz.
+  Anahtarlar proje ayarlarında değil, **Organization → Settings → API
+  keys** altında; pencere org geneli ve başka bir projeyle açılabiliyor,
+  kapsam ve proje elle seçilir.
 - **Yoksa:** anahtar ya da proje kimliği tanımsızken satır gri kalır ve
   nasıl açılacağını söyler; hiçbir istek atılmaz.
 - **Vercel kotası** gösterilmez: Vercel'in REST API başvurusunda kullanım
   için belgelenmiş bir uç bulunamadı (23 Eki 2026); Hobby kotası Vercel
   panelinin Usage sekmesinden okunur.
+
+**Üretimde açık (23 Eki 2026).** `NEON_PROJECT_ID` (Config) ve
+`NEON_API_KEY` (Secret, projeye özel `laffogato-sistem-durumu`) Vercel
+Production'da; satırın ilk okuması: "bu dönem 81,0 / 100 CU-saat (%81); bu
+hızla 28 Ekim günü dolar. Compute günde ortalama 13,7 saat uyanık." 1-23
+Ekim ortalaması günde ~3,6 CU-saat, ay sonu ~112: kalan 19 saat 8 güne
+günde ~2,4 ile yeterdi, yani bu ay kullanımla değil planla çözülür. Neon
+Billing'in iki seçeneği: 250 CU-saatlik ek paket (ayda 10 $)
+ya da sınır yerine kullanım ücreti yazan Launch (CU-saat 0,106 $; bu hızla
+ayda ~12 $). Karar operatörün; seçildikten sonra `NEON_CU_HOURS_LIMIT`
+güncellenir (250 ya da 0), yoksa satır 100'e göre ölçmeye devam eder.
 
 Kod: `src/lib/admin/neon-usage{,-core}.ts`, satır
 `src/app/admin/ayarlar/database-status.tsx` (yanında şemanın bu sürümle
