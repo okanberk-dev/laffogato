@@ -84,6 +84,16 @@ describe("where the session is refreshed", () => {
     expect(res.headers.get("set-cookie") ?? "").not.toContain("sb-");
   });
 
+  it.each(["/uye/giris", "/uye/hesap"])(
+    "builds no client for an anonymous visitor on %s",
+    async (path) => {
+      const { proxy } = await import("@/proxy");
+      await proxy(new NextRequest(`https://laffogato.net${path}`));
+      expect(setAlls).toHaveLength(0);
+      expect(getClaims).not.toHaveBeenCalled();
+    },
+  );
+
   it("keeps the checkout's nonce policy on the forwarded request", async () => {
     const { proxy } = await import("@/proxy");
     const res = await proxy(signedIn("/odeme"));
