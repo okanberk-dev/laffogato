@@ -6,6 +6,7 @@ import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
 import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-status";
 import { KpiStrip } from "@/components/admin/dashboard/kpi-strip";
 import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
+import { NeonUsageLine } from "@/components/admin/dashboard/neon-status";
 import { DashboardNotice } from "@/components/admin/dashboard/notice";
 import { OpenOrdersWidget } from "@/components/admin/dashboard/open-orders-widget";
 import {
@@ -28,6 +29,12 @@ import {
   stockLinks,
 } from "@/lib/admin/dashboard-core";
 import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
+import { loadNeonUsage, neonLimit } from "@/lib/admin/neon-usage";
+import {
+  neonAlarm,
+  neonUsageView,
+  readNeonUsageFor,
+} from "@/lib/admin/neon-usage-core";
 import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
 import { canAccess } from "@/lib/admin/roles";
 import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
@@ -172,26 +179,40 @@ export default async function AdminDashboardPage() {
     : null;
   // The settings read is awaited for its failure only: the header no longer
   // prints the café's name.
-  const [stats, recent, , mail, revenue, karaoke, keepalive, iys, invoiceAlert] =
-    await Promise.all([
-      getDashboardStats(),
-      // Five rows, read as five rows: this used to be every order in the
-      // table, sliced here (WP1). Their payment rows too, so the payment
-      // badge says what the order list says.
-      showOrders ? listRecentOrders(5).then(withMoney) : [],
-      settingsRead,
-      readMailHealth(),
-      // Revenue is read only for the roles that may see it (D1).
-      showRevenue ? dashboardRevenue(now) : null,
-      karaokeRead,
-      // The daily Supabase ping's record, for the owner alone: for any
-      // other role the read is never made (null), not merely not shown.
-      readKeepaliveFor(role, loadSupabaseKeepalive),
-      // İYS deadlines, for the roles that run the bulletin (owner, manager).
-      canAccess("newsletter", role) ? readIysAttention(now) : null,
-      readInvoiceAlert(role, now),
-    ]);
+  const [
+    stats,
+    recent,
+    ,
+    mail,
+    revenue,
+    karaoke,
+    keepalive,
+    iys,
+    invoiceAlert,
+    neon,
+  ] = await Promise.all([
+    getDashboardStats(),
+    // Five rows, read as five rows: this used to be every order in the
+    // table, sliced here (WP1). Their payment rows too, so the payment
+    // badge says what the order list says.
+    showOrders ? listRecentOrders(5).then(withMoney) : [],
+    settingsRead,
+    readMailHealth(),
+    // Revenue is read only for the roles that may see it (D1).
+    showRevenue ? dashboardRevenue(now) : null,
+    karaokeRead,
+    // The daily Supabase ping's record, for the owner alone: for any
+    // other role the read is never made (null), not merely not shown.
+    readKeepaliveFor(role, loadSupabaseKeepalive),
+    // İYS deadlines, for the roles that run the bulletin (owner, manager).
+    canAccess("newsletter", role) ? readIysAttention(now) : null,
+    readInvoiceAlert(role, now),
+    // Neon's monthly compute, for the owner alone, from Neon's own API
+    // (never the database); drawn below only when it needs someone.
+    readNeonUsageFor(role, loadNeonUsage),
+  ]);
   const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
+  const compute = neon ? neonUsageView(neon, neonLimit(), now) : null;
 
   const today = revenue?.buckets.at(-1);
   const tiles = dashboardTiles(
@@ -277,6 +298,14 @@ export default async function AdminDashboardPage() {
       {keepaliveAlarm?.tone === "warning" ? (
         <KeepaliveStatusLine view={keepaliveAlarm} />
       ) : null}
+
+      {/*
+        Neon's Free plan stops the database for the rest of the month when
+        its compute hours run out (docs/DATABASE.md; September 2026). From
+        80 %, or when this pace spends them early, the owner hears it here;
+        otherwise the line stays in Ayarlar → Sistem durumu.
+      */}
+      {compute && neonAlarm(compute) ? <NeonUsageLine view={compute} /> : null}
 
       {/*
         İYS (docs/IYS.md): a consent not registered within three business

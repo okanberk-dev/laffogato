@@ -771,6 +771,25 @@ ve açıksa köşkün paneline bağlantı verir. Kapalıysa (iki projede ortak
 `KARAOKE_SYNC_SECRET` yok) kart kendiliğinden açılır: karaoke, menü
 fiyatları, bar ekranı ve online satış birlikte durmuştur.
 
+## Sistem durumu: veritabanı ve Neon işlem süresi (23 Eki 2026)
+
+Operatör: _"Sen tüm hepsini yap maine yolla"_ (eksikler listesindeki
+"Sistem sağlığı"). Yeni bir kart açılmadı: Ayarlar'ın **Sistem durumu**
+kartına iki satır eklendi, Genel bakış yalnız uyarıyı tekrarlar (operatör,
+21 Eki 2026: olağan satır Genel bakış'ta durmaz).
+
+- **Veritabanı:** şema bu sürümle güncel mi (`/api/health`'in cevabı).
+  Uygulama migration'ı kendisi uygular ve hatasını bilerek yutar; uygulanamayan
+  bir migration yalnız bir log satırı bırakıyordu. Gerideyse kart açılır.
+- **Neon işlem süresi** (yalnız sahip): bu fatura döneminin CU-saati, planın
+  aylık sınırına göre yüzdesi, bu hızla ne zaman dolacağı ve compute'un günde
+  ortalama kaç saat uyanık kaldığı. %80'den ya da bu hız sınırı dönem bitmeden
+  dolduracaksa turuncu; o zaman Genel bakış da aynı cümleyi gösterir. Dolunca
+  kırmızı: Free planda Neon veritabanını dönem sonuna kadar askıya alır.
+  `NEON_API_KEY` ve `NEON_PROJECT_ID` yoksa gri kalır ve nasıl açılacağını
+  söyler; ayrıntı ve anahtarın yetkisi `docs/DATABASE.md` "Sistem durumu:
+  Neon işlem süresi".
+
 ## Siparişte PayNkolay'da yapılmış iade (22 Eki 2026)
 
 Operatör: _"siparişleri iptal edince PayNkolay'dan manuel iade ediyorum ama
