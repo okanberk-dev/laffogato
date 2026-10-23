@@ -475,6 +475,31 @@ describe("KAR-13: an evening that is over (karar D7)", () => {
   });
 });
 
+describe("a refused refund in the history (audit item A5)", () => {
+  it("shows the POS's answer in words, never its raw text", () => {
+    const items = panel.karaokeHistory(booking(), [
+      {
+        id: "aud-2",
+        entityId: "krk-00042",
+        actor: "system",
+        action: "update",
+        payload: {
+          event: "cancel_refund_refused",
+          amountMinor: 120000,
+          message:
+            "paynkolay refund reddedildi: responseCode=0 Bu kayıt daha önce iptal edilmiştir..!",
+        },
+        createdAt: "2026-10-22T10:00:00.000Z",
+      },
+    ]);
+    const line = items.find((i) => i.id === "aud-2");
+    expect(line?.description).toContain(
+      "PayNkolay bu ödemenin daha önce iptal ya da iade edildiğini söylüyor",
+    );
+    expect(line?.description).not.toMatch(/responseCode|reddedildi:/);
+  });
+});
+
 describe("bug 9: payment evidence", () => {
   it("masks the POS reference to its ends", () => {
     expect(panel.maskPaymentRef("PNK2026101612345")).toBe("PN…2345");

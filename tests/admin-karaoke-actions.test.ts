@@ -244,6 +244,91 @@ describe("the mail sentence is the real answer", () => {
   });
 });
 
+describe("a refused refund reads in words, not as PayNkolay's text", () => {
+  const RAW =
+    "paynkolay refund reddedildi: responseCode=0 Bu kayıt daha önce iptal edilmiştir..!";
+
+  it("the retry says the payment was already reversed", async () => {
+    h.retry.mockResolvedValue({ ok: false, reason: "refused", message: RAW });
+    const res = await admin.retryKaraokeRefundAction(
+      null,
+      form({ id: ID, reason: "İlk iade yanıtsız kaldı" }),
+    );
+    expect(res.ok).toBe(false);
+    const text = res.ok ? "" : res.error;
+    expect(text).toContain(
+      "PayNkolay bu ödemenin daha önce iptal ya da iade edildiğini söylüyor",
+    );
+    expect(text).not.toMatch(/responseCode|reddedildi:/);
+  });
+
+  it("a refused retry after an unanswered first refund keeps its warning", async () => {
+    h.retry.mockResolvedValue({
+      ok: false,
+      reason: "unknown",
+      message:
+        "POS ikinci iadeyi reddetti (ilk iade geçmiş olabilir): paynkolay refund reddedildi: responseCode=5 Sistem hatası",
+    });
+    const res = await admin.retryKaraokeRefundAction(
+      null,
+      form({ id: ID, reason: "İlk iade yanıtsız kaldı" }),
+    );
+    const text = res.ok ? "" : res.error;
+    expect(text).toContain("ilk iade geçmiş olabilir");
+    expect(text).not.toContain("POS yanıt vermedi");
+    expect(text).not.toMatch(/responseCode|Sistem hatası/);
+  });
+
+  it("a cancel with no payment row says nothing was sent to the POS", async () => {
+    h.reservation = { id: ID, status: "confirmed", paymentStatus: "none" };
+    h.cancel.mockResolvedValue({
+      ok: false,
+      reason: "refund_refused",
+      message: "Ödeme kaydı bulunamadı.",
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      form({ id: ID, beklenen: "odenmemis" }),
+    );
+    const text = res.ok ? "" : res.error;
+    expect(text).toContain(
+      "ödeme kaydı bulunamadı; POS'a iade isteği gönderilmedi",
+    );
+  });
+
+  it("an unknown answer never prints the POS's raw text", async () => {
+    h.retry.mockResolvedValue({
+      ok: false,
+      reason: "unknown",
+      message: "paynkolay refund reddedildi: responseCode=? socket hang up",
+    });
+    const res = await admin.retryKaraokeRefundAction(
+      null,
+      form({ id: ID, reason: "İlk iade yanıtsız kaldı" }),
+    );
+    const text = res.ok ? "" : res.error;
+    expect(text).toMatch(/^İadenin sonucu belli değil: POS yanıt vermedi\./);
+    expect(text).not.toMatch(/responseCode|socket/);
+  });
+
+  it("a cancel the POS refused adds no raw detail", async () => {
+    h.cancel.mockResolvedValue({
+      ok: false,
+      reason: "refund_refused",
+      message: "paynkolay refund reddedildi: responseCode=5 Sistem hatası",
+    });
+    h.reservation = { id: ID, status: "confirmed", paymentStatus: "none" };
+    const res = await admin.cancelReservationAction(
+      null,
+      form({ id: ID, beklenen: "odenmemis" }),
+    );
+    expect(h.cancel).toHaveBeenCalled();
+    const text = res.ok ? "" : res.error;
+    expect(text).toContain("POS iadeyi reddetti");
+    expect(text).not.toMatch(/responseCode|Sistem hatası/);
+  });
+});
+
 describe("money moves only behind a reason", () => {
   it("a refund retry without a reason is refused and the POS is not asked", async () => {
     const res = await admin.retryKaraokeRefundAction(null, form({ id: ID }));

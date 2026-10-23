@@ -690,6 +690,10 @@ maybe("karaoke prepayment (real Postgres)", () => {
         status: "confirmed",
         paymentStatus: "paid",
       });
+      // The operator's alert reads in words; the POS's text is for the log.
+      const alert = mail.alerts.at(-1) as { footnote?: string } | undefined;
+      expect(alert?.footnote).toMatch(/^POS iadeyi reddetti\. /);
+      expect(alert?.footnote).not.toContain("responseCode");
       // And it can be tried again: the claim was released.
       pos.refund = "ok";
       expect(await pay.cancelKaraokeReservation(id, asMember(c))).toMatchObject(
