@@ -134,6 +134,67 @@ describe("menu item create / update", () => {
     expect(h.store.createMenuItem).not.toHaveBeenCalled();
   });
 
+  it("refuses a photo it cannot store under the photo, instead of saving the item without one", async () => {
+    // The shared uploader takes an http:// link (products accept one); the
+    // menu stores only https, a stored photo or a site path, and used to save
+    // the item with no photo behind a success toast (admin audit, 5c).
+    const cases: [string, RegExp][] = [
+      ['["http://cdn.example.com/latte.jpg"]', /https:\/\/ ile başlamalı/],
+      [
+        `["https://cdn.example.com/${"a".repeat(500)}.jpg"]`,
+        /en çok 500 karakter/,
+      ],
+      ['["ftp://cdn.example.com/latte.jpg"]', /Fotoğraf yükle/],
+      ["[not json", /Fotoğraf yükle/],
+    ];
+    for (const [image, message] of cases) {
+      const created = await menu.createMenuItemAction(
+        null,
+        form({ ...MENU_FORM, image }),
+      );
+      expect(created).toMatchObject({ ok: false });
+      expect(created.ok ? {} : created.fieldErrors).toMatchObject({
+        image: expect.stringMatching(message),
+      });
+      h.store.getMenuItem.mockResolvedValue({
+        ...ITEM,
+        image: "https://cdn.example.com/eski.jpg",
+      });
+      const updated = await menu.updateMenuItemAction(
+        ITEM.id,
+        null,
+        form({ ...MENU_FORM, image }),
+      );
+      expect(updated.ok ? {} : updated.fieldErrors).toMatchObject({
+        image: expect.stringMatching(message),
+      });
+    }
+    expect(h.store.createMenuItem).not.toHaveBeenCalled();
+    expect(h.store.updateMenuItem).not.toHaveBeenCalled();
+  });
+
+  it("still stores an https link, a site path, an uploaded photo and no photo", async () => {
+    for (const [image, stored] of [
+      [
+        '["https://cdn.example.com/latte.jpg"]',
+        "https://cdn.example.com/latte.jpg",
+      ],
+      ["/menu/matcha-latte.webp", "/menu/matcha-latte.webp"],
+      ['["data:image/jpeg;base64,AAAA"]', "data:image/jpeg;base64,AAAA"],
+      ["[]", ""],
+      ["", ""],
+    ]) {
+      h.store.createMenuItem.mockClear();
+      // A save answers with the list (redirect), not a result
+      await expect(
+        menu.createMenuItemAction(null, form({ ...MENU_FORM, image })),
+      ).rejects.toThrow("NEXT_REDIRECT");
+      expect(h.store.createMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({ image: stored }),
+      );
+    }
+  });
+
   it("stores 1.250,00 as 1250 TL and leaves a toast for the list", async () => {
     await expect(
       menu.createMenuItemAction(

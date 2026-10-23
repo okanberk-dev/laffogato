@@ -1205,6 +1205,7 @@ Açık:
 | 🟢 | Fotoğraf okları sağa sola taşıdığı hâlde "Yukarı / Aşağı taşı", her × yalnız "Sil" diye okunuyordu, bağlantı alanının adı yoktu (CAT-23, yükleyici) | "Sola taşı: görsel 2", "Sil: görsel 2", "Birincil yap: görsel 2"; bağlantı alanı "Görsel bağlantısı" | `admin-catalog-forms` |
 | 🟢 | Menü, kategori ve iki vitrin formunda "Vazgeç" bağlantı içinde düğmeydi; mağaza vitrininde `history.back()` paneli terk edebiliyordu (CAT-22) | Tek `Link`, `BUTTON.ghost`; vitrinde listeye döner | `admin-catalog-forms`, `admin-shop-hero` |
 | 🟢 | İngilizce ve jargon: "Shop · Hero slider", "Mağaza sidebar'ı", "Shop ürün filtresinde", "light seç", "altın script", "Limit doldu", Pistachio, Rose, başlık üstünde iç kimlik ("Düzenle · mnu-0003"), "… · Admin" ile "Admin · …" karışık sayfa başlıkları (CAT-24, formlar) | Sade Türkçe, "sen"; başlık üstünde bölüm adı; sayfa başlıkları "Admin · …" | `admin-shop-hero`, `admin-catalog-forms` |
+| 🟢 | Menü yükleyicisinin bağlantı yolu `http://` adresini kabul ediyor, kayıt onu sessizce siliyordu: kalem "kaydedildi" deyip fotoğrafsız kalıyordu; 2 MB'ı aşan fotoğraf, 500 karakterden uzun https adresi ve okunamayan değer de öyle (23 Eki 2026'da kapandı) | Menü işlemi saklayamadığı değeri fotoğrafın altında reddeder ("https:// ile başlamalı", "en çok 500 karakter", "saklanamayacak kadar büyük"); hiçbir şey yazılmaz. Yükleyici ürünlerle ortak kaldı (ürün şeması `http://` kabul eder) | `admin-catalog-actions`, `admin-backdrop-actions` |
 
 Aynı PR'da gelenler: vitrin listesi yüklenen görseli `/gorsel/hero/<id>`
 yolundan gösterir, her slaytın fotoğrafını sayfaya gömmez (CAT-08'in vitrin
@@ -1220,7 +1221,6 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Aynı anda iki sekmede aynı boş slug'la açılan iki kategori ikisi de geçebilir (`categories.slug` benzersiz değil) | Eski veritabanlarında ikiz satırlar var; benzersiz dizin önce onların temizlenmesini ister (migration + operatör kararı). Panel artık ikizi kendisi açmaz |
-| 🟢 | Menü yükleyicisinin bağlantı yolu `http://` adresini kabul ediyor, kayıt onu sessizce siliyor (yalnız https saklanır) | Yükleyici ürünlerle ortak ve ürün şeması `http://` kabul ediyor; iki şemayı eşitlemek bu PR'ın dışında |
 
 ### Kabuk: Personelin açılış sayfası (admin UI v2, UI-3)
 

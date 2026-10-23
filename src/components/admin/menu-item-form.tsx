@@ -181,6 +181,7 @@ export function MenuItemForm({
           max={1}
           initial={item?.image ? [item.image] : []}
         />
+        <FormFieldError name="image" />
       </Field>
     </>
   );
