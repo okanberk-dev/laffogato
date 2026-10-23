@@ -123,15 +123,17 @@ describe("lists without a date range", () => {
   // SHA-256 of the bar's markup on origin/main f47831d3 (before UI-14; see
   // `bar` for what is normalised), refreshed for the AkmanOS look (21 Eki
   // 2026: the box's own classes), for the top-aligned row, whose buttons
-  // sit under an empty label (21 Eki 2026), and for the Innex look (22 Eki
-  // 2026: the white card, the fields' and buttons' classes). A changed kit
-  // class changes it on purpose: refresh it with the change.
+  // sit under an empty label (21 Eki 2026), for the Innex look (22 Eki
+  // 2026: the white card, the fields' and buttons' classes) and for its
+  // one-row toolbar (the search box's magnifier, "Filtreler" at every
+  // width). A changed kit class changes it on purpose: refresh it with the
+  // change.
   it("draw the markup they drew before, byte for byte", () => {
     expect(sha(bar(PLAIN, {}))).toBe(
-      "b7bd462ce68b0a0191f1f62bfeff8924721ace120fcae5dcbaca19c642c9a96e",
+      "c1ae4f1e36be14dec0f29ee7c806108f5e37556d897877c1e5e740fdfdbc587a",
     );
     expect(sha(bar(PLAIN, { durum: "acik", kanal: "app" }, "ayşe"))).toBe(
-      "93142aac8d08699a88916c215cbd7141b4afe5241626b456a1fb9f43b9bea530",
+      "cd55ff9b70295200b8e354b2a48fc53f7c207742940c4cc8b8e4afbc1be9bde6",
     );
     expect(bar(PLAIN, {})).not.toContain("hazır aralıklar");
   });
@@ -153,8 +155,8 @@ describe("lists with a date range keep their native boxes", () => {
 
   it("everything but the added preset links is the old markup, byte for byte", () => {
     // Frozen from origin/main for the same fields and addresses (refreshed
-    // for the top-aligned row, 21 Eki 2026, and the Innex look, 22 Eki
-    // 2026). The links
+    // for the top-aligned row, 21 Eki 2026, the Innex look and its one-row
+    // toolbar, 22 Eki 2026). The links
     // are the whole difference; the fieldset gains no attribute (the hover
     // and focus handlers that load the widget are not markup).
     expect(
@@ -176,12 +178,12 @@ describe("lists with a date range keep their native boxes", () => {
           ),
         ),
       ),
-    ).toBe("876ac1e08afb6356fc17d91b4e29a1c72937c2d4efc2006c4bbc8210645628ed");
+    ).toBe("415cc5680c42c062e409d7490b90bf8b4209c29d6f3badf50a4b81459b8b7bf3");
     expect(sha(without(bar(DATED, {})))).toBe(
-      "f21e07ee7fd738bebd30d6b83ae24568497d9e8bbbd163a7aea116b510eb7729",
+      "ae154dc58c2034701aee8ee6cebf26e5b206d1772676c882e0e2f16a99bed438",
     );
     expect(sha(without(bar(DATED, { bas: "2026-10-01" })))).toBe(
-      "f849618849be61e74bcdb89dea1367981781be2fa7aadfc0c3bfd265085974f6",
+      "e0dc3426bc222277e4d5aced257e849ed0ec273aa4bacdefb7c6dd5fbe6fe3fc",
     );
   });
 
@@ -195,9 +197,9 @@ describe("lists with a date range keep their native boxes", () => {
     expect(legend).toBeGreaterThan(0);
     expect(boxes).toBeGreaterThan(legend);
     expect(links).toBeGreaterThan(boxes);
-    // Every box on the row's first line: the row is top-aligned.
+    // The folded fields' row is top-aligned: every box on its first line.
     expect(html).toContain(
-      'class="flex flex-wrap items-start gap-3 rounded-xl',
+      'class="order-2 hidden basis-full flex-wrap items-start gap-3',
     );
     expect(html).not.toContain("items-end");
   });

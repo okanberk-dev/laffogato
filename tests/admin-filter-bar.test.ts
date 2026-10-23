@@ -5,11 +5,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 /**
- * The kit's FilterBar on a phone (admin audit SHE-07, ORD-08, KAR-10): the
- * orders filter was an always-open 658 px form, so the first order started
- * 1.3 screens down. Below md the dropdowns and dates now fold behind
- * "Filtreler (n)", open when one of them is set; from md up the row is
- * unchanged. And "Uygula" says it is working while the list loads (ORD-17).
+ * The kit's FilterBar (admin audit SHE-07, ORD-08, KAR-10; Innex, 22 Eki
+ * 2026): the orders filter was an always-open 658 px form on a phone, so
+ * the first order started 1.3 screens down, and a 220 px card at 1440 px.
+ * Now it is one toolbar row at every width: the search box, "Filtreler
+ * (n)" and "Uygula"; the dropdowns and dates open under it, open when one
+ * of them is set. One or two dropdowns alone stay in the row. And "Uygula"
+ * says it is working while the list loads (ORD-17).
  */
 
 vi.mock("next/link", () => ({
@@ -30,8 +32,14 @@ vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
 }));
 
-const { FilterBar, foldedFiltersLabel, openFromMd, splitFilterFields } =
-  await import("@/components/admin/ui/filter-bar");
+const {
+  FilterBar,
+  compactAllLabel,
+  foldedFiltersLabel,
+  foldsInline,
+  openFromMd,
+  splitFilterFields,
+} = await import("@/components/admin/ui/filter-bar");
 const { ORDER_FILTER_FIELDS } = await import("@/lib/admin/order-filters");
 const { AUDIT_FILTER_FIELDS } = await import("@/lib/admin/audit-view");
 const { parseFilters } = await import("@/lib/admin/list-params");
@@ -118,25 +126,89 @@ describe("markup", () => {
     expect(searched).toContain(">Filtreler<");
   });
 
-  it("from md up the group is the old row: always shown, no summary", () => {
-    const group = folded(render({}));
+  it("is one row at every width: the fields open as a row of their own under it", () => {
+    const html = render({});
+    const group = folded(html);
     const details = /^<details class="([^"]*)"/.exec(group)?.[1] ?? "";
-    expect(details).toContain("md:contents");
-    // A closed <details> hides its content in its ::details-content box.
-    expect(details).toContain("md:details-content:contents");
-    expect(group).toMatch(/<summary class="[^"]*md:hidden/);
-    expect(group).toMatch(/<div class="[^"]*md:contents/);
-    // A browser without ::details-content gets the group opened instead.
+    // The group is `contents`, so its summary is a button in the toolbar's
+    // row and its fields a full-width row under it; a closed group's
+    // fields are hidden by their own class (the ::details-content box is
+    // `contents` too, which would show them).
+    expect(details.split(" ")).toContain("contents");
+    expect(details).toContain("details-content:contents");
+    expect(details).not.toContain("md:");
+    const panel = /<\/summary><div class="([^"]*)"/.exec(group)?.[1] ?? "";
+    expect(panel.split(" ")).toEqual(
+      expect.arrayContaining(["hidden", "basis-full", "group-open:flex"]),
+    );
+    expect(group).not.toMatch(/<summary class="[^"]*md:hidden/);
+    // No more forced opening from md up: the operator closes it.
     const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
-    expect(
-      readFileSync("src/components/admin/ui/open-from-md.ts", "utf8"),
-    ).toContain('window.matchMedia("(min-width: 48rem)")');
-    expect(src).toContain("ref={openFromMd}");
+    expect(src).not.toContain("ref={openFromMd}");
+    // "Uygula" follows the fields when they are open: the order a keyboard
+    // reaches them in.
+    expect(src).toContain("[:has(>details[open])>&]:order-3");
   });
 
-  it("without ::details-content the group is opened from md up, also after a resize", () => {
-    // The summary is hidden from md up: a group left closed there (a
-    // tablet turned from portrait to landscape) could not be opened.
+  it("the lead search box shows a magnifier, its label kept for a screen reader", () => {
+    const html = render({});
+    const box = html.slice(0, html.indexOf('type="search"'));
+    expect(box).toMatch(/<label for="[^"]*" class="sr-only">Ara<\/label>/);
+    expect(html).toMatch(/data-admin-search=""/);
+  });
+
+  it("the card is the search landmark; the list's controls share its row", () => {
+    const html = render({});
+    expect(html).toMatch(
+      /<div role="search" aria-label="Sipariş filtreleri" class="[^"]*rounded-xl/,
+    );
+    expect(html).toMatch(/<form class="contents"/);
+  });
+
+  it("one or two dropdowns stay in the row, with their name in each choice", () => {
+    const select = (name: string) => ({
+      type: "select" as const,
+      name,
+      label: "Kategori",
+      options: [{ value: "kiler", label: "Kiler" }],
+    });
+    expect(foldsInline([select("a")])).toBe(true);
+    expect(foldsInline([select("a"), select("b")])).toBe(true);
+    expect(foldsInline([select("a"), select("b"), select("c")])).toBe(false);
+    expect(
+      foldsInline([
+        { type: "date-range", label: "Tarih", from: "bas", to: "bit" },
+      ]),
+    ).toBe(false);
+    expect(foldsInline([])).toBe(false);
+    expect(compactAllLabel({ label: "Durum" })).toBe("Durum: tümü");
+    expect(compactAllLabel({ label: "Dikkat", allLabel: "Hepsi" })).toBe(
+      "Dikkat: hepsi",
+    );
+    expect(
+      compactAllLabel({ label: "Kategori", allLabel: "Tüm kategoriler" }),
+    ).toBe("Tüm kategoriler");
+    const html = renderToStaticMarkup(
+      createElement(FilterBar, {
+        fields: [
+          { type: "search", name: "q", label: "Ara" },
+          select("kategori"),
+        ],
+        searchParams: {},
+        pathname: "/admin/urunler",
+      }),
+    );
+    expect(html).not.toContain("<details");
+    expect(html).toContain(">Kategori: Kiler</option>");
+    expect(html).toMatch(
+      /<label for="[^"]*" class="sr-only">Kategori<\/label>/,
+    );
+  });
+
+  it("openFromMd opens a folded form from md up, also after a resize (the stock correction)", () => {
+    // Stok's correction form hides its summary from md up: a group left
+    // closed there (a tablet turned from portrait to landscape) could not
+    // be opened.
     let wide = false;
     const listeners = new Set<() => void>();
     const media = {

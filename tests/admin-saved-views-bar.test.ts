@@ -162,9 +162,9 @@ describe("without views the bar is what it was", () => {
   it("the chips keep their place, their classes and their links, byte for byte", () => {
     const html = bar({ durum: "acik", kanal: "app" }, { remembered: "ayşe" });
     expect(chipsOf(plain(html))).toBe(CHIPS);
-    // Straight after the forms: no row, no wrapper around them.
+    // Straight after the reset form, under the card: no wrapper around them.
     expect(html).toMatch(/<\/form><ul aria-label="Etkin filtreler"/);
-    expect(html).not.toContain("items-start gap-2");
+    expect(html).not.toContain("order-1 ml-auto");
   });
 
   it("with views, before the browser, it is the same markup", () => {
@@ -177,10 +177,10 @@ describe("without views the bar is what it was", () => {
     }
   });
 
-  it("no chips, no row: the bar ends with its forms", () => {
+  it("no chips, no row: the bar ends with its card", () => {
     const html = bar({});
     expect(html).not.toContain("Etkin filtreler");
-    expect(html).not.toContain("items-start gap-2");
+    expect(html).not.toContain("order-1 ml-auto");
     expect(html).not.toContain("data-lazy-menu");
   });
 });
@@ -338,30 +338,33 @@ describe("once the page is in the browser", () => {
     }
   };
 
-  it("the chips and the menu share one row, the menu at its end", () => {
+  it("the menu sits at the end of the toolbar's row; the chips go under the card", () => {
     const html = withKey(() =>
       bar(
         { durum: "acik", kanal: "app", sayfa: "3", denied: "1" },
         { remembered: "ayşe", views: { key: "orders" } },
       ),
     );
+    // The toolbar card: its form (contents), then the end group with the
+    // menu, inside the card; Innex's one row (22 Eki 2026).
     expect(html).toMatch(
-      /<\/form><div class="mt-2 flex flex-wrap items-start gap-2"><ul aria-label="Etkin filtreler" class="flex min-w-0 flex-\[1_1_14rem\] flex-wrap gap-2 self-center">/,
+      /<\/form><div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""[^>]*><\/span><\/div><\/div>/,
     );
-    // Both chips are still there, and the menu follows them.
+    // Both chips are still there, under the card.
     expect(html).toContain("Filtreyi kaldır: Ara ayşe");
     expect(html).toContain("Filtreyi kaldır: Kanal Uygulama");
-    // The menu is the row's last item (in the row's end group, after the
-    // list's own controls), and the row the bar's last.
     expect(html).toMatch(
-      /<\/ul><div class="ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""[^>]*><\/span><\/div><\/div><\/div>/,
+      /<ul aria-label="Etkin filtreler" class="mt-2 flex flex-wrap gap-2">/,
+    );
+    expect(html.indexOf("data-lazy-menu")).toBeLessThan(
+      html.indexOf('aria-label="Etkin filtreler"'),
     );
   });
 
-  it("with no chip the menu is the row", () => {
+  it("with no chip the menu still ends the toolbar's row", () => {
     const html = withKey(() => bar({}, { views: { key: "orders" } }));
     expect(html).toContain(
-      '<div class="mt-2 flex flex-wrap items-start gap-2"><div class="ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""',
+      '<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""',
     );
     expect(html).not.toContain("Etkin filtreler");
   });
@@ -395,20 +398,20 @@ describe("once the page is in the browser", () => {
       bar({ durum: "acik" }, { views: { key: "orders" }, toolbar: tool }),
     );
     expect(withViews).toMatch(
-      /<div class="ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses<\/button><span data-lazy-menu=""/,
+      /<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses<\/button><span data-lazy-menu=""/,
     );
-    // Drawn on the server too: no views key needed for the row.
+    // Drawn on the server too: no views key needed for it.
     const alone = bar({}, { toolbar: tool });
     expect(alone).toContain(
-      '<div class="mt-2 flex flex-wrap items-start gap-2"><div class="ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses</button></div></div>',
+      '<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses</button></div></div>',
     );
     expect(alone).not.toContain("data-lazy-menu");
   });
 
-  it("no `views`, no row, whatever the page says", () => {
+  it("no `views`, no menu and no end group, whatever the page says", () => {
     const html = withKey(() => bar({ durum: "acik" }));
     expect(html).not.toContain("data-lazy-menu");
-    expect(html).not.toContain("items-start gap-2");
+    expect(html).not.toContain("order-1 ml-auto");
   });
 });
 
