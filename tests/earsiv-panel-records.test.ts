@@ -132,8 +132,11 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
       "yalnız bu dar yeniden okumaya bırakır; kullanılmamalıdır",
       "`refund`'lar ödenmiş açılır",
       "günlük eşitleme süzgeçle de süzgeçsiz de görmez",
-      '"Tarihten eşitle" düğmesi, kayıttan önceki bir tarihle, görür',
-      '"Oturumu sıfırla" pencereyi `PARASUT_SYNC_FROM`\'a ya da yılbaşına çeker, genişletmez',
+      '"Tarihten eşitle" düğmesi, kayıttan önceki bir tarihle',
+      "tur tek çalıştırmada bitmeli",
+      '"Oturumu sıfırla"dan sonraki eşitleme: pencereyi `PARASUT_SYNC_FROM`\'a ya da bu yılın başına çeker',
+      "önceki yılın kaydına hiç ulaşmaz",
+      '"Geçmiş faturaları al": o tedarikçinin listesini baştan okur, yeniden okuması yoktur',
     ]) {
       expect(rule1, claim).toContain(claim);
     }
@@ -145,10 +148,20 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
     );
     expect(rule1).not.toMatch(/[iİ]ki yolda da[^.]*siler/);
     expect(rule1).not.toMatch(/listede her zaman gelir/i);
-    // "Oturumu sıfırla" resets the window to PARASUT_SYNC_FROM or 1 January
-    // (lafmaliyet sync.ts windowStart): it widens nothing, re-reads nothing.
+    // "Oturumu sıfırla" moves the window to PARASUT_SYNC_FROM or 1 January
+    // (lafmaliyet sync.ts windowStart): wider or narrower by the date, never
+    // into the previous year; "Tarihten eşitle" is not the only way.
     expect(rule1).not.toMatch(
-      /"Oturumu sıfırla"[^.;]*(genişletir|baştan okur|yakalar|görür)/,
+      /"Oturumu sıfırla"[^;]*(bütün geçmişi|her şeyi|baştan okur|yakalar)/,
+    );
+    expect(rule1).not.toMatch(/yalnız panelin "Tarihten eşitle"/);
+    const reset = rule1.slice(
+      rule1.indexOf('"Oturumu sıfırla"dan'),
+      rule1.indexOf('"Geçmiş faturaları al"'),
+    );
+    expect(reset).toContain("yılın ilk aylarında daraltır");
+    expect(reset).not.toMatch(
+      /genişletmez|bütün geçmiş|her şeyi|baştan okur|yakalar/,
     );
   });
 

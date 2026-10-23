@@ -536,9 +536,15 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
    `refund` kayıtların güncellenmesini yalnız bu dar yeniden okumaya
    bırakır; kullanılmamalıdır. Pencereden eski, ödenmiş bir kaydın iptalini
    (bütün `refund`'lar ödenmiş açılır) günlük eşitleme süzgeçle de
-   süzgeçsiz de görmez. Onu yalnız panelin "Tarihten eşitle" düğmesi,
-   kayıttan önceki bir tarihle, görür; "Oturumu sıfırla" pencereyi
-   `PARASUT_SYNC_FROM`'a ya da yılbaşına çeker, genişletmez.
+   süzgeçsiz de görmez. Görmenin yolları:
+   - panelin "Tarihten eşitle" düğmesi, kayıttan önceki bir tarihle
+     (iptal listede görünmüyorsa tur tek çalıştırmada bitmeli: yarıda
+     kalıp sürdürülen turda yeniden okuma yoktur);
+   - "Oturumu sıfırla"dan sonraki eşitleme: pencereyi
+     `PARASUT_SYNC_FROM`'a ya da bu yılın başına çeker; yılın ilk
+     aylarında daraltır, önceki yılın kaydına hiç ulaşmaz;
+   - Tedarikçiler'deki "Geçmiş faturaları al": o tedarikçinin listesini
+     baştan okur, yeniden okuması yoktur (iptal listede görünüyorsa).
 2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
    (`include=supplier`) `account_type: "customer"` ise tedarikçi değildir.
    Sitenin açtığı her cari `customer`'dır; panelin tedarikçi listesi
