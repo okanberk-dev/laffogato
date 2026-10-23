@@ -8,7 +8,11 @@
 > alan kenarı `#898D94` (boş alan 3:1 ile bulunsun), yeşil ve turuncu rozet
 > metni koyulaştırıldı (§4), bilgi tonu camgöbeği ve vurgu tonu mor ("Ödendi",
 > "Kargoda" ve "Hazırlanıyor" üç ayrı renk kalsın). İlk PR yalnız tasarım
-> sistemini (§1) uyguladı; §3'teki yerleşim fikirleri ayrı PR'larla gelir.
+> sistemini (§1) uyguladı; §3'teki yerleşim fikirlerinin uygulananları
+> (23 Eki 2026: KPI şeridi ve referanslar, üç bölgeli sipariş sayfası,
+> satırın durumuna göre adımı, rapor dönem karşılaştırması, karaoke
+> takvimi, kullanıcılarda izin tablosu, tek satırlık liste araç çubuğu) ve
+> bilinçli olarak yapılmayanlar `docs/ADMIN.md` "Innex düzenleri"nde.
 >
 > Aşağıdaki metin operatörün incelemesidir; değiştirmeden saklanır.
 

@@ -491,9 +491,15 @@ lafmaliyet AkmanOS teması bırakıldı; köşkün arka ofis paneli
   camgöbeği ve moru: "Ödendi", "Hazırlanıyor" ve "Kargoda" üç mavi değil,
   üç ayrı renk kalsın diye.
 - **Grup renkleri** (`ui/hues.ts`, `--admin-hue-*`) artık Innex'in renkli
-  ikon kutuları: Genel bakış ve rapor kartlarındaki 28 px kutu, "Hızlı
-  ekle". Kenar çubuğu, alt çubuk ve sayaçlar renksizdir (Innex: etkin satır
+  ikon kutuları: Genel bakış ve rapor şeritlerindeki 28 px kutu, "Yeni"
+  menüsü. Kenar çubuğu, alt çubuk ve sayaçlar renksizdir (Innex: etkin satır
   gri, renkli çizgi ya da mavi vurgu yok).
+- **Düzenler** (23 Eki 2026, `docs/ADMIN.md` "Innex düzenleri"): rakamlar
+  tek kartlık KPI şeridinde, her biri bir referansla (değişim hapı yeşil
+  iyi haber, kırmızı kötü haber); kayıt sayfaları üç bölge (başlık ve tek
+  birincil eylem, solda kararı veren tutar kartı, sağda sekmeler); liste
+  araç çubuğu tek satır; dönem ve görünüm seçimi segment denetimi (gri ray,
+  seçili beyaz hap).
 - **Yazı Inter** (`next/font/google`, yalnız `src/app/admin/layout.tsx`);
   panel kökünde sitenin yazı token'ları (`--headline`, `--display`,
   `--mono` ...) Inter'e yönlenir. Tutar ve kodlar Inter'in tablo rakamları
@@ -538,6 +544,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 21 Eki 2026 | **Admin paneli AkmanOS** (operatör): panel lafmaliyet'in açık temasını ve Geist'i aldı (yukarıda "Admin paneli görünümü"); müşteri sitesinin paleti ve yazısı değişmedi. |
 | 21 Eki 2026 | **Admin paneli yumuşatıldı** (operatör, akşam): zinc yerine sıcak taş, sıcak siyah mürekkep, menü gruplarına beş pastel renk, etkin satır siyah değil grubunun rengi; müşteri sitesi değişmedi. |
 | 22 Eki 2026 | **Admin paneli Innex** (operatör: "İnnexe geç"): gri zemin üstünde iki beyaz kart, Inter, mavi birincil, sakin kenar çubuğu, Innex bileşenleri (`docs/ADMIN-INNEX.md`); AkmanOS teması lafmaliyet'te kaldı, müşteri sitesi değişmedi. |
+| 23 Eki 2026 | **Admin paneli Innex düzenleri** (operatör: "İnnex + diğer yerleri en profesyonel şekilde yap"): KPI şeridi ve referanslar, üç bölgeli sipariş sayfası, tek satırlık liste araç çubuğu, karaoke takvimi, rapor dönem karşılaştırması, izin tablosu; müşteri sitesi değişmedi. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

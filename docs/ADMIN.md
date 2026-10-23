@@ -469,7 +469,7 @@ paneli görünümü"). 21 Eki'deki yumuşatılmış AkmanOS teması bırakıldı
 - Menünün beş grup rengi (`src/components/admin/ui/hues.ts`: **Bugün**
   mavi, **Katalog** bal, **Pazarlama** gül, **İçerik** mor, **Yönetim**
   yeşil) yalnız ikon kutularında kalır: Genel bakış ve rapor kartlarında
-  28 px kutu, "Hızlı ekle" ikonları. Ciro grafiği Innex'in koyu mavi
+  28 px kutu, "Yeni" menüsünün ikonları. Ciro grafiği Innex'in koyu mavi
   çizgisi ve lavanta dolgusu.
 - Kartlar beyaz, 1 px çizgi, gölgesiz; tablo başlığı soluk kuyuda 13 px
   gri; durum sekmeleri kutu çipleri (etkin olan koyu kenarlı); rozet
@@ -479,6 +479,77 @@ paneli görünümü"). 21 Eki'deki yumuşatılmış AkmanOS teması bırakıldı
   renkli zeminlerde (`tests/admin-ui-kit.test.ts`); bir bölümün rengi
   menüdeki grubunun rengidir (aynı test, `layout.tsx` NAV_GROUPS'tan
   okur).
+
+### Innex düzenleri (23 Eki 2026)
+
+Operatör: _"İnnex + diğer yerleri önerdiğin en profesyonel şekilde yap"_.
+`docs/ADMIN-INNEX.md` §3'teki fikirlerin uygulananları; kural her yerde
+aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
+
+- **KPI şeridi** (`dashboard/kpi-strip.tsx`): rakamlar tek kartta, aralarında
+  1 px çizgi (kartın grisi 1 px boşluktan görünür, hücreler nasıl dizilirse
+  dizilsin çizgi doğru kalır). Her hücrede ikon kutusu ve etiket, rakam,
+  altında değişim hapı ve **referans**: hiçbir rakam tek başına durmaz.
+  Beş hücre md'den 3 + 2, xl'den tek satır; telefonda ikişer, tek kalan
+  tam satır.
+- **Genel bakış**: şerit sahip ve yöneticiye beş rakam verir. Bugün net ciro
+  ve bugünkü sipariş, **geçen haftanın aynı günü bu saate kadar** ile
+  karşılaştırılır (`dashboardRevenue`: 14 günün tek okuması; bir kafenin
+  cumartesisi cumasına, yarım günü tam güne benzemez). Açık sipariş kafe /
+  mağaza diye ayrılır ve barda en uzun bekleyen kafe siparişinin süresini
+  söyler; 15 dakikayı geçince rakam turuncu. Dikkat isteyen ve Stokta yok
+  kendi gerçeğini yazar ("Azalan stokta 3 ürün"); 0'ın altına iş istemez.
+  Personel ciro görmez, okunmaz da (D1). "Hızlı ekle"nin on iki çipi
+  başlıkta tek **Yeni** düğmesine döndü (birden fazla sayfada menü, tekte
+  doğrudan bağlantı). Ana sütunda grafik ve son siparişler tablosu (başlığı
+  kartın içinde), yan sütunda açık siparişlerin durum çubuğu ve lejant
+  satırları, bugün karaoke, azalan stok.
+- **Listelerde araç çubuğu** (`ui/filter-bar.tsx`): her genişlikte tek
+  satır: büyüteçli arama kutusu, **Filtreler (n)** ve **Uygula**; listenin
+  kendi denetimleri (yeni sipariş sesi) ve **Görünümler** aynı satırın
+  sonunda. Açılır listeler ve tarih **Filtreler**'in altında tam genişlik
+  bir satır olarak açılır; biri seçiliyse açık gelir, "Uygula" o zaman
+  alanların altına iner (klavye sırası da öyle). Bir ya da iki açılır liste
+  katlanmaz, satırda adlarıyla durur ("Kategori: Kiler"). Etkin süzgeç
+  çipleri kartın altında. Durum çipleri 13 px: siparişlerin dokuzu 1280
+  px'te tek satır. Sipariş listesinde tablo 1440×900'de 590 px'ten 388
+  px'e çıktı.
+- **Sipariş satırı**: ad ve sipariş edilenler (e-posta siparişte, arama
+  bulur); ödenmiş ve hazırlanmayı bekleyen siparişin adımı dolu mavi
+  ("Hazırlamaya başla"), sonraki adımlar çerçeveli; "Ödeme bekleniyor"
+  altında "Ödenmedi" tekrarı yok.
+- **Sipariş sayfası, üç bölge**: başlık ve tek birincil eylem üstte; solda
+  **tutar kartı** (kararı veren tek büyük rakam: iade edilecek, ödeme
+  bekleyen ya da toplam; diğerleri altında küçük çip; sipariş, ödeme ve
+  kanal satırları), müşteri, teslimat ve iç not (etiket solda, değer sağda);
+  sağda **sekmeler** (`ui/detail-tabs.tsx`): Kalemler (tutar ve KDV
+  dahil), Ödeme ve iade, Fatura, Geçmiş (zaman çizelgesi, e-postalar,
+  mesafeli satış onayı). Sekmeler `?sekme=` bağlantısıdır: sunucu istenen
+  sekmeyi çizer, tarayıcıda tık anında değiştirir; dikkat isteyen sipariş
+  Ödeme ve iade'de açılır; `#odeme` gibi bir çapa kendi sekmesini açar.
+  Telefonda sıra: tutar, sekmeler, müşteri. Kargo ve takip numarası satırı
+  koli kargoya verilince görünür.
+- **Raporlar**: dönem başlıkta segment denetimi (`ui/segmented.tsx`); beş
+  rakam şeritte, her biri **bir önceki aynı uzunluktaki dönemle**
+  (`analyticsHeadlineCompared`, iki dönemin tek okuması). İadede artış
+  kırmızı. En çok satanlar ve karaoke ön ödemesi xl'den yan yana.
+- **Karaoke: liste ve takvim** (`karaoke-calendar.tsx`): başlıkta Liste /
+  Takvim. Takvim haftayı gösterir (`?gorunum=takvim&hafta=`): günler sütun,
+  saatler satır, her rezervasyon ilk saatinden son saatine bir blok;
+  rengi parasının durumu (ödendi yeşil, ödeme bekliyor turuncu, köşkte
+  ödenecek mavi, işlem bekliyor kırmızı). Bugün vurgulu, saat çizgisi
+  kırmızı. İptaller takvimde değil, listede. Telefonda günlük liste.
+- **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
+  ("Genel bakış · Kasa · damga · Siparişler +3"); "Roller neyi açar" artık
+  bir tablo: her bölüm bir satır, her rol bir sütun, açtığı yerde tik
+  (`roleMatrix`).
+- **Müşteriler** özeti de KPI şeridi. **Boş durum**: noktalı kutuda gri bir
+  simge, 15 px başlık, gri açıklama ve tek adım.
+- **Yapılmayan**: ürün ve menü için sağ çekmece. Ürün listesi iki durumu
+  zaten yan yana gösteriyor (Aktif / Pasif ve stok rozeti), ayrıntı bir
+  tık ötede; çekmece aynı sayfayı ikinci kez yazmak olurdu. Kenar
+  çubuğunun grupları ve iş bekleyen sayaçları (Siparişler, Karaoke) zaten
+  vardı; Faturalar sayacı kendi canlı sinyalini ister, ayrı iş.
 
 ## Kayıtlı görünümler
 
