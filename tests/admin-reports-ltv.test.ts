@@ -289,12 +289,21 @@ describe("the reports page", () => {
     }));
     vi.doMock("@/lib/admin/store", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@/lib/admin/store")>()),
-      analyticsHeadline: vi.fn(async () => ({
-        grossRevenueMinor: 60_000,
-        netRevenueMinor: 37_500,
-        totalOrders: 3,
-        averageOrderMinor: 20_000,
-        refundedMinor: 22_500,
+      analyticsHeadlineCompared: vi.fn(async () => ({
+        current: {
+          grossRevenueMinor: 60_000,
+          netRevenueMinor: 37_500,
+          totalOrders: 3,
+          averageOrderMinor: 20_000,
+          refundedMinor: 22_500,
+        },
+        previous: {
+          grossRevenueMinor: 50_000,
+          netRevenueMinor: 50_000,
+          totalOrders: 2,
+          averageOrderMinor: 25_000,
+          refundedMinor: 0,
+        },
       })),
       revenueBuckets: vi.fn(async () => []),
       topProducts: vi.fn(async () => []),
@@ -313,8 +322,8 @@ describe("the reports page", () => {
       await ReportsPage({ searchParams: Promise.resolve({ g: "yil" }) }),
     );
     const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-    expect(text).toMatch(/Net ciro ₺375,00/);
-    expect(text).toMatch(/Brüt ciro ₺600,00/);
+    expect(text).toMatch(/Net ciro ₺375,00 %25 düşüş Önceki 30 gün ₺500,00/);
+    expect(text).toMatch(/Brüt ciro ₺600,00 %20 artış Önceki 30 gün ₺500,00/);
     expect(text).not.toContain("Toplam ciro");
     // The period's figure first; the all-time one says it is all-time.
     expect(text).toMatch(/Karaoke ön ödemesi Bu dönemde, net ₺1\.500,00/);

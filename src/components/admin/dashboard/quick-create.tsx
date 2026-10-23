@@ -1,10 +1,17 @@
 import Link from "next/link";
+import { Fragment } from "react";
 
 import { CREATE_ENTRIES } from "@/lib/admin/palette-core";
 import { canAccess, type AdminRole } from "@/lib/admin/roles";
 
+import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
+} from "../ui/action-menu";
 import { HUE_INK, SECTION_HUE, type AdminHue } from "../ui/hues";
 import { AdminIcon, type AdminIconName } from "../ui/icons";
+import { BUTTON } from "../ui/styles";
 
 /** Each record's icon: the nav item's where the record has one. */
 const ICON_BY_HREF: Record<string, AdminIconName> = {
@@ -24,7 +31,7 @@ const ICON_BY_HREF: Record<string, AdminIconName> = {
 
 export interface QuickCreateEntry {
   href: string;
-  /** What the tile shows under "Hızlı ekle" ("Sipariş"). */
+  /** What the "Yeni" menu's item says ("Sipariş"). */
   short: string;
   icon: AdminIconName;
   /** The icon's colour: its section's nav group (ui/hues.ts). */
@@ -52,12 +59,12 @@ export function quickCreateEntries(role: AdminRole): QuickCreateEntry[] {
 }
 
 /**
- * One tap to a new record from the landing page: the role's "Yeni …"
- * pages as a row of quiet chips under the tiles (a hairline and the icon
- * in its nav group's colour; 44 px on a touch screen, 36 px where the
- * pointer can aim), full width so the words never break. They wrap from `sm`; on a phone the row
- * scrolls sideways instead of pushing the widgets five rows down.
- * Server-safe.
+ * A new record from the landing page (Innex, 22 Eki 2026): the header's one
+ * solid button. With one page to start ("Yeni sipariş" for staff) it is
+ * that page's link; with more it opens a menu of them, in the palette's
+ * order, a rule between the nav groups. It replaced the "Hızlı ekle" row of
+ * twelve chips that pushed the day's figures down a screen. Server-safe;
+ * the menu is the kit's ActionMenu.
  */
 export function QuickCreate({
   entries,
@@ -65,36 +72,34 @@ export function QuickCreate({
   entries: readonly QuickCreateEntry[];
 }) {
   if (entries.length === 0) return null;
+  const plus = <AdminIcon name="create" size={16} strokeWidth={2} />;
+  if (entries.length === 1) {
+    const only = entries[0];
+    return (
+      <Link href={only.href} className={BUTTON.primary}>
+        {plus}
+        <span>Yeni {only.short.toLocaleLowerCase("tr-TR")}</span>
+      </Link>
+    );
+  }
   return (
-    <section aria-labelledby="quick-create-title" className="mt-6 min-w-0">
-      <h2
-        id="quick-create-title"
-        className="mb-2 text-sm font-semibold text-[var(--admin-text)]"
-      >
-        Hızlı ekle
-      </h2>
-      {/* `relative`: the scroll box is the containing block of the chips'
-          sr-only "Yeni ", else those hung past the screen from the last
-          chips and a phone zoomed the whole page out (as DataTable's
-          ORD-M01). */}
-      <ul className="relative -mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 text-sm sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
-        {entries.map((e) => (
-          <li key={e.href} className="shrink-0">
-            <Link
-              href={e.href}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--admin-border)] px-3 text-[13px] whitespace-nowrap text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-border-strong)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-fine:min-h-9"
-            >
-              <AdminIcon name={e.icon} size={16} className={HUE_INK[e.hue]} />
-              {/* Its name is "Yeni sipariş": the visible word is in it, so a
-                  voice command that says the chip finds it (WCAG 2.5.3). */}
-              <span>
-                <span className="sr-only">Yeni </span>
-                {e.short}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <ActionMenu label="Yeni" primary icon={plus}>
+      {entries.map((e, i) => (
+        <Fragment key={e.href}>
+          {i > 0 && entries[i - 1].hue !== e.hue ? (
+            <ActionMenuSeparator />
+          ) : null}
+          <ActionMenuLink href={e.href}>
+            <AdminIcon name={e.icon} size={16} className={HUE_INK[e.hue]} />
+            {/* Its name is "Yeni sipariş": the visible word is in it, so a
+                voice command that says the item finds it (WCAG 2.5.3). */}
+            <span>
+              <span className="sr-only">Yeni </span>
+              {e.short}
+            </span>
+          </ActionMenuLink>
+        </Fragment>
+      ))}
+    </ActionMenu>
   );
 }

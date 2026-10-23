@@ -2,6 +2,7 @@ import type { RevenueBucket } from "@/lib/admin/store";
 
 import { formatTRY } from "../forms";
 import { RevenueChart } from "../revenue-chart";
+import { NUMERIC_STYLE } from "../ui/styles";
 import { WidgetCard } from "./widget-card";
 
 /**
@@ -19,12 +20,16 @@ export function RevenueWidget({
   const orders = buckets.reduce((s, b) => s + b.orderCount, 0);
   return (
     <WidgetCard title="Son 14 gün" href="/admin/raporlar" linkLabel="Raporlar">
-      <p className="mb-4 text-sm text-[var(--admin-text-soft)]">
-        Net ciro{" "}
-        <span className="font-semibold text-[var(--admin-text)]">
+      <p className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span
+          className="text-2xl font-bold tracking-[-0.01em] text-[var(--admin-text)]"
+          style={NUMERIC_STYLE}
+        >
           {formatTRY(total)}
-        </span>{" "}
-        · {orders} sipariş · iadeler düşülmüş
+        </span>
+        <span className="text-[13px] text-[var(--admin-text-mute)]">
+          Net ciro · {orders} sipariş · iadeler düşülmüş
+        </span>
       </p>
       <RevenueChart data={buckets} caption="Son 14 günün net cirosu" />
     </WidgetCard>

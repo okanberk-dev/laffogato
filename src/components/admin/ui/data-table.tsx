@@ -72,6 +72,13 @@ export interface DataTableProps<T> {
   mobileCard?: (row: T) => ReactNode;
   /** Visually hidden caption naming the table for screen readers. */
   caption?: string;
+  /**
+   * A title row inside the table's card (Innex's "Guest Overview"): a
+   * heading and its link, above the column heads. On a phone it sits over
+   * the cards. The heading names the table to everyone; `caption` still
+   * names it to a screen reader inside the table.
+   */
+  heading?: ReactNode;
   /** The current sort (from parseSort), to mark its header. */
   sort?: SortState | null;
   /** Current params and path, so sort links keep every other filter. */
@@ -194,6 +201,7 @@ export function DataTable<T>({
   empty,
   mobileCard,
   caption,
+  heading,
   sort = null,
   searchParams,
   pathname = "",
@@ -202,7 +210,14 @@ export function DataTable<T>({
   pageParam = DEFAULT_PAGE_PARAM,
 }: DataTableProps<T>) {
   if (rows.length === 0) {
-    return <>{empty ?? <EmptyState title="Kayıt yok." />}</>;
+    const none = empty ?? <EmptyState title="Kayıt yok." />;
+    if (!heading) return <>{none}</>;
+    return (
+      <div className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
+        <div className={HEADING_BAR}>{heading}</div>
+        <div className="p-4 sm:p-5">{none}</div>
+      </div>
+    );
   }
 
   const ids = selection ? rows.map(rowKey) : [];
@@ -258,6 +273,7 @@ export function DataTable<T>({
 
   return (
     <>
+      {heading ? <div className={HEADING_PHONE}>{heading}</div> : null}
       {/* Phones: one card per row. */}
       <ul className="flex flex-col gap-3 md:hidden">
         {rows.map((row) => {
@@ -335,7 +351,7 @@ export function DataTable<T>({
           block of the sr-only header texts (absolutely positioned): without
           it they hung past the viewport and the whole page scrolled
           sideways (ORD-M01). */}
-      <div className="relative hidden overflow-x-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+      <TableFrame heading={heading}>
         <table className="w-full border-collapse text-sm">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
@@ -442,7 +458,41 @@ export function DataTable<T>({
             })}
           </tbody>
         </table>
-      </div>
+      </TableFrame>
     </>
+  );
+}
+
+/** The title row of a table with a `heading`, inside its card. */
+const HEADING_BAR =
+  "flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--admin-border)] px-4 py-2 sm:px-5";
+/** The same row over a phone's cards: no card around it there. */
+const HEADING_PHONE =
+  "mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 md:hidden";
+
+/**
+ * The table's card from md. Without a heading it is the scroll box itself;
+ * with one the heading stays put above a scroll box of its own, so a wide
+ * table scrolls sideways under its title, not with it.
+ */
+function TableFrame({
+  heading,
+  children,
+}: {
+  heading?: ReactNode;
+  children: ReactNode;
+}) {
+  if (!heading) {
+    return (
+      <div className="relative hidden overflow-x-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div className="hidden overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+      <div className={HEADING_BAR}>{heading}</div>
+      <div className="relative overflow-x-auto">{children}</div>
+    </div>
   );
 }

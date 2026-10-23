@@ -28,6 +28,13 @@ export interface ActionMenuProps {
   framed?: boolean;
   /** Which edge of the button the panel lines up with; default `end`. */
   align?: "start" | "end";
+  /**
+   * The page's one solid button that opens a menu (Genel bakış's "Yeni"):
+   * the label, `icon` before it and a chevron after it, no dots.
+   */
+  primary?: boolean;
+  /** Drawn before the label of a `primary` menu (an AdminIcon from the page). */
+  icon?: ReactNode;
   /** ActionMenuLink, ActionMenuButton, ActionModal (`triggerVariant="menu"`), ConfirmButton. */
   children: ReactNode;
   className?: string;
@@ -54,6 +61,8 @@ export function ActionMenu({
   showLabel = false,
   framed = false,
   align = "end",
+  primary = false,
+  icon,
   children,
   className,
 }: ActionMenuProps) {
@@ -162,24 +171,43 @@ export function ActionMenu({
       className={cx("relative inline-block text-left", className)}
     >
       <summary
-        aria-label={showLabel ? undefined : label}
+        aria-label={showLabel || primary ? undefined : label}
         aria-controls={panelId}
         className={
-          outlined
+          primary
             ? cx(
-                "inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-3 text-sm font-medium text-[var(--admin-text-soft)] select-none hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-fine:min-h-9 pointer-fine:min-w-9 [&::-webkit-details-marker]:hidden",
-                COMPACT.minH8,
-                COMPACT.minW8,
-                open &&
-                  "border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] text-[var(--admin-text)]",
+                BUTTON.primary,
+                "cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden",
               )
-            : ROW_CONTROL.more
+            : outlined
+              ? cx(
+                  "inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-3 text-sm font-medium text-[var(--admin-text-soft)] select-none hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-fine:min-h-9 pointer-fine:min-w-9 [&::-webkit-details-marker]:hidden",
+                  COMPACT.minH8,
+                  COMPACT.minW8,
+                  open &&
+                    "border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] text-[var(--admin-text)]",
+                )
+              : ROW_CONTROL.more
         }
       >
-        {showLabel ? <span>{label}</span> : null}
-        <span aria-hidden="true" className="text-lg leading-none">
-          ⋯
-        </span>
+        {primary ? (
+          <>
+            {icon}
+            <span>{label}</span>
+            {/* A chevron drawn with two borders: no icon file in this chunk. */}
+            <span
+              aria-hidden="true"
+              className="mb-0.5 ml-0.5 inline-block size-1.5 rotate-45 border-r-[1.5px] border-b-[1.5px] border-current transition-transform [[open]>summary>&]:mt-1 [[open]>summary>&]:mb-0 [[open]>summary>&]:-rotate-135"
+            />
+          </>
+        ) : (
+          <>
+            {showLabel ? <span>{label}</span> : null}
+            <span aria-hidden="true" className="text-lg leading-none">
+              ⋯
+            </span>
+          </>
+        )}
       </summary>
       <div
         ref={panelRef}

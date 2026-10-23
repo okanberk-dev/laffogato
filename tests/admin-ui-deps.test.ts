@@ -489,6 +489,8 @@ describe("ui/icons.tsx", () => {
       announcement: "Megaphone",
       post: "Newspaper",
       stepDone: "Check",
+      deltaUp: "ArrowUpRight",
+      deltaDown: "ArrowDownRight",
     });
     const icons = Object.values(ADMIN_ICONS);
     for (const [key, icon] of Object.entries(ADMIN_ICONS)) {

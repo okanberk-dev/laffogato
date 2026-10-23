@@ -8,9 +8,9 @@ import {
 } from "@/lib/admin/karaoke-panel";
 import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 
-import { Card } from "./forms";
+import { WidgetCard } from "./dashboard/widget-card";
 import { Badge } from "./ui";
-import { EYEBROW, MONO_STYLE } from "./ui/styles";
+import { NUMERIC_STYLE } from "./ui/styles";
 
 /**
  * The dashboard's karaoke card: tonight's bookings at a glance and anything
@@ -31,17 +31,11 @@ export function KaraokeTodayCard({
 }) {
   if (!today || !others) {
     return (
-      <Card>
-        <h2 className="text-lg font-semibold text-[var(--admin-text)]">
-          Bugün karaoke
-        </h2>
-        <p className="mt-2 text-sm text-[var(--admin-text-soft)]">
-          Rezervasyonlar şu an okunamadı.{" "}
-          <Link href={KARAOKE_PANEL_PATH} className="underline">
-            Karaoke sayfasını aç
-          </Link>
+      <WidgetCard title="Bugün karaoke" href={KARAOKE_PANEL_PATH}>
+        <p className="text-sm text-[var(--admin-text-soft)]">
+          Rezervasyonlar şu an okunamadı.
         </p>
-      </Card>
+      </WidgetCard>
     );
   }
 
@@ -69,28 +63,24 @@ export function KaraokeTodayCard({
   ];
 
   return (
-    <Card>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-[var(--admin-text)]">
-          Bugün karaoke
-        </h2>
-        {/* The other widgets' link (WidgetCard): 44 px tall, the arrow
-            drawn apart from the words. */}
-        <Link
-          href={KARAOKE_PANEL_PATH}
-          className="inline-flex min-h-11 items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9"
-        >
-          Tümünü gör <span aria-hidden="true">→</span>
-        </Link>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <WidgetCard title="Bugün karaoke" href={KARAOKE_PANEL_PATH}>
+      {/* Innex's small stat row: the figures side by side, a hairline
+          between them, two abreast in a narrow card. */}
+      <dl
+        className={`grid gap-px overflow-hidden rounded-lg border border-[var(--admin-border)] bg-[var(--admin-border)] ${stats.length === 4 ? "grid-cols-2" : "grid-cols-3"}`}
+      >
         {stats.map((s) => (
-          <div key={s.label}>
-            <dt className={EYEBROW} style={MONO_STYLE}>
+          <div
+            key={s.label}
+            className="flex min-w-0 flex-col justify-between bg-[var(--admin-surface-2)] px-3 py-2.5"
+          >
+            <dt className="text-xs leading-4 text-[var(--admin-text-mute)]">
               {s.label}
             </dt>
-            <dd className="mt-1 text-2xl font-semibold text-[var(--admin-text)]">
+            <dd
+              className="mt-0.5 text-xl font-bold text-[var(--admin-text)]"
+              style={NUMERIC_STYLE}
+            >
               {s.value}
             </dd>
           </div>
@@ -98,7 +88,7 @@ export function KaraokeTodayCard({
       </dl>
 
       {attention.size > 0 ? (
-        <p className="mt-4 rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]">
+        <p className="mt-3 rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]">
           {attention.size} rezervasyon bir işlem bekliyor (iade, onay ya da eski
           talep).{" "}
           <Link
@@ -111,21 +101,21 @@ export function KaraokeTodayCard({
       ) : null}
 
       {upcoming.length > 0 ? (
-        <ul className="mt-4 flex flex-col divide-y divide-[var(--admin-border)]">
+        <ul className="mt-3 flex flex-col divide-y divide-[var(--admin-divider)]">
           {upcoming.map((v) => (
             <li key={v.r.id}>
               <Link
                 href={karaokeDetailHref(v.r.id)}
-                className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-2 hover:text-[var(--admin-primary)] pointer-fine:min-h-9"
+                className="flex min-h-11 items-center justify-between gap-3 py-2 hover:text-[var(--admin-primary)] pointer-fine:min-h-9"
               >
-                <span className="flex min-w-0 items-baseline gap-3">
+                <span className="flex min-w-0 flex-col">
                   <span
-                    className="shrink-0 text-sm font-medium whitespace-nowrap"
-                    style={MONO_STYLE}
+                    className="text-sm font-medium whitespace-nowrap"
+                    style={NUMERIC_STYLE}
                   >
                     {v.time}
                   </span>
-                  <span className="truncate text-sm text-[var(--admin-text-soft)]">
+                  <span className="truncate text-xs text-[var(--admin-text-mute)]">
                     {v.r.customerName || "İsimsiz"} · {v.r.guests} kişi
                   </span>
                 </span>
@@ -135,10 +125,10 @@ export function KaraokeTodayCard({
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm text-[var(--admin-text-soft)]">
+        <p className="mt-3 text-sm text-[var(--admin-text-soft)]">
           Bugün için sıradaki rezervasyon yok.
         </p>
       )}
-    </Card>
+    </WidgetCard>
   );
 }

@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/forms";
 import { PageShell } from "@/components/admin/ui";
 import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
 import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-status";
+import { KpiStrip } from "@/components/admin/dashboard/kpi-strip";
 import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
 import { DashboardNotice } from "@/components/admin/dashboard/notice";
 import { OpenOrdersWidget } from "@/components/admin/dashboard/open-orders-widget";
@@ -16,7 +17,6 @@ import {
   type RecentOrderRow,
 } from "@/components/admin/dashboard/recent-orders";
 import { RevenueWidget } from "@/components/admin/dashboard/revenue-widget";
-import { StatCard } from "@/components/admin/dashboard/stat-card";
 import type { AdminHue } from "@/components/admin/ui/hues";
 import type { AdminIconName } from "@/components/admin/ui/icons";
 import { settingsTabHref } from "@/app/admin/ayarlar/settings-core";
@@ -35,11 +35,11 @@ import {
   readKeepaliveFor,
 } from "@/lib/admin/supabase-keepalive-core";
 import {
+  dashboardRevenue,
   getDashboardStats,
   getSettings,
   listOrderMoney,
   listRecentOrders,
-  revenueBuckets,
   type AdminOrder,
 } from "@/lib/admin/store";
 import { emailHealth, type EmailHealth } from "@/lib/email/health";
@@ -114,37 +114,36 @@ async function withMoney(orders: AdminOrder[]): Promise<RecentOrderRow[]> {
 
 /** Each tile's icon, by its key (dashboard-core's dashboardTiles). */
 const TILE_ICONS: Record<string, AdminIconName> = {
-  open: "orders",
+  revenue: "revenue",
+  orders: "orders",
+  open: "till",
   attention: "attention",
   soldOut: "soldOut",
-  revenue: "revenue",
 };
 
 /**
- * Each tile's soft colour (ui/hues.ts): the orders' blue, rose for what
- * asks for a person (its figure turns danger red), amber for the empty
- * shelf (its figure turns warning orange), green for the day's money. Each
- * tone's ink clears AA on its tile's ground (tests/admin-ui-kit.test.ts).
+ * Each tile's soft colour (ui/hues.ts): green for the day's money, the
+ * orders' blue for the day's orders and for the ones still open, rose for
+ * what asks for a person (its figure turns danger red), amber for the
+ * empty shelf (its figure turns warning orange). Each tone's ink clears AA
+ * on its tile's ground (tests/admin-ui-kit.test.ts).
  */
 const TILE_HUES: Record<string, AdminHue> = {
-  open: "blue",
+  revenue: "green",
+  orders: "blue",
+  open: "violet",
   attention: "rose",
   soldOut: "amber",
-  revenue: "green",
-};
-
-/** Tile columns by how many tiles the role gets. */
-const TILE_GRID: Record<number, string> = {
-  4: "grid-cols-2 xl:grid-cols-4",
-  3: "grid-cols-2 md:grid-cols-3",
 };
 
 /**
- * The panel's landing page (decision D38): tiles that lead to the lists
- * they count, by role; for owner and manager the last 14 days of revenue;
- * the open orders by status, today's karaoke and what waits for a person,
- * the shelves running low and the newest orders. Every widget is its own
- * component (components/admin/dashboard), so another screen can reuse it.
+ * The panel's landing page (decision D38; Innex, 22 Eki 2026): one strip of
+ * the day's figures, each read against a reference and leading to the list
+ * it counts, by role; for owner and manager the last 14 days of revenue;
+ * the newest orders under it; beside them the open orders by status,
+ * today's karaoke and the shelves running low. A new record starts from the
+ * header's "Yeni". Every widget is its own component
+ * (components/admin/dashboard), so another screen can reuse it.
  */
 export default async function AdminDashboardPage() {
   const session = await requireRole("dashboard");
@@ -179,7 +178,7 @@ export default async function AdminDashboardPage() {
       settingsRead,
       readMailHealth(),
       // Revenue is read only for the roles that may see it (D1).
-      showRevenue ? revenueBuckets("day", 14) : null,
+      showRevenue ? dashboardRevenue(now) : null,
       karaokeRead,
       // The daily Supabase ping's record, for the owner alone: for any
       // other role the read is never made (null), not merely not shown.
@@ -190,17 +189,24 @@ export default async function AdminDashboardPage() {
     ]);
   const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
 
+  const today = revenue?.buckets.at(-1);
   const tiles = dashboardTiles(
     {
       openOrderCount: stats.openOrderCount,
+      openByKind: stats.openByKind,
+      oldestCafeWaitingAt: stats.oldestCafeWaitingAt,
       attentionOrderCount: stats.attentionOrderCount,
       outOfStockCount: stats.outOfStockCount,
+      lowStockCount: stats.lowStockCount,
       revenue: revenue
         ? {
-            todayMinor: revenue.at(-1)?.revenueMinor ?? 0,
-            periodMinor: revenue.reduce((s, b) => s + b.revenueMinor, 0),
+            todayMinor: today?.revenueMinor ?? 0,
+            todayOrders: today?.orderCount ?? 0,
+            lastWeekMinor: revenue.lastWeek.revenueMinor,
+            lastWeekOrders: revenue.lastWeek.orderCount,
           }
         : null,
+      now,
     },
     role,
   );
@@ -212,7 +218,8 @@ export default async function AdminDashboardPage() {
     <PageShell width="list">
       <PageHeader
         title="Genel bakış"
-        description={`${dashboardGreeting(now)}. ${dashboardDateLabel(now)}: kartlar saydıkları listeyi açar.`}
+        description={`${dashboardGreeting(now)}. ${dashboardDateLabel(now)}: her rakam saydığı listeyi açar.`}
+        action={<QuickCreate entries={quickCreate} />}
       />
 
       {/* `?denied=1` is answered by the shell, on every landing page
@@ -304,43 +311,35 @@ export default async function AdminDashboardPage() {
         </DashboardNotice>
       ) : null}
 
-      <div
-        className={`grid gap-3 sm:gap-4 ${TILE_GRID[tiles.length] ?? "grid-cols-2"}`}
-      >
-        {tiles.map((t) => (
-          <StatCard
-            key={t.key}
-            label={t.label}
-            value={t.value}
-            hint={t.hint}
-            href={t.href}
-            tone={t.tone}
-            money={t.money}
-            icon={TILE_ICONS[t.key]}
-            hue={TILE_HUES[t.key]}
-          />
-        ))}
-      </div>
-
-      <QuickCreate entries={quickCreate} />
+      <KpiStrip
+        label="Bugünün özeti"
+        cells={tiles.map((t) => ({
+          ...t,
+          icon: TILE_ICONS[t.key],
+          hue: TILE_HUES[t.key],
+        }))}
+      />
 
       {/* Two columns from xl only: beside the sidebar at 1024 px the side
           column was 224 px and cut every product name short. Below xl the
-          side widgets sit two abreast under the main ones. */}
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <div className="flex min-w-0 flex-col gap-6 xl:col-span-2">
-          {revenue ? <RevenueWidget buckets={revenue} /> : null}
+          side widgets sit two abreast under the main ones. The main column
+          is Innex's: the chart, then the compact table of the newest
+          orders; the side one what waits for the shift. */}
+      <div className="mt-5 grid gap-5 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-5 xl:col-span-2">
+          {revenue ? <RevenueWidget buckets={revenue.buckets} /> : null}
+          {showOrders ? <RecentOrders rows={recent} /> : null}
+        </div>
+        <div className="grid min-w-0 content-start gap-5 md:grid-cols-2 xl:grid-cols-1">
+          {showOrders ? (
+            <OpenOrdersWidget openByStatus={stats.openByStatus} />
+          ) : null}
           {karaokeRead ? (
             <KaraokeTodayCard
               today={karaoke?.today ?? null}
               attention={karaoke?.attention ?? null}
               now={now}
             />
-          ) : null}
-        </div>
-        <div className="grid min-w-0 content-start gap-6 md:grid-cols-2 xl:grid-cols-1">
-          {showOrders ? (
-            <OpenOrdersWidget openByStatus={stats.openByStatus} />
           ) : null}
           {showStock ? (
             <LowStockWidget
@@ -352,12 +351,6 @@ export default async function AdminDashboardPage() {
           ) : null}
         </div>
       </div>
-
-      {showOrders ? (
-        <div className="mt-6">
-          <RecentOrders rows={recent} />
-        </div>
-      ) : null}
     </PageShell>
   );
 }

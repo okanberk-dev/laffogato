@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { KpiStrip } from "@/components/admin/dashboard/kpi-strip";
 import { EmailText } from "@/components/admin/ui/email-text";
 import {
   PageHeader,
@@ -233,23 +234,6 @@ function MobileCard({ row, now }: { row: CustomerListRow; now: Date }) {
   );
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
-      <div className={EYEBROW} style={MONO_STYLE}>
-        {label}
-      </div>
-      {/* Smaller on a phone: "₺5.088.337,30" filled a half-width tile. */}
-      <div
-        className="mt-1 text-base text-[var(--admin-text)] sm:text-xl"
-        style={NUMERIC_STYLE}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
-
 /**
  * The customer list (Filament's table): member accounts and guest buyers in
  * one list, tabs with counts, a filter row, sortable columns and numbered
@@ -364,23 +348,37 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         label="Müşteri filtreleri"
       />
 
-      <section
-        aria-label="Bu listenin özeti"
-        className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4"
-      >
-        <Tile label="Müşteri" value={String(totals.customers)} />
-        <Tile label="Ödenen sipariş" value={String(totals.orderCount)} />
-        <Tile
-          label="Toplam harcama"
-          value={formatTRY(totals.lifetimeValueMinor)}
-        />
-        <Tile
-          label="İade"
-          value={
-            totals.refundedMinor > 0 ? formatTRY(totals.refundedMinor) : "-"
-          }
-        />
-      </section>
+      {/* Innex's KPI strip: the list's figures in one card, a hairline
+          between them. */}
+      <KpiStrip
+        label="Bu listenin özeti"
+        className="mb-4"
+        cells={[
+          {
+            key: "customers",
+            label: "Müşteri",
+            value: String(totals.customers),
+          },
+          {
+            key: "orders",
+            label: "Ödenen sipariş",
+            value: String(totals.orderCount),
+          },
+          {
+            key: "ltv",
+            label: "Toplam harcama",
+            value: formatTRY(totals.lifetimeValueMinor),
+            money: true,
+          },
+          {
+            key: "refund",
+            label: "İade",
+            value:
+              totals.refundedMinor > 0 ? formatTRY(totals.refundedMinor) : "-",
+            money: totals.refundedMinor > 0,
+          },
+        ]}
+      />
 
       <DataTable
         caption="Müşteriler"

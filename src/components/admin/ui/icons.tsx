@@ -1,4 +1,6 @@
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   Boxes,
   CalendarRange,
   ChartColumn,
@@ -110,6 +112,9 @@ export const ADMIN_ICONS = {
   post: Newspaper,
   // A wizard's finished step (ui/wizard.tsx).
   stepDone: Check,
+  // A KPI's change against its reference (dashboard/kpi-strip.tsx).
+  deltaUp: ArrowUpRight,
+  deltaDown: ArrowDownRight,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;
