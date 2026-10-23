@@ -22,8 +22,8 @@ import {
 } from "@/app/admin/faturalar/actions";
 import type { InvoiceRow, InvoiceSourceKind } from "@/lib/invoice/invoice-core";
 import {
+  invoiceCardHref,
   invoicePdfHref,
-  invoiceSourceHref,
   isEInvoice,
   refundOpen,
 } from "@/lib/invoice/panel-core";
@@ -85,7 +85,7 @@ export function InvoiceRowStep({ row }: { row: InvoiceRow }) {
   if (row.status === "draft") {
     return (
       <Link
-        href={`${invoiceSourceHref(row)}?sekme=fatura`}
+        href={invoiceCardHref(row)}
         className={ROW_CONTROL.textStrong}
         aria-label={`Taslağı gör: ${row.sourceLabel}`}
       >
@@ -288,11 +288,7 @@ export function InvoiceActions({
         // The list never formalises: a draft is read before it is cut, on
         // its order's or booking's Fatura tab, where its lines are (review
         // of #231: the ⋯ still formalised a draft nobody had seen).
-        <Link
-          key="formalize"
-          href={`${invoiceSourceHref(row)}?sekme=fatura`}
-          className={BUTTON[v]}
-        >
+        <Link key="formalize" href={invoiceCardHref(row)} className={BUTTON[v]}>
           Taslağı gör ve kesinleştir
         </Link>
       ) : (

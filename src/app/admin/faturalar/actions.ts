@@ -30,6 +30,7 @@ import { loadOrderInvoiceRequest } from "@/lib/invoice/order-request";
 import { cleanTaxOffice } from "@/lib/invoice/vkn";
 import {
   INVOICES_PATH,
+  invoiceCardHref,
   invoiceSourceHref,
   isEInvoice,
   needsAttention,
@@ -673,7 +674,9 @@ export async function createOrderInvoiceAction(
     answer.ok ? answer.message : answer.error,
     answer.ok ? (answer.tone ?? "success") : "warning",
   );
-  redirect(invoiceSourceHref(res.row));
+  // The Fatura tab, where the draft's lines and "Faturayı kesinleştir" are
+  // (review of #231: the order page opened on Kalemler, without either).
+  redirect(invoiceCardHref(res.row));
 }
 
 const billingSchema = z.object({

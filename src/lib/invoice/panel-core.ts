@@ -167,6 +167,18 @@ export function invoiceSourceHref(
     : `/admin/mobil/karaoke/${encodeURIComponent(row.sourceId)}`;
 }
 
+/**
+ * The order's or booking's Fatura tab, where the invoice card (a draft's
+ * lines, "Faturayı kesinleştir") is: the record pages open on another tab
+ * since their three zones (23 Eki 2026), so every way to the invoice goes
+ * here.
+ */
+export function invoiceCardHref(
+  row: Pick<InvoiceRow, "sourceKind" | "sourceId">,
+): string {
+  return `${invoiceSourceHref(row)}?sekme=fatura`;
+}
+
 /** The PDF route of an issued invoice (checks the session and role itself). */
 export function invoicePdfHref(row: Pick<InvoiceRow, "id">): string {
   return `${INVOICES_PATH}/${encodeURIComponent(row.id)}/pdf`;
