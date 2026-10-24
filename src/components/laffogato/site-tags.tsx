@@ -93,11 +93,20 @@ export function TagManager({ gtmId }: { gtmId: string }) {
 }
 
 /**
- * `tagManager`: whether GTM runs on the site. Without it there are no
- * analytics or ad tags to consent to, so the banner offers only the
- * necessary and preference cookies.
+ * `tagManager`: whether GTM runs on the site; `metaPixel`: whether the Meta
+ * Pixel does. Without either there are no analytics or ad tags to consent
+ * to, so the banner offers only the necessary and preference cookies; with
+ * the pixel alone it adds the marketing switch.
  */
-export function CookieBanner({ tagManager }: { tagManager: boolean }) {
+export function CookieBanner({
+  tagManager,
+  metaPixel = false,
+}: {
+  tagManager: boolean;
+  metaPixel?: boolean;
+}) {
   const allowed = useTagsAllowed();
-  return allowed ? <CookieConsent tagManager={tagManager} /> : null;
+  return allowed ? (
+    <CookieConsent tagManager={tagManager} metaPixel={metaPixel} />
+  ) : null;
 }

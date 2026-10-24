@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PixelConversion } from "@/components/laffogato/pixel-events";
 import { AccountCard, AccountShell } from "@/components/uye/account-shell";
 import {
   KaraokeReservationView,
   type KaraokeViewNotice,
 } from "@/components/uye/karaoke-reservation-view";
+import { karaokeConversion } from "@/lib/consent/meta-pixel";
 import { requireCustomer } from "@/lib/customer/auth";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
 import {
@@ -53,6 +55,14 @@ export default async function KaraokeDetailPage({
       : undefined) ||
     undefined;
   const self = `/uye/hesap/karaoke/${encodeURIComponent(r.id)}`;
+  // The payment's confirmation, reported to the Meta Pixel once and only for
+  // a visitor who consented: the verified bank return (`odeme=basarili`) on a
+  // row that is paid.
+  const paymentStatus = paymentStatusOf(r);
+  const converted =
+    q.odeme === "basarili" &&
+    paymentStatus === "paid" &&
+    r.status !== "cancelled";
 
   return (
     <AccountShell customer={customer} active="karaoke">
@@ -66,8 +76,9 @@ export default async function KaraokeDetailPage({
         </Link>
       </div>
       <AccountCard title="Karaoke rezervasyonu">
+        {converted ? <PixelConversion {...karaokeConversion(r)} /> : null}
         <KaraokeReservationView
-          r={{ ...r, paymentStatus: paymentStatusOf(r) }}
+          r={{ ...r, paymentStatus }}
           now={now}
           hidden={{ id: r.id }}
           cancelAction={cancelMyKaraokeAction}

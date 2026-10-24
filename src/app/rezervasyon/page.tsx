@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Illustration } from "@/components/laffogato/illustration";
+import { PixelConversion } from "@/components/laffogato/pixel-events";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import {
   KaraokeReservationView,
@@ -11,6 +12,7 @@ import {
 } from "@/components/uye/karaoke-reservation-view";
 import { getPublicSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { karaokeConversion } from "@/lib/consent/meta-pixel";
 import { karaokeDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
 import { KARAOKE_LINK_COOKIE, karaokeLinkId } from "@/lib/mobile/karaoke-link";
@@ -100,19 +102,29 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
         (await karaokeDurableCopyAvailable(r).catch(() => false))
           ? `/rezervasyon/sozlesme?t=${encodeURIComponent(token)}`
           : undefined;
+      // The payment's confirmation, reported to the Meta Pixel once and only
+      // for a visitor who consented: the bank's return that the server
+      // verified (`odeme=basarili`) on a row that is paid.
+      const converted =
+        q.odeme === "basarili" &&
+        paymentStatus === "paid" &&
+        r.status !== "cancelled";
       body = (
-        <KaraokeReservationView
-          r={{ ...r, paymentStatus }}
-          now={now}
-          hidden={{ t: token }}
-          cancelAction={cancelKaraokeByLinkAction}
-          payAction={payKaraokeByLinkAction}
-          cancelHref={`${self}&iptal=1#karaoke-cancel-title`}
-          backHref={self}
-          confirming={q.iptal === "1"}
-          notice={notice}
-          contractHref={contractHref}
-        />
+        <>
+          {converted ? <PixelConversion {...karaokeConversion(r)} /> : null}
+          <KaraokeReservationView
+            r={{ ...r, paymentStatus }}
+            now={now}
+            hidden={{ t: token }}
+            cancelAction={cancelKaraokeByLinkAction}
+            payAction={payKaraokeByLinkAction}
+            cancelHref={`${self}&iptal=1#karaoke-cancel-title`}
+            backHref={self}
+            confirming={q.iptal === "1"}
+            notice={notice}
+            contractHref={contractHref}
+          />
+        </>
       );
     }
   }

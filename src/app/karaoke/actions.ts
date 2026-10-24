@@ -7,6 +7,8 @@ import { z } from "zod";
 
 import { clientIp } from "@/lib/admin/rate-limit";
 import { getSettings } from "@/lib/admin/store";
+import { CONSENT_COOKIE, marketingConsentGranted } from "@/lib/consent/cookie";
+import { metaPixelId } from "@/lib/consent/meta-pixel";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { isDbUnreachable } from "@/lib/db/health";
 import { karaokeConsentVersion } from "@/lib/legal/store";
@@ -29,6 +31,18 @@ export interface BookKaraokeState {
   error?: string;
   /** Set once a request paid at the venue is taken (prepayment switched off). */
   booked?: { date: string; startHour: number; hours: number; guests: number };
+  /**
+   * Set instead of the redirect when the visitor has consented to the Meta
+   * Pixel: the booking exists and the card page is `continueTo`, but the
+   * browser tells the pixel (InitiateCheckout, deduplicated by the booking's
+   * id) before it goes there. Everyone else is redirected as before.
+   */
+  checkout?: {
+    id: string;
+    valueMinor: number;
+    hours: number;
+    continueTo: string;
+  };
 }
 
 const MSG = {
@@ -215,6 +229,16 @@ export async function bookKaraokeAction(
     // The browser that made the booking can open it again when it comes
     // back from the bank - the return itself proves nothing (karaoke-link.ts).
     if (r.guest) await rememberGuestLink(r, now);
+    if (result.payment && (await pixelWantsCheckout())) {
+      return {
+        checkout: {
+          id: r.id,
+          valueMinor: r.totalMinor,
+          hours: r.hours,
+          continueTo: result.payment.redirectUrl,
+        },
+      };
+    }
     destination = result.payment
       ? result.payment.redirectUrl
       : // Nothing was owed (a 100 % discount): settled already.
@@ -229,6 +253,17 @@ export async function bookKaraokeAction(
   }
   // Outside the try: `redirect` throws by design.
   redirect(destination);
+}
+
+/**
+ * Whether the browser should be handed the card page's address instead of
+ * being redirected: the pixel is on and the visitor said yes to the marketing
+ * category. Without that nothing changes - the same redirect as before.
+ */
+async function pixelWantsCheckout(): Promise<boolean> {
+  if (metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID) === "") return false;
+  const jar = await cookies();
+  return marketingConsentGranted(jar.get(CONSENT_COOKIE)?.value);
 }
 
 function resultPath(r: KaraokeReservation): string {

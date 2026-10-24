@@ -45,37 +45,82 @@ const CATEGORIES: Array<{
   },
 ];
 
-/** Categories that exist only through Google Tag Manager. */
-const TAG_CATEGORIES: ReadonlySet<string> = new Set(["analytics", "marketing"]);
+/** What the site runs that the consent categories exist for. */
+export interface ConsentTags {
+  /** Google Tag Manager: analytics and marketing tags. */
+  tagManager: boolean;
+  /** The Meta Pixel: marketing only. */
+  metaPixel?: boolean;
+}
 
-/** The switches the panel shows: without the tags, preferences alone. */
-export function consentCategories(tagManager: boolean): typeof CATEGORIES {
-  return tagManager
-    ? CATEGORIES
-    : CATEGORIES.filter((c) => !TAG_CATEGORIES.has(c.key));
+/** Whether a category has anything on the site to switch. */
+function categoryShown(key: string, { tagManager, metaPixel }: ConsentTags) {
+  if (key === "analytics") return tagManager;
+  if (key === "marketing") return tagManager || metaPixel === true;
+  return true;
 }
 
 /**
- * The choice as it is recorded. Without the tags only the preference switch
- * is shown, so a yes is never written for analytics or marketing - not by
- * "Tümünü kabul et", not from an older cookie the panel was filled from. If
- * the tags come back, they ask: the consent version moves with them
- * (`consentVersionFor`), so no stored choice survives the switch.
+ * The marketing switch's own wording. With the Meta Pixel on, it names Meta
+ * and says what a yes sends where: the panel is where the transfer abroad is
+ * consented to (draft, awaiting the lawyer: docs/META-PIXEL.md).
  */
-export function recordedChoice(choice: Choice, tagManager: boolean): Choice {
-  return tagManager
-    ? choice
-    : { ...choice, analytics: false, marketing: false };
+function marketingBody({ metaPixel }: ConsentTags): string {
+  return metaPixel === true
+    ? "Meta (Facebook ve Instagram) reklamlarının ilginizi çekecek kişilere gösterilmesini ve reklam sonuçlarının ölçülmesini sağlar. İzin verirseniz gezdiğiniz sayfalar ve rezervasyon, sipariş gibi işlemleriniz (kişisel bilgiler olmadan) Meta Platforms Ireland Ltd.'ye ve onun üzerinden yurt dışına aktarılır; Meta, siz izin verene kadar hiçbir istek almaz. İzni istediğiniz zaman buradan geri alabilirsiniz."
+    : "Reklamların ilginizi çekecek biçimde gösterilmesini ve kampanya sonuçlarının ölçülmesini sağlar.";
+}
+
+/** The switches the panel shows: only what the site runs, preferences always. */
+export function consentCategories(tags: ConsentTags): typeof CATEGORIES {
+  return CATEGORIES.filter((c) => categoryShown(c.key, tags)).map((c) =>
+    c.key === "marketing" ? { ...c, body: marketingBody(tags) } : c,
+  );
+}
+
+/**
+ * The choice as it is recorded. A category the panel did not show is never
+ * recorded as a yes - not by "Tümünü kabul et", not from an older cookie the
+ * panel was filled from. If a tag comes back, it asks: the consent version
+ * moves with the tags (`consentVersionFor`), so no stored choice survives the
+ * switch.
+ */
+export function recordedChoice(choice: Choice, tags: ConsentTags): Choice {
+  return {
+    ...choice,
+    analytics: categoryShown("analytics", tags) && choice.analytics,
+    marketing: categoryShown("marketing", tags) && choice.marketing,
+  };
+}
+
+/** The banner's sentence about what runs only with the visitor's yes. */
+export function bannerSentence({ tagManager, metaPixel }: ConsentTags): string {
+  if (tagManager) {
+    return "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Analitik ve pazarlama çerezleri ise yalnızca siz izin verirseniz çalışır.";
+  }
+  if (metaPixel === true) {
+    return "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Tercih çerezleri ve reklam ölçümü için Meta Pixel (pazarlama çerezleri) ise yalnızca siz izin verirseniz çalışır.";
+  }
+  return "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Sitede analitik veya reklam çerezi yok; tercih çerezleri yalnızca siz izin verirseniz çalışır.";
 }
 
 /**
  * `tagManager`: whether Google Tag Manager runs on the site. Off (no Google
- * standard contract, 19 Ekim 2026) there are no analytics or ad tags, so the
- * banner and the panel speak of the necessary and preference cookies only
- * and "Tümünü kabul et" grants preferences alone (Çerez Politikası §7).
+ * standard contract, 19 Ekim 2026) there are no analytics or ad tags of
+ * Google's. `metaPixel`: whether the Meta Pixel runs (25 Ekim 2026), which
+ * brings the marketing switch back and nothing else. With neither, the banner
+ * and the panel speak of the necessary and preference cookies only and
+ * "Tümünü kabul et" grants preferences alone (Çerez Politikası §7).
  */
-export function CookieConsent({ tagManager }: { tagManager: boolean }) {
-  const categories = consentCategories(tagManager);
+export function CookieConsent({
+  tagManager,
+  metaPixel = false,
+}: {
+  tagManager: boolean;
+  metaPixel?: boolean;
+}) {
+  const tags: ConsentTags = { tagManager, metaPixel };
+  const categories = consentCategories(tags);
   // `null` = henüz okumadık; sunucu ile istemci HTML'i aynı kalsın diye ilk
   // render'da hiçbir şey basmıyoruz. The cookie is read once hydration is
   // done (useClientValue), not in a mount effect.
@@ -136,13 +181,13 @@ export function CookieConsent({ tagManager }: { tagManager: boolean }) {
 
   const commit = useCallback(
     (choice: Choice) => {
-      const shown = recordedChoice(choice, tagManager);
+      const shown = recordedChoice(choice, { tagManager, metaPixel });
       writeConsent(shown);
       pushConsentUpdate(shown);
       setCommitted(true);
       setPanelOpen(false);
     },
-    [tagManager],
+    [tagManager, metaPixel],
   );
 
   // Before hydration (`decided === null`) the banner is rendered, not
@@ -166,10 +211,7 @@ export function CookieConsent({ tagManager }: { tagManager: boolean }) {
           <div className="cookie-banner-body">
             <p className="cookie-banner-title">Çerezler</p>
             <p className="cookie-banner-text">
-              {tagManager
-                ? "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Analitik ve pazarlama çerezleri ise yalnızca siz izin verirseniz çalışır."
-                : "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Sitede analitik veya reklam çerezi yok; tercih çerezleri yalnızca siz izin verirseniz çalışır."}{" "}
-              Ayrıntı için{" "}
+              {bannerSentence(tags)} Ayrıntı için{" "}
               <Link href="/hukuk/cerez-politikasi">Çerez Politikası</Link> ve{" "}
               <Link href="/hukuk/kvkk-aydinlatma-metni">
                 KVKK Aydınlatma Metni

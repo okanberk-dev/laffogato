@@ -44,9 +44,11 @@ const CSP_SOURCE = "/:path((?!odeme$|odeme/paynkolay$).*)";
 
 const CSP = [
   "default-src 'self'",
-  // Google Tag Manager, and only it. 'unsafe-inline' covers the consent
-  // bootstrap and the JSON-LD blocks until a nonce is threaded through.
-  `script-src 'self' 'unsafe-inline'${DEV_SCRIPT_SRC} https://www.googletagmanager.com`,
+  // Google Tag Manager and the Meta Pixel's fbevents.js, and only them.
+  // 'unsafe-inline' covers the consent bootstrap and the JSON-LD blocks until
+  // a nonce is threaded through. The pixel loads only after the visitor's yes
+  // to the marketing category (src/lib/consent/meta-pixel.ts).
+  `script-src 'self' 'unsafe-inline'${DEV_SCRIPT_SRC} https://www.googletagmanager.com https://connect.facebook.net`,
   "style-src 'self' 'unsafe-inline'",
   // next/font self-hosts every face; nothing is fetched from a font CDN.
   "font-src 'self' data:",
@@ -54,7 +56,9 @@ const CSP = [
   // product and hero image URLs.
   "img-src 'self' data: blob: https:",
   "media-src 'self'",
-  "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
+  // The pixel reports to www.facebook.com/tr and reads its configuration from
+  // connect.facebook.net. (img-src already admits https:.)
+  "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.facebook.com https://connect.facebook.net",
   // The visit page's Google Maps embed.
   "frame-src https://www.google.com https://maps.google.com",
   "worker-src 'self' blob:",

@@ -467,6 +467,28 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
 - Hukuk metinleri oran saymaz, kuralı yazar (`src/lib/legal/content.ts`);
   ödeme belgelerinde değişiklik `LEGAL_UPDATED`'ı taşır.
 
+## Meta Pixel (25 Ekim 2026)
+
+Operatör: karaoke rezervasyonlarını ölçmek ve Meta reklamlarını gerçek
+rezervasyona göre optimize etmek. Tam anlatım: `docs/META-PIXEL.md`.
+
+- **Yalnız pazarlama rızasıyla.** Piksel ("LAF Pixel", `NEXT_PUBLIC_META_PIXEL_ID`,
+  yoksa koddaki kimlik; **boş değer kapatır**) yalnız `marketing === true` olan
+  ziyaretçide, yalnız `laffogato.net` / `www.laffogato.net`'te yüklenir; `/admin`
+  ve `/odeme` (tam yol) belgelerinde hiç. Onay yokken Meta'ya istek gitmez, betik
+  bile inmez. Tek kapı `trackPixel` (`src/lib/consent/meta-pixel.ts`); olaylar
+  oradan geçmeden `fbq` çağrılmaz, parametrelerde kişisel veri olmaz.
+- **Rıza sürümü etiketin şekline bağlı** (`consentVersionFor(google, meta)`:
+  1 yok, 2 Meta, 3 Google, 4 ikisi). Yeni bir etiket eklenirse yeni numara;
+  bir numara hiçbir zaman başka şekil için yeniden kullanılmaz.
+- **Hukuki metinler TASLAK** (avukat okuması bekliyor, LEGAL-REDLINES §35).
+  `META_PIXEL_IN_LEGAL_TEXTS` (`src/lib/legal/meta.ts`) bayrağı metinler
+  pikseli anlatmadıkça pikseli kapalı tutar. Dört belge kendi gününü
+  (`META_PIXEL_LEGAL_UPDATED`) taşır, `LEGAL_UPDATED` taşınmadı.
+- **Karaoke `InitiateCheckout`** için `bookKaraokeAction` izinli ziyaretçiye
+  yönlendirme yerine `checkout` durumu döner (`BookKaraokeState.checkout`);
+  izinsiz ziyaretçi eskisi gibi `redirect` edilir.
+
 ## Geliştirme Komutları
 
 ```bash

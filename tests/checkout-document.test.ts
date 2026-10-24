@@ -193,8 +193,20 @@ describe("which document is the checkout's", () => {
       expect(src, name).not.toMatch(
         /router\.(push|replace)\(\s*["']\/odeme["']/,
       );
-      expect(src, name).toContain('window.location.assign("/odeme")');
     }
+    expect(chrome).toContain('window.location.assign("/odeme")');
+    // The product page and the cart drawer leave through `checkoutFromCart`:
+    // InitiateCheckout for a visitor who consented to the Meta Pixel, then
+    // the same hard load (25 Ekim 2026).
+    const pixelEvents = readFileSync(
+      "src/components/laffogato/pixel-events.tsx",
+      "utf8",
+    );
+    const pixel = readFileSync("src/lib/consent/meta-pixel.ts", "utf8");
+    expect(pdp).toContain("checkoutFromCart(");
+    expect(pixelEvents).toContain('navigateAfterPixel("/odeme", sent)');
+    expect(pixel).toContain("window.location.assign(href)");
+    expect(pixel).not.toMatch(/router\.(push|replace)\(/);
     for (const src of [chrome, pdp, verify]) {
       expect(src).not.toMatch(/<Link[^>]*href="\/odeme"/);
     }

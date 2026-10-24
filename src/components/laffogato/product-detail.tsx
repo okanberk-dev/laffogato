@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
+import { shopParams, trackPixel } from "@/lib/consent/meta-pixel";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import {
   parsePriceLabel,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/utils/format";
 
 import type { Product } from "./data";
+import { checkoutFromCart, trackCartAdd } from "./pixel-events";
 import {
   freeShippingFrom,
   productDiscount,
@@ -110,6 +112,22 @@ export function ProductDetail({
     p.lowStockThreshold !== undefined &&
     stock <= p.lowStockThreshold;
   const maxQty = stock ?? 99;
+
+  // ViewContent for the product on screen (Meta Pixel, marketing consent
+  // only), once per page view; the variant picked later does not repeat it.
+  const viewed = useRef(false);
+  const reportView = useEffectEvent(() => {
+    if (!p.id) return;
+    trackPixel(
+      "ViewContent",
+      shopParams([{ id: p.id, name: p.name, quantity: 1, price: unitPrice }]),
+    );
+  });
+  useEffect(() => {
+    if (viewed.current) return;
+    viewed.current = true;
+    reportView();
+  }, []);
   const savingsPct =
     compareAt && compareAt > unitPrice
       ? Math.round(((compareAt - unitPrice) / compareAt) * 100)
@@ -139,11 +157,12 @@ export function ProductDetail({
     const item = toCartItem(p, selectedVariant);
     if (!item) return;
     pushToCart(item, qty);
+    trackCartAdd(item, qty);
     if (goCheckout) {
       // A full page load: the checkout opens in a document of its own,
       // without this page's tags (src/lib/security/checkout-document.ts).
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the full load is the point
-      window.location.assign("/odeme");
+      // InitiateCheckout goes first (marketing consent only).
+      checkoutFromCart(readCart());
     } else {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 2200);
@@ -156,6 +175,7 @@ export function ProductDetail({
   const [relatedNote, setRelatedNote] = useState("");
   const addRelated = (item: CartItem) => {
     pushToCart(item, 1);
+    trackCartAdd(item, 1);
     setRelatedNote(`${shortProductName(item.name)} sepete eklendi.`);
   };
 

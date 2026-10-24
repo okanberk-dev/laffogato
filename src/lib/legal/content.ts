@@ -12,7 +12,7 @@
  */
 
 import { KARAOKE_ROOM_DOC } from "./content-karaoke";
-import { COMMERCIAL_CONSENT_UPDATED } from "./meta";
+import { COMMERCIAL_CONSENT_UPDATED, META_PIXEL_LEGAL_UPDATED } from "./meta";
 
 export interface LegalDocSource {
   slug: string;
@@ -4897,6 +4897,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gizlilik-politikasi",
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
+    // 25 Ekim 2026: Meta Pixel, yalnızca pazarlama çerezine açık rızayla (TASLAK, avukat okuması bekliyor; LEGAL-REDLINES §35).
+    updatedAt: META_PIXEL_LEGAL_UPDATED,
     // 21 Ekim 2026: §3 karaoke satırı köşkün geç iptalindeki telafiyi ve
     // telafi ödemesinin banka hesap bilgisini, §5 telafiyi amaç olarak
     // adlandırır (LEGAL-REDLINES §26).
@@ -5064,7 +5066,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Çerez ve benzeri teknoloji verisi",
             value:
-              "Zorunlu oturum ve sepet çerezleri ile izne bağlı tercih çerezleri (internet sitemizde bugün analitik veya pazarlama çerezi kullanılmaz); yerel depolama (localStorage) üzerinde tutulan sepet ve arayüz tercihleri; mobil uygulamada cihazda tutulan oturum anahtarı ile sepet, menü ve tercih önbelleği (uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz); çerez ve izin rıza kaydı (tercih, tarih, sürüm).",
+              "Zorunlu oturum ve sepet çerezleri ile izne bağlı tercih çerezleri (internet sitemizde bugün analitik çerez kullanılmaz; pazarlama çerezleri olan Meta Pixel'in _fbp ve _fbc çerezleri yalnızca açık rızanızla yerleştirilir); yerel depolama (localStorage) üzerinde tutulan sepet ve arayüz tercihleri; mobil uygulamada cihazda tutulan oturum anahtarı ile sepet, menü ve tercih önbelleği (uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz); çerez ve izin rıza kaydı (tercih, tarih, sürüm).",
           },
           {
             key: "Güvenlik kamerası verisi",
@@ -5126,7 +5128,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Elektronik formlar: Web sitesi ve mobil uygulamadaki üyelik kaydı, e-posta doğrulama, giriş, parola sıfırlama, adres ekleme, sepet ve ödeme adımı formları.",
           "Sipariş ve ödeme akışı: Ödeme adımında verdiğiniz bilgiler ile Şirket sunucusunun PayNkolay işlem doğrulama servisine sorarak aldığı işlem sonucu, referans kodu, tahsil edilen tutar ve maskelenmiş kart bilgisi. {{SITE}} üzerindeki ödeme sayfasına girdiğiniz kart numarası, son kullanma tarihi ve güvenlik kodu yalnızca PayNkolay'a iletilir; Şirket bunları kaydetmez ve saklamaz.",
-          "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler, açık rızanıza bağlı tercih çerezleri ve yerel depolama (internet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri ile piksel yerleştirilmez); mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
+          "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler, açık rızanıza bağlı tercih ve pazarlama çerezleri ve yerel depolama (internet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; Meta Pixel ve çerezleri _fbp ile _fbc yalnızca pazarlama çerezlerine verdiğiniz açık rızayla çalışır); mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
           "Sunucu ve uygulama logları: Barındırma altyapısı, veri tabanı ve uygulama katmanında otomatik olarak üretilen erişim, hata, çökme, güvenlik ve performans kayıtları.",
           "Mobil uygulama: Uygulamayı kullanmanız hâlinde uygulamada kendi girdiğiniz bilgiler ile uygulamanın sunucuya yaptığı isteklerde görülen IP adresi, istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama çökme kaydı, reklam tanımlayıcısı veya konum verisi toplamaz; sipariş durumu bildirimlerine izin vermeniz hâlinde cihazınıza özgü bildirim jetonu uygulama tarafından sunucumuza gönderilir; fA'L fotoğrafı yalnızca yapay zekâ yorumuna açıkça onay vermeniz hâlinde iletilir.",
           "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
@@ -5287,7 +5289,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Ticari elektronik ileti (e-bülten, kampanya, indirim, doğum günü ve yeni ürün duyuruları) gönderimi.",
-          "Web sitesinde tercih çerezlerinin kullanılması. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez. Mobil uygulamada ölçümleme kiti ve reklam tanımlayıcısı kullanılmaz.",
+          "Web sitesinde tercih çerezlerinin kullanılması ve pazarlama çerezleri aracılığıyla Meta Pixel ile reklam ölçümü ve yeniden hedefleme yapılması (Meta Platforms Ireland Ltd.'ye veri aktarımı dâhil). İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; analitik çerezler için bugün veri işlenmediğinden rıza istenmez. Mobil uygulamada ölçümleme kiti ve reklam tanımlayıcısı kullanılmaz.",
           "fA'L özelliğinde fotoğrafın ve kimliksiz özetin yapay zekâ ile yorumlanması için aktarılması (Açık Rıza Metni, R12).",
           "Sipariş notu alanında kendi iradenizle paylaştığınız alerjen veya özel beslenme bilgilerinin talebinizin karşılanması amacıyla işlenmesi.",
           "Yarışma, çekiliş ve etkinliklerde paylaştığınız görsel ve içeriklerin tanıtım amacıyla kullanılması.",
@@ -5350,9 +5352,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Kendi siparişlerinizin durumuna ilişkin bildirimlerin mobil uygulamaya iletilmesi; bu amaçla bildirimin başlığı ve metni, bildirime dokunduğunuzda açılacak sipariş ekranının bağlantısı ve cihazınıza özgü bildirim jetonu, uygulamanın anlık bildirim hizmeti Expo (650 Industries, Inc., ABD; Google Cloud üzerinde ABD'de barındırılır) üzerinden iOS cihazlarda Apple Push Notification service (Apple Inc., ABD), Android cihazlarda Firebase Cloud Messaging (Google LLC, ABD) aracılığıyla cihazınıza ulaştırılır. Bildirim yalnızca sipariş numarasını ve aşamayı içerir; adınız, e-posta adresiniz, adresiniz, telefon numaranız, ürünler ve tutarlar bu sağlayıcılara gönderilmez. Yurt dışına aktarım 9. bölümde açıklanmıştır.",
           },
           {
-            key: "Analitik ve ölçümleme sağlayıcıları",
+            key: "Analitik, ölçümleme ve reklam sağlayıcıları",
             value:
-              "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (GTM), Google Analytics ve reklam etiketleri yüklenmez ve bu amaçla hiçbir sağlayıcıya veri aktarılmaz. Bu hizmetler ileride kullanılmak istenirse önce bu Politika ve Çerez Politikası güncellenir; analitik ve pazarlama çerezleri yalnızca çerez panelinde vereceğiniz açık rızayla çalışır. Mobil uygulamada analitik veya çökme raporlama hizmeti kullanılmaz.",
+              "İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz: Google Etiket Yöneticisi (GTM), Google Analytics ve Google Ads yüklenmez ve bu amaçla bu sağlayıcılara veri aktarılmaz. Yalnızca, çerez panelinde pazarlama çerezlerine açık rıza vermeniz hâlinde Meta Platforms Ireland Ltd. (Meta Pixel; reklam ölçümü ve yeniden hedefleme) ile veri paylaşılır: sayfa adresi, ürün veya karaoke rezervasyonu olayları (içerik kimliği, tutar, para birimi), IP adresi, tarayıcı bilgisi ve _fbp ile _fbc tanımlayıcıları; ad, e-posta adresi, telefon numarası gibi kimlik veya iletişim bilgileriniz bu olaylara eklenmez. Ayrıntı Çerez Politikası'nda ve KVKK Aydınlatma Metni'ndedir. Başka bir analitik veya reklam hizmeti ileride kullanılmak istenirse önce bu Politika ve Çerez Politikası güncellenir; bu hizmetlerin çerezleri yalnızca çerez panelinde vereceğiniz açık rızayla çalışır. Mobil uygulamada analitik veya çökme raporlama hizmeti kullanılmaz.",
           },
           {
             key: "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye) ile muhasebe, mali müşavirlik ve bağımsız denetim hizmeti sağlayıcıları",
@@ -5394,7 +5396,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Yurt Dışına Aktarım",
         paragraphs: [
-          "Şirketin kullandığı bulut barındırma, veri tabanı, kimlik doğrulama (üyelik girişi), e-posta gönderim ve mobil uygulamaya sipariş durumu bildirimi iletim hizmetleri yurt dışında yerleşik sağlayıcılar tarafından sunulmaktadır; bu nedenle kişisel verileriniz yurt dışında bulunan sunuculara aktarılmakta ve buralardan erişilebilmektedir. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; sayfamıza harita gömülmez ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz. Her sağlayıcının adı, ülkesi ve standart sözleşmenin durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
+          "Şirketin kullandığı bulut barındırma, veri tabanı, kimlik doğrulama (üyelik girişi), e-posta gönderim ve mobil uygulamaya sipariş durumu bildirimi iletim hizmetleri yurt dışında yerleşik sağlayıcılar tarafından sunulmaktadır; bu nedenle kişisel verileriniz yurt dışında bulunan sunuculara aktarılmakta ve buralardan erişilebilmektedir. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; sayfamıza harita gömülmez ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; Meta Pixel ise yalnızca pazarlama çerezlerine açık rıza vermeniz hâlinde çalışır ve bu durumda Meta Platforms Ireland Ltd.'ye veri aktarılır (KVKK Aydınlatma Metni 15. bölüm). Her sağlayıcının adı, ülkesi ve standart sözleşmenin durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
           "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı yoktur; bu nedenle aktarımlar KVKK'nın 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri sağlayıcılarla imzalama sürecimiz devam etmektedir; hangi sağlayıcıyla imzalandığı ve Kurum'a bildirildiği KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Bu aktarımlar süreklilik taşıdığından açık rızanıza dayandırılmaz; tek seferlik bir aktarım gerekirse, yalnızca arızi nitelikte olması kaydıyla ve olası riskler size ayrıca anlatılarak, o aktarımdan önce ayrı bir onay istenir.",
           "Şirket, yurt dışına aktarımlarda veri minimizasyonunu gözetir; aktarılan veriyi hizmetin gerektirdiği asgari kapsamla sınırlar, aktarım kanallarını TLS ile şifreler ve sağlayıcılarla yazılı veri işleme sözleşmeleri akdeder.",
           "Yurt dışına aktarımın kapsamı, aktarılan veri kategorileri ve dayanılan güvence hakkında ayrıntılı bilgi almak için {{EMAIL}} adresine başvurabilirsiniz.",
@@ -5519,7 +5521,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "13. Çerezler ve Benzeri Teknolojiler",
         paragraphs: [
-          "Platformda; oturumun sürdürülmesi, sepetin korunması, güvenlik ve temel işlevlerin sağlanması için zorunlu çerezler ile açık rızanıza bağlı olarak tercih çerezleri kullanılır. Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan rızaya tabi değildir; tercih çerezleri yalnızca çerez panelinden onay vermeniz hâlinde etkinleşir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (GTM) yüklenmez, analitik ve pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategorileri sormaz.",
+          "Platformda; oturumun sürdürülmesi, sepetin korunması, güvenlik ve temel işlevlerin sağlanması için zorunlu çerezler ile açık rızanıza bağlı olarak tercih ve pazarlama çerezleri kullanılır. Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan rızaya tabi değildir; tercih ve pazarlama çerezleri yalnızca çerez panelinden onay vermeniz hâlinde etkinleşir. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz: Google Etiket Yöneticisi (GTM) yüklenmez, analitik çerezler yerleştirilmez ve çerez paneli analitik kategorisini sormaz. Pazarlama kategorisine onay vermeniz hâlinde Meta Pixel çalışır ve Meta'nın _fbp ile _fbc çerezleri yerleştirilir; ayrıntı Çerez Politikası'nda yer alır.",
           "Sepet içeriği ve arayüz tercihleri gibi bazı bilgiler, tarayıcınızın yerel depolama (localStorage) alanında cihazınızda tutulabilir. Bu veriler cihazınızdan silinerek her zaman kaldırılabilir.",
           "Mobil uygulamada tarayıcı çerezleri kullanılmaz; oturum anahtarı ile sepet, menü ve tercih önbelleği uygulama içi yerel depolamada tutulur. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez, izleme (App Tracking Transparency) izni istemez ve uygulamada reklam veya ölçümleme kiti bulunmaz. Uygulamanın istediği bildirim, kamera ve fotoğraf izinleri cihazınızın işletim sistemi ayarlarından dilediğiniz zaman değiştirilebilir veya kapatılabilir.",
           "Çerez tercihlerinizi, çerez tercih panelinden dilediğiniz zaman değiştirebilir; tarayıcı ayarlarından çerezleri engelleyebilir veya silebilirsiniz. Zorunlu çerezlerin engellenmesi hâlinde üyelik girişi, sepet ve ödeme adımı gibi işlevler çalışmayabilir.",
@@ -5750,6 +5752,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-aydinlatma-metni",
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
+    // 25 Ekim 2026: Meta Pixel, yalnızca pazarlama çerezine açık rızayla (TASLAK, avukat okuması bekliyor; LEGAL-REDLINES §35).
+    updatedAt: META_PIXEL_LEGAL_UPDATED,
     // 21 Ekim 2026: §6 karaoke verisi köşkün geç iptalindeki telafiyi ve
     // telafi ödemesinin banka hesap bilgisini, §7 ve §8 telafiyi amaç
     // olarak adlandırır (LEGAL-REDLINES §26).
@@ -6037,7 +6041,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İsteğe bağlı tercih çerezleri",
             value:
-              "KVKK m.5/1: İlgili kişinin açık rızası (çerez tercih paneli üzerinden alınır ve her zaman geri alınabilir). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik, performans ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez.",
+              "KVKK m.5/1: İlgili kişinin açık rızası (çerez tercih paneli üzerinden alınır ve her zaman geri alınabilir). Pazarlama çerezleri (Meta Pixel) bakımından hem verilerin işlenmesinin hem de Meta Platforms Ireland Ltd.'ye ve yurt dışına aktarılmasının dayanağı bu açık rızadır. Analitik ve performans çerezleri için bugün veri işlenmediğinden rıza istenmez.",
           },
           {
             key: "Ticari elektronik ileti (bülten, kampanya duyurusu) gönderimi",
@@ -6112,7 +6116,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ticari elektronik ileti (e-posta bülteni, kampanya ve doğum günü e-postaları) gönderimi; onayınız tarih, kaynak ve IP adresiyle kayda alınır ve her iletideki bağlantıdan veya hesap tercihlerinizden geri alınabilir.",
           "Mobil uygulamada kampanya, indirim, yeni ürün ve etkinlik duyurusu içeren anlık bildirim gönderilmesi; uygulamaya bugün sunucudan yalnızca, izin vermeniz hâlinde, kendi siparişlerinizin durumuna ilişkin işlemsel anlık bildirimler gönderilir; tanıtım içerikli bir gönderim başlatılırsa yalnızca ayrıca vereceğiniz onayla yapılır. Sipariş, ödeme, teslimat ve damga hareketlerine ilişkin işlemsel bilgilendirmeler bu kapsamda değildir.",
           "fA'L özelliğinde fotoğrafınızın yapay zekâ ile yorumlanması için şirketimizin sunucusu üzerinden Anthropic, PBC'ye (ABD) kimliksiz bir özetle (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) birlikte aktarılması (Açık Rıza Metni R12). Kamera, fotoğraf arşivi ve bildirim erişimi ayrıca cihaz izni olarak alınır ve cihaz ayarlarından her zaman geri alınabilir.",
-          "Zorunlu olmayan tercih çerezlerinin kullanılması. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik, performans ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez.",
+          "Zorunlu olmayan tercih çerezlerinin kullanılması; pazarlama çerezleri aracılığıyla Meta Pixel ile reklam ölçümü ve yeniden hedefleme yapılması. Analitik ve performans çerezleri için bugün veri işlenmediğinden rıza istenmez.",
           "Değerlendirme sonuçlanmış olsa dahi çalışan adayı başvurusunun ileride açılacak pozisyonlar için aday havuzunda saklanması.",
           "Tarafınızca gönderilen ve kimliğinizi tanınabilir kılan görsel/işitsel içeriğin (örneğin ürün fotoğrafı veya video) sosyal medya hesaplarımızda paylaşılması.",
         ],
@@ -6125,7 +6129,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Elektronik formlar: {{SITE_URL}} ve mobil uygulama üzerindeki üyelik, giriş, parola sıfırlama, profil, adres, sepet, ödeme, karaoke rezervasyonu ve bülten abonelik formları; iade ve cayma talepleri e-posta veya telefonla iletilir.",
           "Otomatik altyapı kayıtları: Sunucu ve uygulama log kayıtları, güvenlik ve hata kayıtları, oturum bilgileri, yönetici işlemlerine ilişkin olay kaydı.",
-          "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler ve yerel depolama (sepetin cihazınızda tutulması dahil). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; piksel veya ölçümleme etiketi yüklenmez.",
+          "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler ve yerel depolama (sepetin cihazınızda tutulması dahil). Pazarlama çerezlerine açık rıza vermeniz hâlinde ayrıca Meta Pixel çalışır: gezdiğiniz sayfaların adresi, ürün ve karaoke rezervasyonu olayları (içerik kimliği, tutar, para birimi), IP adresi, tarayıcı bilgisi ile _fbp ve _fbc tanımlayıcıları işlenir; ad, e-posta adresi ve telefon numarası bu olaylara eklenmez. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz.",
           "Mobil uygulama: Uygulama üzerinden doldurduğunuz formlar ve gerçekleştirdiğiniz işlemler; sunucumuza yapılan isteklerde oluşan IP adresi, istemci bilgisi (user-agent) ve zaman kayıtları; kafede damga eklenirken kasada okutulan veya girilen kasa kodu. Uygulama konum, reklam tanımlayıcısı veya çökme kaydı toplamaz; sipariş durumu bildirimlerine izin vermeniz hâlinde cihazınıza özgü bildirim jetonu uygulama tarafından sunucumuza gönderilir.",
           "Sadakat programı kanalları: Mobil uygulamadan verilip ödemesi tamamlanan kafe siparişlerinden otomatik olarak oluşan damga kayıtları ile kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları.",
           "Ödeme altyapısı: {{SITE}} üzerindeki güvenli ödeme sayfasında girdiğiniz kart bilgileri (kaydedilmeden yalnızca PayNkolay'a iletilir); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisine sunucumuzdan yapılan sorgu ile alınan işlem sonucu, referans kodu ve maskelenmiş kart bilgisi; itirazlarda bankanın ve PayNkolay'ın ilettiği bilgiler.",
@@ -6139,7 +6143,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "11. Çerezler ve Benzeri Teknolojiler",
         paragraphs: [
-          "İnternet sitemizde, hizmetin sunulabilmesi ve deneyimin iyileştirilmesi amacıyla çerezler ve benzeri teknolojiler kullanılır. Çerezler işlevlerine göre ayrıştırılır ve zorunlu olmayan çerezler yalnızca açık rızanızla çalıştırılır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; bu nedenle aşağıdaki analitik/performans ve pazarlama çerezleri yerleştirilmez ve çerez tercih paneli bu kategorileri sormaz.",
+          "İnternet sitemizde, hizmetin sunulabilmesi ve deneyimin iyileştirilmesi amacıyla çerezler ve benzeri teknolojiler kullanılır. Çerezler işlevlerine göre ayrıştırılır ve zorunlu olmayan çerezler yalnızca açık rızanızla çalıştırılır. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; bu nedenle analitik/performans çerezleri yerleştirilmez ve çerez tercih paneli bu kategoriyi sormaz. Pazarlama çerezleri ise yalnızca panelde vereceğiniz açık rızayla çalışır: bu durumda Meta Platforms Ireland Ltd.'nin Meta Pixel'i yüklenir ve Meta'nın _fbp ile _fbc çerezleri yerleştirilir (ayrıntı ve süreler Çerez Politikası'ndadır). Rızanızı çerez tercihlerinden her zaman geri alabilirsiniz; geri aldığınızda Meta'ya yeni veri gönderilmez ve bu çerezler cihazınızdan silinir.",
           "Çerez tercihlerinizi, siteye ilk girişte sunulan tercih paneli üzerinden veya daha sonra dilediğiniz zaman aynı panelden değiştirebilirsiniz. Tarayıcı ayarlarınızdan çerezleri silmeniz veya engellemeniz de mümkündür; ancak zorunlu çerezlerin engellenmesi hâlinde oturum açma, sepet ve ödeme gibi temel işlevler çalışmayabilir.",
           "Mobil uygulamada çerez kullanılmaz; oturum bilgisi cihazın güvenli alanında, tercihler uygulama içi yerel depolamada tutulur. Uygulamada reklam, analitik veya ölçümleme amaçlı yazılım geliştirme kiti (SDK) bulunmaz ve cihazın reklam tanımlayıcısına erişilmez. Bildirim, kamera ve fotoğraf izinlerine ilişkin tercihlerinizi cihazınızın işletim sistemi ayarlarından her zaman değiştirebilirsiniz.",
         ],
@@ -6279,16 +6283,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "15. Kişisel Verilerin Yurt Dışına Aktarılması",
         paragraphs: [
           "fA'L yapay zekâ yorumu kapsamında içecek fotoğrafının Anthropic, PBC'ye (ABD) aktarılması yalnızca açık rızanızla istenen bir işlemdir ve Açık Rıza Metni'nin R12 bölümünde açıklanmıştır. Açık rızanız bu işlemenin şartıdır; aktarım ise her yorum isteğinde tekrarlandığından arızi nitelikte değildir, bu nedenle yalnızca açık rızaya dayanmaz ve Kanun'un 9. maddesindeki uygun güvencelerden Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Bu sözleşme Anthropic, PBC ile imzalanıp Kurum'a bildirilmeden fotoğrafınız yapay zekâ hizmetine gönderilmez.",
-          "Hizmet altyapımızın bir kısmı (uygulama barındırma ve içerik dağıtım ağı, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, e-posta gönderimi ve mobil uygulamaya anlık bildirim iletimi) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Uygulama barındırma hizmetinin sunucu işlevleri Almanya'da (Frankfurt), e-posta gönderim hizmeti İrlanda'daki bölgede çalışır; veri tabanının ve üyelik girişinin sunucu bölgeleri aşağıdaki alıcılar satırında yazılıdır. Bu nedenle kişisel verileriniz yurt dışındaki sunucularda işlenir ve yurt dışına aktarılır. Uygulama mağazaları (App Store ve Google Play) uygulamayı mağaza hesabınız kapsamında kendi adlarına dağıtır; bu kanalla tarafımızca kişisel veri aktarılmaz (14. bölüm). Sipariş durumu anlık bildirimleri ise mağaza kanalıyla değil, aşağıda sayılan anlık bildirim hizmeti üzerinden Apple ve Google'ın bildirim servislerine iletilir. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; sayfamıza harita gömülmez ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz.",
+          "Hizmet altyapımızın bir kısmı (uygulama barındırma ve içerik dağıtım ağı, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, e-posta gönderimi ve mobil uygulamaya anlık bildirim iletimi) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Uygulama barındırma hizmetinin sunucu işlevleri Almanya'da (Frankfurt), e-posta gönderim hizmeti İrlanda'daki bölgede çalışır; veri tabanının ve üyelik girişinin sunucu bölgeleri aşağıdaki alıcılar satırında yazılıdır. Bu nedenle kişisel verileriniz yurt dışındaki sunucularda işlenir ve yurt dışına aktarılır. Uygulama mağazaları (App Store ve Google Play) uygulamayı mağaza hesabınız kapsamında kendi adlarına dağıtır; bu kanalla tarafımızca kişisel veri aktarılmaz (14. bölüm). Sipariş durumu anlık bildirimleri ise mağaza kanalıyla değil, aşağıda sayılan anlık bildirim hizmeti üzerinden Apple ve Google'ın bildirim servislerine iletilir. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; sayfamıza harita gömülmez ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz. Meta Pixel ise yalnızca pazarlama çerezlerine açık rıza vermeniz hâlinde çalışır; bu durumda sayfa ve olay verileriniz aşağıdaki alıcılar satırında yazılı Meta Platforms Ireland Ltd.'ye (İrlanda; Meta, verileri grup şirketleri aracılığıyla ABD dâhil başka ülkelerde de işleyebilir) iletilir. Bu aktarım, diğerlerinden farklı olarak standart sözleşmeye değil, çerez panelinde verdiğiniz açık rızaya dayanır ve rızanızı geri aldığınızda durur.",
           "Kanun'un 9. maddesi ve Kişisel Verilerin Yurt Dışına Aktarılmasına İlişkin Usul ve Esaslar Hakkında Yönetmelik yurt dışına aktarımı sıralı mekanizmalara bağlar. Öncelikle aktarımın yapılacağı ülke, sektör veya uluslararası kuruluş hakkında Kurul tarafından verilmiş bir yeterlilik kararı bulunup bulunmadığına bakılır. Yeterlilik kararının bulunmadığı hâllerde aktarım, Kanun'da sayılan uygun güvencelerden birinin sağlanmasını gerektirir.",
-          "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı bulunmadığından, bu aktarımlar Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri aşağıda sayılan sağlayıcılarla imzalama sürecimiz devam etmektedir; her sözleşme imzaların tamamlanmasından itibaren beş iş günü içinde Kurum'a bildirilir ve hangi sağlayıcıyla hangi tarihte imzalandığı bu bölümde yazılır. Bu aktarımlar her sayfa açılışında, girişte, siparişte, e-postada ve anlık bildirimde tekrarlandığından arızi değildir ve açık rızanıza dayandırılmaz. Tek seferlik, arızi bir aktarım gerekirse yalnızca Kanun'un 9. maddesinin altıncı fıkrasındaki hâllerde ve açık rızaya dayanacaksa olası riskler size ayrıca anlatılarak yapılır.",
+          "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı bulunmadığından, bu aktarımlar Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri aşağıda sayılan sağlayıcılarla imzalama sürecimiz devam etmektedir; her sözleşme imzaların tamamlanmasından itibaren beş iş günü içinde Kurum'a bildirilir ve hangi sağlayıcıyla hangi tarihte imzalandığı bu bölümde yazılır. Bu aktarımlar her sayfa açılışında, girişte, siparişte, e-postada ve anlık bildirimde tekrarlandığından arızi değildir ve açık rızanıza dayandırılmaz. Bunun tek istisnası, yalnızca sizin pazarlama çerezlerine verdiğiniz açık rızayla çalışan Meta Pixel'dir (yukarıdaki açıklamaya ve alıcılar satırına bakınız). Tek seferlik, arızi bir aktarım gerekirse yalnızca Kanun'un 9. maddesinin altıncı fıkrasındaki hâllerde ve açık rızaya dayanacaksa olası riskler size ayrıca anlatılarak yapılır.",
           "Yurt dışına aktarım her hâlde asgari veri ilkesiyle yürütülür: barındırma, veri tabanı, kimlik doğrulama, e-posta ve anlık bildirim altyapısı için ilgili sağlayıcıya yalnızca hizmetin sunulması için gereken veriler iletilir; anlık bildirim sağlayıcılarına yalnızca bildirim jetonu, bildirimin metni ve bildirime dokunulduğunda açılacak sipariş ekranının bağlantısı iletilir. Kart bilgileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli bağlantıyla yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir; bu sırada yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur, hiçbir veri tabanına, log kaydına veya dosyaya yazılmaz.",
         ],
         bullets: [
           "Aktarım gerekçeleri: Uygulama barındırma ve dağıtımı (içerik dağıtım ağı ile sunucu tarafındaki hata ve performans kayıtları dâhil), PostgreSQL veri tabanı hizmeti ve yedekleme, üyelik kimlik doğrulaması, e-posta gönderimi ile kesinleşen karaoke rezervasyonlarının ve ödeme uyarılarının ekibimize bildirilmesi ve izin vermeniz hâlinde sipariş durumu anlık bildirimlerinin mobil uygulamaya iletilmesi.",
-          "Alıcılar ve bilinen konumlar (standart sözleşmenin durumu her alıcının yanında yazılıdır): uygulama barındırma, içerik dağıtım ağı ve sunucu hata ve performans kayıtları Vercel Inc. (ABD; sunucu işlevleri Almanya, Frankfurt; imza sürecinde); e-posta gönderimi Resend (Plus Five Five, Inc.; ABD; gönderim bölgesi İrlanda; imza sürecinde); PostgreSQL veri tabanı {{DB_PROVIDER}} ({{DB_RECIPIENT}}; imza sürecinde); üyelik kimlik doğrulaması {{AUTH_PROVIDER}} ({{AUTH_RECIPIENT}}; imza sürecinde); sipariş durumu anlık bildirimlerinin iletilmesi Expo (650 Industries, Inc.; ABD; sunucu bölgesi ABD, Google Cloud; imza sürecinde), bildirimin iOS cihazlara ulaştırılması Apple Inc. (ABD; Apple Push Notification service; imza sürecinde) ve Android cihazlara ulaştırılması Google LLC (ABD; Firebase Cloud Messaging; imza sürecinde); fatura düzenlenmesi Paraşüt Yazılım Teknolojileri A.Ş. (Türkiye; veriler ona yurt içinde aktarılır; Paraşüt kendi altyapı tedarikçilerinin yurt içinde veya yurt dışında bulunabileceğini bildirdiğinden, fatura verisinin hangi ülkede barındırıldığı Paraşüt'ün yazılı beyanıyla bu satıra yazılacaktır); fA'L yapay zekâ yorumu için yalnızca açık rızanızla ve standart sözleşme imzalanıp Kurum'a bildirildikten sonra Anthropic, PBC (ABD).",
-          "Aktarılan veri kategorileri: Kimlik, iletişim, müşteri işlem, sadakat (damga) programı, karaoke rezervasyon, hesap-güvenlik ve işlem güvenliği verileri; internet sitesi ziyaretlerinde IP adresi ve tarayıcı bilgisi; anlık bildirim sağlayıcılarına yalnızca bildirim jetonu, sipariş numarasını ve aşamayı içeren bildirim metni ve sipariş ekranının bağlantısı. Kart bilgileri PayNkolay'a iletilirken yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur ve hiçbir yere kaydedilmez.",
-          "Güvence yöntemi: Kurul tarafından ilan edilen standart sözleşme (veri sorumlusundan veri işleyene); her sağlayıcı için imza ve bildirim durumu yukarıdaki alıcılar satırında yazılıdır. Bu aktarımlar için bağlayıcı şirket kuralları, taahhütname veya açık rıza kullanılmaz.",
+          "Alıcılar ve bilinen konumlar (standart sözleşmenin durumu her alıcının yanında yazılıdır): uygulama barındırma, içerik dağıtım ağı ve sunucu hata ve performans kayıtları Vercel Inc. (ABD; sunucu işlevleri Almanya, Frankfurt; imza sürecinde); e-posta gönderimi Resend (Plus Five Five, Inc.; ABD; gönderim bölgesi İrlanda; imza sürecinde); PostgreSQL veri tabanı {{DB_PROVIDER}} ({{DB_RECIPIENT}}; imza sürecinde); üyelik kimlik doğrulaması {{AUTH_PROVIDER}} ({{AUTH_RECIPIENT}}; imza sürecinde); sipariş durumu anlık bildirimlerinin iletilmesi Expo (650 Industries, Inc.; ABD; sunucu bölgesi ABD, Google Cloud; imza sürecinde), bildirimin iOS cihazlara ulaştırılması Apple Inc. (ABD; Apple Push Notification service; imza sürecinde) ve Android cihazlara ulaştırılması Google LLC (ABD; Firebase Cloud Messaging; imza sürecinde); fatura düzenlenmesi Paraşüt Yazılım Teknolojileri A.Ş. (Türkiye; veriler ona yurt içinde aktarılır; Paraşüt kendi altyapı tedarikçilerinin yurt içinde veya yurt dışında bulunabileceğini bildirdiğinden, fatura verisinin hangi ülkede barındırıldığı Paraşüt'ün yazılı beyanıyla bu satıra yazılacaktır); fA'L yapay zekâ yorumu için yalnızca açık rızanızla ve standart sözleşme imzalanıp Kurum'a bildirildikten sonra Anthropic, PBC (ABD). Reklam ölçümü ve yeniden hedefleme (Meta Pixel) için yalnızca pazarlama çerezlerine açık rıza vermeniz hâlinde Meta Platforms Ireland Ltd. (İrlanda; Meta, verileri grup şirketleri aracılığıyla ABD dâhil başka ülkelerde de işleyebilir; bu alıcı için standart sözleşme kullanılmaz, aktarım açık rızanıza dayanır).",
+          "Aktarılan veri kategorileri: Kimlik, iletişim, müşteri işlem, sadakat (damga) programı, karaoke rezervasyon, hesap-güvenlik ve işlem güvenliği verileri; internet sitesi ziyaretlerinde IP adresi ve tarayıcı bilgisi; pazarlama çerezlerine açık rıza vermeniz hâlinde Meta'ya sayfa adresi, ürün veya karaoke rezervasyonu olayları (içerik kimliği, tutar, para birimi) ile _fbp ve _fbc tanımlayıcıları; anlık bildirim sağlayıcılarına yalnızca bildirim jetonu, sipariş numarasını ve aşamayı içeren bildirim metni ve sipariş ekranının bağlantısı. Kart bilgileri PayNkolay'a iletilirken yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur ve hiçbir yere kaydedilmez.",
+          "Güvence yöntemi: Kurul tarafından ilan edilen standart sözleşme (veri sorumlusundan veri işleyene); her sağlayıcı için imza ve bildirim durumu yukarıdaki alıcılar satırında yazılıdır. Bu aktarımlar için bağlayıcı şirket kuralları, taahhütname veya açık rıza kullanılmaz. Meta Pixel bunun tek istisnasıdır: o aktarım yalnızca çerez panelinde pazarlama çerezlerine verdiğiniz açık rızaya dayanır; rızanızı geri aldığınızda yeni veri iletilmez.",
           "Ek teknik tedbirler: Aktarımda ve saklamada şifreleme, erişim yetkilerinin asgari yetki ilkesine göre sınırlanması, sağlayıcılarla veri işleme sözleşmesi akdedilmesi.",
           "Bilgi talebi hakkı: Hangi verinizin hangi ülkeye ve hangi güvenceyle aktarıldığını {{EMAIL}} adresine başvurarak öğrenebilirsiniz.",
         ],
@@ -6528,6 +6532,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "acik-riza-metni",
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
+    // 25 Ekim 2026: R5 (çerez tabanlı reklam ve yeniden hedefleme) Meta Pixel için geri geldi (TASLAK, avukat okuması bekliyor; LEGAL-REDLINES §35).
+    updatedAt: META_PIXEL_LEGAL_UPDATED,
     // 19 Ekim 2026: R5 ve R6 kalemleri kalktı (numaraları korunur), R12'ye Anthropic'in saklama süresi ve sözleşme koşulu; rıza sürümü ilerledi.
     // R12'nin alıcısı Anthropic oldu; rıza sürümü de değişti (fal-core.ts
     // FAL_CONSENT_VERSION), üyeler yeniden sorulur.
@@ -6735,13 +6741,18 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "6. Açık Rızanıza Başvurduğumuz İşlemlerin Özeti",
         paragraphs: [
-          "Aşağıdaki tablo, yalnızca açık rızanıza dayanılarak yürütülen işleme faaliyetlerinin özetini gösterir. Her satır ayrı bir onaya karşılık gelir: kayıt formundaki veya hesap ayarlarındaki kutucuk, fA'L ekranındaki onay ya da kafede alınan yazılı beyan. Birini onaylamanız diğerlerini onayladığınız anlamına gelmez. Her bir faaliyetin ayrıntısı takip eden bölümlerde açıklanmıştır. Bu metnin önceki sürümlerinde yer alan R1, R3, R4, R5, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez; ilgili bölümlerde bu durum açıklanmıştır ve başka belgelerdeki atıflar bozulmasın diye bölüm ve kalem numaraları korunmuştur. R6 kalemi kaldırılmıştır: yurt dışına aktarım için açık rıza istenmez (bkz. 11. bölüm).",
+          "Aşağıdaki tablo, yalnızca açık rızanıza dayanılarak yürütülen işleme faaliyetlerinin özetini gösterir. Her satır ayrı bir onaya karşılık gelir: kayıt formundaki veya hesap ayarlarındaki kutucuk, fA'L ekranındaki onay ya da kafede alınan yazılı beyan. Birini onaylamanız diğerlerini onayladığınız anlamına gelmez. Her bir faaliyetin ayrıntısı takip eden bölümlerde açıklanmıştır. Bu metnin önceki sürümlerinde yer alan R1, R3, R4, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez; R5 kalemi (çerez tabanlı reklam ve yeniden hedefleme) 25 Ekim 2026'dan itibaren Meta Pixel için yürütülür ve aşağıdaki tabloda yer alır; ilgili bölümlerde bu durum açıklanmıştır ve başka belgelerdeki atıflar bozulmasın diye bölüm ve kalem numaraları korunmuştur. R6 kalemi kaldırılmıştır: barındırma, veri tabanı, üyelik girişi ve e-posta altyapısına yapılan yurt dışına aktarım için açık rıza istenmez; Meta Pixel aktarımı ise R5 kapsamındadır (bkz. 10. ve 11. bölüm).",
         ],
         table: [
           {
             key: "R2 - Ticari elektronik ileti (e-posta)",
             value:
               "Ad, e-posta adresi, bildirdiyseniz doğum tarihi ve onay kaydı; amaç: yeni ürün, indirim, sezonluk menü, doğum günü teklifi ve etkinlik duyurularının ve bültenin e-posta ile iletilmesi. Kısa mesaj veya telefon yoluyla ileti gönderilmez.",
+          },
+          {
+            key: "R5 - Çerez tabanlı reklam ve yeniden hedefleme (Meta Pixel)",
+            value:
+              "Gezdiğiniz sayfaların adresi, ürün ve karaoke rezervasyonu olayları (içerik kimliği, tutar, para birimi), IP adresi, tarayıcı bilgisi ile _fbp ve _fbc çerez tanımlayıcıları (ad, e-posta adresi ve telefon numarası olmadan); amaç: Meta reklamlarının sonuçlarının ölçülmesi ve sitemizle ilgilenmiş kişilere yeniden hedefleme. Meta Platforms Ireland Ltd.'ye (İrlanda) ve onun üzerinden yurt dışına aktarılır; onay çerez panelindeki Pazarlama çerezleri anahtarıyla verilir ve aynı yerden geri alınır.",
           },
           {
             key: "R7 - Fotoğraf ve videoda yer alma",
@@ -6785,26 +6796,29 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "9. R3 ve R4 - Alışveriş Alışkanlığı Analizi ve Kişiselleştirilmiş Ürün Önerisi: Yürütülmemektedir",
         paragraphs: [
           "Bu metnin önceki sürümlerinde alışveriş alışkanlığı analizi (R3) ve kişiselleştirilmiş ürün önerisi (R4) için açık rıza öngörülmüştü. {{BRAND}} bugün sipariş, sepet, arama veya gezinme verilerinizi bu amaçlarla kimliğinize bağlı olarak analiz etmez ve size kişiselleştirilmiş ürün önerisi göstermez; bu nedenle bu iki kalem için rıza istenmez.",
-          "Hesabınızda sizin kaydettiğiniz favori ürünler ve kayıtlı her zamanki siparişiniz, yeniden sipariş vermenizi kolaylaştırmak için size gösterilir. Bunlar üyelik hizmetinin sunulmasına dayanır, açık rızaya bağlı değildir ve dilediğiniz zaman değiştirebilir veya kaldırabilirsiniz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analiz çerezleri yerleştirilmez (bkz. 10. bölüm).",
+          "Hesabınızda sizin kaydettiğiniz favori ürünler ve kayıtlı her zamanki siparişiniz, yeniden sipariş vermenizi kolaylaştırmak için size gösterilir. Bunlar üyelik hizmetinin sunulmasına dayanır, açık rızaya bağlı değildir ve dilediğiniz zaman değiştirebilir veya kaldırabilirsiniz. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; analitik çerezler yerleştirilmez (reklam çerezleri için bkz. 10. bölüm).",
           "Böyle bir faaliyet ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
         ],
       },
       {
         heading:
-          "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme: Yürütülmemektedir",
+          "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme (Meta Pixel)",
         paragraphs: [
-          "Bu metnin önceki sürümlerinde internet sitesinde pazarlama ve reklam amaçlı çerezler ile yeniden hedefleme (R5) için açık rıza öngörülmüştü. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi ve reklam etiketleri yüklenmez, pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategoriyi sormaz; bu nedenle bu kalem için rıza istenmez.",
-          "Mobil uygulamada çerez kullanılmaz; uygulamada reklam veya ölçümleme kiti bulunmaz ve uygulama cihazınızın reklam tanımlayıcısına erişmez.",
+          "Bu onayı, internet sitesindeki çerez panelinde Pazarlama çerezleri anahtarını açarak veya Tümünü kabul et seçeneğini işaretleyerek verirsiniz. Onayınız hâlinde sitede Meta Platforms Ireland Ltd.'nin reklam ölçüm aracı Meta Pixel çalışır; {{BRAND}} Meta (Facebook ve Instagram) reklamlarının sonuç verip vermediğini ölçmek ve reklamları sitemizle ilgilenmiş kişilere göstermek (yeniden hedefleme) için kullanır. Siz onay vermeden Meta'nın betiği yüklenmez ve Meta'ya hiçbir istek gönderilmez.",
+          "Onay verirseniz Meta'ya gezdiğiniz sayfaların adresi; ürün veya karaoke odası görüntüleme, sepete ekleme, ödemeye geçme, ödemenin tamamlanması ve telefon bağlantısına dokunma gibi olaylar (içerik kimliği, tutar ve para birimiyle); IP adresiniz, tarayıcı bilginiz ve Meta'nın cihazınıza yerleştirdiği _fbp ile _fbc çerezlerindeki tanımlayıcılar iletilir. Ad, e-posta adresi, telefon numarası ve adres gibi kimlik ve iletişim bilgileriniz bu olaylara eklenmez; kart bilgileri hiçbir hâlde iletilmez ve kartınızı yazdığınız ödeme sayfasında Meta Pixel çalışmaz.",
+          "Bu veriler Meta Platforms Ireland Ltd.'ye (İrlanda) iletilir; Meta bunları grup şirketleri aracılığıyla ABD dâhil başka ülkelerde de işleyebilir. Bu yurt dışı aktarım için açık rızanız istenir: Pazarlama çerezlerini açtığınızda hem verilerinizin bu amaçla işlenmesine hem de bu şekilde yurt dışına aktarılmasına açıkça onay vermiş olursunuz.",
+          "Rızanızı dilediğiniz zaman, gerekçe göstermeden ve verirken olduğu kadar kolay geri alabilirsiniz: sitenin altındaki Çerez Tercihleri bağlantısından Pazarlama çerezleri anahtarını kapatmanız yeterlidir. Geri aldığınızda Meta'ya yeni veri gönderilmez ve _fbp ile _fbc çerezleri cihazınızdan silinir. Geri alma, Meta'ya daha önce iletilmiş verileri Meta'nın kayıtlarından silmez; bunun için Meta'nın kendi araçlarını kullanabilirsiniz. Rıza vermezseniz veya geri alırsanız site tüm işlevleriyle çalışmaya devam eder.",
+          "Mobil uygulamada çerez kullanılmaz; uygulamada reklam veya ölçümleme kiti bulunmaz ve uygulama cihazınızın reklam tanımlayıcısına erişmez. Meta Pixel yalnızca internet sitesinde çalışır.",
           "Zorunlu çerezler ve tercih çerezleri bu kalemin konusu değildir; çerezlerin ayrıntılı listesi ve süreleri için Çerez Politikası'na bakınız.",
-          "Böyle bir faaliyet ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
+          "Meta Pixel dışında bir reklam veya yeniden hedefleme hizmeti ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
         ],
       },
       {
         heading:
-          "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması (rıza istenmez)",
+          "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması (Meta Pixel dışında rıza istenmez)",
         paragraphs: [
-          "Bu metnin önceki sürümlerinde yer alan R6 onayı kaldırılmıştır; yurt dışına aktarım için açık rızanızı istemiyoruz.",
-          "İnternet sitesinin ve mobil uygulamanın barındırılması, veri tabanı, üyelik girişi ve e-posta gönderimi için yurt dışındaki sağlayıcılara yapılan aktarımlar her sayfa açılışında, girişte, siparişte ve e-postada tekrarlanır; arızi olmadıkları için Kanun'un 9. maddesi uyarınca açık rızaya dayandırılamazlar. Bu aktarımların dayanağı ve her sağlayıcının ülkesi KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
+          "Bu metnin önceki sürümlerinde yer alan R6 onayı kaldırılmıştır; barındırma, veri tabanı, üyelik girişi ve e-posta altyapısına yapılan yurt dışına aktarım için açık rızanızı istemiyoruz.",
+          "İnternet sitesinin ve mobil uygulamanın barındırılması, veri tabanı, üyelik girişi ve e-posta gönderimi için yurt dışındaki sağlayıcılara yapılan aktarımlar her sayfa açılışında, girişte, siparişte ve e-postada tekrarlanır; arızi olmadıkları için Kanun'un 9. maddesi uyarınca açık rızaya dayandırılamazlar. Bu aktarımların dayanağı ve her sağlayıcının ülkesi KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır. Meta Pixel (R5) bunun tek istisnasıdır: yalnızca sizin pazarlama çerezlerine verdiğiniz açık rızayla çalışır ve o aktarım bu rızaya dayanır; rızanızı geri aldığınızda durur.",
           "Tek seferlik, arızi bir aktarım ihtiyacı doğarsa olası riskler size ayrıca anlatılarak o aktarımdan önce ayrı bir onay istenir. fA'L yapay zekâ yorumu için verilen onay R12 bölümünde ayrıca düzenlenmiştir.",
         ],
       },
@@ -8142,7 +8156,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Çerez ve site kullanım verisi (oturum, tercih, ölçümleme çerezleri)",
             value:
-              "Oturum çerezleri tarayıcı oturumunun sonunda; kalıcı çerezler çerez türüne göre azami 12 ay. Ayrıntılar Çerez Politikasında yer alır.",
+              "Oturum çerezleri tarayıcı oturumunun sonunda; kalıcı çerezler çerez türüne göre azami 12 ay (Meta Pixel'in _fbp ve _fbc çerezleri en çok 90 gün). Ayrıntılar Çerez Politikasında yer alır.",
           },
           {
             key: "Sunucu, uygulama ve güvenlik logları ile trafik bilgisi (IP adresi, zaman damgası, istek bilgileri)",
@@ -8437,6 +8451,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "cerez-politikasi",
     title: "Çerez Politikası",
     shortTitle: "Çerez Politikası",
+    // 25 Ekim 2026: Meta Pixel, yalnızca pazarlama çerezine açık rızayla (TASLAK, avukat okuması bekliyor; LEGAL-REDLINES §35).
+    updatedAt: META_PIXEL_LEGAL_UPDATED,
     // 21 Ekim 2026: yönetici çerezlerinin adı ve yolu (/admin) değişti (docs/AUDIT.md §13).
     // 22 Ekim 2026: the set's day (LEGAL_UPDATED), LEGAL-REDLINES §30.
     // 19 Ekim 2026: Google etiketleri kapalı; analitik ve pazarlama çerezleri kullanılmaz (LEGAL-REDLINES §15.6).
@@ -8562,7 +8578,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "sessionStorage: Yalnızca açık sekme yaşadığı sürece veri tutan geçici depolama alanıdır. Sitede şu anda sessionStorage kullanılmaz.",
           "IndexedDB ve önbellek (Cache Storage): Tarayıcının daha büyük hacimli verileri ve statik dosyaları saklamasını sağlayan alanlardır. Sitenin kendi kodu IndexedDB kullanmaz; tarayıcı, sayfaları hızlı açmak için kendi standart önbelleğini kullanabilir.",
           "Piksel / web işaretçisi (web beacon): Sayfaya veya e-postaya gömülen, görünmez ve çok küçük bir görsel isteğidir. Bir sayfanın görüntülendiğini veya bir e-postanın açıldığını ölçmek için kullanılır. Ölçümleme ve pazarlama amaçlı pikseller, açık rızanız olmadan cihazınıza çerez yerleştirmez.",
-          "Yazılım geliştirme kiti (SDK) ve etiket (tag): Üçüncü taraf hizmet sağlayıcıların ölçümleme veya reklam işlevlerini siteye ekleyen JavaScript kod parçalarıdır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; Google Etiket Yöneticisi (Google Tag Manager) yüklenmez. Etiket yöneticisi ileride kullanılırsa rızaya tabi etiketlere, siz ilgili kategoriye onay verene kadar Google İzin Modu (Consent Mode) üzerinden 'reddedildi' sinyali iletilir. Mobil uygulamada reklam veya ölçümleme kiti bulunmaz; uygulamanın cihazda tuttuğu veriler 15. maddede açıklanmıştır.",
+          "Yazılım geliştirme kiti (SDK) ve etiket (tag): Üçüncü taraf hizmet sağlayıcıların ölçümleme veya reklam işlevlerini siteye ekleyen JavaScript kod parçalarıdır. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; Google Etiket Yöneticisi (Google Tag Manager) yüklenmez. Reklam ölçümü için kullanılan tek etiket, yalnızca pazarlama kategorisine açık rıza vermeniz hâlinde yüklenen Meta Pixel'dir; siz onay verene kadar Meta'nın betiği yüklenmez ve Meta'ya hiçbir istek gönderilmez. Etiket yöneticisi ileride kullanılırsa rızaya tabi etiketlere, siz ilgili kategoriye onay verene kadar Google İzin Modu (Consent Mode) üzerinden 'reddedildi' sinyali iletilir. Mobil uygulamada reklam veya ölçümleme kiti bulunmaz; uygulamanın cihazda tuttuğu veriler 15. maddede açıklanmıştır.",
           "Sunucu tarafı kayıtlar (log): Talebinizi karşılayan sunucunun tuttuğu erişim kayıtlarıdır. Bunlar teknik olarak çerez değildir; ancak IP adresi gibi verileri içerdiğinden bu Politikada şeffaflık amacıyla belirtilmektedir.",
           "Cihaz parmak izi (fingerprinting): Cihaz ve tarayıcı özelliklerinin birleştirilmesiyle kullanıcı tanımaya dayanan tekniklerdir. {{SHORT_NAME}}, pazarlama veya profilleme amacıyla cihaz parmak izi tekniği kullanmaz.",
         ],
@@ -8570,7 +8586,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Çerezleri Hangi Amaçlarla Kullanıyoruz",
         paragraphs: [
-          "{{SHORT_NAME}}, çerezleri yalnızca aşağıda sayılan belirli, açık ve meşru amaçlarla kullanır. Bu amaçlar, 6698 sayılı Kanun'un 4. maddesinde yer alan amaçla bağlantılı, sınırlı ve ölçülü olma ilkesi gözetilerek belirlenmiştir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; istatistiksel ölçümleme, pazarlama ve yeniden hedefleme amaçlarıyla çerez kullanılmaz.",
+          "{{SHORT_NAME}}, çerezleri yalnızca aşağıda sayılan belirli, açık ve meşru amaçlarla kullanır. Bu amaçlar, 6698 sayılı Kanun'un 4. maddesinde yer alan amaçla bağlantılı, sınırlı ve ölçülü olma ilkesi gözetilerek belirlenmiştir. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; istatistiksel ölçümleme amacıyla çerez kullanılmaz. Pazarlama ve yeniden hedefleme amaçlı çerezler (Meta Pixel'in _fbp ve _fbc çerezleri) yalnızca açık rızanızla yerleştirilir.",
         ],
         ordered: [
           "Sitenin temel işlevlerinin çalıştırılması: sayfa yönlendirmeleri, dil ve görüntüleme tercihleri, form gönderimlerinin doğru sayfaya iletilmesi.",
@@ -8607,7 +8623,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Birinci taraf zorunlu çerezler: Yönetici ve üye oturum çerezleri, üyelik girişinde kullanılan kimlik doğrulama çerezleri, iki aşamalı doğrulama bekleme çerezi, şifre sıfırlama çerezi, üyeliksiz karaoke rezervasyonu bağlantı çerezi ve çerez tercih çerezi. Bunlar {{SITE}} alan adına aittir.",
           "Birinci taraf tercih kayıtları: Sitede bugün tercih kategorisine bağlı bir birinci taraf çerez kullanılmaz; arama penceresindeki son aramalarınız yalnızca tarayıcınızın yerel depolama alanında tutulur (bkz. 9. madde).",
-          "Üçüncü taraf ölçümleme ve pazarlama çerezleri: İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; Google Analytics, Google Ads, Meta (Facebook/Instagram) ve TikTok etiketleri yüklenmez ve bu çerezler yerleştirilmez.",
+          "Üçüncü taraf ölçümleme ve pazarlama çerezleri: İnternet sitemizde bugün Google Analytics, Google Ads ve TikTok etiketleri yüklenmez ve bu çerezler yerleştirilmez. Meta (Facebook/Instagram) Pixel'i ise yalnızca pazarlama kategorisine açık rıza vermeniz hâlinde çalışır; çerezleri _fbp ve _fbc, {{SITE}} alan adı üzerinde Meta'nın betiğiyle yerleştirilir (bkz. 11. madde).",
           "Gömülü içerik çerezleri: Sitede gömülü video, sosyal medya içeriği veya harita bulunmaz. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; orada Google'ın kendi gizlilik ve çerez politikası geçerlidir, sitemiz Google çerezi yerleştirmez.",
           "Ödeme adımı çerezleri: Ödeme adımında kart bilgileri {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir; bu sayfada üçüncü taraf betik, ölçüm veya pazarlama çerezi çalışmaz. Ardından kartı veren bankanın 3D Secure ekranına yönlendirilirsiniz; banka ve ödeme hizmeti sağlayıcısı PayNkolay, doğrulama ve sonuç yönlendirmesi sırasında kendi zorunlu çerezlerini kullanabilir. Bu çerezler işlemin güvenliği için zorunludur ve rızaya tabi değildir.",
         ],
@@ -8616,7 +8632,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "7. Amaç Bazında Çerez Kategorileri ve Rıza Kuralı",
         paragraphs: [
           "Çerezler dört amaç kategorisine ayrılır; bir kategoriye verdiğiniz onay yalnızca o kategorideki çerezleri kapsar. Çerez bandı ve tercih merkezi yalnızca sitede kullanılan kategorileri sorar.",
-          "Zorunlu çerezler dışındaki tüm kategoriler açık rızanıza tabidir ve siz onay vermeden hiçbir analitik veya pazarlama çerezi cihazınıza yerleştirilmez; bu, Kişisel Verileri Koruma Kurumu'nun Çerez Uygulamaları Hakkında Rehberi'nde benimsenen yaklaşımın gereğidir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi yüklenmez, analitik ve pazarlama çerezleri yerleştirilmez ve çerez bandı ile tercih merkezi yalnızca zorunlu ve tercih çerezlerini gösterir. Aşağıdaki tabloda bu iki kategori, ileride kullanılırlarsa uygulanacak kuralla birlikte gösterilmiştir; o durumda bu Politika güncellenir ve onayınız ayrıca istenir (bkz. 17. madde).",
+          "Zorunlu çerezler dışındaki tüm kategoriler açık rızanıza tabidir ve siz onay vermeden hiçbir analitik veya pazarlama çerezi cihazınıza yerleştirilmez; bu, Kişisel Verileri Koruma Kurumu'nun Çerez Uygulamaları Hakkında Rehberi'nde benimsenen yaklaşımın gereğidir. İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz: Google Etiket Yöneticisi yüklenmez, analitik çerezler yerleştirilmez ve çerez bandı ile tercih merkezi zorunlu, tercih ve pazarlama çerezlerini gösterir; analitik kategorisini sormaz. Aşağıdaki tabloda analitik kategori, ileride kullanılırsa uygulanacak kuralla birlikte gösterilmiştir; o durumda bu Politika güncellenir ve onayınız ayrıca istenir (bkz. 17. madde).",
         ],
         table: [
           {
@@ -8637,7 +8653,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Pazarlama (hedefleme) çerezleri",
             value:
-              "Amaç: ilgi alanına dayalı reklam gösterimi, yeniden hedefleme ve reklam dönüşümlerinin ölçülmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1). Bugün kullanılmaz; çerez paneli bu kategoriyi sormaz.",
+              "Amaç: ilgi alanına dayalı reklam gösterimi, yeniden hedefleme ve reklam dönüşümlerinin ölçülmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1). Bugün Meta Pixel için kullanılır; çerez paneli bu kategoriyi sorar ve siz onay vermeden Meta'ya hiçbir istek gitmez.",
           },
         ],
       },
@@ -8715,7 +8731,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "10. Analitik (Performans) Çerezleri Envanteri",
         paragraphs: [
-          "Analitik çerezler, sitenin nasıl kullanıldığını toplu ve istatistiksel düzeyde anlamaya yarar. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; aşağıdaki çerezlerin hiçbiri bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, ölçümleme hizmeti ileride devreye alınırsa kullanılacak çerezleri gösterir; o durumda bu Politika güncellenir ve çerezler yalnızca açık rızanızla yerleştirilir.",
+          "Analitik çerezler, sitenin nasıl kullanıldığını toplu ve istatistiksel düzeyde anlamaya yarar. İnternet sitemizde bugün analitik etiketi kullanılmaz; aşağıdaki çerezlerin hiçbiri bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, ölçümleme hizmeti ileride devreye alınırsa kullanılacak çerezleri gösterir; o durumda bu Politika güncellenir ve çerezler yalnızca açık rızanızla yerleştirilir.",
           "Analitik ölçümlemede, pazarlama kategorisine onay vermediğiniz sürece reklam kişiselleştirme sinyalleri 'reddedildi' olarak iletilir ve ölçümleme verisi tek başına kimliğinizi belirlemek amacıyla kullanılmaz. Bu hizmet yurt dışında yerleşik bir sağlayıcı tarafından sunulduğundan, ancak bu aktarım için Kanun'un 9. maddesindeki güvence sağlandıktan sonra devreye alınabilir (bkz. 18. madde).",
         ],
         table: [
@@ -8734,15 +8750,27 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "11. Pazarlama (Hedefleme) Çerezleri Envanteri",
         paragraphs: [
-          "Pazarlama çerezleri, {{BRAND}} tanıtımlarının ilgi alanlarınıza uygun biçimde üçüncü taraf platformlarda gösterilmesi ve bu tanıtımların sonuç verip vermediğinin ölçülmesi amacıyla kullanılabilir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; aşağıdaki çerez bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, reklam hizmeti ileride devreye alınırsa kullanılacak çerezi gösterir; o durumda bu Politika güncellenir ve çerez yalnızca açık rızanızla yerleştirilir. Meta (Facebook/Instagram) ve TikTok reklam etiketleri ile gömülü YouTube videoları sitede kullanılmaz; sitenin güvenlik ayarları bu hizmetlerin yüklenmesine izin vermez.",
+          "Pazarlama çerezleri, {{BRAND}} tanıtımlarının ilgi alanlarınıza uygun biçimde üçüncü taraf platformlarda gösterilmesi ve bu tanıtımların sonuç verip vermediğinin ölçülmesi amacıyla kullanılır. İnternet sitemizde bu amaçla yalnızca Meta Platforms Ireland Ltd.'nin Meta Pixel'i (LAF Pixel) çalışır ve yalnızca pazarlama kategorisine açık rıza vermeniz hâlinde yüklenir. Siz onay vermeden Meta'nın betiği yüklenmez, Meta'ya hiçbir istek gönderilmez ve aşağıdaki çerezler yerleştirilmez.",
+          "Meta Pixel; gezdiğiniz sayfaları ve karaoke odası rezervasyonu ile online mağaza adımlarını (ürün veya oda görüntüleme, sepete ekleme, ödemeye geçme, ödemenin tamamlanması, telefon bağlantısına dokunma) ölçer. Meta'ya bu olaylarla birlikte sayfa adresi, içerik kimliği, tutar ve para birimi, IP adresiniz ve tarayıcı bilginiz ile aşağıdaki çerezlerdeki tanımlayıcılar iletilir. Ad, e-posta adresi, telefon numarası ve adres gibi kimlik veya iletişim bilgileriniz bu olaylara eklenmez; kart bilgileri hiçbir hâlde iletilmez ve kartınızı yazdığınız ödeme sayfasında Meta Pixel çalışmaz. Meta, bu verileri kendi gizlilik politikası çerçevesinde işler.",
+          "Google Etiket Yöneticisi, Google Analytics, Google Ads ve TikTok etiketleri ile gömülü YouTube videoları sitede kullanılmaz; sitenin güvenlik ayarları başka hizmetlerin yüklenmesine izin vermez.",
           "Pazarlama kategorisine verdiğiniz onay, ticari elektronik ileti (e-posta) almaya rıza göstermeniz anlamına gelmez. Ticari elektronik iletiler 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca ayrıca alınan onaya dayanır; bu onayın kaydı {{SHORT_NAME}} tarafından tutulur. İki onay birbirinden bağımsızdır ve ayrı ayrı geri alınabilir.",
           "Mobil uygulamada sunucudan pazarlama içerikli anlık bildirim (push) gönderilmez; sunucudan yalnızca, izin vermeniz hâlinde, siparişinizin durumuna ilişkin işlemsel anlık bildirimler gönderilir ve uygulama sizin açtığınız hatırlatmaları cihazınızda planlanmış bildirim olarak gösterir. Pazarlama kategorisine verdiğiniz onay bu bildirimler ve hatırlatmalarla ilgili değildir; hatırlatmaları cihazınızın ayarlarından her zaman kapatabilirsiniz.",
         ],
         table: [
           {
+            key: "_fbp",
+            value:
+              "Amaç: Meta Pixel'in siteyi ziyaret eden tarayıcıyı tanıması; reklam ölçümü ve yeniden hedefleme. Taraf: Meta Platforms Ireland Ltd.; çerez {{SITE}} alan adı üzerinde Meta'nın betiğiyle yerleştirilir. Tür: kalıcı. Süre: en çok 90 gün; Meta'nın betiği her ziyarette yenileyebilir. Rıza: gerekir (pazarlama kategorisi); onayı geri aldığınızda cihazınızdan silinir.",
+          },
+          {
+            key: "_fbc",
+            value:
+              "Amaç: bir Meta reklamına tıklayarak siteye geldiğinizde o tıklamanın kimliğinin (fbclid) saklanması ve reklamın sonucunun ölçülmesi. Taraf: Meta Platforms Ireland Ltd.; çerez {{SITE}} alan adı üzerinde Meta'nın betiğiyle yerleştirilir. Tür: kalıcı. Süre: en çok 90 gün; yalnızca bir Meta reklamından geldiğinizde oluşur. Rıza: gerekir (pazarlama kategorisi); onayı geri aldığınızda cihazınızdan silinir.",
+          },
+          {
             key: "_gcl_au",
             value:
-              "Amaç: Google Ads dönüşüm ölçümü; reklam tıklamasının satışa dönüşüp dönüşmediğinin belirlenmesi. Taraf: üçüncü taraf (Google). Tür: kalıcı. Süre: 90 güne kadar. Rıza: gerekir.",
+              "Bugün yerleştirilmez (Google Ads sitede kullanılmaz); ileride kullanılırsa: Amaç: Google Ads dönüşüm ölçümü; reklam tıklamasının satışa dönüşüp dönüşmediğinin belirlenmesi. Taraf: üçüncü taraf (Google). Tür: kalıcı. Süre: 90 güne kadar. Rıza: gerekir.",
           },
         ],
       },
@@ -8750,7 +8778,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "12. Rıza Yönetimi: Çerez Bandı ve Tercih Merkezi",
         paragraphs: [
           "Siteyi ilk kez ziyaret ettiğinizde, sayfanın kullanımını engellemeyen bir çerez bandı gösterilir. Bant, zorunlu olmayan çerezleri kabul etmeniz, tümünü reddetmeniz veya kategori bazında seçim yapmanız için eşit görünürlükte seçenekler sunar. Bantta 'Tümünü kabul et' ile 'Yalnızca zorunlu', tercih merkezinde ise 'Tümünü kabul et' ile 'Tümünü reddet' seçenekleri aynı düzeyde, aynı tıklama sayısıyla ve birbirine denk vurguyla sunulur.",
-          "Siz bir seçim yapana kadar zorunlu çerezler dışında hiçbir çerez yerleştirilmez; internet sitemizde bugün Google Etiket Yöneticisi ve başka bir ölçümleme veya reklam etiketi yüklenmez. Tercih merkezini seçim yapmadan kapatmanız hâlinde zorunlu olmayan kategoriler kapalı kalır ve bant yeniden gösterilir.",
+          "Siz bir seçim yapana kadar zorunlu çerezler dışında hiçbir çerez yerleştirilmez ve Meta Pixel dâhil hiçbir ölçümleme veya reklam betiği yüklenmez; internet sitemizde bugün ayrıca Google Etiket Yöneticisi ve Google'ın başka bir etiketi yüklenmez. Tercih merkezini seçim yapmadan kapatmanız hâlinde zorunlu olmayan kategoriler kapalı kalır ve bant yeniden gösterilir.",
           "Hiçbir kategori kutucuğu önceden işaretli gelmez. Sessiz kalma, bandı görmezden gelme veya sitede gezinmeye devam etme rıza sayılmaz. Rıza yalnızca ilgili kategoriyi bilinçli olarak açmanızla verilmiş olur.",
           "Verdiğiniz onayın kapsamı (kategori seçimleriniz), tarihi ve tercih kaydının sürüm numarası cihazınızdaki laffogato_cookie_consent çerezine yazılır; bu kayıt yalnızca seçiminizin uygulanması ve rızanın varlığının ispatı amacıyla tutulur ve pazarlama amacıyla kullanılmaz.",
         ],
@@ -8823,7 +8851,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "16. Do Not Track (DNT) ve Global Privacy Control (GPC) Sinyalleri",
         paragraphs: [
           "Do Not Track (DNT), tarayıcının site sunucusuna izlenmek istemediğinize dair bir başlık göndermesini sağlayan eski bir mekanizmadır. DNT için sektörde ortak ve bağlayıcı bir standart oluşmadığından, birçok site bu sinyali yok saymaktadır.",
-          "{{SHORT_NAME}}, zorunlu olmayan tüm çerezleri zaten açık rızaya bağladığından, DNT sinyali gönderip göndermediğinizden bağımsız olarak siz onay vermeden hiçbir analitik veya pazarlama çerezi çalıştırılmaz. Bu nedenle DNT açık olsun ya da olmasın, analitik ve pazarlama çerezleri yalnızca sizin açık seçiminizle devreye girer; internet sitemizde bugün analitik veya reklam etiketi zaten kullanılmaz.",
+          "{{SHORT_NAME}}, zorunlu olmayan tüm çerezleri zaten açık rızaya bağladığından, DNT sinyali gönderip göndermediğinizden bağımsız olarak siz onay vermeden hiçbir analitik veya pazarlama çerezi çalıştırılmaz. Bu nedenle DNT açık olsun ya da olmasın, analitik ve pazarlama çerezleri yalnızca sizin açık seçiminizle devreye girer; internet sitemizde bugün analitik etiketi zaten kullanılmaz.",
           "Global Privacy Control (GPC), kişisel verinin satılmaması veya paylaşılmaması yönündeki tercihi makine tarafından okunabilir biçimde ileten daha yeni bir sinyaldir. Site GPC sinyalini ayrıca okumaz; ancak analitik ve pazarlama kategorileri herkes için varsayılan olarak kapalı olduğundan, tarayıcınız veya eklentiniz GPC sinyali gönderiyorsa da bu kategoriler siz tercih merkezinden açıkça açmadıkça kapalı kalır ve tercih merkezinde kapalı görüntülenir.",
           "GPC sinyaline rağmen tercih merkezinden bilinçli olarak bir kategoriyi açmanız hâlinde, sonradan yapılan bu açık seçim esas alınır. Dilediğiniz an aynı yerden tekrar kapatabilirsiniz.",
         ],
@@ -8835,6 +8863,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Aşağıda, sitede kullanılan veya kullanılabilecek üçüncü taraf hizmetleri ve bunların hangi kategoriye girdiği gösterilmiştir. Ödeme adımında kart bilgileri {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir; bu sayfada üçüncü taraf betik, ölçüm veya pazarlama çerezi çalışmaz. Ardından kartı veren bankanın 3D Secure ekranına yönlendirilirsiniz; banka ve ödeme hizmeti sağlayıcısı PayNkolay, doğrulama ve sonuç yönlendirmesi sırasında kendi zorunlu çerezlerini kullanabilir. Her bir sağlayıcının güncel gizlilik ve çerez politikasını kendi internet sitesinden inceleyebilirsiniz.",
         ],
         table: [
+          {
+            key: "Meta Pixel (Meta Platforms Ireland Ltd.)",
+            value:
+              "Kategori: pazarlama. Bugün kullanılır, yalnızca açık rızanızla: siz pazarlama kategorisine onay vermeden Meta'nın betiği yüklenmez ve Meta'ya hiçbir istek gitmez. Çerezler: _fbp, _fbc. Meta; sayfa adresinizi, ürün ve rezervasyon olaylarınızı (içerik kimliği, tutar, para birimi), IP adresinizi ve tarayıcı bilginizi görür; kimlik veya iletişim bilgileriniz ve kart bilgileriniz gönderilmez. Veriler Meta Platforms Ireland Ltd.'ye (İrlanda) iletilir ve yurt dışına aktarılır (bkz. 18. madde). Kart bilgilerinin girildiği ödeme sayfasında ve yönetici panelinde hiçbir hâlde yüklenmez. Onayı çerez tercihlerinden geri aldığınızda çalışması durur ve çerezleri silinir.",
+          },
           {
             key: "Google Etiket Yöneticisi (Google Tag Manager; Google Ireland/LLC)",
             value:
@@ -8894,7 +8927,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Çerezler yoluyla, kimliğinizi doğrudan açık etmeyen ancak kişisel veri niteliği taşıyabilecek bilgiler işlenir. Bu veriler, tek başına veya diğer verilerle birleştirildiğinde sizi belirlenebilir kılabileceğinden 6698 sayılı Kanun kapsamında değerlendirilir.",
           "Zorunlu çerezler bakımından hukuki sebep, 6698 sayılı Kanun'un 5. maddesinin ikinci fıkrasında yer alan bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olma, veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi ve ilgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaati şartlarıdır. Bu şartların varlığı hâlinde ayrıca açık rıza aranmaz.",
           "Tercih, analitik ve pazarlama çerezleri bakımından tek hukuki sebep, 6698 sayılı Kanun'un 5. maddesinin birinci fıkrası uyarınca alınan açık rızanızdır. Rızanızı vermemeniz veya sonradan geri almanız hiçbir olumsuz sonuç doğurmaz.",
-          "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; bu nedenle çerezler yoluyla yurt dışındaki ölçümleme veya reklam sağlayıcılarına veri aktarılmaz. Bu hizmetler ileride kullanılırsa, ilgili sağlayıcıyla 6698 sayılı Kanun'un 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşme imzalanıp Kurum'a bildirilmeden devreye alınmaz; bu aktarımlar her sayfa açılışında tekrarlanacağından arızi değildir ve açık rızaya dayandırılmaz. Ziyaret sayfasında harita gömülü değildir; 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz.",
+          "İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz; bu nedenle bu sağlayıcılara çerezler yoluyla veri aktarılmaz. Tek istisna Meta Pixel'dir: pazarlama kategorisine açık rıza vermeniz hâlinde sayfa ve olay verileriniz ile _fbp ve _fbc tanımlayıcıları Meta Platforms Ireland Ltd.'ye (İrlanda) iletilir ve Meta bunları grup şirketleri aracılığıyla ABD dâhil başka ülkelerde de işleyebilir; bu aktarım, çerez panelinde verdiğiniz açık rızaya dayanır ve rızanızı geri aldığınızda durur. Başka bir ölçümleme veya reklam hizmeti ileride kullanılırsa, ilgili sağlayıcıyla 6698 sayılı Kanun'un 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşme imzalanıp Kurum'a bildirilmeden devreye alınmaz; bu aktarımlar her sayfa açılışında tekrarlanacağından arızi değildir ve açık rızaya dayandırılmaz. Ziyaret sayfasında harita gömülü değildir; 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz.",
           "Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) gibi ödeme bilgileri çerezlerle işlenmez. Bu bilgiler {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir ve şifreli bağlantıyla {{SHORT_NAME}} sunucusu üzerinden aynı işlemde yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir; {{SHORT_NAME}} bu bilgileri kaydetmez, saklamaz ve kayıt sistemlerine yazmaz. Ödeme, kartı veren bankanın 3D Secure ekranında onaylanır. İadeler, PayNkolay'ın iptal ve iade hizmeti üzerinden ödemenin yapıldığı karta yapılır; siparişin bir kısmının iadesinde bunun teknik olarak mümkün olmadığı istisnai hâllerde size bilgi verilir ve iade tutarı, kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir.",
         ],
         bullets: [
@@ -8904,7 +8937,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Alışveriş verileri: sepete eklenen ürünler, adet ve varyantlar, ödeme adımına ilerleme, sipariş tamamlama ya da terk etme.",
           "Tercih verileri: çerez kategorisi seçimleriniz, onay tarihi, tercih kaydının sürüm numarası ve yalnızca tarayıcınızda tutulan son aramalarınız.",
           "Onay ispat verileri: mesafeli satış sözleşmesi ve ön bilgilendirme formu onayına ilişkin tarih, IP adresi, tarayıcı bilgisi ve belge sürümü. Bu kayıt, çerez değil sipariş kaydının bir parçasıdır ve ispat amacıyla tutulur.",
-          "Pazarlama ölçüm verileri: reklam tıklama kimliği, dönüşüm olayı ve yeniden hedefleme kitlesi üyeliği (yalnızca açık rıza hâlinde).",
+          "Pazarlama ölçüm verileri (Meta Pixel): reklam tıklama kimliği (_fbc), tarayıcı kimliği (_fbp), sayfa adresi, ürün ve karaoke rezervasyonu olayları (içerik kimliği, tutar, para birimi), IP adresi ve tarayıcı bilgisi; yeniden hedefleme kitlesi üyeliği (yalnızca açık rıza hâlinde).",
           "Sadakat (damga) programı verileri: damga hareketleri (kazanım, geri alma, ödül) ve hesabınıza tanımlanan kuponlar. Bu veriler çerezle değil üyelik hesabınızla ilişkili olarak tutulur; harcama geçmişine dayalı profilleme programın parçası değildir.",
         ],
       },
@@ -8944,7 +8977,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Pazarlama ölçüm verileri",
             value:
-              "İlgili sağlayıcının politikasına göre en çok 13 ay; onay geri alındığında yeniden hedefleme kitlesinden çıkarılırsınız.",
+              "Meta Pixel çerezleri _fbp ve _fbc en çok 90 gün; Meta'nın kendi sistemlerindeki veri ise ilgili sağlayıcının politikasına göre en çok 13 ay. Onay geri alındığında çerezler cihazınızdan silinir ve yeniden hedefleme kitlesinden çıkarılırsınız.",
           },
           {
             key: "Sunucu erişim kayıtları (log)",

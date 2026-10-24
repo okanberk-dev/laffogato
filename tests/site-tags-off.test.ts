@@ -11,16 +11,19 @@ import {
   parseConsent,
 } from "@/lib/consent/cookie";
 import { CONSENT_BOOTSTRAP, siteTagManagerId } from "@/lib/consent/script";
-import { GOOGLE_TAGS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
+import {
+  GOOGLE_TAGS_IN_LEGAL_TEXTS,
+  META_PIXEL_IN_LEGAL_TEXTS,
+} from "@/lib/legal/meta";
 
 /**
  * OP-SS2-PROVIDERS (18 Eki 2026): Google offers no Turkish standard contract
  * for Tag Manager, Analytics or Ads, so the transfer GTM makes on every page
  * view has no KVKK m.9/4 safeguard. Google is taken out instead of
  * contracted: no tags until a Google standard contract is signed and
- * notified, and the legal texts say "İnternet sitemizde bugün analitik veya
- * reklam etiketi kullanılmaz". Without a tag manager the banner offers the
- * necessary and preference cookies only.
+ * notified, and the legal texts say Google's tags are not used. Without a
+ * tag manager the banner offers the necessary and preference cookies, plus the
+ * marketing switch only while the Meta Pixel (25 Ekim 2026) runs.
  */
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
@@ -55,7 +58,9 @@ describe("Google Tag Manager is off while the texts say there are no tags", () =
       "const GTM_ID = siteTagManagerId(process.env.NEXT_PUBLIC_GTM_ID);",
     );
     expect(LAYOUT).toContain("<ConsentScripts withTagManager={!!GTM_ID} />");
-    expect(LAYOUT).toContain("<CookieBanner tagManager={!!GTM_ID} />");
+    expect(LAYOUT).toContain(
+      "<CookieBanner tagManager={!!GTM_ID} metaPixel={!!META_PIXEL_ID} />",
+    );
     expect(readFileSync(".env.example", "utf8")).not.toMatch(
       /^NEXT_PUBLIC_GTM_ID=\S/m,
     );
@@ -99,10 +104,10 @@ describe("Google Tag Manager is off while the texts say there are no tags", () =
   });
 });
 
-describe("the banner without a tag manager", () => {
+describe("the banner without a tag manager and without the pixel", () => {
   it("says there are no analytics or ad cookies", () => {
     const html = renderToStaticMarkup(
-      createElement(CookieConsent, { tagManager: false }),
+      createElement(CookieConsent, { tagManager: false, metaPixel: false }),
     );
     expect(html).toContain("Sitede analitik veya reklam çerezi yok");
     expect(html).not.toMatch(/Analitik ve\s+pazarlama çerezleri ise/);
@@ -112,8 +117,9 @@ describe("the banner without a tag manager", () => {
   });
 
   it("offers the preference switch alone", () => {
-    expect(consentCategories(false).map((c) => c.key)).toEqual(["preferences"]);
-    expect(consentCategories(true).map((c) => c.key)).toEqual([
+    const none = { tagManager: false, metaPixel: false };
+    expect(consentCategories(none).map((c) => c.key)).toEqual(["preferences"]);
+    expect(consentCategories({ tagManager: true }).map((c) => c.key)).toEqual([
       "preferences",
       "analytics",
       "marketing",
@@ -127,29 +133,69 @@ describe("the banner without a tag manager", () => {
       analytics: true,
       marketing: true,
     };
-    expect(recordedChoice(all, false)).toEqual({
+    expect(
+      recordedChoice(all, { tagManager: false, metaPixel: false }),
+    ).toEqual({
       ...CONSENT_DENIED,
       preferences: true,
     });
-    expect(recordedChoice(all, true)).toEqual(all);
+    expect(recordedChoice(all, { tagManager: true })).toEqual(all);
     const src = readFileSync(
       "src/components/laffogato/cookie-consent.tsx",
       "utf8",
     );
     // Every write goes through it: the banner, the panel, both buttons.
     expect(src).toContain(
-      "const shown = recordedChoice(choice, tagManager);\n      writeConsent(shown);",
+      "const shown = recordedChoice(choice, { tagManager, metaPixel });\n      writeConsent(shown);",
     );
     expect(src.match(/writeConsent\(/g)).toHaveLength(1);
   });
 });
 
-describe("when the tags come back, everyone is asked again", () => {
+describe("the banner with the Meta Pixel and no tag manager", () => {
+  const pixelOnly = { tagManager: false, metaPixel: true };
+
+  it("no longer says the site has no ad cookies, and names the pixel", () => {
+    const html = renderToStaticMarkup(createElement(CookieConsent, pixelOnly));
+    expect(html).not.toContain("Sitede analitik veya reklam çerezi yok");
+    expect(html).toContain("Meta Pixel");
+    expect(html).toContain("yalnızca siz izin verirseniz çalışır");
+    expect(html).toContain("Yalnızca zorunlu");
+    expect(html).toContain("Tümünü kabul et");
+  });
+
+  it("shows the marketing switch but never the analytics one", () => {
+    expect(consentCategories(pixelOnly).map((c) => c.key)).toEqual([
+      "preferences",
+      "marketing",
+    ]);
+    const marketing = consentCategories(pixelOnly).find(
+      (c) => c.key === "marketing",
+    )!;
+    expect(marketing.body).toContain("Meta Platforms Ireland Ltd.");
+    expect(marketing.body).toContain("geri alabilirsiniz");
+  });
+
+  it("records a marketing yes and still no analytics yes", () => {
+    const all = {
+      version: CONSENT_VERSION,
+      preferences: true,
+      analytics: true,
+      marketing: true,
+    };
+    expect(recordedChoice(all, pixelOnly)).toEqual({
+      ...all,
+      analytics: false,
+    });
+  });
+});
+
+describe("when a tag comes or goes, everyone is asked again", () => {
   // A yes recorded before 19 Ekim 2026 was given to texts that described GTM;
-  // one recorded since was given to a panel without the tag switches. Neither
-  // is a choice about tags returning under new texts, and the cookie lives
-  // 180 days: flipping GOOGLE_TAGS_IN_LEGAL_TEXTS alone must not let GTM
-  // grant from it.
+  // one recorded since was given to a panel without the tag switches; one
+  // recorded before 25 Ekim 2026 to a panel without the Meta Pixel. None is a
+  // choice about the pixel, and the cookie lives 180 days: turning the pixel
+  // on must not let it grant from any of them.
   const cookie = (version: number) =>
     encodeURIComponent(
       JSON.stringify({
@@ -161,19 +207,43 @@ describe("when the tags come back, everyone is asked again", () => {
       }),
     );
 
-  it("the consent version moves with the tags flag", () => {
-    expect(consentVersionFor(true)).not.toBe(consentVersionFor(false));
-    expect(CONSENT_VERSION).toBe(consentVersionFor(GOOGLE_TAGS_IN_LEGAL_TEXTS));
-    // Off today: the choices already stored keep standing.
-    expect(CONSENT_VERSION).toBe(1);
+  it("every shape of tags has a version of its own", () => {
+    const versions = [false, true].flatMap((google) =>
+      [false, true].map((meta) => consentVersionFor(google, meta)),
+    );
+    expect(new Set(versions).size).toBe(4);
+    // The shape no tags at all keeps the number it always had, and the pixel
+    // is the first shape past it.
+    expect(consentVersionFor(false, false)).toBe(1);
+    expect(consentVersionFor(false, true)).toBe(2);
   });
 
-  it("a choice stored while the tags were off is discarded once they are on", () => {
-    const stored = cookie(consentVersionFor(false));
-    expect(parseConsent(stored, consentVersionFor(false))?.analytics).toBe(
+  it("the consent version moves with the tags flags", () => {
+    expect(CONSENT_VERSION).toBe(
+      consentVersionFor(GOOGLE_TAGS_IN_LEGAL_TEXTS, META_PIXEL_IN_LEGAL_TEXTS),
+    );
+    // The pixel on, Google off: version 2, so every choice stored under
+    // version 1 (marketing yes or not) is asked again.
+    expect(GOOGLE_TAGS_IN_LEGAL_TEXTS).toBe(false);
+    expect(META_PIXEL_IN_LEGAL_TEXTS).toBe(true);
+    expect(CONSENT_VERSION).toBe(2);
+  });
+
+  it("a choice stored before the pixel is discarded", () => {
+    const old = cookie(consentVersionFor(false, false));
+    expect(parseConsent(old)).toBeNull();
+    // The same cookie under the version it was written for still reads.
+    expect(parseConsent(old, consentVersionFor(false, false))?.marketing).toBe(
       true,
     );
-    expect(parseConsent(stored, consentVersionFor(true))).toBeNull();
+  });
+
+  it("a choice stored while the tags were off is discarded once Google's are on", () => {
+    const stored = cookie(consentVersionFor(false, true));
+    expect(
+      parseConsent(stored, consentVersionFor(false, true))?.marketing,
+    ).toBe(true);
+    expect(parseConsent(stored, consentVersionFor(true, true))).toBeNull();
   });
 
   it("the Consent Mode bootstrap checks the same version", () => {

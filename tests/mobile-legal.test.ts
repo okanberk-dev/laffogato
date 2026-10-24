@@ -99,11 +99,14 @@ describe("legal index", () => {
     expect(index.updatedAt).toBe(LEGAL_UPDATED);
     const coded = (slug: string) =>
       LEGAL_DOCS.find((d) => d.slug === slug)!.updatedAt;
-    for (const slug of ["odul-programi", "cerez-politikasi"]) {
+    // (The cookie documents carry 25 Ekim 2026 of their own since the Meta
+    // Pixel, META_PIXEL_LEGAL_UPDATED, so a document that did not move stands
+    // in for the set's day here.)
+    for (const slug of ["odul-programi", "kullanim-sartlari"]) {
       const other = index.docs.find((d) => d.slug === slug)!;
       expect(other.updatedAt, slug).toBe(coded(slug));
     }
-    expect(coded("cerez-politikasi")).toBe(LEGAL_UPDATED);
+    expect(coded("kullanim-sartlari")).toBe(LEGAL_UPDATED);
   });
 
   it("moves the set's label with a later override of a checkout document", () => {

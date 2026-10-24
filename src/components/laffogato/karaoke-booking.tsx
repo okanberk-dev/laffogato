@@ -43,6 +43,11 @@ import { PageHero } from "./page-hero";
 // dependency-free module instead.
 import type { KaraokeAvailability } from "@/lib/mobile/karaoke-core";
 import {
+  karaokeParams,
+  navigateAfterPixel,
+  trackPixel,
+} from "@/lib/consent/meta-pixel";
+import {
   formatReservationDate,
   formatReservationTime,
   hourFromLabel,
@@ -381,7 +386,7 @@ export function KaraokeBooking({
   // the answer is a refusal (`state` is a new object with every answer), so
   // a refresh or another day after a refused booking still has them.
   useEffect(() => {
-    if (!s.enhanced || state.booked) return;
+    if (!s.enhanced || state.booked || state.checkout) return;
     try {
       window.sessionStorage.setItem(
         KARAOKE_DRAFT_KEY,
@@ -397,6 +402,57 @@ export function KaraokeBooking({
   useEffect(() => {
     if (!pending) posting.current = false;
   }, [pending]);
+
+  // ── Meta Pixel (marketing consent only; src/lib/consent/meta-pixel.ts) ──
+  // ViewContent when the page opens, with one hour's price.
+  const viewed = useRef(false);
+  const reportView = useEffectEvent(() => {
+    trackPixel("ViewContent", karaokeParams(hourly, 1));
+  });
+  useEffect(() => {
+    if (viewed.current) return;
+    viewed.current = true;
+    reportView();
+  }, []);
+  // AddToCart the first time a date and an hour are chosen, once per page:
+  // the hour pressed, or the step left with the hour it already showed.
+  const carted = useRef(false);
+  function reportAddToCart(hour: number | null) {
+    if (carted.current || hour === null) return;
+    if (!karaokeBlockIsFree(slots, hour, hours) || unavailable) return;
+    carted.current = true;
+    trackPixel("AddToCart", karaokeParams(quote.totalMinor, hours));
+  }
+  // The booking exists and the server handed over the card page's address
+  // instead of redirecting (the visitor consented to the pixel): InitiateCheckout
+  // first, deduplicated by the booking's id, then on to the card page.
+  const checkedOut = useRef<string | null>(null);
+  const onCheckout = useEffectEvent(
+    (c: NonNullable<BookKaraokeState["checkout"]>) => {
+      const sent = trackPixel(
+        "InitiateCheckout",
+        karaokeParams(c.valueMinor, c.hours),
+        `checkout_${c.id}`,
+      );
+      navigateAfterPixel(c.continueTo, sent);
+    },
+  );
+  useEffect(() => {
+    const c = state.checkout;
+    if (!c || checkedOut.current === c.id) return;
+    checkedOut.current = c.id;
+    onCheckout(c);
+  }, [state.checkout]);
+  // Back from the card page out of the browser's page cache would bring this
+  // screen back frozen on "redirecting" with the pay button off: load it fresh.
+  useEffect(() => {
+    if (!state.checkout) return;
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, [state.checkout]);
 
   /** The browser's own checks on the step's fields, then the step's rules. */
   function onNext() {
@@ -414,6 +470,7 @@ export function KaraokeBooking({
       bad.reportValidity();
       return;
     }
+    if (current === "when") reportAddToCart(startHour);
     dispatch({ type: "next", rules });
   }
 
@@ -593,10 +650,18 @@ export function KaraokeBooking({
           {state.error}
         </p>
       )}
+      {state.checkout && (
+        <p role="status" className="karaoke-fine">
+          Ödeme sayfasına yönlendiriliyorsun.{" "}
+          <a href={state.checkout.continueTo}>Açılmazsa buraya dokun.</a>
+        </p>
+      )}
       <button
         type="submit"
         className="btn btn-gold karaoke-pay"
-        disabled={!selectionValid || pending}
+        // `state.checkout`: the booking exists and the browser is on its way
+        // to the card page; a second press would book the hour again.
+        disabled={!selectionValid || pending || !!state.checkout}
         aria-busy={pending}
         onClick={onSubmitClick}
       >
@@ -774,7 +839,10 @@ export function KaraokeBooking({
                           className={`karaoke-hour ${on ? "on" : ""} ${taken ? "taken" : ""}`}
                           disabled={taken}
                           aria-pressed={on}
-                          onClick={() => edit({ startHour: slot.startHour })}
+                          onClick={() => {
+                            edit({ startHour: slot.startHour });
+                            reportAddToCart(slot.startHour);
+                          }}
                         >
                           <span className="karaoke-hour-t">
                             {hourLabel(slot.startHour)}

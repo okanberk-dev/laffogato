@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
+import { checkoutFromCart, trackCartAdd } from "./pixel-events";
 import { productPath } from "./route-paths";
 import { useDialog } from "./use-dialog";
 
@@ -169,7 +170,10 @@ export function ProductCard({
   const onAdd = () => {
     if (outOfStock || !addToCart) return;
     const item = toCartItem(p);
-    if (item) addToCart(item);
+    if (item) {
+      addToCart(item);
+      trackCartAdd(item);
+    }
   };
 
   // The card opens the quick look where the page has one (the shop); where
@@ -592,7 +596,7 @@ export function CartDrawer({
             </ul>
           )}
         </div>
-        {items.length > 0 && <CartFooter total={total} />}
+        {items.length > 0 && <CartFooter total={total} items={items} />}
       </aside>
     </>
   );
@@ -629,7 +633,13 @@ function FreeShippingBar({
 }
 
 /** The app's cart bar: the total and one ink capsule to checkout. */
-function CartFooter({ total }: { total: number }) {
+function CartFooter({
+  total,
+  items,
+}: {
+  total: number;
+  items: readonly CartItem[];
+}) {
   return (
     <footer className="cart-drawer-foot">
       <div className="cart-sum-row">
@@ -640,7 +650,26 @@ function CartFooter({ total }: { total: number }) {
         <span>Kargo</span>
         <span>Ödeme adımında hesaplanır</span>
       </div>
-      <a href="/odeme" className="btn btn-ink btn-lg cart-checkout">
+      <a
+        href="/odeme"
+        className="btn btn-ink btn-lg cart-checkout"
+        onClick={(e) => {
+          // A plain click only: a new tab or window keeps the link's own way.
+          if (
+            e.button !== 0 ||
+            e.metaKey ||
+            e.ctrlKey ||
+            e.shiftKey ||
+            e.altKey
+          ) {
+            return;
+          }
+          // InitiateCheckout (marketing consent only), then the same hard
+          // load of /odeme the link makes.
+          e.preventDefault();
+          checkoutFromCart(items);
+        }}
+      >
         Ödemeye geç
         <span className="arrow">→</span>
       </a>
@@ -960,6 +989,7 @@ function ProductModalBody({
               const item = toCartItem(p, selectedVariant);
               if (!item) return;
               for (let i = 0; i < qty; i += 1) addToCart(item);
+              trackCartAdd(item, qty);
               onClose();
             }}
           >

@@ -4118,6 +4118,89 @@ olması, kilometre taşı hediyesi, duyurular) zaten doğruydu.
 - Açık Rıza Metni'nin kapsam dışı sayımı ("damganızın kartınıza işlendiği
   ... uygulama içi bildirimler") bir vaat değil, onayın kapsamını çizer.
 
+## 35. Y20 - Meta Pixel: Çerez Politikası, KVKK Aydınlatma, Gizlilik ve Açık Rıza metinleri (25 Ekim 2026)
+
+> **Durum: TASLAK - avukat okuması bekliyor.** Kodda değişti: site, yalnızca
+> pazarlama çerezine açık rıza veren ziyaretçide Meta Pixel ("LAF Pixel")
+> yüklüyor (`docs/META-PIXEL.md`). Dört belgenin metni bu yüzden değişti ve
+> her biri kendi günüyle **25 Ekim 2026** taşıyor
+> (`META_PIXEL_LEGAL_UPDATED`); `LEGAL_UPDATED` (22 Ekim 2026) ve ödeme
+> adımının sürümü taşınmadı, çünkü ödemede onaylanan belgelerden hiçbiri
+> değişmedi. Pikseli koda bağlayan bayrak `META_PIXEL_IN_LEGAL_TEXTS`
+> (`src/lib/legal/meta.ts`); `NEXT_PUBLIC_META_PIXEL_ID` boş bırakılırsa piksel
+> kapanır, metinler değişmeden kalır.
+
+### 35.1 Neden
+
+19 Ekim 2026'dan beri dört belge (Gizlilik, KVKK Aydınlatma, Açık Rıza, Çerez
+Politikası) "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz"
+diyordu. Meta Pixel eklenince bu cümle yanlış oldu. Hâlâ doğru olan ve
+yazılan: analitik etiket ve Google'ın reklam etiketleri (Etiket Yöneticisi,
+Analytics, Ads) kullanılmaz; Meta Pixel yalnızca pazarlama kategorisine açık
+rıza verilince çalışır.
+
+### 35.2 Değişen yerler
+
+| Belge | Yer | Ne oldu |
+|---|---|---|
+| Çerez Politikası | §3 (SDK ve etiket), §4 (amaçlar), §6 (üçüncü taraf çerezler), §7 (kategoriler), §11 (envanter), §12 (rıza yönetimi), §14 (DNT), §17 (hizmet listesi), §18 (hukuki sebep ve aktarım), §19 (süreler) | "Etiket yok" cümleleri "Google'ın etiketi yok, Meta Pixel yalnızca rızayla" oldu. §11'e `_fbp` ve `_fbc` satırları (90 gün, rıza gerekir, geri alınca silinir) ve pikselin ne ölçtüğü ile neyi göndermediği eklendi. §17'ye "Meta Pixel (Meta Platforms Ireland Ltd.)" satırı eklendi. Google `_gcl_au` satırı "bugün yerleştirilmez" diye işaretlendi. |
+| KVKK Aydınlatma Metni | §8 (hukuki sebep), §9 (açık rıza), §10 (toplanma yöntemleri), §11 (çerezler), §15 (yurt dışına aktarım) | Pazarlama çerezi için hukuki sebep olarak açık rıza, amaç olarak reklam ölçümü ve yeniden hedefleme; §15'e Meta Platforms Ireland Ltd. alıcı olarak, aktarılan veriler, güvence yöntemi ve "bunun tek istisnası" cümlesi eklendi. |
+| Gizlilik Politikası | §3, §4, §6, §8 (alıcılar), §9 (yurt dışına aktarım), §13 (çerezler) | Aynı değişiklikler kısaltılmış biçimde; "Analitik ve ölçümleme sağlayıcıları" satırı "Analitik, ölçümleme ve reklam sağlayıcıları" oldu ve Meta'yı sayıyor. |
+| Açık Rıza Metni | §6 (özet tablo), §9 (R3 ve R4 notu), §10 (R5), §11 (R6) | **R5 geri geldi**: "Çerez Tabanlı Reklam ve Yeniden Hedefleme (Meta Pixel)" artık yürütülen bir rıza kalemi; tabloya satır eklendi. R6 başlığı "(Meta Pixel dışında rıza istenmez)" oldu. |
+| Veri Saklama ve İmha Politikası | §8 (çerez satırı) | Meta çerezleri en çok 90 gün. |
+
+`tests/legal-kvkk-transfers.test.ts` ve `tests/legal-dates.test.ts` yeni
+durumu tutar.
+
+### 35.3 Avukata sorular (karar avukatındır)
+
+1. **Yurt dışı aktarımın dayanağı (en önemlisi).** Aynı belgeler, 19 Ekim
+   2026'da Google için, her sayfa açılışında tekrarlanan bir aktarımın
+   "arızi" olmadığını ve Kanun m.9 uyarınca açık rızaya
+   dayandırılamayacağını, standart sözleşme imzalanıp Kurum'a bildirilmeden
+   devreye alınamayacağını yazıyor (§15.6 ve bu belgenin ilgili bölümü). Meta
+   Pixel her sayfa görüntülemesinde aynı yapıda bir aktarım yapar. Taslak,
+   aktarımı çerez panelinde verilen açık rızaya dayandırıyor ve §15 ile Açık
+   Rıza §11'de bunu "tek istisna" olarak yazıyor. Bu, o belgelerin kendi
+   önceki çözümlemesiyle çelişiyor olabilir. Seçenekler: (a) açık rıza
+   dayanağını avukat uygun bulursa metin olduğu gibi kalır; (b) Meta ile Kurul
+   standart sözleşmesi imzalanıp bildirilene kadar `META_PIXEL_IN_LEGAL_TEXTS`
+   `false` kalır ve piksel hiç açılmaz; (c) yalnızca tarayıcı tarafı yerine,
+   kimlik bilgisi göndermeyen bir sunucu tarafı ölçüme geçilir.
+2. **Sorumluluk ayrımı.** Pikselde Meta ve site birlikte veri sorumlusu
+   sayılabilir (AB'de Fashion ID kararı). Metin, Meta'nın verileri "kendi
+   gizlilik politikası çerçevesinde" işlediğini söylüyor; ortak sorumluluk
+   ve Meta'nın veri işleme şartlarına atıf gerekiyor mu?
+3. **Çerez süreleri.** `_fbp` ve `_fbc` için "en çok 90 gün" Meta'nın güncel
+   belgesine göre yazıldı; avukat ve operatör Meta'nın geliştirici
+   belgesinden doğrulamalı. Meta'nın kendi sistemindeki saklama için "13 ay"
+   önceki genel şablondan kaldı, Meta'dan teyit edilmeli.
+4. **Açık rızanın biçimi.** Panelde pazarlama anahtarının açıklaması Meta'yı,
+   amacı, yurt dışı aktarımı ve geri alma yolunu adıyla söylüyor
+   (`src/components/laffogato/cookie-consent.tsx`, `marketingBody`). Bu metin
+   açık rıza için yeterli bilgilendirme mi? Anahtar önceden işaretli gelmez,
+   "Yalnızca zorunlu" ve "Tümünü kabul et" aynı vurguda.
+5. **Rızanın yenilenmesi.** Çerez rıza sürümü 1'den 2'ye çıktı; bu sürümden
+   önce çerez bandına cevap veren herkese pazarlama kategorisi yeniden
+   soruluyor (180 günlük çerez, `consentVersionFor`).
+6. **Aydınlatma zamanı.** Aydınlatma Tebliği m.5/1-b: bildirim, işlemeden
+   önce. Metinler bu PR ile aynı anda yayına çıkar; ama `main`'e birleştirilen
+   değişiklik avukat okumasından önce canlıya gidebilir. Birleştirmeden önce
+   okuma isteniyorsa `NEXT_PUBLIC_META_PIXEL_ID=` (boş) ile piksel kapalı
+   tutulur.
+7. **Dönüşümler API'si** (ikinci PR, henüz yok): sunucudan Purchase gönderilirse
+   Meta'ya yine IP ve tarayıcı bilgisi gider; yalnızca rezervasyon sırasında
+   pazarlama onayı olanlar için gönderilir ve onay durumu rezervasyon kaydına
+   yazılır. Bu da aydınlatma ve saklama metnine girer.
+
+### 35.4 Bilerek değişmeyenler
+
+- Mobil uygulamaya ilişkin cümleler ("reklam tanımlayıcısı ve ölçümleme kiti
+  kullanılmaz"): Meta Pixel yalnızca internet sitesinde çalışır.
+- "Haritayı göster" bağlantısı ve Google Haritalar cümlesi.
+- Kart bilgilerinin girildiği ödeme sayfası: pikselin yüklenmediği sayfa
+  olarak anıldı, o sayfanın metinleri değişmedi.
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

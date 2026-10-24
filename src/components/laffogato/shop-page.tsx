@@ -11,6 +11,7 @@ import type { Product } from "./data";
 import { Illustration } from "./illustration";
 import type { PageProps } from "./page-shared";
 import { PageHero } from "./page-hero";
+import { trackCartAdd } from "./pixel-events";
 import { freeShippingFrom, productDiscount } from "./product-facts";
 import { productPath } from "./route-paths";
 import { ShopHeroSlider } from "./shop-hero-slider";
@@ -593,7 +594,10 @@ export function PageShop({
                     }
                     onClick={() => {
                       const item = toCartItem(featured);
-                      if (item) addToCart(item);
+                      if (item) {
+                        addToCart(item);
+                        trackCartAdd(item);
+                      }
                     }}
                   >
                     Sepete ekle
