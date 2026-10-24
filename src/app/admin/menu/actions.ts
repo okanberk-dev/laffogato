@@ -93,19 +93,20 @@ function readMenuForm(
   // The fourteen allergen groups (TGK m.15/5): their own schema, so a
   // refused box answers under the group with the other fields' errors.
   const allergens = readMenuAllergens(formData);
-  if (!fields.success || !allergens.ok) {
+  const image = parseMenuImage(String(formData.get("image") ?? ""));
+  if (!fields.success || !allergens.ok || !image.ok) {
     return {
       ok: false,
-      result: actionError(
-        "Formdaki uyarıları gider.",
-        fieldErrorsFromIssues([
+      result: actionError("Formdaki uyarıları gider.", {
+        ...fieldErrorsFromIssues([
           ...(fields.success ? [] : fields.error.issues),
           ...(allergens.ok ? [] : allergens.issues),
         ]),
-      ),
+        ...(image.ok ? {} : { image: image.error }),
+      }),
     };
   }
-  const base = parseInput(formData);
+  const base = parseInput(formData, image.value);
   const tags = tagsWithAllergens(base.tags, allergens.allergens);
   if (!tags.ok) {
     return {
@@ -132,7 +133,7 @@ function readMenuForm(
   };
 }
 
-function parseInput(formData: FormData) {
+function parseInput(formData: FormData, image: string) {
   const categoryRaw = String(
     formData.get("categoryKey") ?? "matcha",
   ) as MenuCategoryKey;
@@ -140,7 +141,6 @@ function parseInput(formData: FormData) {
     ? categoryRaw
     : "matcha";
   const desc = String(formData.get("desc") ?? "").trim();
-  const image = parseMenuImage(String(formData.get("image") ?? ""));
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
   const tags = menuTagsFromForm(formData.getAll("tags"));
@@ -164,8 +164,12 @@ function parseInput(formData: FormData) {
  */
 const MAX_MENU_IMAGE_BYTES = MAX_STORED_IMAGE_LENGTH;
 
+/** The photo field's answer to a value that is no photo, link or path. */
+const UNREADABLE_IMAGE =
+  "Fotoğraf yükle ya da https:// ile başlayan bir görsel adresi gir.";
+
 /**
- * The photo for one menu item.
+ * The photo for one menu item, or the reason it cannot be stored.
  *
  * The uploader submits a JSON array (`["data:image/jpeg;base64,..."]`) because
  * it is the same component the product wizard uses. A bare string is still
@@ -173,32 +177,56 @@ const MAX_MENU_IMAGE_BYTES = MAX_STORED_IMAGE_LENGTH;
  * - those used to be the ONLY accepted form, which meant the panel could not
  * add a photo at all on a deployment with no writable `public/`, and an https
  * URL typed into the field was discarded without a word.
+ *
+ * A value it cannot store is refused under the photo, never saved as "no
+ * photo": the shared uploader takes an http:// link (products accept one),
+ * and that used to save the item without its photo behind a success toast.
  */
-function parseMenuImage(raw: string): string {
+function parseMenuImage(
+  raw: string,
+): { ok: true; value: string } | { ok: false; error: string } {
   const trimmed = raw.trim();
-  if (!trimmed) return "";
+  if (!trimmed) return { ok: true, value: "" };
   let value = trimmed;
   if (trimmed.startsWith("[")) {
     try {
       const parsed: unknown = JSON.parse(trimmed);
-      value =
-        Array.isArray(parsed) && typeof parsed[0] === "string"
-          ? parsed[0].trim()
-          : "";
+      if (!Array.isArray(parsed)) return { ok: false, error: UNREADABLE_IMAGE };
+      if (parsed.length === 0) return { ok: true, value: "" };
+      if (typeof parsed[0] !== "string") {
+        return { ok: false, error: UNREADABLE_IMAGE };
+      }
+      value = parsed[0].trim();
     } catch {
-      return "";
+      return { ok: false, error: UNREADABLE_IMAGE };
     }
   }
-  if (!value) return "";
+  if (!value) return { ok: true, value: "" };
   if (value.startsWith("data:image/")) {
-    return value.length <= MAX_MENU_IMAGE_BYTES ? value : "";
+    return value.length <= MAX_MENU_IMAGE_BYTES
+      ? { ok: true, value }
+      : {
+          ok: false,
+          error:
+            "Fotoğraf saklanamayacak kadar büyük; daha küçük bir fotoğraf seç.",
+        };
   }
-  if (/^https:\/\//i.test(value)) return value.length <= 500 ? value : "";
+  if (/^https:\/\//i.test(value)) {
+    return value.length <= 500
+      ? { ok: true, value }
+      : { ok: false, error: "Görsel adresi en çok 500 karakter olabilir." };
+  }
+  if (/^http:\/\//i.test(value)) {
+    return {
+      ok: false,
+      error: "Görsel adresi https:// ile başlamalı (http:// saklanmaz).",
+    };
+  }
   // A site-relative asset path, e.g. /menu/matcha-latte.webp
   if (value.startsWith("/") && !value.startsWith("//") && value.length <= 300) {
-    return value;
+    return { ok: true, value };
   }
-  return "";
+  return { ok: false, error: UNREADABLE_IMAGE };
 }
 
 /**

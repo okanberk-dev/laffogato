@@ -323,18 +323,19 @@ describe("menu item form", () => {
   });
 
   it("never stores a photo the uploader could not fit, and never pretends it was read", async () => {
-    // A data URL over the 2 MB cap is dropped by the action (the uploader
-    // downscales or refuses before it gets here): no photo, no pick.
+    // A data URL over the 2 MB cap (the uploader downscales or refuses
+    // before it gets here) is refused under the photo: nothing is stored,
+    // and the item is not saved as "no photo" either.
     const huge = `data:image/png;base64,${"A".repeat(2 * 1024 * 1024)}`;
-    await createMenuItemAction(
+    const res = await createMenuItemAction(
       null,
       menuForm({ image: JSON.stringify([huge]), backdrop: "auto" }),
     );
-    expect(createMenuItem.mock.calls[0][0]).toMatchObject({
-      image: "",
-      backdrop: null,
-      photoCutout: false,
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: { image: expect.stringContaining("kadar büyük") },
     });
+    expect(createMenuItem).not.toHaveBeenCalled();
   });
 });
 
