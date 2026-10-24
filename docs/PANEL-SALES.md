@@ -91,12 +91,15 @@ Hiçbiri yoksa alan **hiç yoktur** (boş nesne ya da 0 değil): seçeneksiz
 satırın biçimi eskisiyle aynıdır. Kavurma (`roast`), şeker ve not
 gönderilmez. Bilinmeyen kimlik sayılmaz.
 
-Panelin bu sayıları kullanması ayrı iştir (panelin satır şeması bugün
-bilmediği alanları atar). Kullanırken: `milks.oat` yulaf sütü ürününe
-eşlenir; tarifinde süt olan içecekte normal süt aynı adet kadar düşer,
-sütsüz içecekte (Americano) yalnız seçilen süt eklenir, düşülecek normal
-süt yoktur. `extraShots` bir shot'luk kahve, `syrups` bir pompa şurup
-olarak eklenir.
+Panel bu sayıları okur (lafmaliyet #18, `docs/SITE-SATIS.md` ›
+Seçenekler) ve kasada ayrı satır olarak çalınan ürünlere verir: `extraShots`
+"Extra Shot"a, `syrups` "Syrup"a (önce sitenin `mnu-0081` / `mnu-0080`
+kalemine bağlı panel ürünü, yoksa adı tutan ürün), `milks`'in bütün
+seçenekleri tek "Alternatif Süt" ürününe. Alternatif süt normal sütü
+azaltmaz (kasadaki gibi); ürünü olmayan seçenek panelde "panelde ürünü yok"
+diye listelenir. Panel bu alanları **katı** okur: eksi ya da kesirli bir
+sayı, 40 karakterden uzun kimlik ya da 20'den fazla seçenek bütün ayın
+yanıtını reddettirir; alanı göndermemek her zaman güvenlidir.
 
 ## Uç
 
@@ -233,9 +236,9 @@ sipariş numarası gitmez.
 
 Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`):
 
-- **Ne zaman:** günlük cron içinde bulunulan ayı, ayın ilk 7 gününde bir
-  önceki ayı da çeker; Gelir-gider'deki "Siteden yenile" bir seferde en çok
-  3 ay sorar. Ay başına tek kayıt (`integration_state`, `site_sales:YYYY-MM`);
+- **Ne zaman:** günlük cron her gün bulunulan ayı ve önceki iki ayı çeker
+  (`salesMonthsToPull`; geç iadeler düşsün); Gelir-gider'deki "Siteden
+  yenile" aynı üç ayı sorar, daha eskisi için "Başka bir ay". Ay başına tek kayıt (`integration_state`, `site_sales:YYYY-MM`);
   yeniden çekmek üzerine yazar. 422 (`range_too_large`) panelde hata olarak
   görünür, gün gün yeniden sorulmaz.
 - **Kâr-zarar:** ModPOS cirosunun altında üç ayrı gelir satırı, KDV hariç:
@@ -245,9 +248,8 @@ Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`):
   POS komisyonu değişmez. Hiç çekilmemiş ay boş kalır, 0 görünmez.
 - **Tüketim:** kafe satırları menü bağlantısıyla ürünlere eşlenip
   tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer
-  (satırın `extraShots` / `milks` / `syrups` sayıları panelde ayrıca
-  işlenecek);
-  bağlı ürünü olmayan satır listelenir. Panelin satış raporuna
+  (satırın `extraShots` / `milks` / `syrups` sayıları yukarıdaki seçenek
+  ürünlerine); bağlı ürünü olmayan satır listelenir. Panelin satış raporuna
   (`sales_lines`) yazılmaz.
 - **Kasada kapatılan sipariş:** `counter` kâr-zarara, tüketime ve kasa
   raporunun online satırına eklenmez; panel isterse "kasada kapatılan

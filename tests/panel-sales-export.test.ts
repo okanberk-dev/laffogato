@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { dayAnchor } from "@/lib/admin/day-close-core";
@@ -944,5 +946,25 @@ describe("GET /api/panel/sales", () => {
     const res = await get(signedGet("/api/panel/sales?month=2026-10"));
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: "unavailable" });
+  });
+});
+
+describe("docs/PANEL-SALES.md says what the panel does with the feed", () => {
+  // The panel side moved (lafmaliyet #18): it reads the option counts and
+  // pulls three months every day. The site's copy of the contract had kept
+  // the old plan, which a session acting on it would redo or "fix".
+  const doc = readFileSync("docs/PANEL-SALES.md", "utf8").replace(/\s+/g, " ");
+
+  it("no longer says the panel drops the counts or takes cow's milk off", () => {
+    expect(doc).not.toContain("bilmediği alanları atar");
+    expect(doc).not.toContain("normal süt aynı adet kadar düşer");
+    expect(doc).not.toContain("panelde ayrıca işlenecek");
+    expect(doc).toContain("Alternatif süt normal sütü azaltmaz");
+    expect(doc).toContain("katı");
+  });
+
+  it("gives the panel's daily pull: this month and the two before it", () => {
+    expect(doc).not.toContain("ilk 7 gününde");
+    expect(doc).toContain("bulunulan ayı ve önceki iki ayı");
   });
 });
