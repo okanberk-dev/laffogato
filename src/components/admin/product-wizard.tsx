@@ -78,6 +78,7 @@ import {
 import { BackdropField } from "./backdrop-field";
 import { ImageUpload } from "./image-upload";
 import { BUTTON, CARD_SUBTITLE, EYEBROW, LABEL } from "./ui/styles";
+import { acquireLeaveGuard } from "./ui/unsaved-guard";
 import { useUnsavedGuard } from "./unsaved-guard";
 
 const HUE_OPTIONS = [
@@ -366,8 +367,10 @@ export function ProductWizard({
   );
 
   const formRef = useRef<HTMLFormElement>(null);
-  // A reload or a closed tab asks first once something was changed (CAT-30).
-  useUnsavedGuard(formRef);
+  // A reload or a closed tab asks first once something was changed (CAT-30);
+  // so do a link in the panel and a page picked in the palette (the shared
+  // controller of ui/unsaved-guard.ts, held while the wizard is mounted).
+  useUnsavedGuard(formRef, { hold: acquireLeaveGuard });
   const baseId = useId();
   const errorId = (key: string) => `${baseId}-err-${key}`;
   // Steps the last check in the browser found a problem in.

@@ -786,8 +786,9 @@ describe("unsaved changes (the product wizard's guard)", () => {
     const hook = read("src/components/admin/unsaved-guard.ts");
     expect(hook).toContain("const untrack = trackUnsavedGuard(guard);");
     expect(hook).toMatch(/return \(\) => \{\s*untrack\(\);/);
+    // The wizard's hook also holds the panel's controller (links, palette).
     expect(read("src/components/admin/product-wizard.tsx")).toContain(
-      "useUnsavedGuard(formRef);",
+      "useUnsavedGuard(formRef, { hold: acquireLeaveGuard });",
     );
     const layer = read("src/components/admin/shortcuts.tsx");
     expect(layer).toContain(

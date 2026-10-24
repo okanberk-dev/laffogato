@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 
-import { hasUnsavedForm, trackUnsavedGuard } from "../unsaved-guard";
+import {
+  hasUnsavedForm,
+  isLeaving,
+  markLeaving,
+  trackUnsavedGuard,
+} from "../unsaved-guard";
 
 /*
  * "Leave the page with unsaved changes?" for the panel's long forms (admin
@@ -23,7 +28,11 @@ import { hasUnsavedForm, trackUnsavedGuard } from "../unsaved-guard";
  * - The registry is the one the product wizard's own guard (../unsaved-guard,
  *   CAT-30: touch-based, with its own `beforeunload`) writes to, so a single
  *   answer holds for both and the single keys (shortcuts.tsx) already see
- *   every form here. The wizard itself is not changed.
+ *   every form here. The wizard holds this controller too: it hands
+ *   acquireLeaveGuard to its hook (`hold`), because that file cannot import
+ *   this one (this one imports it). The "said yes" moment lives there,
+ *   next to the registry, so after a yes neither `beforeunload` asks again;
+ *   on a reload both listeners answer the one event, one question.
  *
  * Not covered, because the browser gives no hook: Back and Forward (the App
  * Router moves without a page unload), and the Çıkış button (a form post,
@@ -216,25 +225,13 @@ export function isPanelDirty(): boolean {
 }
 
 /**
- * Said yes to leaving: the browser's own `beforeunload` question stays
- * quiet for a moment, or a link that really unloads the page (a plain
- * anchor) would ask a second time, right after ours.
- */
-const LEAVING_MS = 1000;
-let leaving = false;
-
-function markLeaving(): void {
-  leaving = true;
-  setTimeout(() => {
-    leaving = false;
-  }, LEAVING_MS);
-}
-
-/**
  * The question before a client navigation (the palette's entries; the click
  * guard asks it too): true when the page may be left. Quiet while nothing is
  * unsaved, and for a page that is the same one (`href` given). Cancelled,
- * the caller stays where it is.
+ * the caller stays where it is. A yes is marked (markLeaving, in the
+ * registry's file): for a moment no `beforeunload` of the panel asks, ours
+ * nor the wizard's own, or a link that really unloads the page (a plain
+ * anchor) would ask a second time, right after this.
  */
 export function confirmLeave(
   href?: string,
@@ -254,7 +251,7 @@ export function confirmLeave(
 }
 
 function onBeforeUnload(event: BeforeUnloadEvent): void {
-  if (leaving || !isPanelDirty()) return;
+  if (isLeaving() || !isPanelDirty()) return;
   event.preventDefault();
   // Older Chrome and Safari still want a returnValue set.
   event.returnValue = "";
