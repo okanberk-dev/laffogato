@@ -346,8 +346,9 @@ nokta zaten bunu gösterir), **Uygulama ayarları** (dokuz bölümün hepsi),
 **yasal belge düzenleyici**, **kampanya e-postası** (yeni ve taslak) ve 21
 Ekim 2026'dan beri **kafe menüsü kalemi**, **anasayfa ve mağaza slaytı**,
 **uygulama slaytı, duyurusu ve gönderisi** ile **promosyon kodu** (yeni ve
-düzenleme). Ürün sihirbazı kendi uyarısını kullanır: yenilemede ve sekme
-kapanışında sorar, menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
+düzenleme). **Ürün sihirbazı** (yeni ve düzenleme) kendi uyarısını kullanır
+ve 24 Ekim 2026'dan beri aynı yerlerde sorar: yenilemede ve sekme
+kapanışında olduğu gibi menü bağlantısında, "Vazgeç"te ve ⌘K'da da.
 
 - **Sorduğu yerler**: başka bir sayfaya giden bağlantı (menü, üst çubuk,
   "Vazgeç", bildirimdeki bağlantı) ve ⌘K paletinde bir sayfa seçmek (Vazgeç
@@ -378,7 +379,9 @@ kapanışında sorar, menü bağlantısına ya da ⌘K'ya basınca henüz sormaz
   kendisinin değiştirdiği alan sayılmaz; operatör adına bir alanı kodla
   değiştiren bir denetim olayı o alanda göndermeli, adı olmayan denetim hiç
   sayılmaz. Kendi "kaydedilmemiş" bilgisini tutan bir sayfa
-  `useUnsavedFlag(dirty)` çağırır.
+  `useUnsavedFlag(dirty)` çağırır. Ürün sihirbazının kendi kancası
+  (`src/components/admin/unsaved-guard.ts`) bağlantı ve palet sorusunu
+  `hold: acquireLeaveGuard` ile alır; o dosya yeni dosyayı içe aktarmaz.
 
 ## Listelerde ekleme, sıralama, yayından kaldırma ve silme (21 Eki 2026)
 

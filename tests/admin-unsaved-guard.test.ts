@@ -818,7 +818,7 @@ describe("the controller, the registry and the forms", () => {
     expect(doc.removed).toHaveLength(1);
   });
 
-  it("answers for the product wizard's guard in the same registry; the wizard keeps its own beforeunload", () => {
+  it("answers for the product wizard's guard in the same registry; tracking alone holds no controller", () => {
     let fields = "name=";
     const wizard = registry.createUnsavedGuard(() => fields);
     const release = registry.trackUnsavedGuard(wizard);
@@ -826,12 +826,71 @@ describe("the controller, the registry and the forms", () => {
     wizard.touch();
     fields = "name=Kenya";
     expect(guard.isPanelDirty()).toBe(true);
-    // The wizard installs no controller here: nothing listens for a link or
-    // for the palette's question on its page (its own beforeunload stays).
+    // The registry is only a registry (the single keys load it on every
+    // page): the controller is held by the hook it is handed to, as the
+    // wizard's is (`hold`, next test and the hooks test).
     expect(doc.added).toHaveLength(0);
     expect(win.added).toHaveLength(0);
     release();
     expect(guard.isPanelDirty()).toBe(false);
+  });
+
+  it("the product wizard under the controller: a link and the palette ask while it is dirty, a reload is one question, a yes silences both beforeunloads", () => {
+    // What the wizard's hook does (../unsaved-guard with `hold`): its own
+    // guard in the registry, its own beforeunload, and the controller.
+    let fields = "name=";
+    const wizard = registry.createUnsavedGuard(() => fields);
+    const untrack = registry.trackUnsavedGuard(wizard);
+    win.addEventListener("beforeunload", wizard.onBeforeUnload);
+    const release = guard.acquireLeaveGuard();
+    try {
+      // Clean, then touched but the same: nothing asks.
+      expect(clickOn(link("/admin/menu")).defaultPrevented).toBe(false);
+      expect(shell.mayOpenPage("/admin/menu")).toBe(true);
+      expect(unload().defaultPrevented).toBe(false);
+      wizard.touch();
+      expect(clickOn(link("/admin/menu")).defaultPrevented).toBe(false);
+      expect(shell.mayOpenPage("/admin/menu")).toBe(true);
+      expect(win.confirm).not.toHaveBeenCalled();
+
+      // Dirty: the sidebar link and the palette ask, a no stays.
+      fields = "name=Kenya";
+      win.confirm.mockReturnValueOnce(false);
+      expect(clickOn(link("/admin/urunler")).defaultPrevented).toBe(true);
+      win.confirm.mockReturnValueOnce(false);
+      expect(shell.mayOpenPage("/admin/siparisler")).toBe(false);
+      expect(win.confirm).toHaveBeenCalledTimes(2);
+      expect(win.confirm).toHaveBeenLastCalledWith(guard.UNSAVED_CONFIRM);
+
+      // A reload: the wizard's beforeunload and the controller's answer the
+      // one event the browser fires, so it asks its one question; ours
+      // (confirm) is not asked.
+      expect(win.live("beforeunload")).toHaveLength(2);
+      expect(unload().defaultPrevented).toBe(true);
+      expect(win.confirm).toHaveBeenCalledTimes(2);
+
+      // A yes to a link that really unloads the page: neither listener asks
+      // again for it. A moment later (the navigation never came) both do.
+      win.confirm.mockReturnValueOnce(true);
+      expect(clickOn(link("/admin/menu")).defaultPrevented).toBe(false);
+      expect(unload().defaultPrevented).toBe(false);
+      vi.advanceTimersByTime(1500);
+      expect(unload().defaultPrevented).toBe(true);
+      // The same for a yes in the palette.
+      win.confirm.mockReturnValueOnce(true);
+      expect(shell.mayOpenPage("/admin/menu")).toBe(true);
+      expect(unload().defaultPrevented).toBe(false);
+      vi.advanceTimersByTime(1500);
+      expect(unload().defaultPrevented).toBe(true);
+    } finally {
+      release();
+      untrack();
+      win.removeEventListener("beforeunload", wizard.onBeforeUnload);
+    }
+    // Let go: the next page is held by nothing.
+    expect(doc.removed.map((a) => a.type)).toEqual(["click"]);
+    expect(win.live("beforeunload")).toHaveLength(0);
+    expect(win.live(guard.LEAVE_EVENT)).toHaveLength(0);
   });
 });
 
@@ -884,7 +943,7 @@ describe("the single keys and every guarded form", () => {
 
 // ── Adoption and wiring ────────────────────────────────────────────────────
 
-describe("adoption: one call in each of the four forms, the wizard untouched", () => {
+describe("adoption: one call in each of the four forms, the wizard's own guard kept", () => {
   it("Ayarlar hands the guard what its tabs already know, and keeps no beforeunload of its own", () => {
     const src = read("src/app/admin/ayarlar/settings-form.tsx");
     expect(src).toContain("useUnsavedFlag(dirtyTabs.size > 0);");
@@ -932,18 +991,36 @@ describe("adoption: one call in each of the four forms, the wizard untouched", (
     expect(src).toContain("useHandPost(");
   });
 
-  it("the wizard still uses its own guard and does not reach the new one", () => {
+  it("the wizard keeps its own guard and beforeunload, and hands the hook the shared controller", () => {
     const wizard = read("src/components/admin/product-wizard.tsx");
     expect(wizard).toContain(
       'import { useUnsavedGuard } from "./unsaved-guard";',
     );
-    expect(wizard).toContain("useUnsavedGuard(formRef);");
-    expect(wizard).not.toContain("ui/unsaved-guard");
+    // Only the controller is taken from the new file: its hooks are not.
+    expect(wizard).toContain(
+      'import { acquireLeaveGuard } from "./ui/unsaved-guard";',
+    );
+    expect(wizard).toContain(
+      "useUnsavedGuard(formRef, { hold: acquireLeaveGuard });",
+    );
+    expect(wizard.match(/useUnsavedGuard\(/g)).toHaveLength(1);
     const legacy = read("src/components/admin/unsaved-guard.ts");
     expect(legacy).toContain(
       'window.addEventListener("beforeunload", guard.onBeforeUnload);',
     );
-    expect(legacy).not.toContain("ui/unsaved-guard");
+    // Held with the form, let go with it.
+    expect(legacy).toContain("const release = hold?.();");
+    expect(legacy).toMatch(/untrack\(\);\s+release\?\.\(\);/);
+    // No cycle: the new file imports this one, this one imports React only
+    // (the "said yes" moment is kept here, where both can read it).
+    const specs = [
+      ...legacy.matchAll(/^import (?!type\b)[^;]*?from "([^"]+)";/gm),
+    ].map((m) => m[1]);
+    expect(specs).toEqual(["react"]);
+    expect(legacy).toMatch(/export function markLeaving\(\)/);
+    expect(read("src/components/admin/ui/unsaved-guard.ts")).not.toMatch(
+      /let leaving\b/,
+    );
   });
 
   it("the single keys keep reading the registry the guards write to", () => {
@@ -1088,6 +1165,8 @@ describe("copy", () => {
   it("has no long dash in the files this change adds or touches", () => {
     const files = [
       "src/components/admin/ui/unsaved-guard.ts",
+      "src/components/admin/unsaved-guard.ts",
+      "src/components/admin/product-wizard.tsx",
       "src/components/admin/palette/palette.tsx",
       "src/components/admin/palette/trigger.tsx",
       "src/lib/admin/palette-shell.ts",

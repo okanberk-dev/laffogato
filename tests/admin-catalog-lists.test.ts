@@ -953,9 +953,11 @@ describe("the product form asks before a reload drops it (CAT-30)", () => {
     expect(e.prevented).toBe(false);
   });
 
-  it("the wizard is guarded", () => {
+  it("the wizard is guarded, and holds the panel's link and palette question too", () => {
     const src = read("src/components/admin/product-wizard.tsx");
-    expect(src).toContain("useUnsavedGuard(formRef)");
+    expect(src).toContain(
+      "useUnsavedGuard(formRef, { hold: acquireLeaveGuard })",
+    );
     expect(src).toContain("ref={formRef}");
   });
 });

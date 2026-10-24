@@ -253,6 +253,91 @@ describe("the hooks", () => {
     });
   });
 
+  describe("the product wizard's hook (../unsaved-guard, CAT-30) with the controller", () => {
+    const ref = (form: FakeForm | null) =>
+      ({
+        current: form,
+      }) as unknown as import("react").RefObject<HTMLFormElement>;
+    const hold = guard.acquireLeaveGuard;
+    /** The palette's question, as mayOpenPage sends it. */
+    const paletteMay = (href: string) =>
+      win.dispatchEvent(
+        new CustomEvent(guard.LEAVE_EVENT, { cancelable: true, detail: href }),
+      );
+
+    it("holds the controller while mounted: a link and the palette ask once it is dirty, and everything goes with the form", () => {
+      win.confirm.mockReturnValue(false);
+      const form = new FakeForm([["name", ""]]);
+      const formRef = ref(form);
+      const h = mount(() => registry.useUnsavedGuard(formRef, { hold }));
+      expect(doc.count("added", "click")).toBe(1);
+      expect(doc.added.find((a) => a.type === "click")?.capture).toBe(true);
+      expect(win.count("added", guard.LEAVE_EVENT)).toBe(1);
+      // Its own beforeunload, kept, and the controller's.
+      expect(win.live("beforeunload")).toHaveLength(2);
+
+      // Clean: nothing asks.
+      expect(askedAboutLeaving()).toBe(false);
+      expect(paletteMay("/admin/menu")).toBe(true);
+      expect(win.confirm).not.toHaveBeenCalled();
+
+      form.type("name", "Kenya");
+      expect(registry.hasUnsavedForm()).toBe(true);
+      expect(askedAboutLeaving()).toBe(true);
+      expect(paletteMay("/admin/menu")).toBe(false);
+
+      // Typed back: clean again.
+      form.type("name", "");
+      expect(askedAboutLeaving()).toBe(false);
+
+      h.unmount();
+      expect(registry.hasUnsavedForm()).toBe(false);
+      expect(doc.count("removed", "click")).toBe(1);
+      expect(win.live(guard.LEAVE_EVENT)).toHaveLength(0);
+      expect(win.live("beforeunload")).toHaveLength(0);
+      // Typing into a form that is gone asks nothing.
+      form.type("name", "Etiyopya");
+      expect(paletteMay("/admin/menu")).toBe(true);
+      expect(win.confirm).not.toHaveBeenCalled();
+    });
+
+    it("shares the one controller with the page's other forms, counted; mounting twice in a row leaves one hold", () => {
+      const wizardForm = new FakeForm([["name", ""]]);
+      const wizardRef = ref(wizardForm);
+      const other = new FakeForm([["a", "1"]]);
+      const otherRef = ref(other);
+      const first = mount(() => registry.useUnsavedGuard(wizardRef, { hold }));
+      // React's check in development: mount, unmount, mount.
+      first.unmount();
+      const wizard = mount(() => registry.useUnsavedGuard(wizardRef, { hold }));
+      const page = mount(() => guard.useUnsavedGuard(otherRef));
+      expect(doc.count("added", "click")).toBe(2);
+      expect(doc.count("removed", "click")).toBe(1);
+      expect(doc.live("click")).toHaveLength(1);
+
+      wizard.unmount();
+      expect(doc.live("click")).toHaveLength(1); // the other form still holds it
+      page.unmount();
+      expect(doc.live("click")).toHaveLength(0);
+      expect(win.live(guard.LEAVE_EVENT)).toHaveLength(0);
+      expect(win.live("beforeunload")).toHaveLength(0);
+    });
+
+    it("off, or without a form, holds nothing; without `hold` it is the old guard: its own beforeunload only", () => {
+      mount(() => registry.useUnsavedGuard(ref(null), { hold }));
+      const form = new FakeForm([["name", ""]]);
+      const formRef = ref(form);
+      mount(() => registry.useUnsavedGuard(formRef, { hold, enabled: false }));
+      expect(doc.added).toHaveLength(0);
+      expect(win.added).toHaveLength(0);
+
+      const plain = mount(() => registry.useUnsavedGuard(formRef));
+      expect(doc.added).toHaveLength(0);
+      expect(win.added.map((a) => a.type)).toEqual(["beforeunload"]);
+      plain.unmount();
+    });
+  });
+
   describe("useUnsavedFlag", () => {
     it("guards while the page says it is dirty, and only then", () => {
       let dirty = false;

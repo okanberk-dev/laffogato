@@ -764,6 +764,7 @@ varyantlı üründe hızlı ekleme yerine ürünü açması ayrı bir ön yüz i
 | 🟢 | Ürün, menü ve stok listelerinde etiketsiz arama ve seçim kutuları, toplu "Kategoriye taşı" seçimi; her satırda adsız "Sil"; 10 px yazılı, 16 px boyunda "siparişe git" (CAT-23, liste kısmı) | Kit süzgeç çubuğu etiketli; toplu seçim "Taşınacak kategori"; satır düğmeleri "Sil: <ad>", "Pasif yap: <ad>", "Tükendi: <ad>"; menünün her kategorisinde "<Kategori>: tümünü seç", telefonda da başlığın yanında; "Siparişe git" 44 px | `admin-catalog-lists`, `admin-confirm-ui` |
 | 🟢 | Elle seçilmiş neutral / red / amber renkler, sahte italik başlıklar, Poppins'le "mono" (CAT-26, liste kısmı); el yapımı haplar (CAT-11, liste kısmı); 10 px neutral-400 / 500 yazılar (CAT-21, liste kısmı) | Kit rozet tonları, `EYEBROW`, `NUMERIC_STYLE`, `BUTTON.*`, panelin yazı renkleri | `admin-catalog-lists` |
 | 🟢 | Filament eksikleri (CAT-30): ürün listesinde sayfa, sekme, sıralanabilir başlık ve satırda Aktif / Pasif yoktu (silme diyaloğu "pasif yap" diyordu), süzgeç "Uygula"lı bir GET formuydu; menüde arama ve süzgeç yoktu; ürünün ve menü kaleminin kendi sayfası yoktu; beş adımlı sihirbaz bir yenilemede kayboluyordu | Ürünler: Tümü / Aktif / Pasif / Düşük stok / Stokta yok sekmeleri sayılarıyla, arama ve kategori, sıralanabilir başlıklar, sayfa başına 50, satır başına "⋯" (Görüntüle, Düzenle, Mağazada gör, Stok hareketleri, Aktif / Pasif yap, Sil); tek tık `setProductActiveAction` istenen durumu yazar (çift tık kendini geri almaz). Menü: Tümü / Satışta / Tükendi, arama ve kategori, tek tık "Tükendi" ve "⋯". Salt okunur sayfalar `/admin/urunler/[id]` ve `/admin/menu/[id]` (karar D37); düzenleme sayfasının izi onlara döner. Listenin kit öncesi adresleri (`?status=`, `?sort=`, `?cat=`; panonun stok kartları bunlarla bağlanır) bugünkü sekmeye, sıraya ve kategoriye yönlenir (`legacyProductsHref`). Sihirbaz bir şey değiştirilmişken sayfa yenilenir ya da kapanırsa sorar (`useUnsavedGuard`) | `admin-catalog-lists`, `admin-shell-nav` |
+| 🟢 | Sihirbazda bir şey yazılmışken panelin kendi bağlantısına (kenar çubuğu, "Vazgeç") basınca ya da ⌘K'da bir sayfa seçince sayfa sormadan değişiyor, yarım sihirbaz gidiyordu; yalnız yenileme ve sekme kapanışı soruyordu (CAT-30, istemci gezinmesi) | Sihirbazın kancası (`unsaved-guard.ts`, `useUnsavedGuard`) panelin ortak denetleyicisini (UI-17: bağlantı tıklaması, palet sorusu) de tutar: sihirbaz `acquireLeaveGuard`'ı (`ui/unsaved-guard.ts`) `hold` olarak verir, kanca onu form korunurken tutar, sihirbaz kalkınca bırakır (sayaç geri iner, sonraki sayfa tutulmaz). Kanca dosyası yeni dosyayı içe aktarmaz: yeni dosya onu içe aktarıyor (döngü olurdu) ve tek tuşların parçası onu her sayfaya yüklüyor. Kirli değilken hiçbir şey sormaz. Sihirbazın kendi `beforeunload`'u kaldı: yenilemede iki dinleyici tarayıcının tek olayına cevap verir, soru bir kez çıkar. "Evet"in bir saniyelik sessizliği (`markLeaving`, `isLeaving`) kayıt defterinin dosyasına taşındı: evetten sonra sayfayı gerçekten yükleyen bir bağlantıda ne denetleyici ne sihirbazın kendi dinleyicisi ikinci kez sorar (eskiden sihirbazınki sorardı) | `admin-unsaved-guard`, `admin-unsaved-guard-hooks`, `admin-shortcuts`, `admin-catalog-lists` |
 | 🟢 | Varyant stoğu listede görünmüyordu: tükenmiş 1 kg paket sağlıklı toplamın arkasında kalıyordu (CAT-14, liste kısmı) | Stok sütununda toplamın altında her varyantın stoğu, pasif varyant işaretli; ürün sayfasında varyant tablosu | `admin-catalog-lists` |
 | 🟢 | Menü listesi etiketleri ham anahtarla gösteriyordu, lang=tr altında "SİGNATURE" (CAT-10, liste kısmı) | Türkçe: İmza, Yeni, Buzlu, Sert kabuklu yemiş; uygulamanın bilmediği kelime yazıldığı gibi, kesik çerçeveyle ve "uygulamada görünmez" notuyla | `admin-catalog-lists` |
 | 🟢 | Toplu işlem sırasında atılan hata paneli hata ekranına çeviriyor, seçimi siliyordu (CAT-17, toplu çubuklar) | `bulkAnswer`: `withPanelCatch` ile "Bir hata oldu..." yerinde bildirim; çubuk elle gönderir (`useHandPost`), ilk istek dönmeden ikinci tık düşer | `admin-catalog-lists` |
@@ -773,7 +774,6 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Panelin kendi bağlantısına ve ⌘K'ya basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Genel koruma geldi (UI-17, `ui/unsaved-guard.ts`) ama sihirbaza bağlanmadı: kancası (`unsaved-guard.ts`) kayıt defterine yazıyor, denetleyiciyi (bağlantı ve palet sorusu) tutmuyor. Tek tuşlar zaten çıkmıyor. Bağlamak kancanın `trackUnsavedGuard`'ının denetleyiciyi de tutması: sihirbazın `beforeunload`'una dokunmaz, ayrı iş |
 | 🟢 | Ürün listesi her istekte ürünlerin liste sütunlarını okuyup sekme sayılarını, aramayı ve sayfayı bellekte hesaplıyor | Mağazada birkaç yüz ürün; sorguyu SQL'e taşımak beş sekmenin sayısını ayrı sorgular ister. Fotoğraf yalnız açık sayfa için okunur |
 
 ### Kişiler: promosyon, üye, kupon, damga, kullanıcılar, kampanya (paket 4a)
@@ -1386,7 +1386,7 @@ Tarayıcı yalnız yenilemede, sekme kapanışında ve elle yazılan adreste sor
 panelin kendi bağlantısı ve ⌘K istemci gezinmesidir, ona dokunmaz.
 `ui/unsaved-guard.ts` dört formu korur: Ayarlar, Uygulama ayarları, yasal
 belge düzenleyici ve kampanya e-postası (ürün sihirbazı kendi koruması ve
-kayıt defteriyle kalır).
+kayıt defteriyle kalır; 24 Eki 2026'dan beri denetleyiciyi de tutar).
 
 | Derece | Değişiklik | Nasıl | Test |
 | --- | --- | --- | --- |
@@ -1397,13 +1397,13 @@ kayıt defteriyle kalır).
 | 🟢 | Palet sayfa açarken sormuyordu | Tetikleyici bir sayfayı açmadan önce `window`'a iptal edilebilir `admin:leave` olayı gönderir (`mayOpenPage`); formu olan sayfada denetleyici dinler, sorar, "hayır"da iptal eder (palet açık kalır). Dinleyen yoksa cevap evet. Palet parçası 45 KB bütçesinde olduğu için koruma modülünü içe aktaramaz; palet artık yönlendiriciyi tutmaz, sayfayı tetikleyici açar | `admin-unsaved-guard`, `admin-palette-core` |
 | 🟢 | Tek tuşlar (`g` ve harf) yalnız ürün sihirbazında sayfadan çıkmıyordu; dört form da kayıt defterinde | Dört form sihirbazın kayıt defterine (`trackUnsavedGuard`) yazar: UI-8'in `g` ve harf kuralı onlar için de geçerli, kısayol dosyası değişmedi | `admin-unsaved-guard`, `admin-shortcuts` |
 | 🟢 | Paket bütçesi | Korumalı dört sayfaya ~1,6 KB gz; her rotaya tetikleyicide +77 B, palet parçasında -34 B (`esbuild` ile, `next build` ile ölçülmedi: orkestratörün kapısı) | `admin-unsaved-guard` |
+| 🟢 | Ürün sihirbazı (yeni ve düzenleme) kenar çubuğu bağlantısında ve palette sormuyordu (24 Eki 2026) | Kancası denetleyiciyi tutar: `useUnsavedGuard(formRef, { hold: acquireLeaveGuard })`, ayrıntı 5d'de. "Evet"ten sonraki bir saniyelik sessizlik sihirbazın kendi `beforeunload`'unu da kapsar. Sihirbazın iki sayfasına ~0,8 KB gz (ağaç sallamalı) ile ~1,3 KB gz (modülün tamamı) arası; tek tuşların parçası ve diğer sayfalar değişmedi (`esbuild` ile, `next build` ile ölçülmedi) | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
 
 Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Tarayıcının Geri ve İleri düğmeleri ve Çıkış düğmesi kaydedilmemiş formu sormuyor | App Router sayfa yüklemeden gezinir (Geri'de tarayıcıda kanca yok); Çıkış bir form gönderimi, bağlantı değil: ikisini kesmek ayrı bir iş |
-| 🟢 | Ürün sihirbazı kenar çubuğu bağlantısında ve palette sormuyor | Bkz. 5d'nin "Açık" tablosu |
 
 ### Kabuk: kayıtlı görünümler (admin UI v2, UI-11)
 
