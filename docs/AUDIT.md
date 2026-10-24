@@ -199,7 +199,7 @@ hiçbir şeyle çalışmıyordu.
 
 **Sanal POS (tarihçe).** Bu bölüm yazılırken iyzico canlıya alınmayı
 bekliyordu; 6 Eyl 2026'da karar **PayNkolay** oldu ve üretim sağlayıcısı odur
-(iyzico modülü kodda duruyor, kullanılmıyor). Kurulum, hash formülleri ve
+(iyzico modülü 15 Eki 2026'da koddan kaldırıldı). Kurulum, hash formülleri ve
 "PayNkolay webhook göndermez" kuralı `docs/PAYNKOLAY.md`'de: canlı ölçüm
 listesi §12, ortam değişkenleri §13. O günün iki tuzağından biri sağlayıcıdan
 bağımsız olarak geçerlidir: `PAYMENT_PROVIDER` her ortamda tanımlı olmalı;
@@ -471,16 +471,16 @@ ve `docs/API-MOBILE.md` uygulamanın okuduğu alanlarla karşılaştırıldı.
 | 🟡 | WS1-03 (15 Eki): Uygulamanın promosyon kodu kâhini (`POST /promo/preview`, `/orders/preview` `promoCode`) "kontrol et, bak, ıskayı sonra yaz" sırasıyla sayıyordu; paralel gönderilen bir yığın denetimi hep birlikte geçip **her** tahmine cevap alıyordu, 15/pencere sınırı yalnız bekleyen istemciye işliyordu | Iska, cevaplanmadan **önce** `reserve_auth_attempt` ile atomik sayılır, tavanın ötesindeki iska "sınırlı" döner; gerçek kod sayılmaz (sepetini yeniden fiyatlayan üye kilitlenmez) ama yalnız kova açıkken cevaplanır, yoksa sınırlayıcı hangi tahminin gerçek olduğunu karşıtlıkla söylerdi. Biçim aynı | `mobile-promo-preview-limit` |
 | 🟢 | WS1-04 (15 Eki): `POST /fal/report` doğrulanmamış adrese de açıktı ve günlük 10 sınırı kayıttan önce okunuyordu; atılabilir adreslerle ya da paralel yığınla panelin bildirim listesine serbest metin yığılabiliyordu | Doğrulanmamışa **403** `email_unverified` (ona yapay zekâ yorumu zaten verilmez, WS1-01); kayıttan sonra yeniden sayılır, sınırı aşan kendi satırını geri alır ve 429 döner (§20, yalnız ekleme) | `mobile-fal-report` |
 | 🟠 | Var olan uygulama siparişinin ödemesini yeniden açmak (`POST /orders/{id}/payment`, `clientOrderId` tekrarı) POS'a sormadan yeni oturum açıyordu; PayNkolay aynı `clientRefCode` ile ikinci satışı kabul ettiği için dönüşü kaybolmuş bir ödeme ikinci kez çekiliyordu. Karaoke yeniden açması POS'a sorulamayınca ve tahsilat tutarı uyuşmayınca da yeni sayfa açıyordu (17 Eki 2026) | `replayAppOrder` bütçeden sonra, oturumdan önce `checkPendingOrderPaid` sorar: ödenmişse işlenir ve oturum açılmaz (409 `not_payable`), sorulamazsa ya da tutar farklıysa **503** `payment_unavailable` (§3, yalnız ekleme). `reopenKaraokePayment` aynı iki durumda `payment_unknown` (503, §7.1); süpürme ve iptal tutar farkını eskisi gibi ele alır. `docs/PAYNKOLAY.md` §14.7 | `mobile-order-idempotency`, `mobile-checkout-reopen-route`, `mobile-order-payment`, `karaoke-reopen-pos-gate`, `mobile-karaoke-prepay-routes` |
+| 🟢 | W1-03: `POST /orders/preview` kapalı mağazayı da fiyatlıyordu; yalnız `POST /orders` 409 `shop_closed` veriyordu (23 Eki 2026 denetiminde "Açık"tan taşındı) | Önizleme de kapalı mağazaya aynı 409 `shop_closed`'u verir; uygulama 4xx önizlemenin kendi mesajını gösterir | `mobile-order-preview-closed` |
+| 🟢 | W1-04: sipariş adresi, kayıtlı adres ve `PATCH /me` telefonları yalnız uzunlukla doğrulanıyordu, `normalizeTrPhone` kullanılmıyordu (aynı taşıma) | Üç şema da `phoneField(normalizeTrPhone)`'dan geçer: Türk cep numarası her yazılışta tek biçime iner. Bilerek sıkılaştırılmadı: sabit hat, yabancı numara ve yarım değer eskisi gibi uzunlukla kabul edilir, eski sürümlerin gönderdiği reddedilmez | `mobile-me-mapper` ("refuses nothing it used to accept"), `karaoke-contact` |
+| 🟢 | W1-05: davet ödülünün 150 TL alt sınırı kurye ücretini de içeren `totalMinor` ile ölçülüyordu (aynı taşıma) | Operatör kararı (14 Eki 2026): alt sınır yalnız ürünleri sayar, kurye / kargo ücreti girmez (`inviteQualifyingMinor`) | `mobile-invite` |
+| 🟢 | W1-08: özelleştirilemeyen kafe kategorileri yalnız uygulamada biliniyordu (`NON_CUSTOMIZABLE`), sunucu her satıra süt / şurup / shot ek ücretini uyguluyordu (aynı taşıma) | Sunucu tatlı, atıştırmalık ve ekstralarda seçenekleri yok sayar (`NON_CUSTOMIZABLE_CATEGORIES`, `order-pricing.ts`) | `mobile-order-pricing` |
 
 ### Açık
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟡 | `/odeme/donus` POST dalı, `applyPaymentSucceeded` siparişi ilerletmemişken de uygulamaya `?status=success` veriyor | Bilerek bırakıldı: dönüş POS'un sonucunu söyler; "başarısız" demek parası çekilmiş üyeyi ikinci ödemeye iter. Uygulamanın sipariş ekranı sunucunun durumunu okur |
-| 🟢 | `POST /orders/preview` kapalı mağazayı da fiyatlıyor; yalnız `POST /orders` 409 `shop_closed` veriyor | Ayrı PR: önizlemeye yeni bir ret eklemek sahadaki sürümlerin okuduğu bir davranış değişikliği |
-| 🟢 | Sipariş adresi, kayıtlı adres ve `PATCH /me` telefonları yalnız uzunlukla doğrulanıyor; `normalizeTrPhone` kullanılmıyor | Ayrı PR: doğrulamayı sıkılaştırmak eski sürümlerin gönderdiğini reddedebilir, önce ölçülmeli |
-| 🟢 | Davet ödülünün 150 TL alt sınırı kurye ücretini de içeren `totalMinor` ile ölçülüyor | Operatör kararı: alt sınır kurye ücretini sayar mı |
-| 🟢 | Hangi kafe kategorilerinin özelleştirilemeyeceği yalnız uygulamada (`NON_CUSTOMIZABLE`); sunucu her satıra süt/şurup/shot ek ücretini uygular | Ayrı PR: uygulama bu kategorilerde özelleştirme göndermez, sunucu tarafı sertleştirme |
 | 🟡 | Her ödenmiş uygulama kafe siparişi tutarına bakılmadan +1 damga kazanıyordu: tek başına 25₺'lik "Alternatif Süt" 6 kez sipariş edilip 280₺'lik ücretsiz içecek kuponu alınabiliyordu (WS1-05) | Operatör kararı (15 Eki 2026, "minimum sipariş tutarı 140 TL"): damga yalnız ürün tutarı en az 140₺ olan siparişe (`STAMP_MIN_ORDER_MINOR`, indirim düşülmüş, kurye hariç); `stampsToEarn` aynı kuralı söyler, değer `bootstrap.app.loyalty.stampMinOrderMinor` ile uygulamaya gider - `tests/mobile-loyalty.test.ts` |
 | 🟢 | 140₺ alt sınırından sonra her sipariş tutarı ne olursa olsun tek damga kazanıyordu (1.000₺'lik sipariş = 140₺'lik sipariş) | Operatör kararı (15 Eki 2026, "140 TL'den 320 TL'ye kadar 1 tane sayılsın, damga toplam miktar ile hesaplansın"): başlayan her 320₺ bir damga (`STAMP_STEP_MINOR`, `stampsFor`); sipariş başına tek `earn` satırı, `delta` = damga sayısı; iade/iptal tamamını geri alır; `stampsToEarn`, `stampsEarned` ve `bootstrap.app.loyalty.stampStepMinor` aynı kuralı söyler - `tests/mobile-loyalty.test.ts`, `tests/mobile-loyalty-multi-stamp.test.ts`, `tests/mobile-order-preview-stamps.test.ts` |
 | 🟡 | Kısmi iade damgaları geri almıyordu: yalnız tam iade/iptal ters kayıt yazıyordu ve tek bir `reversal` satırı siparişi tümden düşürüyordu; 1.000₺'lik sipariş (4 damga) 999₺ iade edilse de 4 damgayı tutuyordu | 16 Eki 2026 incelemesi: her iadeden sonra (panel, sağlayıcı webhook'u, iptal) hedef `stampsFor(ürün − iade edilen ürün)` yeniden hesaplanır (iade kaydı kurye payını ayırmadığı için iade önce ürüne yazılır, `min(iade, ürün)`); hedefin üstündeki her damga için siparişten ve damga sırasından türeyen kimlikle bir `reversal` satırı (−1) yazılır, yeniden deneme ve eşzamanlı iadeler birincil anahtarda birleşir; bakiye ve `stampsByOrder` ters kayıtları sipariş başına toplar |
@@ -819,7 +819,6 @@ Açık (paket 4b'nin dışında kalanlar):
 | --- | --- | --- |
 | 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`). "Siparişleri" ve "Tümünü gör"ün `?q=<e-posta>`'sı kalktı (list-search-no-url, aşağıda) | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
 | 🟢 | Müşteri listesinde CSV dışa aktarma yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
-| 🟢 | Panodaki "Son siparişler" kartı hâlâ elle yazılmış tablo (ORD-30'un pano kısmı) | Pano PR'ında (7b) |
 
 ### İçerik: yasal belgeler ve site metinleri (paket 6a)
 
@@ -881,11 +880,8 @@ Açık:
 Karaoke sekmesi ve kaydı ayrı dosyalarda (`karaoke-tab.tsx`, `karaoke-actions.ts`;
 karaoke iade kuralı işi onların üstüne kurulur).
 
-Açık:
-
-| Derece | Bulgu | Neden açık |
-| --- | --- | --- |
-| 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
+Açık kalan yok: kitin yöntemsiz `ActionForm`'u (SS-F1'in kit kısmı) "Formlar:
+sayfa yüklenmeden basılan Enter (FG)" turunda kapandı (`useHandPost`).
 
 ### Sistem: pano ve raporlar (paket 7b)
 
@@ -944,7 +940,7 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Raporlarda tarih aralığı, önceki döneme göre karşılaştırma, dışa aktarma ve kırılımlar (kanal, ödeme, kategori, saat) yok (SYS-17, özellik kısmı) | Ayrı bir özellik işi; gösterilen hiçbir rakam yanlış değil |
+| 🟢 | Raporlarda tarih aralığı, dışa aktarma ve kırılımlar (kanal, ödeme, kategori, saat) yok (SYS-17, özellik kısmı; önceki döneme göre karşılaştırma sonradan geldi: her rakam bir önceki dönemle) | Ayrı bir özellik işi; gösterilen hiçbir rakam yanlış değil |
 
 | 🟢 | Slayt, duyuru ve gönderide süresi dolan içerik için toplu aç/kapa yok (CON-24; sıra 21 Eki 2026'da ↑ / ↓ ile geldi, "Panel: güvenlik ve CRUD turu") | Toplu işlem bu turun dışında |
 
@@ -1704,6 +1700,8 @@ kendi tarafı ayrı oturumda yapılır; yeni alanlar PR gövdelerinde.
 | 🟢 | Karaoke okuması 2000 satırı aşarsa en yakın günleri düşürüyordu | Panel okuması erkenden geçe (`ascending`); kesilen uzak uç (#250) | `api-panel-karaoke-route`, `db-integration-karaoke-prepay` |
 | 🟢 | Online kafe satırları süt, şurup ve ekstra shot seçimini düşürüyordu | `cafe.lines[]` `extraShots`, `milks`, `syrups` (yalnız sıfırdan büyükse) (#247) | `panel-sales-export`, `db-integration-panel-feeds` |
 | 🟢 | Panelin okuduğu Paraşüt kayıtları (site ne açar, iadeyi kim keser) belgede yoktu | `docs/EARSIV.md` §9: site iade / iptal belgesi kesmez; panel gider faturalarını süzmeden okur (iptali listede ve listeden düşen kaydı yeniden okuyarak görür, ikisi de ~75 günlük eşitleme penceresinde; yeniden okuma çalıştırma başına 8) ve gelen e-Faturaları `GET e_invoices`'tan okur, kurumsal alıcının iade e-Faturasını kural 5 ayırır; kategori işareti eklenmedi (nedeni §9.5) (#240) | `earsiv-panel-records` |
+| 🟡 | Panel, kurumsal alıcının gelen iade e-Faturasını (`IADE`) eksi tutarlı gider olarak açıyordu (`TEVKIFATIADE`'yi artı tutarlı) | Panel tarafında kapandı (lafmaliyet #18): gelen `IADE` / `TEVKIFATIADE` e-faturası satış iadesidir, gider olarak alınmaz (`shouldImportEInvoice`, `isSalesReturn`); daha önce alınmış olan, eşitleme penceresinde yeniden görülünce emekliye ayrılır (daha eskisi için panelde "Tarihten eşitle"). Kural `docs/EARSIV.md` §9.4 kural 5 | lafmaliyet `parasut-iade`, `parasut-esitleme-db` |
+| 🟢 | Panel 409 `single_size`'ı "Siteye ulaşılamadı (HTTP 409) … Tekrar dene" diye gösteriyordu (kopyası eskiyken L'ye bağlı ürün tek boy kaleme gidince; tekrar denemek aynı reddi getirir) | Panel tarafında kapandı (lafmaliyet #20): `pushFailureMessage` 409'da kopuk bağlantıyı söyler ("kalemin sitede L fiyatı yok; … bağlantıyı kaldır ya da M (tek) fiyatına bağla"); toplu fiyat değişikliği sıradakilerle sürer | lafmaliyet `site-menusu` |
 
 Açık (operatörün):
 
@@ -1712,5 +1710,3 @@ Açık (operatörün):
 | 🟡 | Vercel'de `DATABASE_URL`'in Preview ortamında da tanımlı olduğu buradan doğrulanamadı | Ortam değişkenleri okunamıyor; derleme denetimi yalnız Production'ı zorlar |
 | 🟢 | Supabase projesi Singapur, fonksiyonlar fra1, Neon us-east-2 | Bölge taşıması ayrı karar; Supabase'in JWT imzası asimetrik değilse `getClaims()` yine `getUser()`'a düşer |
 | 🟢 | İki projenin `PARASUT_COMPANY_ID`'si aynı mı | Değerler okunamıyor (`docs/EARSIV.md` §9) |
-| 🟡 | Panel, kurumsal alıcının gelen iade e-Faturasını (`IADE`) eksi tutarlı gider olarak açar | Panel tarafı (`lafmaliyet`), ayrı oturumda; kural `docs/EARSIV.md` §9.4 kural 5 |
-| 🟢 | Panel 409 `single_size`'ı "Siteye ulaşılamadı" diye gösterir | Panel tarafı, ayrı oturumda; yanıt `docs/PANEL-MENU.md` hata tablosunda |
