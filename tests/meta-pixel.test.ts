@@ -480,6 +480,71 @@ describe("after a yes", () => {
   });
 });
 
+describe("a yes given after the page opened (25 Ekim 2026, live check)", () => {
+  // Most visitors from an ad land on /karaoke and answer the banner after the
+  // page has opened. The page's ViewContent is held in memory for that yes.
+  it("holds the page's ViewContent and sends it after the PageView once the visitor says yes", async () => {
+    const b = browser({ marketing: null, path: "/karaoke" });
+    const { trackPixelForPage, trackPixel, sendHeldPageEvents } = await pixel();
+    expect(trackPixelForPage("ViewContent", karaokeParams(100000, 1))).toBe(
+      false,
+    );
+    // Nothing leaves the browser while it is held.
+    expect(b.scripts).toHaveLength(0);
+    expect(b.win.fbq).toBeUndefined();
+
+    b.jar.set(CONSENT_COOKIE, consentCookie(true));
+    expect(trackPixel("PageView")).toBe(true);
+    expect(sendHeldPageEvents()).toBe(1);
+    const tracked = b.win.fbq!.queue.filter((q) => q[0] === "track");
+    expect(tracked.map((q) => q[1])).toEqual(["PageView", "ViewContent"]);
+    expect(tracked[1][2]).toMatchObject({ value: 1000, num_items: 1 });
+    // Sent once: a second yes (the panel saved again) sends nothing more.
+    expect(sendHeldPageEvents()).toBe(0);
+  });
+
+  it("holds it for a visitor who refused, in case they say yes on this page", async () => {
+    const b = browser({ marketing: false, path: "/magaza/urun/x" });
+    const { trackPixelForPage, sendHeldPageEvents } = await pixel();
+    expect(trackPixelForPage("ViewContent", shopParams([]))).toBe(false);
+    b.jar.set(CONSENT_COOKIE, consentCookie(true));
+    expect(sendHeldPageEvents()).toBe(1);
+  });
+
+  it("drops what was held for a page the visitor has left", async () => {
+    const b = browser({ marketing: null, path: "/karaoke" });
+    const { trackPixelForPage, sendHeldPageEvents } = await pixel();
+    trackPixelForPage("ViewContent", karaokeParams(100000, 1));
+    b.win.location.pathname = "/magaza";
+    b.jar.set(CONSENT_COOKIE, consentCookie(true));
+    expect(sendHeldPageEvents()).toBe(0);
+    expect(b.win.fbq).toBeUndefined();
+  });
+
+  it("holds nothing where the pixel cannot run", async () => {
+    const b = browser({ marketing: null, host: "localhost", path: "/karaoke" });
+    const { trackPixelForPage, sendHeldPageEvents } = await pixel();
+    expect(trackPixelForPage("ViewContent", karaokeParams(100000, 1))).toBe(
+      false,
+    );
+    b.jar.set(CONSENT_COOKIE, consentCookie(true));
+    expect(sendHeldPageEvents()).toBe(0);
+    expect(b.scripts).toHaveLength(0);
+  });
+
+  it("sends at once, and holds nothing, for a visitor who already said yes", async () => {
+    const b = browser({ marketing: true, path: "/karaoke" });
+    const { trackPixelForPage, sendHeldPageEvents } = await pixel();
+    expect(trackPixelForPage("ViewContent", karaokeParams(100000, 1))).toBe(
+      true,
+    );
+    expect(sendHeldPageEvents()).toBe(0);
+    expect(b.win.fbq!.queue.filter((q) => q[1] === "ViewContent")).toHaveLength(
+      1,
+    );
+  });
+});
+
 describe("withdrawing the yes", () => {
   it("revokes consent, deletes _fbp and _fbc on every parent domain, and stops sending", async () => {
     const b = browser({
@@ -672,6 +737,18 @@ describe("the wiring", () => {
     expect(tracker).toContain("revokeMetaPixel()");
     expect(tracker).toContain('a[href^="tel:"]');
     expect(tracker).toContain('trackPixel("Contact")');
+    // The page's view event held for a late yes goes out after the PageView.
+    expect(tracker.indexOf("sendHeldPageEvents();")).toBeGreaterThan(
+      tracker.indexOf('trackPixel("PageView")) {'),
+    );
+    for (const file of [
+      "src/components/laffogato/karaoke-booking.tsx",
+      "src/components/laffogato/product-detail.tsx",
+    ]) {
+      expect(readFileSync(file, "utf8"), file).toMatch(
+        /trackPixelForPage\(\s*"ViewContent"/,
+      );
+    }
   });
 
   it("the loader never injects a script outside trackPixel's checks", () => {

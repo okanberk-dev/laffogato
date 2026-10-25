@@ -7,6 +7,7 @@ import type { ConsentState } from "@/lib/consent/cookie";
 import {
   pixelPageKey,
   revokeMetaPixel,
+  sendHeldPageEvents,
   trackPixel,
 } from "@/lib/consent/meta-pixel";
 import { CONSENT_UPDATED_EVENT } from "@/lib/consent/script";
@@ -19,8 +20,9 @@ import { CONSENT_UPDATED_EVENT } from "@/lib/consent/script";
  *   wizard's step, `pixelPageKey`), sent only while the visitor has said yes
  *   to the marketing category.
  * - The moment the visitor says yes in the banner or the panel, a PageView
- *   for the page they are on; the moment they withdraw it, the pixel is
- *   closed and its cookies removed. Both ride `CONSENT_UPDATED_EVENT`.
+ *   for the page they are on, then the page's own view event if it was held
+ *   for the yes (`trackPixelForPage`); the moment they withdraw it, the pixel
+ *   is closed and its cookies removed. Both ride `CONSENT_UPDATED_EVENT`.
  * - A click on any `tel:` link is a Contact.
  *
  * It renders nothing. `trackPixel` itself refuses on the admin panel, on the
@@ -57,6 +59,7 @@ function RouteTracker() {
       if (sentFor.current !== current.current && trackPixel("PageView")) {
         sentFor.current = current.current;
       }
+      sendHeldPageEvents();
     } else {
       sentFor.current = null;
       revokeMetaPixel();

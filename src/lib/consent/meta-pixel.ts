@@ -455,6 +455,53 @@ export function trackPixel(
   return true;
 }
 
+/**
+ * A page's own view event (ViewContent), held in memory when the visitor has
+ * not said yes yet. Most visitors from an ad land on /karaoke and answer the
+ * banner after the page has opened: without this the yes sent a PageView and
+ * the page's ViewContent was lost for exactly the visitors the ads bring.
+ * Nothing is stored and nothing leaves the browser until the yes; a page
+ * change drops what was held for the page before.
+ */
+let heldForPage: {
+  path: string;
+  events: Array<[PixelEventName, PixelParams | undefined, string | undefined]>;
+} | null = null;
+
+/**
+ * `trackPixel` for an event that belongs to the page on screen: sent now when
+ * it can be, otherwise held until the visitor says yes on this page
+ * (`sendHeldPageEvents`). Refused on a host, document or build where the pixel
+ * cannot run at all.
+ */
+export function trackPixelForPage(
+  event: PixelEventName,
+  params?: PixelParams,
+  eventId?: string,
+): boolean {
+  if (trackPixel(event, params, eventId)) return true;
+  if (!metaPixelAvailable() || metaPixelConsented()) return false;
+  const path = window.location.pathname;
+  if (heldForPage?.path !== path) heldForPage = { path, events: [] };
+  heldForPage.events.push([event, params, eventId]);
+  return false;
+}
+
+/**
+ * Sends what `trackPixelForPage` held, once the visitor has said yes, if they
+ * are still on the page it was held for. Returns how many went out.
+ */
+export function sendHeldPageEvents(): number {
+  const held = heldForPage;
+  heldForPage = null;
+  if (!held || held.path !== window.location.pathname) return 0;
+  let sent = 0;
+  for (const [event, params, eventId] of held.events) {
+    if (trackPixel(event, params, eventId)) sent += 1;
+  }
+  return sent;
+}
+
 const firedThisPage = new Set<string>();
 
 /**
