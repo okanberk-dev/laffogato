@@ -115,8 +115,15 @@ uca, mağaza ürün/sepet adımları).
 
 ## 6. Bilinen sınırlar
 
-- Karaoke `ViewContent`, ziyaretçi onayı sayfa açıldıktan **sonra** verirse
-  gitmez (onay anında yalnız `PageView` gider).
+- Onay sayfa açıldıktan **sonra** verilirse o sayfanın `ViewContent`'i
+  (karaoke ve ürün sayfası) bellekte bekler ve onay anında `PageView`'den
+  hemen sonra gider (`trackPixelForPage`, 25 Ekim 2026; canlı denemede
+  bulundu). Ziyaretçi o arada başka sayfaya geçtiyse bekleyen atılır. Sepete
+  ekleme, ödemeye geçme ve satın alma bekletilmez.
+- Bazı tarayıcı eklentileri ve izleyici engelleyiciler `fbevents.js` ile
+  `facebook.com/tr` adreslerini engeller; bu ziyaretçilerden olay gelmez (25
+  Ekim'deki Chrome profilinde de böyleydi). "Olayları test edin" ekranı için
+  engelleyicisi olmayan bir tarayıcı profili kullan.
 - Mağazada `Purchase` tarayıcı olayıdır: ödeme sayfaya dönülmeden onaylanırsa
   (kullanıcı sekmeyi kapatırsa) gitmez. Sunucu tarafı gönderim (aşağıda)
   bunu kapatır.

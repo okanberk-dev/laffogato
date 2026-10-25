@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-import { shopParams, trackPixel } from "@/lib/consent/meta-pixel";
+import { shopParams, trackPixelForPage } from "@/lib/consent/meta-pixel";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import {
   parsePriceLabel,
@@ -114,11 +114,12 @@ export function ProductDetail({
   const maxQty = stock ?? 99;
 
   // ViewContent for the product on screen (Meta Pixel, marketing consent
-  // only), once per page view; the variant picked later does not repeat it.
+  // only), once per page view, or held for a yes given later on this page;
+  // the variant picked later does not repeat it.
   const viewed = useRef(false);
   const reportView = useEffectEvent(() => {
     if (!p.id) return;
-    trackPixel(
+    trackPixelForPage(
       "ViewContent",
       shopParams([{ id: p.id, name: p.name, quantity: 1, price: unitPrice }]),
     );

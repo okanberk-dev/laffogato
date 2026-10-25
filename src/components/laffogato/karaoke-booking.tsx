@@ -46,6 +46,7 @@ import {
   karaokeParams,
   navigateAfterPixel,
   trackPixel,
+  trackPixelForPage,
 } from "@/lib/consent/meta-pixel";
 import {
   formatReservationDate,
@@ -404,10 +405,12 @@ export function KaraokeBooking({
   }, [pending]);
 
   // ── Meta Pixel (marketing consent only; src/lib/consent/meta-pixel.ts) ──
-  // ViewContent when the page opens, with one hour's price.
+  // ViewContent when the page opens, with one hour's price; held for a yes
+  // given later on this page (most visitors from an ad answer the banner
+  // after the page has opened).
   const viewed = useRef(false);
   const reportView = useEffectEvent(() => {
-    trackPixel("ViewContent", karaokeParams(hourly, 1));
+    trackPixelForPage("ViewContent", karaokeParams(hourly, 1));
   });
   useEffect(() => {
     if (viewed.current) return;
