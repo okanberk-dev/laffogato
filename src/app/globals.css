@@ -4834,6 +4834,22 @@ summary:focus-visible,
 }
 /* An item's own allergens (TGK Etiketleme Yön. m.15/5), under the
    description. Not clamped with it on a phone: an allergen is never cut. */
+/* A dish with a rehber page links to it (menu-guides.ts). Gold text on the
+   white card, the colour the guides already use for their links. */
+.menu-card-guide {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gold);
+  text-decoration: none;
+}
+.menu-card-guide:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .menu-card-allergens {
   margin: 8px 0 0;
   font-size: 12.5px;
@@ -7714,6 +7730,31 @@ select {
   margin-bottom: clamp(32px, 5vw, 48px);
 }
 
+/* The guide's photograph under the header (rehber/[slug]/page.tsx). */
+.guide-hero {
+  margin: calc(-1 * clamp(8px, 2vw, 20px)) 0 clamp(32px, 5vw, 44px);
+}
+.guide-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 18px;
+  background: var(--bg-warm);
+  box-shadow: 0 18px 40px rgba(59, 42, 30, 0.12);
+}
+.guide-hero figcaption {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ink-mute);
+}
+.guide-hero figcaption a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .guide-meta {
   display: flex;
   flex-wrap: wrap;
@@ -7778,6 +7819,19 @@ select {
   line-height: 1.7;
   color: var(--ink-soft);
 }
+/* Tailwind's reset takes every list's marker away: the steps of a recipe were
+   numbered in the text's mind only. */
+.guide-bullets {
+  list-style: disc outside;
+}
+.guide-ordered {
+  list-style: decimal outside;
+}
+.guide-bullets li::marker,
+.guide-ordered li::marker {
+  color: var(--gold);
+  font-weight: 600;
+}
 
 .guide-table-wrap {
   overflow-x: auto;
@@ -7811,6 +7865,51 @@ select {
 }
 .guide-table td {
   color: var(--ink-soft);
+}
+
+.guide-recipe {
+  margin: clamp(36px, 5vw, 52px) 0 0;
+  padding: clamp(22px, 3.4vw, 32px);
+  border: 1px solid var(--ink-line);
+  border-radius: 18px;
+  background: var(--bg-warm);
+  scroll-margin-top: 96px;
+}
+.guide-recipe h2 {
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.8vw, 28px);
+  line-height: 1.25;
+  margin: 8px 0 10px;
+}
+.guide-recipe h3 {
+  font-family: var(--serif);
+  font-size: 18px;
+  margin: 22px 0 10px;
+}
+.guide-recipe-desc {
+  margin: 0 0 16px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+.guide-recipe-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin: 0;
+}
+.guide-recipe-facts dt {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.guide-recipe-facts dd {
+  margin: 2px 0 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.guide-recipe .guide-ordered li {
+  scroll-margin-top: 110px;
 }
 
 .guide-faq {
@@ -7922,6 +8021,24 @@ select {
   border-color: var(--gold);
   transform: translateY(-2px);
 }
+/* The guide's photograph on its hub card: a 3:2 window into the card's top. */
+.guide-card-photo {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 2;
+  margin: calc(-1 * clamp(22px, 3vw, 28px)) calc(-1 * clamp(22px, 3vw, 28px))
+    6px;
+  overflow: hidden;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  background: var(--bg-warm);
+}
+.guide-card-photo img {
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.guide-card:hover .guide-card-photo img {
+  transform: scale(1.03);
+}
 /* Each guide's small drawing (rehber/page.tsx GUIDE_ART). */
 .guide-card-art {
   display: block;
@@ -7949,6 +8066,9 @@ select {
 
 @media (prefers-reduced-motion: reduce) {
   .guide-card:hover {
+    transform: none;
+  }
+  .guide-card:hover .guide-card-photo img {
     transform: none;
   }
 }

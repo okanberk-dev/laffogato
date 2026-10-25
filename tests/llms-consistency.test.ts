@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
+import { GUIDES } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";
 
 /**
@@ -71,6 +72,19 @@ describe("llms.txt tutarlılığı - asistanlara giden veri koddaki gerçekle ay
     for (const f of FILES) {
       expect(f.text, f.name).toContain(String(SITE.geo.latitude));
       expect(f.text, f.name).toContain(String(SITE.geo.longitude));
+    }
+  });
+
+  it("her rehberi bugünkü adı ve özetiyle listeler", () => {
+    // Rehber eklenince ya da adı değişince asistanların okuduğu liste geride
+    // kalmasın: 25 Ekim 2026'da beş rehber eklendi, biri yeniden adlandı.
+    for (const g of GUIDES) {
+      expect(FILES[0].text, g.slug).toContain(
+        `- [${g.title}](/rehber/${g.slug}): ${g.excerpt}\n`,
+      );
+      expect(FILES[1].text, g.slug).toContain(
+        `### ${g.title}\nhttps://laffogato.net/rehber/${g.slug}\n${g.excerpt}\n`,
+      );
     }
   });
 });

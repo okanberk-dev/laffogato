@@ -16,10 +16,15 @@
 Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 
 - [Affogato nedir?](/rehber/affogato-nedir): Affogato, bir top gelatonun üzerine taze espresso dökülerek servis edilen İtalyan tatlısıdır; Türkçede yaygın adıyla dondurmalı kahve. Tanımı, telaffuzu, klasik oranı ve evde yapımı bu rehberde.
+- [Yenilebilir bardakta kahve](/rehber/yenilebilir-kahve-fincani): Sıcak espresso kupanın içindeki soğuk gelatoya değer, ilk yudum ikisini birden getirir; içecek bitince çikolata kaplı waffle duvarı da yenir. Yenilebilir bardağın neyden yapıldığı, neden sızdırmadığı, ne kadar dayandığı, alerjenleri ve evde yapımı.
+- [Tiramisu tarifi](/rehber/tiramisu-tarifi): Kahveye batırılmış kedi dili, mascarpone kreması ve kakaodan kurulan klasik İtalyan tatlısı. Gram gram tarif (20x20 cm kap), dinlenme süresi, mascarpone ve çiğ yumurta yerine seçenekler, sulu kalmasının sebepleri.
 - [Espresso bazlı kahveler](/rehber/espresso-cesitleri): Espresso, ristretto, cortado, flat white, latte ve cappuccino aynı çekirdekten çıkar; farkı süt miktarı, köpük dokusu ve hacim yaratır. Hepsini tek karşılaştırma tablosunda topladık.
 - [Matcha nedir?](/rehber/matcha-nedir): Gölgede yetiştirilen yeşil çay yaprağının taş değirmende öğütülmüş tozu: matcha. Dereceleri, tadının nedenleri, doğru su sıcaklığı ve evde matcha latte tarifi.
+- [Cold brew nedir?](/rehber/cold-brew-nedir): Kaba öğütülmüş kahvenin soğuk suda 12-24 saat demlenmesiyle yapılan, acılığı ve asitlik algısı düşük kahve. Buzlu kahveden farkı, oranlar, evde yapımı, seyreltme ve saklama süresi.
+- [Frappe nedir?](/rehber/frappe-nedir): Frappe, kahvenin buz ve şekerle çalkalanması ya da blenderda çekilmesiyle hazırlanan köpüklü soğuk kahvedir. Adının anlamı, 1957 Selanik hikâyesi, buzlu latteden farkı, evde iki yöntemle tarifi ve sulanmaması için oranlar.
 - [San Sebastian cheesecake](/rehber/san-sebastian-cheesecake): Bask bölgesinden çıkan, tabansız, yüksek sıcaklıkta pişen, üstü bilerek yanık ortası akışkan cheesecake. Oranlar, fırın ayarı, adım adım tarif ve sık yapılan hatalar.
-- [Yenilebilir kahve fincanı](/rehber/yenilebilir-kahve-fincani): Waffle hamurundan pişirilen, iç yüzeyi çikolatayla kaplanan ve içecek bittikten sonra yenen fincan. Nasıl sızdırmaz kaldığı, ne kadar dayandığı, alerjenleri ve evde yapımı.
+- [Spanish latte nedir?](/rehber/spanish-latte-nedir): Espresso, şekerli yoğunlaştırılmış süt ve sütle yapılan tatlı, kremamsı bir latte: spanish latte. İçeriği ve oranları, latteden farkı, sıcak ve buzlu tarifi, evde yoğunlaştırılmış süt yapımı bu rehberde.
+- [Chai tea latte nedir?](/rehber/chai-tea-latte): Baharatlarla demlenmiş siyah çayın köpürtülmüş sütle buluştuğu içecek: chai tea latte. İçindekiler, baharatların tadı, kafein, masala chai ile farkı ve bütün baharatla evde tarifi.
 
 ## Yasal Kimlik
 
@@ -41,7 +46,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita
 - [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga) ve arkadaş davet ödülü
 - [Karaoke](/karaoke): Köşkün üst katındaki özel karaoke odası; saati 1.000₺, sekiz kişiye kadar, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir, kartla ödeme alınınca kesinleşir
-- [Rehber](/rehber): Affogato, espresso çeşitleri, matcha ve yenilebilir fincan üzerine yazılar
+- [Rehber](/rehber): Affogato, yenilebilir bardakta kahve, tiramisu, espresso çeşitleri, matcha, cold brew, frappe, San Sebastian cheesecake, spanish latte ve chai tea latte üzerine rehberler ve tarifler
 
 ## Uygulama ve Üyelik
 

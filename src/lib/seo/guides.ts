@@ -11,13 +11,22 @@
  *   matcha-nedir              ~53.000/ay  (matcha nedir 27.1k · matcha latte 12.1k)
  *   espresso-cesitleri        ~78.000/ay  (flat white 27.1k · türk kahvesi 27.1k · cortado 22.2k)
  *   san-sebastian-cheesecake  ~18.000/ay
- *   yenilebilir-kahve-fincani    ~800/ay  (küçük, ama imza ürün ve rakipsiz)
+ *   yenilebilir-kahve-fincani    ~600/ay  (yenilebilir bardak 320 · fincan 210; imza ürün)
+ *   tiramisu-tarifi          ~200.000/ay (tiramisu 135k · tiramisu tarifi 74k)
+ *   cold-brew-nedir           ~28.000/ay  (cold brew 18.1k · nedir 3.6k · tarifi 2.4k)
+ *   frappe-nedir              ~28.000/ay  (frappe 18.1k · nedir 5.4k · nasıl yapılır 1.9k)
+ *   spanish-latte-nedir       ~14.000/ay  (spanish latte 6.6k · nedir 5.4k)
+ *   chai-tea-latte            ~13.000/ay  (chai tea latte 8.1k · chai latte 1.6k)
  *
  * Content lives in `guide-content.ts` as plain data so it can move to the
  * database later without touching the route.
  */
 
-import { GUIDE_CONTENT, type GuideSource } from "./guide-content";
+import {
+  GUIDE_CONTENT,
+  type GuideImage,
+  type GuideSource,
+} from "./guide-content";
 
 export interface GuideSection {
   heading: string;
@@ -34,6 +43,8 @@ export interface GuideRecipe {
   yield: string;
   ingredients: string[];
   steps: string[];
+  category: string;
+  cuisine: string;
 }
 
 export interface Guide {
@@ -50,17 +61,26 @@ export interface Guide {
   faq: { q: string; a: string }[];
   recipe?: GuideRecipe;
   related: string[];
+  image?: GuideImage;
 }
 
-export type { GuideSource };
+export type { GuideImage, GuideSource };
 
-/** Publication order - the hub lists them by how much they can win. */
+/**
+ * Hub order: the house's own two first (the affogato and the edible cup it
+ * is served in), then by how much each can win in search.
+ */
 const ORDER = [
   "affogato-nedir",
-  "matcha-nedir",
-  "espresso-cesitleri",
-  "san-sebastian-cheesecake",
   "yenilebilir-kahve-fincani",
+  "tiramisu-tarifi",
+  "espresso-cesitleri",
+  "matcha-nedir",
+  "cold-brew-nedir",
+  "frappe-nedir",
+  "san-sebastian-cheesecake",
+  "spanish-latte-nedir",
+  "chai-tea-latte",
 ];
 
 function rank(slug: string): number {

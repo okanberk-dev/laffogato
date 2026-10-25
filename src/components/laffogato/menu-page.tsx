@@ -11,6 +11,7 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { Illustration } from "./illustration";
 import { PageHero } from "./page-hero";
 import { MENU } from "./data";
+import { menuItemGuide } from "./menu-guides";
 import { MenuPhotoNote } from "./menu-photo-note";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
@@ -246,6 +247,7 @@ export function PageMenu({ menu, settings }: PageProps) {
                   // once the panel has them. Never clamped like the
                   // description: an allergen is not cut to fit.
                   const allergens = menuAllergenWords(it.allergens);
+                  const guide = menuItemGuide(it.name);
                   return (
                     <article
                       className="rail-card"
@@ -273,6 +275,17 @@ export function PageMenu({ menu, settings }: PageProps) {
                             {it.name}
                           </h3>
                           <p className="rail-card-desc">{it.desc}</p>
+                          {guide && (
+                            <Link
+                              href={`/rehber/${guide}`}
+                              className="menu-card-guide"
+                            >
+                              Rehberde oku
+                              <span className="arrow" aria-hidden="true">
+                                →
+                              </span>
+                            </Link>
+                          )}
                           {allergens && (
                             <p className="menu-card-allergens">
                               <span className="menu-card-allergens-key">

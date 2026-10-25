@@ -7,12 +7,48 @@
  *  - `Recipe` - only where the guide really is a recipe (affogato, matcha latte,
  *    cheesecake). A `Recipe` on a comparison page would be a false claim, so
  *    `espresso-cesitleri` deliberately emits none.
+ *
+ * The recipe is also printed on the page (the "Tarif" card in
+ * `src/app/rehber/[slug]/page.tsx`): Google reads structured data that
+ * describes content a reader cannot see as spam, and until 25 Ekim 2026 the
+ * ingredients and steps lived only here. Search Console also refused all
+ * three recipes for a missing `image`.
  */
 
 import type { Guide } from "./guides";
 import { SITE } from "./site";
 
 type Json = Record<string, unknown>;
+
+/** The guide's own link-preview card, drawn at build time. */
+function guideCardUrl(guide: Guide): string {
+  return `${SITE.url}/rehber/${guide.slug}/opengraph-image`;
+}
+
+/**
+ * The images a guide's Recipe and Article carry, best first: the photograph
+ * of the dish (Google wants a real image of it on a recipe), then the card.
+ */
+export function guideImages(guide: Guide): string[] {
+  return [
+    ...(guide.image ? [`${SITE.url}${guide.image.src}`] : []),
+    guideCardUrl(guide),
+  ];
+}
+
+/**
+ * The publisher, spelled out: a bare `@id` pointing at the home page's
+ * Organization node is not resolved on a guide page, and Search Console
+ * reported the recipes' `author` as an invalid object type.
+ */
+function organization(): Json {
+  return {
+    "@type": "Organization",
+    "@id": `${SITE.url}/#organization`,
+    name: SITE.name,
+    url: SITE.url,
+  };
+}
 
 /** Flatten a guide's prose into the plain-text body an Article should carry. */
 function articleBody(guide: Guide): string {
@@ -42,9 +78,9 @@ export function guideArticleLd(guide: Guide): Json {
     // know, so it stands for both rather than inventing a first-published one.
     datePublished: guide.updatedAt,
     dateModified: guide.updatedAt,
-    author: { "@id": `${SITE.url}/#organization` },
-    publisher: { "@id": `${SITE.url}/#organization` },
-    image: `${SITE.url}${SITE.ogImage}`,
+    author: organization(),
+    publisher: organization(),
+    image: guideImages(guide),
     keywords: guide.keywords.join(", "),
     wordCount: articleBody(guide).split(/\s+/).length,
     articleSection: "Rehber",
@@ -66,20 +102,28 @@ export function guideFaqLd(guide: Guide): Json | null {
   };
 }
 
+/** The anchor of a recipe step on the page (`#tarif-adim-3`). */
+export function recipeStepId(index: number): string {
+  return `tarif-adim-${index + 1}`;
+}
+
 export function guideRecipeLd(guide: Guide): Json | null {
   const r = guide.recipe;
   if (!r) return null;
+  const url = `${SITE.url}/rehber/${guide.slug}`;
   return {
     "@context": "https://schema.org",
     "@type": "Recipe",
-    "@id": `${SITE.url}/rehber/${guide.slug}#recipe`,
+    "@id": `${url}#recipe`,
     name: r.name,
     description: r.description,
+    image: guideImages(guide),
     inLanguage: SITE.language,
-    author: { "@id": `${SITE.url}/#organization` },
+    author: organization(),
     datePublished: guide.updatedAt,
-    recipeCategory: "İçecek",
-    recipeCuisine: "İtalyan",
+    keywords: guide.keywords.join(", "),
+    recipeCategory: r.category,
+    recipeCuisine: r.cuisine,
     // ISO-8601 duration; only prep is known, so totalTime mirrors it rather
     // than inventing a cook time.
     prepTime: `PT${r.prepMinutes}M`,
@@ -90,6 +134,8 @@ export function guideRecipeLd(guide: Guide): Json | null {
       "@type": "HowToStep",
       position: i + 1,
       text: step,
+      // Each step is a list item with this id on the page.
+      url: `${url}#${recipeStepId(i)}`,
     })),
   };
 }
@@ -133,7 +179,7 @@ export function guideHubLd(guides: Guide[]): Json {
         "@id": `${url}#collection`,
         name: "Rehber",
         description:
-          "Affogato, matcha, espresso çeşitleri, San Sebastian cheesecake ve yenilebilir kahve fincanı üzerine ayrıntılı Türkçe rehberler.",
+          "Tiramisu, cold brew, frappe, spanish latte, chai tea latte, affogato, matcha, espresso çeşitleri, San Sebastian cheesecake ve yenilebilir bardakta kahve üzerine ayrıntılı Türkçe rehberler.",
         inLanguage: SITE.language,
         url,
         isPartOf: { "@id": `${SITE.url}/#website` },

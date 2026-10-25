@@ -8,8 +8,13 @@
  */
 export const GUIDE_LINKS = [
   { slug: "affogato-nedir", title: "Affogato nedir?" },
-  { slug: "matcha-nedir", title: "Matcha nedir?" },
+  { slug: "yenilebilir-kahve-fincani", title: "Yenilebilir bardakta kahve" },
+  { slug: "tiramisu-tarifi", title: "Tiramisu tarifi" },
   { slug: "espresso-cesitleri", title: "Espresso bazlı kahveler" },
+  { slug: "matcha-nedir", title: "Matcha nedir?" },
+  { slug: "cold-brew-nedir", title: "Cold brew nedir?" },
+  { slug: "frappe-nedir", title: "Frappe nedir?" },
   { slug: "san-sebastian-cheesecake", title: "San Sebastian cheesecake" },
-  { slug: "yenilebilir-kahve-fincani", title: "Yenilebilir kahve fincanı" },
+  { slug: "spanish-latte-nedir", title: "Spanish latte nedir?" },
+  { slug: "chai-tea-latte", title: "Chai tea latte nedir?" },
 ] as const;

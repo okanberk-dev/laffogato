@@ -161,9 +161,17 @@ yüksek hacimli ve **düşük zorlukta** olmasıydı. `/rehber` bu boşluğu kap
 | `matcha-nedir`              | matcha nedir · matcha latte · matcha faydaları · matcha nasıl yapılır              | ~53.000     | 13-25 |
 | `espresso-cesitleri`        | flat white · türk kahvesi · cortado · espresso nedir                               | ~78.000     | 14-38 |
 | `san-sebastian-cheesecake`  | san sebastian cheesecake                                                           | ~18.000     | 20    |
-| `yenilebilir-kahve-fincani` | yenilebilir kahve fincanı/bardak                                                   | ~800        | 17-35 |
+| `yenilebilir-kahve-fincani` | **yenilebilir bardak** (320) · yenilebilir kahve fincanı (210) · bardak yapımı     | ~600        | 28-30 |
+| `tiramisu-tarifi`           | tiramisu (135.000) · tiramisu tarifi (74.000) · kedi dili tiramisu (22.200)        | ~200.000    | 25-39 |
+| `cold-brew-nedir`           | cold brew (18.100) · cold brew nedir (3.600) · nasıl yapılır / tarifi (2.400)      | ~28.000     | 14-28 |
+| `frappe-nedir`              | frappe (18.100) · frappe nedir (5.400) · nasıl yapılır (1.900) · tarifi (1.300)    | ~28.000     | 13-26 |
+| `spanish-latte-nedir`       | spanish latte (6.600) · spanish latte nedir (5.400) · tarifi · içeriği · iced      | ~14.000     | 15-19 |
+| `chai-tea-latte`            | chai tea latte (8.100) · chai latte (1.600) · tarifi (1.300) · içindekiler         | ~13.000     | 12-21 |
 
-**Neden bu beşi:** hepsi menüde gerçekten olan bir ürüne bağlanıyor. Satmadığımız
+Semrush, TR veritabanı; ilk beşi Eylül 2026, son beşi 25 Ekim 2026'da
+ölçüldü.
+
+**Neden bunlar:** hepsi menüde gerçekten olan bir ürüne bağlanıyor. Satmadığımız
 bir şey için içerik üretmiyoruz - arama trafiği ile ticari niyet arasında bağ
 kurulamayan sayfa, sıralansa bile işe yaramaz.
 
@@ -174,6 +182,68 @@ kurulamayan sayfa, sıralansa bile işe yaramaz.
    açıkça yazılır.
 2. `matcha` çok sık **"macha"** (8.100/ay) ve **"maça"** (3.600/ay) olarak
    yazılıyor. Bu yazımlar metinde bir kez, doğal biçimde geçer.
+
+### Search Console ne diyor (25 Ekim 2026)
+
+- En çok gösterim alan rehber San Sebastian cheesecake (3 ayda ~5.600
+  gösterim, ortalama 6. sıra). Gösterimleri pratik soru sorguları taşıyor:
+  "kaç derecede pişer", "kaç saat dinlenmeli", "cheesecake ile farkı",
+  "neden çöker", "kaç gün dayanır". Yeni rehberler bu kalıpta yazıldı:
+  doğrudan tanım, sorgu biçiminde H2'ler, sayılar, tablo, sık hatalar,
+  saklama, tarif ve yoğun SSS.
+- Matcha latte sorguları ("tadı nasıl", "içinde ne var", "matcha latte
+  nedir") 10-20. sıradaydı ve `matcha-nedir` zaten bir matcha latte tarifi
+  taşıyor. Ayrı bir matcha latte sayfası iki sayfamızı aynı sorguda
+  yarıştırırdı; açılmadı.
+- "Yemek tarifleri" raporu üç tarifi de reddediyordu: `image` eksikti, tarif
+  sayfada görünmüyordu (yalnız JSON-LD'deydi), `author` yalın bir `@id`
+  idi. Üçü de düzeldi (`guide-structured-data.ts`, `rehber/[slug]/page.tsx`
+  "Tarif" kartı); dağıtımdan sonra raporda "Düzeltmeyi doğrula" denir.
+- "Kedi dili tiramisu" gibi alt kümeler kendi rehberlerinin içinde
+  karşılanıyor, ayrı sayfa açılmadı. Yeni bir rehber açmadan önce bu tablo
+  güncel Search Console verisiyle yeniden okunmalı.
+
+### Rehber fotoğrafları
+
+- Her rehberin bir fotoğrafı var: `public/rehber/<slug>.webp`, 3:2, sayfanın
+  başında (`priority`), hub kartında, Article/Recipe JSON-LD'sinde, paylaşım
+  kartında (`og-pages.tsx` `GUIDE_PICTURES`, literal yol) ve site haritasında
+  (`images`). `tests/rehber-seo.test.ts` tutar.
+- **Önce kendi fotoğrafımız.** Affogato ve yenilebilir bardak köşkte çekilmiş
+  fotoğraflardan kırpıldı. Diğerleri Unsplash'ta yalnız ücretsiz "Unsplash
+  License" taşıyan (Unsplash+ olmayan) fotoğraflardan seçildi; lisans
+  ticari kullanıma ve düzenlemeye izin veriyor, ad zorunlu değil ama
+  sayfada fotoğrafçının adı ve fotoğrafın bağlantısı yazılı (`credit`).
+- Hepsi aynı ev görünümünden geçer, kimin çektiği fark etmez:
+  `npm run seo:photo -- <fotoğraf> <slug> [--unsplash "Ad Soyad"] [--crop sol,üst,genişlik,yükseklik]`
+  (`scripts/guide-photo.mjs`). Dikkat noktasına göre 3:2 kırpma, 1600 x 1067
+  (1600 pikselden dar kaynakta 1200 x 800), yumuşak S eğrisi, mat siyahlar,
+  gölgelerde markanın kakao tonu (`rgba(59, 42, 30)`), ışıklarda porselen
+  krem, hafif vinyet, WebP q80. Fotoğrafçının adı dosyanın içine de yazılır
+  (XMP: IPTC Creator, Credit Line, stokta lisansın adresi); Google Görseller
+  bunu görselin yanında gösterir. Kendi fotoğrafımızda ikisi de L'Affogato.
+  Yeni fotoğraf aynı adla konursa sayfa, kart ve site haritası kendiliğinden
+  onu kullanır.
+- **Sıralamada asıl farkı kendi fotoğraflarımız yaratır.** Renk düzenlemesi
+  bir stok fotoğrafı Google için özgün yapmaz; Google görseli tanır. Köşkte
+  gün ışığında çekilecek tiramisu, cold brew, frappe, İspanyol latte, chai
+  latte, matcha latte, espresso ve San Sebastian fotoğrafları stokların
+  yerine konmalı (aynı dosya adı, `credit` silinir).
+
+### IndexNow (Bing, Yandex ve diğerleri)
+
+Google dışındaki büyük motorlar IndexNow ile haber alır; hesap gerekmez.
+Anahtar `public/45eddf5af665eb07607713cd177afc06.txt` dosyasında yayımlanır
+(açık olması tasarım gereği). Sayfa ekleyen ya da metni değişen bir
+dağıtımdan sonra:
+
+```
+npm run seo:indexnow                    # canlı site haritasındaki her adres
+npm run seo:indexnow -- /rehber/x /menu  # yalnız bunlar
+```
+
+Google için Search Console'da "URL denetimi → Dizine eklenmesini iste" ve
+site haritası.
 
 ### Yeni rehber eklerken
 
@@ -217,8 +287,20 @@ yanı" - insanlar tarifi böyle veriyor).
 - Google Business Profile kaydı - NAP birebir `site.ts` ile aynı olmalı.
 - Apple Business Connect, Yandex İşletmem.
 - Foursquare / TripAdvisor / Zomato tutarlılığı.
-- Google Search Console + Bing Webmaster doğrulaması → token'ları
-  `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` vb. env değişkenlerine gir.
+- Google Search Console: `laffogato.net` alan adı mülkü DNS TXT kaydıyla
+  (Vercel DNS) doğrulandı; bizimfutbol9 ve okanberk16 hesapları sahip.
+  Site haritası hem `https://laffogato.net/sitemap.xml` hem eski
+  `https://www.laffogato.net/sitemap.xml` (308 ile ana adrese gider) olarak
+  gönderili. Bing Webmaster ve Yandex Webmaster hesapları yok: Bing'de
+  "Google Search Console'dan içe aktar" iki tıklamadır; ikisine de dizine
+  ekleme IndexNow ile gider.
+- **Ad-adres-telefon tutarsızlığı (25 Ekim 2026, açık):** site "Postane Mah.
+  Atatürk Cad. No: 28 İç Kapı No: 1" ve +90 536 429 09 19 diyor; Google
+  İşletme Profili "29 Ekim Cd. No: 28" ve 0543 412 33 80; Yandex Haritalar
+  "Atatürk Cad. 26" ve +90 543 412 33 80. Yerel aramada üçünün aynı olması
+  gerekir. Doğrusu operatör kararıdır (adres değişikliği Google'da yeniden
+  doğrulama isteyebilir); karar verilince site `site.ts` / Ayarlar, profil
+  ve Yandex aynı satıra getirilir.
 
 ---
 

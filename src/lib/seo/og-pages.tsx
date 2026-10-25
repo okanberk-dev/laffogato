@@ -57,6 +57,37 @@ const PICTURES = {
   story: () => readFile(join(process.cwd(), "public/photos/facade-day.webp")),
 };
 
+/**
+ * Each guide's photograph (public/rehber/), by literal path for the reason
+ * PICTURES gives. A guide without an entry gets the mark.
+ */
+const GUIDE_PICTURES: Record<string, () => Promise<Uint8Array>> = {
+  "affogato-nedir": () =>
+    readFile(join(process.cwd(), "public/rehber/affogato-nedir.webp")),
+  "matcha-nedir": () =>
+    readFile(join(process.cwd(), "public/rehber/matcha-nedir.webp")),
+  "espresso-cesitleri": () =>
+    readFile(join(process.cwd(), "public/rehber/espresso-cesitleri.webp")),
+  "san-sebastian-cheesecake": () =>
+    readFile(
+      join(process.cwd(), "public/rehber/san-sebastian-cheesecake.webp"),
+    ),
+  "yenilebilir-kahve-fincani": () =>
+    readFile(
+      join(process.cwd(), "public/rehber/yenilebilir-kahve-fincani.webp"),
+    ),
+  "tiramisu-tarifi": () =>
+    readFile(join(process.cwd(), "public/rehber/tiramisu-tarifi.webp")),
+  "cold-brew-nedir": () =>
+    readFile(join(process.cwd(), "public/rehber/cold-brew-nedir.webp")),
+  "frappe-nedir": () =>
+    readFile(join(process.cwd(), "public/rehber/frappe-nedir.webp")),
+  "spanish-latte-nedir": () =>
+    readFile(join(process.cwd(), "public/rehber/spanish-latte-nedir.webp")),
+  "chai-tea-latte": () =>
+    readFile(join(process.cwd(), "public/rehber/chai-tea-latte.webp")),
+};
+
 async function photoArt(
   read: () => Promise<Uint8Array>,
   width: number,
@@ -217,7 +248,7 @@ export function guideHubCard(): ReactElement {
       eyebrow="Rehber"
       title="Kahve ve tatlı rehberi"
       subtitle="Barın mutfağından, Türkçe"
-      detail="Affogato · Matcha · Espresso · Cheesecake"
+      detail="Tiramisu · Cold brew · Frappe · Matcha · Affogato"
       path="/rehber"
       {...MARK_ART}
     />
@@ -230,14 +261,15 @@ function guideLine(excerpt: string): string {
   return ogText(first, 120).replace(/[.;]$/, "");
 }
 
-export function guideCard(guide: Guide): ReactElement {
+export async function guideCard(guide: Guide): Promise<ReactElement> {
+  const picture = GUIDE_PICTURES[guide.slug];
   return (
     <OgPageCard
       eyebrow={`Rehber · ${guide.readingMinutes} dk okuma`}
       title={ogText(guide.title, 60)}
       detail={guideLine(guide.excerpt)}
       path={`/rehber/${guide.slug}`}
-      {...MARK_ART}
+      {...(picture ? await photoArt(picture, SQUARE, SQUARE) : MARK_ART)}
     />
   );
 }

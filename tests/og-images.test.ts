@@ -134,6 +134,8 @@ const PHOTO_CARDS = new Set([
   "ziyaret/opengraph-image.tsx",
   "hikayemiz/opengraph-image.tsx",
   "magaza/urun/[slug]/opengraph-image.tsx",
+  // 25 Ekim 2026: every guide's card carries its photograph.
+  "rehber/[slug]/opengraph-image.tsx",
 ]);
 
 async function load(file: string): Promise<ImageModule> {
@@ -259,7 +261,8 @@ describe("the page cards' copy", () => {
       pages.guideHubCard(),
       ...MENU_CATEGORY_ROUTES.map(pages.menuCategoryCard),
       ...SHOP_CATEGORY_ROUTES.map(pages.shopCategoryCard),
-      ...GUIDES.map(pages.guideCard),
+      // A guide's card carries its photograph, read from public/rehber/.
+      ...(await Promise.all(GUIDES.map(pages.guideCard))),
     ];
     for (const card of cards) {
       const props = card.props as Record<string, unknown>;
