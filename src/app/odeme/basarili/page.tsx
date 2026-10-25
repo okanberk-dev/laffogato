@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatTRY } from "@/components/admin/forms";
+import { PixelConversion } from "@/components/laffogato/pixel-events";
 import { getOrder } from "@/lib/admin/store";
+import { orderConversion } from "@/lib/consent/meta-pixel";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { memberMaySeeOrder } from "@/lib/customer/member-order-visibility";
 
@@ -53,9 +55,17 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
   // there yet.
   const listed = memberMaySeeOrder(order);
 
+  // The Meta Pixel's Purchase, once and only for a visitor who consented, and
+  // only for an order whose payment is confirmed (`listed` leaves out
+  // "pending_payment": that page says the bank is still being asked).
+  const conversion = listed ? orderConversion(order) : null;
+
   return (
     <div className="order-done">
       <ClearCart />
+      {conversion && conversion.events.length > 0 ? (
+        <PixelConversion {...conversion} />
+      ) : null}
       <div className="order-done-card">
         <div className="order-done-head">
           <span

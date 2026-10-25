@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CONSENT_COOKIE, CONSENT_VERSION } from "@/lib/consent/cookie";
+
 /**
  * The web `/karaoke` form (operator, 16 Eki 2026): paid online, open to
  * guests without an account, and never without the three separate boxes.
@@ -12,6 +14,8 @@ const h = vi.hoisted(() => ({
   customer: null as null | Record<string, unknown>,
   prepay: true,
   cookies: [] as Array<Record<string, unknown>>,
+  /** The request's cookies, by name: what `cookies().get` reads. */
+  jar: {} as Record<string, string>,
   redirected: null as string | null,
 }));
 
@@ -20,6 +24,8 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "user-agent": "Mozilla/5.0 test" }),
   cookies: async () => ({
     set: (c: Record<string, unknown>) => h.cookies.push(c),
+    get: (name: string) =>
+      name in h.jar ? { name, value: h.jar[name] } : undefined,
   }),
 }));
 vi.mock("next/navigation", () => ({
@@ -93,6 +99,7 @@ function held(overrides: Record<string, unknown> = {}) {
       customerEmail: "eda@ornek.com",
       contactEmail: "eda@ornek.com",
       guest: false,
+      totalMinor: 150000,
       ...overrides,
     },
     payment: {
@@ -123,6 +130,7 @@ beforeEach(() => {
   };
   h.prepay = true;
   h.cookies.length = 0;
+  h.jar = {};
   h.redirected = null;
 });
 
@@ -253,6 +261,95 @@ describe("a member's paid booking", () => {
       "Seçtiğin saatler dolu. Başka bir saat dene.",
     );
     expect(h.redirected).toBeNull();
+  });
+});
+
+/** The banner's cookie, as the browser sends it. */
+function consentCookie(marketing: boolean, version = CONSENT_VERSION): string {
+  return encodeURIComponent(
+    JSON.stringify({
+      version,
+      decidedAt: "2026-10-25T10:00:00.000Z",
+      preferences: false,
+      analytics: false,
+      marketing,
+    }),
+  );
+}
+
+describe("the Meta Pixel's InitiateCheckout (25 Ekim 2026)", () => {
+  it("hands the card page's address back, instead of redirecting, to a visitor who consented", async () => {
+    h.jar[CONSENT_COOKIE] = consentCookie(true);
+    h.bookKaraoke.mockResolvedValue(held());
+    const state = await submit(MEMBER);
+    expect(h.redirected).toBeNull();
+    expect(state).toEqual({
+      checkout: {
+        id: "krk-00042",
+        valueMinor: 150000,
+        hours: 2,
+        continueTo: "https://laffogato.net/odeme/paynkolay?d=abc&s=def",
+      },
+    });
+  });
+
+  it("still remembers a guest's booking for the bank's return", async () => {
+    h.customer = null;
+    h.jar[CONSENT_COOKIE] = consentCookie(true);
+    h.bookKaraoke.mockResolvedValue(held({ guest: true }));
+    const state = await submit(GUEST);
+    expect(state?.checkout?.id).toBe("krk-00042");
+    expect(h.cookies).toHaveLength(1);
+    expect(h.cookies[0]).toMatchObject({ name: "laffogato_karaoke_link" });
+  });
+
+  it("redirects exactly as before without a recorded choice", async () => {
+    h.bookKaraoke.mockResolvedValue(held());
+    expect(await submit(MEMBER)).toBeNull();
+    expect(h.redirected).toBe(
+      "https://laffogato.net/odeme/paynkolay?d=abc&s=def",
+    );
+  });
+
+  it("redirects for a visitor who refused marketing", async () => {
+    h.jar[CONSENT_COOKIE] = consentCookie(false);
+    h.bookKaraoke.mockResolvedValue(held());
+    expect(await submit(MEMBER)).toBeNull();
+    expect(h.redirected).toBe(
+      "https://laffogato.net/odeme/paynkolay?d=abc&s=def",
+    );
+  });
+
+  it("redirects when the yes was recorded under another version of the panel", async () => {
+    h.jar[CONSENT_COOKIE] = consentCookie(true, CONSENT_VERSION - 1);
+    h.bookKaraoke.mockResolvedValue(held());
+    expect(await submit(MEMBER)).toBeNull();
+    expect(h.redirected).toBe(
+      "https://laffogato.net/odeme/paynkolay?d=abc&s=def",
+    );
+  });
+
+  it("a zero total has no checkout to report: straight to the booking", async () => {
+    h.jar[CONSENT_COOKIE] = consentCookie(true);
+    h.bookKaraoke.mockResolvedValue({
+      ...held({ paymentStatus: "paid" }),
+      payment: null,
+    });
+    expect(await submit(MEMBER)).toBeNull();
+    expect(h.redirected).toBe("/uye/hesap/karaoke/krk-00042?odeme=basarili");
+  });
+
+  it("a refusal is the form's error either way", async () => {
+    h.jar[CONSENT_COOKIE] = consentCookie(true);
+    h.bookKaraoke.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "slot_taken",
+      message: "Seçtiğin saatler dolu. Başka bir saat dene.",
+    });
+    expect(await submit(MEMBER)).toEqual({
+      error: "Seçtiğin saatler dolu. Başka bir saat dene.",
+    });
   });
 });
 

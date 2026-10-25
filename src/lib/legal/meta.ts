@@ -89,6 +89,37 @@ export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
 export const GOOGLE_TAGS_IN_LEGAL_TEXTS = false;
 
 /**
+ * Whether the legal texts describe the Meta Pixel as running on the site
+ * (reklam ölçümü ve yeniden hedefleme; Meta Platforms Ireland Ltd.).
+ *
+ * TASLAK (25 Ekim 2026): the wording in the Çerez Politikası, the KVKK
+ * Aydınlatma Metni and the other documents that spoke of "no ad tags" is a
+ * draft that waits for the lawyer's reading (docs/META-PIXEL.md, LEGAL-REDLINES
+ * §32). Unlike Google's tags (above), the pixel does not rest on a standard
+ * contract: the transfer it makes is put on the visitor's explicit consent,
+ * given in the cookie panel and withdrawn from the same panel. Whether that
+ * basis stands is the lawyer's call, not this flag's.
+ *
+ * `metaPixelId` (src/lib/consent/meta-pixel.ts) loads the pixel only while
+ * this is true, so an id left in the environment cannot bring it back under
+ * texts that say there is none. It also moves the cookie consent version
+ * (`consentVersionFor`, src/lib/consent/cookie.ts): a visitor who answered
+ * the banner before the pixel existed is asked again for the marketing
+ * category. Setting `NEXT_PUBLIC_META_PIXEL_ID` to an empty string switches
+ * the pixel off without a code change.
+ */
+export const META_PIXEL_IN_LEGAL_TEXTS = true;
+
+/**
+ * The day the Meta Pixel passages entered the four documents that speak of
+ * cookies and tags (Çerez Politikası, KVKK Aydınlatma Metni, Gizlilik
+ * Politikası, Açık Rıza Metni; LEGAL-REDLINES §35). They carry it as their own
+ * `updatedAt`: the set's revision (`LEGAL_UPDATED`) is the version a checkout
+ * consent records, and none of the checkout documents changed.
+ */
+export const META_PIXEL_LEGAL_UPDATED = "25 Ekim 2026";
+
+/**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
  * sona eklenir, böylece yeni kategori eklemek burayı güncellemeyi zorunlu
  * kılmaz.

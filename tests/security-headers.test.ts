@@ -82,11 +82,14 @@ describe("security headers", () => {
     expect(matches(CSP_SOURCE, "/odeme")).toBe(false);
   });
 
-  it("confines scripts to this origin and Google Tag Manager", async () => {
+  it("confines scripts to this origin, Google Tag Manager and the Meta Pixel", async () => {
     const csp = (await headerMap())["Content-Security-Policy"];
     const scriptSrc = csp.split("; ").find((d) => d.startsWith("script-src "))!;
     expect(scriptSrc).toContain("'self'");
     expect(scriptSrc).toContain("https://www.googletagmanager.com");
+    // fbevents.js (25 Ekim 2026): that one host, never a wildcard.
+    expect(scriptSrc).toContain("https://connect.facebook.net");
+    expect(scriptSrc).not.toMatch(/facebook\.com/);
     // The whole point: no wildcard host and no bare scheme may serve script.
     const sources = scriptSrc.split(/\s+/).slice(1);
     expect(sources).not.toContain("https:");
@@ -132,6 +135,17 @@ describe("security headers", () => {
     const connect = csp.split("; ").find((d) => d.startsWith("connect-src "))!;
     expect(connect).toContain("'self'");
     expect(connect).not.toMatch(/connect-src[^;]*\shttps:(\s|$)/);
+  });
+
+  it("lets the Meta Pixel report to Meta and nowhere else new", async () => {
+    const csp = (await headerMap())["Content-Security-Policy"];
+    const connect = csp.split("; ").find((d) => d.startsWith("connect-src "))!;
+    expect(connect).toContain("https://www.facebook.com");
+    expect(connect).toContain("https://connect.facebook.net");
+    expect(connect).not.toMatch(/\*\.facebook/);
+    // The pixel's beacon is an image request: img-src already admits https:,
+    // and was left alone.
+    expect(csp).toContain("img-src 'self' data: blob: https:");
   });
 
   it("sends HSTS, nosniff and a framing rule", async () => {

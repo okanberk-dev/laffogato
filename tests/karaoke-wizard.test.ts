@@ -449,9 +449,10 @@ describe("a refused booking", () => {
   it("keeps the typed values for a refresh: the draft is written again after a refusal", () => {
     // Cleared when the booking is sent, written back when the answer is a
     // refusal (`state` is a new object with each answer), never after one
-    // that was taken.
+    // that was taken - a request to the köşk (`booked`) or a hold on its way
+    // to the card page (`checkout`, 25 Ekim 2026).
     expect(src).toMatch(
-      /if \(!s\.enhanced \|\| state\.booked\) return;[\s\S]{0,400}?\}, \[s\.enhanced, s\.draft, date, asked, state\]\);/,
+      /if \(!s\.enhanced \|\| state\.booked \|\| state\.checkout\) return;[\s\S]{0,400}?\}, \[s\.enhanced, s\.draft, date, asked, state\]\);/,
     );
   });
 });

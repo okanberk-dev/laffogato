@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { LEGAL_CONTENT } from "@/lib/legal/content";
 import { findLegalDoc, LEGAL_DOCS, type LegalDoc } from "@/lib/legal/documents";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
-import { GOOGLE_TAGS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
+import {
+  GOOGLE_TAGS_IN_LEGAL_TEXTS,
+  META_PIXEL_IN_LEGAL_TEXTS,
+} from "@/lib/legal/meta";
 
 /**
  * The transfers abroad as they stand on 19 Ekim 2026 (ASK-O-4,
@@ -40,8 +43,12 @@ function section(slug: string, prefix: string) {
   return s!;
 }
 
+// 25 Ekim 2026: the Meta Pixel runs, with the visitor's explicit consent, so
+// "no analytics or ad tag at all" is no longer true. What stays true, and what
+// the four documents say, is that no analytics tag and none of Google's ad
+// tags are used (LEGAL-REDLINES §35, a draft that waits for the lawyer).
 const TAGS_OFF =
-  "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz";
+  "İnternet sitemizde bugün analitik etiketi ve Google'ın reklam etiketleri kullanılmaz";
 
 describe("KVKK Aydınlatma §15: the transfers as they are", () => {
   const abroad = section(
@@ -184,11 +191,15 @@ describe("Açık Rıza R6 is a note, not a consent item", () => {
   it("keeps its number as a 'rıza istenmez' section with no consent in it", () => {
     const r6 = section("acik-riza-metni", "11. R6");
     expect(r6.heading).toBe(
-      "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması (rıza istenmez)",
+      "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması (Meta Pixel dışında rıza istenmez)",
     );
     const body = (r6.paragraphs ?? []).join("\n");
     expect(body).toContain(
-      "R6 onayı kaldırılmıştır; yurt dışına aktarım için açık rızanızı istemiyoruz.",
+      "R6 onayı kaldırılmıştır; barındırma, veri tabanı, üyelik girişi ve e-posta altyapısına yapılan yurt dışına aktarım için açık rızanızı istemiyoruz.",
+    );
+    // The one exception is named where the rule is stated.
+    expect(body).toContain(
+      "Meta Pixel (R5) bunun tek istisnasıdır: yalnızca sizin pazarlama çerezlerine verdiğiniz açık rızayla çalışır",
     );
     expect(body).toContain(
       "arızi olmadıkları için Kanun'un 9. maddesi uyarınca açık rızaya dayandırılamazlar",
@@ -204,13 +215,16 @@ describe("Açık Rıza R6 is a note, not a consent item", () => {
     const table = section("acik-riza-metni", "6. Açık Rızanıza").table!.map(
       (r) => r.key.split(" - ")[0],
     );
-    expect(table).toEqual(["R2", "R7", "R12"]);
+    expect(table).toEqual(["R2", "R5", "R7", "R12"]);
     const note = section("acik-riza-metni", "6. Açık Rızanıza").paragraphs![0]!;
     expect(note).toContain(
-      "R1, R3, R4, R5, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez",
+      "R1, R3, R4, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez",
     );
     expect(note).toContain(
-      "R6 kalemi kaldırılmıştır: yurt dışına aktarım için açık rıza istenmez (bkz. 11. bölüm).",
+      "R5 kalemi (çerez tabanlı reklam ve yeniden hedefleme) 25 Ekim 2026'dan itibaren Meta Pixel için yürütülür",
+    );
+    expect(note).toContain(
+      "R6 kalemi kaldırılmıştır: barındırma, veri tabanı, üyelik girişi ve e-posta altyapısına yapılan yurt dışına aktarım için açık rıza istenmez; Meta Pixel aktarımı ise R5 kapsamındadır (bkz. 10. ve 11. bölüm).",
     );
   });
 
@@ -230,14 +244,93 @@ describe("Açık Rıza R6 is a note, not a consent item", () => {
         prefix,
       ).toBe(true);
     }
-    expect(section("acik-riza-metni", "10. R5").heading).toMatch(
-      /Yürütülmemektedir$/,
+    // R5 is a consent item again (25 Ekim 2026): the Meta Pixel, switched on
+    // in the cookie panel and withdrawn from the same place.
+    const r5 = section("acik-riza-metni", "10. R5");
+    expect(r5.heading).toBe(
+      "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme (Meta Pixel)",
     );
+    const body = (r5.paragraphs ?? []).join("\n");
+    expect(body).toContain("Meta Platforms Ireland Ltd.");
+    expect(body).toContain("Siz onay vermeden Meta'nın betiği yüklenmez");
+    expect(body).toContain(
+      "Pazarlama çerezleri anahtarını kapatmanız yeterlidir",
+    );
+    expect(body).toContain("_fbp ile _fbc çerezleri cihazınızdan silinir");
+    // What is not sent is said as plainly as what is.
+    expect(body).toContain(
+      "kimlik ve iletişim bilgileriniz bu olaylara eklenmez",
+    );
+    expect(body).toContain("kart bilgileri hiçbir hâlde iletilmez");
+  });
+});
+
+describe("the Meta Pixel is described while the code loads it", () => {
+  const FOUR = [
+    "gizlilik-politikasi",
+    "kvkk-aydinlatma-metni",
+    "acik-riza-metni",
+    "cerez-politikasi",
+  ];
+
+  it("every document that spoke of 'no tags' now names Meta Platforms Ireland Ltd.", () => {
+    // META_PIXEL_IN_LEGAL_TEXTS is what lets the pixel load (metaPixelId):
+    // true only with these texts.
+    expect(META_PIXEL_IN_LEGAL_TEXTS).toBe(true);
+    for (const slug of FOUR) {
+      const text = strings(findLegalDoc(slug)).join("\n");
+      expect(text, slug).toContain("Meta Platforms Ireland Ltd.");
+      expect(text, slug).toContain("Meta Pixel");
+    }
+  });
+
+  it("no document still claims there is no ad tag, or that Meta's is not used", () => {
+    const all = JSON.stringify(LEGAL_CONTENT);
+    for (const stale of [
+      "bugün analitik veya reklam etiketi kullanılmaz",
+      "Meta (Facebook/Instagram) ve TikTok etiketleri yüklenmez",
+      "Meta (Facebook/Instagram) ve TikTok reklam etiketleri ile gömülü YouTube videoları sitede kullanılmaz",
+      "pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategoriyi sormaz",
+      "çerez bandı ile tercih merkezi yalnızca zorunlu ve tercih çerezlerini gösterir",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+  });
+
+  it("the Çerez Politikası names the cookies, their lifetime and the withdrawal", () => {
+    const text = strings(findLegalDoc("cerez-politikasi")).join("\n");
+    expect(text).toContain("_fbp");
+    expect(text).toContain("_fbc");
+    expect(text).toContain("en çok 90 gün");
+    expect(text).toContain("Meta Platforms Ireland Ltd.");
+    expect(text).toContain("yurt dışına aktarılır");
+    expect(text).toContain("Onayı çerez tercihlerinden geri aldığınızda");
+    // The pixel is a marketing cookie, and the panel asks for it.
+    expect(text).toContain(
+      "Bugün Meta Pixel için kullanılır; çerez paneli bu kategoriyi sorar",
+    );
+  });
+
+  it("the KVKK Aydınlatma Metni lists Meta among the recipients abroad, on consent", () => {
+    const abroad = section(
+      "kvkk-aydinlatma-metni",
+      "15. Kişisel Verilerin Yurt Dışına",
+    );
+    const recipients = (abroad.bullets ?? []).find((b) =>
+      b.startsWith("Alıcılar ve bilinen konumlar"),
+    )!;
+    expect(recipients).toContain(
+      "Meta Platforms Ireland Ltd. (İrlanda; Meta, verileri grup şirketleri aracılığıyla ABD dâhil başka ülkelerde de işleyebilir; bu alıcı için standart sözleşme kullanılmaz, aktarım açık rızanıza dayanır)",
+    );
+    const guarantee = (abroad.bullets ?? []).find((b) =>
+      b.startsWith("Güvence yöntemi"),
+    )!;
+    expect(guarantee).toContain("Meta Pixel bunun tek istisnasıdır");
   });
 });
 
 describe("Google is taken out, not contracted", () => {
-  it("the texts say there are no tags while the code loads none", () => {
+  it("the texts say Google's tags are not used while the code loads none", () => {
     // Flip GOOGLE_TAGS_IN_LEGAL_TEXTS only with the texts that describe the
     // tags again (and a Google standard contract signed and notified).
     expect(GOOGLE_TAGS_IN_LEGAL_TEXTS).toBe(false);

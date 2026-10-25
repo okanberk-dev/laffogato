@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { Gabarito, Poppins } from "next/font/google";
 
+import { MetaPixel } from "@/components/laffogato/meta-pixel";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
 import {
   ConsentScripts,
   CookieBanner,
   TagManager,
 } from "@/components/laffogato/site-tags";
+import { metaPixelId } from "@/lib/consent/meta-pixel";
 import { siteTagManagerId } from "@/lib/consent/script";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
@@ -19,6 +21,13 @@ import "./globals.css";
 // built-in container id any more. Empty, the banner offers only the
 // necessary and preference cookies.
 const GTM_ID = siteTagManagerId(process.env.NEXT_PUBLIC_GTM_ID);
+
+// The Meta Pixel ("LAF Pixel"), 25 Ekim 2026: marketing category only, loaded
+// after the visitor's yes (src/lib/consent/meta-pixel.ts, docs/META-PIXEL.md).
+// `metaPixelId` returns "" when the legal texts do not describe the pixel or
+// NEXT_PUBLIC_META_PIXEL_ID is set to an empty string. With no id there is no
+// marketing switch and no tracker.
+const META_PIXEL_ID = metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID);
 
 // Two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi duruyor, yazı
 // tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
@@ -214,7 +223,8 @@ export default function RootLayout({
       {GTM_ID ? <TagManager gtmId={GTM_ID} /> : null}
       <body>
         {children}
-        <CookieBanner tagManager={!!GTM_ID} />
+        <CookieBanner tagManager={!!GTM_ID} metaPixel={!!META_PIXEL_ID} />
+        {META_PIXEL_ID ? <MetaPixel /> : null}
         <RevealMotion />
       </body>
     </html>

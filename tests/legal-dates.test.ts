@@ -10,6 +10,7 @@ import {
   KARAOKE_CONSENT_DOCS,
   KARAOKE_LEGAL_UPDATED,
   LEGAL_UPDATED,
+  META_PIXEL_LEGAL_UPDATED,
 } from "@/lib/legal/meta";
 
 /**
@@ -81,6 +82,15 @@ describe("legal document dates", () => {
       // 22 Ekim 2026, the set's day too: the İYS sync, §9 and §10 say how
       // consents and refusals reach İYS (LEGAL-REDLINES §31).
       "ticari-elektronik-ileti": COMMERCIAL_CONSENT_UPDATED,
+      // 25 Ekim 2026: the Meta Pixel (LEGAL-REDLINES §35, a draft awaiting
+      // the lawyer) entered the four documents that speak of cookies and
+      // tags. None of the checkout documents changed, so the set's revision
+      // (the version a checkout consent records) stays where it was and these
+      // four carry the day themselves.
+      "cerez-politikasi": META_PIXEL_LEGAL_UPDATED,
+      "kvkk-aydinlatma-metni": META_PIXEL_LEGAL_UPDATED,
+      "gizlilik-politikasi": META_PIXEL_LEGAL_UPDATED,
+      "acik-riza-metni": META_PIXEL_LEGAL_UPDATED,
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

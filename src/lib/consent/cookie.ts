@@ -11,7 +11,10 @@
  * use it.
  */
 
-import { GOOGLE_TAGS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
+import {
+  GOOGLE_TAGS_IN_LEGAL_TEXTS,
+  META_PIXEL_IN_LEGAL_TEXTS,
+} from "@/lib/legal/meta";
 
 export const CONSENT_COOKIE = "laffogato_cookie_consent";
 
@@ -22,18 +25,26 @@ export const CONSENT_MAX_AGE_DAYS = 180;
  * The version a stored choice must carry to stand; any other is discarded
  * and the banner asks again.
  *
- * It moves with `GOOGLE_TAGS_IN_LEGAL_TEXTS`. A yes stored before 19 Ekim
- * 2026 was given to texts that described Google's tags, and one stored since
- * to a panel that showed no tag switch at all. Neither is a choice about the
- * tags coming back under new texts, and the cookie lives 180 days, so turning
- * the tags on discards every stored choice instead of letting GTM grant from
- * it. Bumping both numbers re-asks everyone for a new shape.
+ * It moves with the tags the legal texts describe: `GOOGLE_TAGS_IN_LEGAL_TEXTS`
+ * and `META_PIXEL_IN_LEGAL_TEXTS`. A yes stored before 19 Ekim 2026 was given
+ * to texts that described Google's tags, and one stored since to a panel that
+ * showed no tag switch at all; neither is a choice about the Meta Pixel (25
+ * Ekim 2026), and the cookie lives 180 days, so turning a tag on discards
+ * every stored choice instead of letting it grant from an answer given to
+ * other texts. Each shape has a number of its own: 1 no tags, 2 the Meta
+ * Pixel, 3 Google's tags, 4 both. Never reuse one for another shape.
  */
-export function consentVersionFor(tagsInLegalTexts: boolean): number {
-  return tagsInLegalTexts ? 2 : 1;
+export function consentVersionFor(
+  googleTags: boolean,
+  metaPixel: boolean,
+): number {
+  return 1 + (metaPixel ? 1 : 0) + (googleTags ? 2 : 0);
 }
 
-export const CONSENT_VERSION = consentVersionFor(GOOGLE_TAGS_IN_LEGAL_TEXTS);
+export const CONSENT_VERSION = consentVersionFor(
+  GOOGLE_TAGS_IN_LEGAL_TEXTS,
+  META_PIXEL_IN_LEGAL_TEXTS,
+);
 
 export interface ConsentState {
   version: number;
@@ -67,7 +78,7 @@ export function parseConsent(
     if (parsed.version !== current) return null;
     if (typeof parsed.decidedAt !== "string") return null;
     return {
-      version: CONSENT_VERSION,
+      version: current,
       decidedAt: parsed.decidedAt,
       preferences: parsed.preferences === true,
       analytics: parsed.analytics === true,
@@ -76,6 +87,15 @@ export function parseConsent(
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether a raw consent cookie value grants the marketing category. The same
+ * validity test as `readConsent`, for code that has the cookie header but no
+ * `document` (a Server Action).
+ */
+export function marketingConsentGranted(raw: string | undefined): boolean {
+  return parseConsent(raw)?.marketing === true;
 }
 
 export function readConsent(): ConsentState | null {

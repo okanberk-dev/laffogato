@@ -71,24 +71,42 @@ export const CONSENT_BOOTSTRAP = `
 })();
 `.trim();
 
-/** Pushes the visitor's decision to GTM once the banner records it. */
+/**
+ * Event `pushConsentUpdate` dispatches on `window` once the banner records a
+ * decision, whatever tags are on the page. `detail` is the recorded choice.
+ * The Meta Pixel listens to it: a yes opens it at once, a withdrawal closes it
+ * (src/components/laffogato/meta-pixel.tsx).
+ */
+export const CONSENT_UPDATED_EVENT = "laffogato:consent-updated";
+
+/**
+ * Tells the page's tags about the visitor's decision once the banner records
+ * it: Google Tag Manager through its Consent Mode (when it is on the page),
+ * every other listener through `CONSENT_UPDATED_EVENT`.
+ */
 export function pushConsentUpdate(state: Omit<ConsentState, "decidedAt">) {
   const w = window as unknown as {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
   };
-  if (typeof w.gtag !== "function") return;
-  w.gtag("consent", "update", {
-    ad_storage: state.marketing ? "granted" : "denied",
-    ad_user_data: state.marketing ? "granted" : "denied",
-    ad_personalization: state.marketing ? "granted" : "denied",
-    analytics_storage: state.analytics ? "granted" : "denied",
-    functionality_storage: state.preferences ? "granted" : "denied",
-    personalization_storage: state.preferences ? "granted" : "denied",
-    security_storage: "granted",
-  });
-  w.gtag("set", "ads_data_redaction", !state.marketing);
-  w.dataLayer?.push({ event: "cookie_consent_update" });
+  if (typeof w.gtag === "function") {
+    w.gtag("consent", "update", {
+      ad_storage: state.marketing ? "granted" : "denied",
+      ad_user_data: state.marketing ? "granted" : "denied",
+      ad_personalization: state.marketing ? "granted" : "denied",
+      analytics_storage: state.analytics ? "granted" : "denied",
+      functionality_storage: state.preferences ? "granted" : "denied",
+      personalization_storage: state.preferences ? "granted" : "denied",
+      security_storage: "granted",
+    });
+    w.gtag("set", "ads_data_redaction", !state.marketing);
+    w.dataLayer?.push({ event: "cookie_consent_update" });
+  }
+  // Outside the gtag check: without a tag manager there is no gtag, and the
+  // Meta Pixel still has to hear the decision.
+  window.dispatchEvent(
+    new CustomEvent(CONSENT_UPDATED_EVENT, { detail: state }),
+  );
 }
 
 /** Event the footer link dispatches to reopen the preference centre. */
