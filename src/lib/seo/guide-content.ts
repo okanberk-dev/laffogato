@@ -10,6 +10,13 @@
  * ya da elle düzenleyip `npm test` ile doğrulayın.
  */
 
+import { CHAI_LATTE_GUIDE } from "./guide-content-chai-tea-latte";
+import { COLD_BREW_GUIDE } from "./guide-content-cold-brew-nedir";
+import { FRAPPE_GUIDE } from "./guide-content-frappe-nedir";
+import { SPANISH_LATTE_GUIDE } from "./guide-content-spanish-latte-nedir";
+import { TIRAMISU_GUIDE } from "./guide-content-tiramisu-tarifi";
+import { YENILEBILIR_BARDAK_GUIDE } from "./guide-content-yenilebilir-kahve-fincani";
+
 export interface GuideSource {
   slug: string;
   title: string;
@@ -35,8 +42,31 @@ export interface GuideSource {
     yield: string;
     ingredients: string[];
     steps: string[];
+    /** Recipe category as Google reads it: "Tatlı", "İçecek". */
+    category: string;
+    /** The cuisine the dish comes from: "İtalyan", "Japon", "Bask". */
+    cuisine: string;
   };
   related: string[];
+  /**
+   * The photograph at the top of the page, in Recipe/Article data and on the
+   * link card. Optional in the type so a draft compiles; tests/guides.test.ts
+   * requires one on every published guide.
+   */
+  image?: GuideImage;
+}
+
+/**
+ * A guide's photograph: a 3:2 WebP in public/rehber/, cut and toned the same
+ * way for every guide (docs/SEO.md "Rehber fotoğrafları"). `credit` names the
+ * photographer of a stock photo; our own photographs carry none.
+ */
+export interface GuideImage {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  credit?: { name: string; url: string; source: "Unsplash"; photoUrl: string };
 }
 
 export const GUIDE_CONTENT: GuideSource[] = [
@@ -317,6 +347,8 @@ export const GUIDE_CONTENT: GuideSource[] = [
       },
     ],
     recipe: {
+      category: "Tatlı",
+      cuisine: "İtalyan",
       name: "Klasik Affogato al Caffè",
       description:
         "Tek top fior di latte gelato üzerine taze çekilmiş espresso ile hazırlanan klasik İtalyan tatlısı; Türkçe adıyla dondurmalı kahve.",
@@ -337,6 +369,12 @@ export const GUIDE_CONTENT: GuideSource[] = [
         "İsterseniz fındık kırığı veya bitter çikolata rendesi serpin.",
         "Kaşıkla hemen servis edin; ilk 60-90 saniye içinde tüketin.",
       ],
+    },
+    image: {
+      src: "/rehber/affogato-nedir.webp",
+      alt: "Tuzla'daki köşkün avlusunda tepside yenilebilir bardakta iki affogato ve espressoyu dökmek için iki küçük porselen sürahi",
+      width: 1200,
+      height: 800,
     },
     related: [
       "yenilebilir-kahve-fincani",
@@ -663,6 +701,8 @@ export const GUIDE_CONTENT: GuideSource[] = [
       },
     ],
     recipe: {
+      category: "İçecek",
+      cuisine: "Japon",
       name: "Matcha latte",
       description:
         "Ev şartlarında topaklanmadan, acılaşmadan hazırlanan klasik sıcak matcha latte. Kritik nokta sıra: matcha önce az suyla açılır, süt en sona eklenir.",
@@ -682,6 +722,19 @@ export const GUIDE_CONTENT: GuideSource[] = [
         "Sütü çırpılmış matcha'nın üzerine yavaşça ekleyip bir kez karıştırın.",
         "Tatlandıracaksanız balı ya da şurubu en son ekleyin ve hemen servis edin; matcha beklerse dibe çöker.",
       ],
+    },
+    image: {
+      src: "/rehber/matcha-nedir.webp",
+      alt: "Beyaz porselen fincanda yaprak desenli köpüğüyle sıcak matcha latte",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Jason Leung",
+        url: "https://unsplash.com/@ninjason",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/white-ceramic-teacup-filled-of-matcha-tea-Z-hvocTfR_s",
+      },
     },
     related: ["affogato-nedir", "espresso-cesitleri"],
   },
@@ -1015,6 +1068,19 @@ export const GUIDE_CONTENT: GuideSource[] = [
         a: "İçecek adı yerine oran söylemek en net yoldur: 'espresso kadar süt' cortado, 'az köpüklü ve sütü fazla' latte, 'ince mikroköpük, küçük fincan' flat white anlamına gelir. Baristalar bu tarifleri isimden daha kolay uygular.",
       },
     ],
+    image: {
+      src: "/rehber/espresso-cesitleri.webp",
+      alt: "Koyu taş zemin üzerinde kreması belirgin bir fincan espresso, yukarıdan",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Matt Hoffman",
+        url: "https://unsplash.com/@__matthoffman__",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/white-ceramic-mug-fill-with-coffee-IE-gdqEg45M",
+      },
+    },
     related: ["affogato-nedir", "matcha-nedir", "yenilebilir-kahve-fincani"],
   },
   {
@@ -1250,7 +1316,7 @@ export const GUIDE_CONTENT: GuideSource[] = [
         paragraphs: [
           "San Sebastian cheesecake yağ oranı yüksek, tatlılığı belirgin bir tatlıdır; yanına giden içecek onu yıkamalı, üstüne şeker eklememelidir. Bu yüzden sütlü ve şekerli kahveler yerine sade espresso ya da Americano daha iyi çalışır. Espressonun asiditesi kremanın ağırlığını keser, yanık kabuktaki karamel notasıyla aynı frekansta buluşur.",
           "İkinci güçlü eşleşme affogato'dur: sıcak espressonun altındaki soğuk gelato, cheesecake'in oda sıcaklığındaki dokusuyla üç ayrı sıcaklık katmanı kurar. Bologna'nın bar geleneğinde tatlı ve espresso zaten ayrı servis edilmez; ikisi aynı anda, ayakta içilir. Sade çayın da işi görür ama kabuktaki karamele eşlik etmez.",
-          "L'Affogato'nun Tuzla'daki barında bu tatlı menüde Donostia adıyla yer alır; yanında imza L'Affogato (280 TL) ya da tek shot Espresso (110 TL) ile denenebilir.",
+          "L'Affogato'nun Tuzla'daki barında bu tatlı menüde San Sebastian ve Yaban Mersinli San Sebastian olarak yer alır; yanında imza L'Affogato ya da tek shot espresso ile denenebilir.",
         ],
       },
       {
@@ -1305,6 +1371,8 @@ export const GUIDE_CONTENT: GuideSource[] = [
       },
     ],
     recipe: {
+      category: "Tatlı",
+      cuisine: "Bask",
       name: "San Sebastian cheesecake (Bask usulü yanık cheesecake)",
       description:
         "Tabansız, 210 °C'de 30 dakikada pişen, üstü karamelize ortası akışkan klasik Bask cheesecake'i. 20-22 cm kelepçeli kalıp için.",
@@ -1334,291 +1402,112 @@ export const GUIDE_CONTENT: GuideSource[] = [
         "Servisten 30-40 dakika önce çıkarın ve sıcak bıçakla dilimleyin.",
       ],
     },
-    related: ["affogato-nedir", "espresso-cesitleri"],
-  },
-  {
-    slug: "yenilebilir-kahve-fincani",
-    title: "Yenilebilir kahve fincanı",
-    metaTitle: "Yenilebilir Kahve Fincanı Nedir, Nasıl Yapılır? Rehber",
-    metaDescription:
-      "Yenilebilir kahve fincanı nedir, nasıl sızdırmaz, ne kadar dayanır? Alerjen bilgisi, evde yapım tarifi ve çevre karşılaştırmasıyla tam rehberi okuyun.",
-    excerpt:
-      "Waffle hamurundan pişirilen, iç yüzeyi çikolatayla kaplanan ve içecek bittikten sonra yenen fincan. Nasıl sızdırmaz kaldığı, ne kadar dayandığı, alerjenleri ve evde yapımı.",
-    primaryKeyword: "yenilebilir kahve fincanı",
-    keywords: [
-      "yenilebilir kahve fincanı",
-      "yenilebilir bardak",
-      "yenilebilen fincan",
-      "yenilebilir bardak yapımı",
-      "geri dönüşümlü bardak",
-      "yenilebilir kahve bardağı",
-      "gofret fincan",
-      "waffle kupa",
-      "çikolata kaplı yenilebilir fincan",
-      "sürdürülebilir kahve bardağı",
-      "yenilebilir fincan alerjen",
-      "yenilebilir fincan kalori",
-    ],
-    readingMinutes: 7,
-    updatedAt: "2026-09-01",
-    sections: [
-      {
-        heading: "Yenilebilir kahve fincanı nedir?",
-        paragraphs: [
-          "Yenilebilir kahve fincanı, waffle (gofret) hamurundan kalıpta pişirilen ve iç yüzeyi çikolatayla kaplanarak sızdırmaz hale getirilen bir kaptır. Çikolata katmanı sıvı bariyeri kurar, gofret duvarı yapıyı taşır. İçecek bittiğinde kap çöpe gitmez: yenir. Küçük hacimli servisler için tasarlanır.",
-          "Kısacası iki katmanlı bir gıda ürünüdür. Dıştaki kıtır gofret bir bardak gibi davranır, içteki ince çikolata filmi ise kahvenin hamura geçmesini geciktirir. Bu ikilinin dengesi, fincanın kaç dakika ayakta kalacağını doğrudan belirler.",
-          "Ürün, sürdürülebilirlik iddiasıyla anılsa da asıl mantığı daha basittir: kabın kendisi de tadın parçası olur. Espresso, affogato, sıcak çikolata gibi 60-150 ml aralığındaki servislerde işe yarar; bir litrelik soğuk içecekte işlevini yitirir.",
-        ],
+    image: {
+      src: "/rehber/san-sebastian-cheesecake.webp",
+      alt: "Ahşap tahta üzerinde üstü koyu karamelize olmuş, dilimlenmiş San Sebastian cheesecake",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Luna Hu",
+        url: "https://unsplash.com/@hyue",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/a-cheesecake-on-a-wooden-cutting-board-with-a-knife-Qv86wgHErmc",
       },
-      {
-        heading: "Yenilebilir fincan nasıl sızdırmaz? İç kaplama neden şart?",
-        paragraphs: [
-          "Gofret hamuru gözenekli bir yapıdır. Kaplama yapılmazsa sıcak espresso ilk dakikalarda gözenekleri doldurur, duvar yumuşar ve kap taşınamaz hale gelir. Bu yüzden iç yüzey temperlenmiş çikolatayla kaplanır: çikolata doğru kristal yapıda katılaştığında gözenekleri kapatan ince, su geçirmez bir film bırakır.",
-          "Kaplama kalınlığı işin can damarıdır. Çok ince kaplama sıcak sıvının altında hızla erir ve bariyer görevini bırakır; çok kalın kaplama ise içeceğin tadını bastırır, kupanın ağız kenarını kırılgan yapar ve ısırırken çatlamaya yol açar. Pratikte ince ve eşit dağıtılmış bir ya da iki kat hedeflenir.",
-          "İkinci değişken çikolatanın kendisidir. Sütlü çikolata, kakao yağı oranı ve süt katıları nedeniyle daha düşük sıcaklıkta yumuşar. Sıcak içecekler için genellikle daha yüksek kakao oranlı çikolata tercih edilir; soğuk servislerde sütlü ya da beyaz çikolata da sorun çıkarmaz.",
-        ],
-        bullets: [
-          "Gofret duvarı: yapısal taşıyıcı, kıtırlığı ve karamelize tadı veren katman",
-          "Çikolata kaplama: sıvı bariyeri ve aynı zamanda kahveyle tat köprüsü",
-          "Duvar kalınlığı: ince duvar çabuk ıslanır, kalın duvar ısırmayı zorlaştırır",
-          "Servis hacmi: 60-150 ml güvenli aralık; daha büyük hacimde ağırlık tabanı zorlar",
-          "Ağız kenarı: en çok temas eden nokta, kaplamanın en dikkatli çekildiği yer",
-        ],
-      },
-      {
-        heading: "Yenilebilir fincan ne kadar dayanır? Sıcak ve soğuk farkı",
-        paragraphs: [
-          "Bir yenilebilir fincan sonsuza kadar dayanmaz; bir zaman penceresi sunar. Aşağıdaki aralıklar işletme koşullarında gözlenen pratik değerlerdir. Hamur kalınlığı, kaplama kalitesi, içeceğin sıcaklığı ve ortam nemine göre değişir.",
-        ],
-        bullets: [
-          "Sıcak içecekte önce taban, sonra ağız kenarı yumuşar",
-          "Kupayı bir tabak ya da altlık üzerinde tutmak pencereyi uzatır",
-          "Buzlu içeceklerde buz parçalarının duvara sürtmesi kaplamayı çizer",
-        ],
-        table: [
-          {
-            key: "Espresso veya affogato (sıcak, 60-120 ml)",
-            value:
-              "Rahat pencere yaklaşık 20-30 dakika; kıtırlık ilk 10 dakikada en yüksek",
-          },
-          {
-            key: "Sıcak çikolata, salep gibi yoğun içecekler",
-            value:
-              "Benzer pencere, ancak koyu dokulu içecek kaplamayı daha hızlı yumuşatır",
-          },
-          {
-            key: "Soğuk içecek (iced latte, cold brew)",
-            value:
-              "Sıvı tarafında daha uzun dayanır; buna karşılık dış yüzeyde yoğuşan nem duvarı yumuşatabilir",
-          },
-          {
-            key: "Servis sıcaklığı",
-            value:
-              "Kaynar sıvı doğrudan dökülmez; espresso genelde yaklaşık 65-70 derecede aktarılır",
-          },
-          {
-            key: "Masada bekletme",
-            value:
-              "30 dakikayı geçince taban ıslanır, kap kaldırıldığında yarılabilir",
-          },
-          {
-            key: "Servis öncesi raf",
-            value:
-              "Kaplanmış kupalar nem almasın diye kapalı ve serin ortamda tutulur",
-          },
-        ],
-      },
-      {
-        heading: "Yenilebilir bardak nereden çıktı?",
-        paragraphs: [
-          "Fikrin atası dondurma külahıdır. Yaygın anlatıya göre gofret külah, 1904 St. Louis Dünya Fuarı sırasında dondurmacıların tabak sıkıntısına bulduğu pratik çözümle geniş kitleye yayıldı. Külah, kabın da yenebileceğini gösteren ilk büyük örnek oldu.",
-          "İtalyan bar geleneğinde bu mantık zaten tanıdıktır: gelato külahta verilir, espresso ayakta ve hızlı içilir, servis kabı ritüelin parçasıdır. Bologna gibi şehirlerde bar tezgâhı önünde geçen birkaç dakika, kabın kendisini de deneyimin içine alır.",
-          "Kabın külahtan fincana dönüşmesi ise 2010'lu yıllarda tek kullanımlık bardak tartışmasıyla hızlandı. Kahve zincirlerinin bardak atığı gündeme geldikçe, gofret ve çikolatayla yapılan yenilebilir bardak denemeleri arttı. Bugün ürün, hem atık azaltma hem de imza sunum aracı olarak kullanılıyor.",
-        ],
-      },
-      {
-        heading:
-          "Yenilebilir fincan mı, karton bardak mı? Çevresel karşılaştırma",
-        paragraphs: [
-          "Karşılaştırmayı abartmadan yapmak gerekir. Yenilebilir fincan sıfır etkili değildir: un, şeker, süt ve kakao tarımsal girdilerdir ve bir kabı pişirmek enerji ister. Buna karşılık kullanım sonrası atık sorunu ortadan kalkar.",
-        ],
-        bullets: [
-          "Ayaküstü tek servis için yenilebilir fincan, karton bardağın makul bir alternatifidir",
-          "Oturarak içilen serviste seramik hâlâ en az atık üreten seçenektir",
-          "Hiçbir kap, yeniden kullanılan bir kabın yerini tek başına tutmaz",
-        ],
-        table: [
-          {
-            key: "Yenilebilir gofret fincan",
-            value:
-              "Kullanım sonrası atık bırakmaz; yenmezse organik atık olarak çözünür. Maliyeti üretim aşamasındadır: un, süt, kakao ve pişirme enerjisi",
-          },
-          {
-            key: "Karton bardak (PE veya PLA kaplı)",
-            value:
-              "Kâğıt gövde ile plastik film birbirinden ayrılmadığı için birçok tesiste standart kâğıt geri dönüşümüne giremez; pratikte çoğu çöpe gider",
-          },
-          {
-            key: "Plastik bardak (PET veya PS)",
-            value:
-              "Teoride geri dönüştürülebilir; ancak içecek kalıntısıyla kirlenmiş bardak çoğunlukla ayrıştırılmaz ve doğada uzun süre kalır",
-          },
-          {
-            key: "Cam veya seramik (işletme içi servis)",
-            value:
-              "Tekrar kullanımda atık en düşük seviyede; buna karşılık her yıkama su, deterjan ve enerji tüketir",
-          },
-          {
-            key: "Kendi termosunu getirmek",
-            value:
-              "Yeterince çok kez kullanıldığında en düşük etkili seçenek; üretim maliyeti ancak onlarca kullanımdan sonra amorti olur",
-          },
-        ],
-      },
-      {
-        heading: "Yenilebilir fincanda hangi alerjenler var?",
-        paragraphs: [
-          "Yenilebilir fincan bir gıdadır; dolayısıyla içindekiler alerjen açısından içeceğin kendisi kadar önemlidir. Klasik gofret hamuru ve çikolata kaplama şu bileşenleri içerir.",
-          "Ciddi bir alerjiniz varsa siparişten önce mutlaka personele bildirin ve barda bulunan alerjen bilgi kartını kontrol edin. Aynı içecek, yenilebilir kup yerine standart fincanda da hazırlanabilir. Bu sayfadaki bilgiler genel bilgilendirme amaçlıdır ve tıbbi tavsiye yerine geçmez.",
-        ],
-        bullets: [
-          "Gluten: hamurun temeli buğday unudur",
-          "Süt: hem hamurdaki tereyağı hem çikolatadaki süt katıları",
-          "Yumurta: klasik gofret hamurunda yapı ve renk için bulunur",
-          "Soya: çikolatada emülgatör olarak soya lesitini kullanılabilir",
-          "Sert kabuklu kuruyemiş: aynı üretim alanında çalışıldığı için çapraz bulaşma riski taşır",
-        ],
-        table: [
-          {
-            key: "Glutensiz mi?",
-            value: "Hayır. Buğday unu içerir",
-          },
-          {
-            key: "Vegan mı?",
-            value: "Hayır. Süt ve yumurta içerir",
-          },
-          {
-            key: "Çapraz bulaşma",
-            value: "Kuruyemiş ve süt için risk vardır",
-          },
-        ],
-      },
-      {
-        heading: "Evde yenilebilir kahve fincanı yapılabilir mi?",
-        paragraphs: [
-          "Yapılabilir. Ev koşullarında sonuç bir işletme ürünü kadar dayanıklı olmaz ama mantığı görmek için yeterlidir. En kritik iki adım, hamuru sıcakken kalıba almak ve çikolatayı ince ve eşit çekmektir.",
-        ],
-        ordered: [
-          "Gofret hamurunu hazırla: un, pudra şekeri, yumurta akı ve eritilmiş tereyağıyı akışkan ama akıcı olmayan bir kıvamda karıştır, 15 dakika dinlendir.",
-          "Gofret makinesini ya da düz bir tavayı ısıt; hamuru ince bir daire olacak şekilde yay ve kenarları altın rengi olana kadar pişir.",
-          "Pişen gofreti saniyeler içinde, henüz sıcak ve esnekken ters çevrilmiş küçük bir bardağın ya da kupa kalıbının üzerine geçirip şekil ver.",
-          "Kabı kalıp üzerinde tamamen soğut; soğumadan çıkarırsan duvar açılır ve kap oturmaz.",
-          "Çikolatayı benmari usulü erit ve temperle: eritip hafifçe soğutup tekrar ılıtmak, katılaştığında parlak ve sert bir kabuk verir.",
-          "Fırçayla ya da kabı döndürerek iç yüzeyi ince bir kat çikolatayla kapla; ağız kenarını atlama, en çok temas eden yer orasıdır.",
-          "İlk kat donduktan sonra tabana ikinci bir ince kat çek; en çok sıvı biriken bölge tabandır.",
-          "Kupaları serin ve kuru bir yerde, kapalı kutuda sakla; nem alan gofret kıtırlığını kaybeder.",
-        ],
-      },
-      {
-        heading: "İşletmede yapılanı evde neden birebir tekrarlayamazsınız?",
-        paragraphs: [
-          "Fark ekipmanda ve kontrolde. Barda kullanılan kalıplar duvar kalınlığını her kupada aynı üretir; ev tavasında bu kalınlık kupadan kupaya değişir ve ince kalan yerler önce ıslanır.",
-          "Çikolata tarafında da durum benzer. Temperleme makinesi çikolatayı doğru kristal aralığında sabit tutar; elde temperlenen çikolata soğudukça koyulaşır, kaplama kalınlaşır ve kupanın kenarı sertleşir.",
-          "Üçüncü fark saklamadır. Kaplanmış kupalar nem kontrollü ortamda tutulur ve kısa süre içinde tüketilir. Evde nemli bir mutfakta bekleyen kupa, birkaç saat içinde kıtırlığını kaybeder.",
-        ],
-      },
-      {
-        heading: "Yenilebilir fincandan nasıl içilir?",
-        paragraphs: [
-          "Doğru sıra, kupayı ıslanmadan bitirmenizi sağlar. Amaç sıvıyı kap yumuşamadan tüketmek, sonra kabı kıtırken yemektir.",
-        ],
-        ordered: [
-          "Kupa geldiğinde ilk yudumu bekletmeden al; kıtırlık ilk dakikalarda en yüksektir.",
-          "Affogato ise önce kaşıkla gelato ile espressonun karıştığı üst kısmı al, sonra içmeye geç.",
-          "Kupayı masaya bırakırken altlık kullan; ıslak yüzey tabanı hızla yumuşatır.",
-          "Sıvı bitince kupayı ağız kenarından ısırmaya başla; en kuru ve en kıtır bölge orasıdır.",
-          "Son lokmayı tabandan al: espressonun en çok emildiği yer olduğu için tadın en yoğun olduğu parçadır.",
-        ],
-        bullets: [
-          "Yaygın hata: kupayı yarısına kadar içip on beş dakika masada unutmak",
-          "Yaygın hata: sıcak içeceği kupada uzun uzun karıştırmak, kaplamayı kaşıkla çizmek",
-          "Yaygın hata: kupayı gövdesinin ortasından sıkıca kavramak; ıslanan duvar orada verir",
-          "Bitiremezsen zorunlu değil: kalan kısım organik atıktır",
-        ],
-      },
-      {
-        heading: "L'Affogato'da yenilebilir kupla servis",
-        paragraphs: [
-          "L'Affogato'nun imza servisi bu kabın etrafında kuruludur: yenilebilir waffle kupanın içine bir top fior di latte gelato, üzerine çift shot Sirena espresso. Sıcak espresso soğuk gelatoya değdiği anda içilir; kupa da bu pencerede yenir. Menüde L'Affogato adıyla 280 TL. Sloganın söylediği tam olarak budur: Drink it. Eat the cup.",
-          "Aynı kabı matcha tarafında denemek isteyenler için Matcha Affogato (245 TL) buzlu matcha latte üzerine bir top gelato ile hazırlanır. Matcha kafein ve antioksidan içerir; bu sayfadaki hiçbir ifade tıbbi tavsiye değildir. Alerjen konusunda tereddüdünüz varsa siparişten önce bardaki alerjen bilgi kartına bakın ya da personele sorun.",
-          "Tuzla'daki bar, Postane Mah. Atatürk Cad. No: 28'de, 200 yıllık restore edilmiş bir Rum köşkünde. Marmaray Tuzla durağına yürüyerek 6 dakika.",
-        ],
-      },
-    ],
-    faq: [
-      {
-        q: "Yenilebilir fincan sızdırır mı?",
-        a: "Doğru kaplandığında normal servis süresi boyunca sızdırmaz. Sızdırma genelde iki nedenden olur: kaplamanın ağız kenarında ya da tabanda eksik kalması, veya kupanın 30 dakikadan uzun süre dolu bırakılması. Altlık kullanmak ve içeceği geciktirmeden tüketmek sorunu ortadan kaldırır.",
-      },
-      {
-        q: "Tadı neye benziyor?",
-        a: "İki tat üst üste gelir: gofretin karamelize, hafif vanilyalı kıtırlığı ve iç kaplamadaki çikolata. Espressoyla birlikte tadıldığında sonuç bir kurabiyeyle kahve ikilisine yakındır. Tabandan alınan son lokma, kahveyi emdiği için en yoğun tadı verir.",
-      },
-      {
-        q: "Vegan yenilebilir fincan var mı?",
-        a: "Şu anda yok. Klasik gofret hamuru yumurta ve tereyağı, kaplama ise süt içerebilen çikolata kullanır. Vegan bir versiyon teknik olarak mümkündür ancak menüde böyle bir seçenek bulunmuyor; olmayan bir ürünü varmış gibi sunmak istemeyiz.",
-      },
-      {
-        q: "Glutensiz seçenek var mı?",
-        a: "Hayır. Fincanın gövdesi buğday unundan yapılır, dolayısıyla gluten içerir. Çölyak ya da gluten duyarlılığınız varsa yenilebilir kupla servisi tercih etmeyin; aynı içecek standart fincanda da hazırlanabilir.",
-      },
-      {
-        q: "Yenilebilir fincan kaç kalori?",
-        a: "Kesin bir değer vermek doğru olmaz; boyuta, hamur kalınlığına ve kaplama miktarına göre değişir. Küçük boy bir gofret kupa için makul aralık yaklaşık 120-180 kcal civarındadır. Bu yalnızca kabın kendisidir; içindeki gelato ve espresso ayrıca hesaplanır.",
-      },
-      {
-        q: "Kupa ne kadar süre dayanır?",
-        a: "Sıcak bir espresso ya da affogato ile pratik pencere yaklaşık 20-30 dakikadır. İlk 10 dakikada kıtırlık en yüksektir. Bu süre hamur kalınlığına, kaplamaya ve ortam nemine göre değişir.",
-      },
-      {
-        q: "Soğuk içeceklerde de kullanılabilir mi?",
-        a: "Evet, sıvı tarafında soğuk içecek daha az zorlar. Buna karşılık soğuk kabın dışında yoğuşan nem duvarı dışarıdan yumuşatabilir, buz parçaları da iç kaplamayı çizebilir. Bu yüzden soğuk servisler için hacim küçük tutulur.",
-      },
-      {
-        q: "Kupayı yemek zorunda mıyım?",
-        a: "Hayır. İçeceği bitirip kabı bırakabilirsiniz; kalan kısım organik atıktır ve plastik ya da kaplı karton bardağın aksine geri dönüşüm sorunu yaratmaz. Kupayı yemek deneyimin parçası, zorunluluk değil.",
-      },
-      {
-        q: "Çocuklar için uygun mu?",
-        a: "Kabın kendisi bir gofrettir; ancak içinde servis edilen affogato espresso içerir, yani kafeinlidir. Ayrıca gluten, süt, yumurta ve soya içerebilir. Alerji ya da kafein konusunda tereddüt varsa personele sorun. Bu sayfa tıbbi tavsiye değildir.",
-      },
-    ],
-    recipe: {
-      name: "Evde temel yenilebilir kahve kupası",
-      description:
-        "Gofret hamurundan kalıplanan, iç yüzeyi temperlenmiş çikolatayla kaplanan küçük boy yenilebilir fincan. Espresso ve affogato servisi için uygundur.",
-      prepMinutes: 45,
-      yield: "4-6 adet küçük fincan (yaklaşık 100 ml)",
-      ingredients: [
-        "100 g elenmiş buğday unu",
-        "100 g pudra şekeri",
-        "3 adet yumurta akı (yaklaşık 100 g)",
-        "80 g eritilip ılıtılmış tereyağı",
-        "1 tutam tuz",
-        "1 çay kaşığı vanilya özütü",
-        "150 g yüksek kakao oranlı çikolata (iç kaplama için)",
-      ],
-      steps: [
-        "Pudra şekeri, tuz ve yumurta aklarını köpürtmeden karıştır; unu eleyerek ekle ve topaksız bir hamur elde et.",
-        "Ilıtılmış tereyağı ile vanilyayı ekleyip karıştır, hamuru 15 dakika buzdolabında dinlendir.",
-        "Gofret makinesini ya da düz tavayı orta ateşte ısıt; hamurdan bir kepçe alıp ince bir daire olacak şekilde yay.",
-        "Kenarları altın rengi olunca çıkar ve sıcakken, ters çevrilmiş küçük bir bardağın üzerine geçirerek kupa şeklini ver.",
-        "Kupa tamamen soğuyup sertleşene kadar kalıpta bekle; erken çıkarma, duvar açılır.",
-        "Çikolatayı benmaride erit, hafifçe soğutup tekrar ılıt (temperle) ve fırçayla iç yüzeye ince bir kat çek.",
-        "Ağız kenarını mutlaka kapla; ilk kat donunca tabana ikinci bir ince kat daha uygula.",
-        "Kupaları kapalı bir kutuda, serin ve kuru yerde sakla ve aynı gün tüket.",
-      ],
     },
     related: ["affogato-nedir", "espresso-cesitleri"],
+  },
+  // The signature cup (25 Ekim 2026 rewrite): the text lives in its own file;
+  // the photograph is ours, cut from public/photos/affogato-cup.webp.
+  {
+    ...YENILEBILIR_BARDAK_GUIDE,
+    image: {
+      src: "/rehber/yenilebilir-kahve-fincani.webp",
+      alt: "Yenilebilir waffle bardakta çikolata soslu gelato ve metal kaşık",
+      width: 1200,
+      height: 800,
+    },
+  },
+  // 25 Ekim 2026: five guides written to the San Sebastian pattern, each in
+  // its own file (docs/SEO.md §3 has the clusters and volumes).
+  {
+    ...TIRAMISU_GUIDE,
+    image: {
+      src: "/rehber/tiramisu-tarifi.webp",
+      alt: "Koyu tabakta kakao ve çikolata talaşıyla kaplı, katları görünen bir dilim tiramisu",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Jay",
+        url: "https://unsplash.com/@ja024",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/a-slice-of-tiramisu-cake-with-cocoa-and-chocolate-shavings-Rjc0kwgs1ps",
+      },
+    },
+  },
+  {
+    ...COLD_BREW_GUIDE,
+    image: {
+      src: "/rehber/cold-brew-nedir.webp",
+      alt: "Palmiye yaprağı gölgesi düşen masada buzlu bir bardak cold brew",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Blake Wisz",
+        url: "https://unsplash.com/@blakewisz",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/selective-focus-photo-of-glass-of-brown-liquid-X6aY_j6JD_Y",
+      },
+    },
+  },
+  {
+    ...FRAPPE_GUIDE,
+    image: {
+      src: "/rehber/frappe-nedir.webp",
+      alt: "Ahşap masada krema ve karamel sosla tamamlanmış buzlu frappe",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Kari Shea",
+        url: "https://unsplash.com/@karishea",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/brown-and-white-ice-cream-on-brown-wooden-table-1e5V69AQjgA",
+      },
+    },
+  },
+  {
+    ...SPANISH_LATTE_GUIDE,
+    image: {
+      src: "/rehber/spanish-latte-nedir.webp",
+      alt: "Uzun bardakta buzun üzerinde süte karışan espresso: buzlu bir latte",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Demi DeHerrera",
+        url: "https://unsplash.com/@demidearest",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/glass-cup-filled-with-ice-latte-on-tabletop-L-sm1B4L1Ns",
+      },
+    },
+  },
+  {
+    ...CHAI_LATTE_GUIDE,
+    image: {
+      src: "/rehber/chai-tea-latte.webp",
+      alt: "Koyu zemin üzerinde metal kupada chai latte, yanında tarçın çubukları ve kakule",
+      width: 1600,
+      height: 1067,
+      credit: {
+        name: "Kamal Preet Kaur",
+        url: "https://unsplash.com/@kamalpreetkaur",
+        source: "Unsplash",
+        photoUrl:
+          "https://unsplash.com/photos/a-cup-of-coffee-sitting-on-top-of-a-table-hT_xR7_1YH8",
+      },
+    },
   },
 ];

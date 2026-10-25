@@ -20,6 +20,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "legal:export": "node scripts/legal-export.mjs",
     "email:build": "node scripts/build-email-templates.mjs",
+    "seo:indexnow": "node scripts/indexnow.mjs",
+    "seo:photo": "node scripts/guide-photo.mjs",
     "prebuild": "node scripts/check-build-env.mjs && node scripts/build-email-templates.mjs",
     "predev": "node scripts/build-email-templates.mjs"
   },

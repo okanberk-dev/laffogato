@@ -66,11 +66,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: "weekly" as const,
     priority: 0.8,
   };
+  // Each guide's photograph rides along as an image sitemap entry, so the
+  // dish can surface in Google Images and in the recipe results.
   const guides = GUIDES.map((g) => ({
     url: `${SITE.url}/rehber/${g.slug}`,
     lastModified: new Date(g.updatedAt),
     changeFrequency: "monthly" as const,
     priority: 0.75,
+    ...(g.image ? { images: [`${SITE.url}${g.image.src}`] } : {}),
   }));
 
   const legalIndex = {

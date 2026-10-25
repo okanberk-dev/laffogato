@@ -1,8 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import { guideGraphLd } from "@/lib/seo/guide-structured-data";
+import { guideGraphLd, recipeStepId } from "@/lib/seo/guide-structured-data";
 import { GUIDES, findGuide, relatedGuides } from "@/lib/seo/guides";
 import { SITE, brandedTitle, metaDescription } from "@/lib/seo/site";
 import { JsonLd } from "@/lib/seo/json-ld";
@@ -83,6 +84,39 @@ export default async function GuidePage({
           </div>
         </header>
 
+        {/* The dish, first: the page's largest paint, so it loads eagerly. A
+            stock photograph names its photographer, as the Unsplash licence
+            asks politely and the house does gladly. */}
+        {guide.image && (
+          <figure className="guide-hero">
+            <Image
+              src={guide.image.src}
+              alt={guide.image.alt}
+              width={guide.image.width}
+              height={guide.image.height}
+              priority
+              sizes="(max-width: 920px) 100vw, 880px"
+            />
+            <figcaption>
+              {guide.image.credit ? (
+                <>
+                  Fotoğraf:{" "}
+                  <a
+                    href={guide.image.credit.photoUrl}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {guide.image.credit.name}
+                  </a>
+                  , Unsplash
+                </>
+              ) : (
+                <>Fotoğraf: {"L'Affogato"}, Tuzla</>
+              )}
+            </figcaption>
+          </figure>
+        )}
+
         {/* A table of contents doubles as the jump-links Google shows beneath
             a result, so the headings carry ids and this list points at them. */}
         {guide.sections.length > 3 && (
@@ -96,6 +130,11 @@ export default async function GuidePage({
                   <a href={`#bolum-${i + 1}`}>{s.heading}</a>
                 </li>
               ))}
+              {guide.recipe ? (
+                <li>
+                  <a href="#tarif">Tarif: {guide.recipe.name}</a>
+                </li>
+              ) : null}
             </ol>
           </nav>
         )}
@@ -138,6 +177,45 @@ export default async function GuidePage({
             </section>
           ))}
         </article>
+
+        {/* The recipe the page's Recipe JSON-LD describes, printed: structured
+            data must describe what a reader can see. Each step carries the id
+            its HowToStep `url` points at. */}
+        {guide.recipe && (
+          <section
+            className="guide-recipe"
+            id="tarif"
+            aria-labelledby="tarif-baslik"
+          >
+            <div className="eyebrow">Tarif</div>
+            <h2 id="tarif-baslik">{guide.recipe.name}</h2>
+            <p className="guide-recipe-desc">{guide.recipe.description}</p>
+            <dl className="guide-recipe-facts">
+              <div>
+                <dt>Hazırlık</dt>
+                <dd>{guide.recipe.prepMinutes} dakika</dd>
+              </div>
+              <div>
+                <dt>Miktar</dt>
+                <dd>{guide.recipe.yield}</dd>
+              </div>
+            </dl>
+            <h3>Malzemeler</h3>
+            <ul className="guide-bullets">
+              {guide.recipe.ingredients.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+            <h3>Yapılışı</h3>
+            <ol className="guide-ordered">
+              {guide.recipe.steps.map((step, i) => (
+                <li key={i} id={recipeStepId(i)}>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
 
         {guide.faq.length > 0 && (
           <section className="guide-faq">

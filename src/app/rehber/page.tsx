@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 
@@ -11,9 +12,9 @@ import { GUIDES } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";
 import { JsonLd } from "@/lib/seo/json-ld";
 
-const TITLE = "Rehber - Affogato, Matcha, Espresso ve Tatlılar";
+const TITLE = "Rehber - Kahve, Matcha, Tiramisu ve Tatlı Tarifleri";
 const DESCRIPTION =
-  "Affogato nedir, matcha nasıl yapılır, flat white ile cortado farkı, San Sebastian cheesecake tarifi - Tuzla'daki barın mutfağından Türkçe rehberler.";
+  "Tiramisu tarifi, cold brew ve frappe nedir, spanish latte, chai latte, matcha ve affogato: Tuzla'daki barın mutfağından adım adım Türkçe rehberler.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -60,14 +61,23 @@ export default function GuideHubPage() {
           scene="matcha"
           eyebrow="Il quaderno"
           title={["Barın arkasında", "öğrendiklerimiz"]}
-          lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, cortado ile flat white arasındaki fark nedir - hepsi tek tek, uygulanabilir biçimde."
+          lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir - hepsi tek tek, uygulanabilir biçimde."
         />
 
         <ul className="guide-hub-grid">
           {GUIDES.map((g) => (
             <li key={g.slug}>
               <Link href={`/rehber/${g.slug}`} className="guide-card">
-                {GUIDE_ART[g.slug] ? (
+                {g.image ? (
+                  <span className="guide-card-photo">
+                    <Image
+                      src={g.image.src}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 360px"
+                    />
+                  </span>
+                ) : GUIDE_ART[g.slug] ? (
                   <Illustration
                     name={GUIDE_ART[g.slug]}
                     className="guide-card-art"
