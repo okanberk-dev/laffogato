@@ -9,6 +9,22 @@ anahtarıyla**: operatör panelin anahtarının (`KARAOKE_SYNC_SECRET`) kafedeki
 makinede durmasını istemedi. İki anahtar ayrı ayrı döndürülür. Sözleşmenin
 LafPOS tarafı: lafpos `docs/03-ENTEGRASYON.md` §2.3.
 
+## İş bölümü (26 Ekim 2026)
+
+LafPOS ile site **tek sistem, iki yüz** düzeninde çalışır (karar ve gerekçe: lafpos `docs/06-TEK-SISTEM.md`;
+ModPOS, NarPOS, Toast, Square ve Lightspeed'deki düzen):
+
+- **Ürünlerin tek kaynağı bu panel.** Ad, fiyat, boy, KDV ve fotoğraf burada değişir; site, uygulama ve kasa
+  aynı menüyü okur. LafPOS'ta Yönetim › Ürünler'deki "Sitede ürün ekle" bu panelin `/admin/menu/yeni`
+  sayfasını açar; LafPOS menüyü kendisi çeker ve değişikliği uygulamadan önce gösterir.
+- **Kasaya özgü alanlar LafPOS'ta** (istasyon, kısa ad, porsiyon, seçenek grubu); site bunları bilmez.
+- **Yalnız kafede satılan hizmetler** (karaoke odasının saatlik ücreti, etkinlik ücreti) LafPOS'ta yerel ürün;
+  buraya girmez.
+- **Tükendi** kasadan ya da bar ekranından işaretlenince `POST /api/panel/menu` ile burada da tükenir
+  (LafPOS'ta `urun.tukendi` yetkisi; kasiyer ve bar rolünde varsayılan açık).
+- Şema değişmedi. Bu değişiklik yalnız LafPOS'un ayrı imza anahtarını (`LAFPOS_SYNC_SECRET`) ve sipariş
+  sürüm sinyalini ekler; anahtar Vercel'e girilene dek LafPOS'un imzalı çağrıları reddedilir, site etkilenmez.
+
 ## Anahtar
 
 | Değişken                | Nerede        | Açıklama                                                                                            |
