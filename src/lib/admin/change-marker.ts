@@ -55,9 +55,10 @@ import {
  * expires: a user deactivated, demoted or given a new password moves it
  * too, so the "nothing changed" answer lasts only while no account changed
  * since the full answer that re-read this session's account (the poll
- * cursors are bound to that session, poll-binding.ts). The one marker that
- * is not a panel poll's, LafPOS's order signal (`readPosOrdersMarker`),
- * sits under `live:orders` alone.
+ * cursors are bound to that session, poll-binding.ts). The two markers
+ * that are not a panel poll's, LafPOS's order and karaoke signals
+ * (`readPosOrdersMarker`, `readPosKaraokeMarker`), sit under `live:orders`
+ * and `live:karaoke` alone.
  */
 
 export type ChangeMarkerKind = "orders" | "karaoke" | "invoices" | "venue";
@@ -94,6 +95,16 @@ export async function readChangeMarker(
  */
 export async function readPosOrdersMarker(): Promise<string | null> {
   return readMarker("pos-orders", [TAG_ORDERS]);
+}
+
+/**
+ * LafPOS's karaoke signal, the `karaoke` beside `version` in the same
+ * answer: under `live:karaoke` alone, for the reason above. A booking made,
+ * paid, confirmed, moved or cancelled expires it, and LafPOS then pulls
+ * `GET /api/panel/karaoke` (docs/LAFPOS.md).
+ */
+export async function readPosKaraokeMarker(): Promise<string | null> {
+  return readMarker("pos-karaoke", [TAG_KARAOKE]);
 }
 
 async function readMarker(

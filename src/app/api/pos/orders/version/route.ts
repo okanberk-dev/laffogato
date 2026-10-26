@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   newChangeMarker,
+  readPosKaraokeMarker,
   readPosOrdersMarker,
 } from "@/lib/admin/change-marker";
 import {
@@ -24,6 +25,13 @@ import {
  * src/lib/db/index.ts) makes the next ask a miss, so the version moves when
  * an order is placed, paid, moved on or refunded. It carries no data and
  * means only "same as before" or "not".
+ *
+ * `karaoke` beside it is the same kind of marker under `live:karaoke`
+ * alone: it moves when a karaoke booking is made, paid, confirmed, moved or
+ * cancelled, and LafPOS then pulls `GET /api/panel/karaoke` for its room
+ * box. An order does not move it, a booking does not move `version`. Added
+ * to the answer, not swapped in: a LafPOS that reads only `version` is
+ * unchanged.
  *
  * When the cache cannot say (`LAF_DATA_CACHE=off`, a failing cache, or off
  * under test), every answer is a new token: LafPOS then pulls on every ask.
@@ -59,6 +67,15 @@ export async function GET(request: Request) {
       { status: 401, headers: NO_STORE },
     );
   }
-  const version = (await readPosOrdersMarker()) ?? newChangeMarker();
-  return NextResponse.json({ version }, { headers: NO_STORE });
+  const [orders, karaoke] = await Promise.all([
+    readPosOrdersMarker(),
+    readPosKaraokeMarker(),
+  ]);
+  return NextResponse.json(
+    {
+      version: orders ?? newChangeMarker(),
+      karaoke: karaoke ?? newChangeMarker(),
+    },
+    { headers: NO_STORE },
+  );
 }

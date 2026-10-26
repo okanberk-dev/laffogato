@@ -9,11 +9,14 @@ import {
 /**
  * `GET /api/pos/orders/version` - LafPOS, the café's till, asking every 20
  * seconds whether the online orders changed before it pulls
- * `/api/panel/orders` (docs/LAFPOS.md). What is pinned: only LafPOS's own
- * key opens it; the answer is `{version}`, never cached on the way; it comes
- * from the Data Cache under `live:orders` and never from the database; it
- * moves with an order write and with nothing else; and a cache that cannot
- * say answers "changed" every time.
+ * `/api/panel/orders`, and whether the karaoke bookings changed before it
+ * pulls `/api/panel/karaoke` (docs/LAFPOS.md). What is pinned: only
+ * LafPOS's own key opens it; the answer is `{version, karaoke}`, never
+ * cached on the way; each comes from the Data Cache under its own tag
+ * (`live:orders`, `live:karaoke`) and never from the database; `version`
+ * moves with an order write and with nothing else, `karaoke` with a
+ * booking write and with nothing else; and a cache that cannot say answers
+ * "changed" every time.
  */
 
 const h = vi.hoisted(() => ({
@@ -88,13 +91,23 @@ function signed(
   });
 }
 
-async function version(): Promise<string> {
+async function markers(): Promise<{ version: string; karaoke: string }> {
   const res = await GET(signed());
   expect(res.status).toBe(200);
   const body = await res.json();
-  expect(typeof body.version).toBe("string");
-  expect(body.version).not.toBe("");
-  return body.version;
+  for (const key of ["version", "karaoke"]) {
+    expect(typeof body[key], key).toBe("string");
+    expect(body[key], key).not.toBe("");
+  }
+  return body;
+}
+
+async function version(): Promise<string> {
+  return (await markers()).version;
+}
+
+async function karaoke(): Promise<string> {
+  return (await markers()).karaoke;
 }
 
 beforeEach(() => {
@@ -159,12 +172,15 @@ describe("the gate", () => {
 });
 
 describe("the version", () => {
-  it("is {version} alone, uncached, and the same until an order is written", async () => {
+  it("is {version, karaoke}, uncached, and the same until an order is written", async () => {
     const res = await GET(signed());
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
     const body = await res.json();
-    expect(Object.keys(body)).toEqual(["version"]);
+    // `version` as before; `karaoke` is an addition a LafPOS that reads
+    // only `version` never sees.
+    expect(Object.keys(body)).toEqual(["version", "karaoke"]);
+    expect(body.karaoke).not.toBe(body.version);
     expect(await version()).toBe(body.version);
 
     // An order placed, paid or moved on: what the data layer's write hook
@@ -195,23 +211,24 @@ describe("the version", () => {
 
   it("sits under live:orders alone, apart from the panel's order marker", async () => {
     await version();
-    expect(h.made).toEqual([
-      {
-        keyParts: ["laf-marker-pos-orders", "dpl_pos", expect.any(String)],
-        tags: ["live:orders"],
-      },
-    ]);
+    expect(h.made).toContainEqual({
+      keyParts: ["laf-marker-pos-orders", "dpl_pos", expect.any(String)],
+      tags: ["live:orders"],
+    });
   });
 
   it("is new on every ask when the cache cannot say: LafPOS then pulls every time", async () => {
     vi.stubEnv("LAF_DATA_CACHE", "off");
     expect(await version()).not.toBe(await version());
+    expect(await karaoke()).not.toBe(await karaoke());
     vi.stubEnv("LAF_DATA_CACHE", "");
     h.broken = true;
     expect(await version()).not.toBe(await version());
+    expect(await karaoke()).not.toBe(await karaoke());
     h.broken = false;
     vi.stubEnv("NODE_ENV", "test");
     expect(await version()).not.toBe(await version());
+    expect(await karaoke()).not.toBe(await karaoke());
   });
 
   it("never reaches the database", async () => {
@@ -219,6 +236,7 @@ describe("the version", () => {
     expect((await import("@/lib/db")).getDb).toBe(db.getDb);
     await version();
     expireTags(tagsForWrite({ table: "orders" }));
+    expireTags(tagsForWrite({ table: "karaoke_reservations" }));
     await version();
     vi.stubEnv("LAF_DATA_CACHE", "off");
     await version();
@@ -228,5 +246,58 @@ describe("the version", () => {
     vi.stubEnv("LAFPOS_SYNC_SECRET", "");
     await GET(signed());
     expect(db.getDb).not.toHaveBeenCalled();
+  });
+});
+
+describe("the karaoke marker", () => {
+  it("stays the same until a karaoke booking is written", async () => {
+    const first = await karaoke();
+    expect(await karaoke()).toBe(first);
+
+    // A booking made, paid, confirmed, moved or cancelled: the write hook
+    // expires `live:karaoke` after it (src/lib/db/index.ts).
+    expireTags(tagsForWrite({ table: "karaoke_reservations" }));
+    const next = await karaoke();
+    expect(next).not.toBe(first);
+    expect(await karaoke()).toBe(next);
+
+    // An hour resold or given back goes through an rpc tagged the same way,
+    // and so does the nightly retention of old bookings.
+    for (const fn of [
+      "karaoke_charge_resold_hours",
+      "karaoke_give_make_good_hour",
+      "karaoke_reservation_retention",
+    ]) {
+      const before = await karaoke();
+      expireTags(tagsForWrite({ fn }));
+      expect(await karaoke(), fn).not.toBe(before);
+    }
+  });
+
+  it("does not move for an order, and a booking does not move the version", async () => {
+    const { version: v, karaoke: k } = await markers();
+    for (const table of ["orders", "menu_items", "settings", "admin_users"]) {
+      expireTags(tagsForWrite({ table }));
+      expect(await karaoke(), table).toBe(k);
+    }
+    const now = await version();
+    expect(now).not.toBe(v);
+    expireTags(tagsForWrite({ table: "karaoke_reservations" }));
+    expect(await version()).toBe(now);
+    expect(await karaoke()).not.toBe(k);
+  });
+
+  it("sits under live:karaoke alone, apart from the panel's karaoke marker", async () => {
+    await karaoke();
+    expect(h.made).toEqual([
+      {
+        keyParts: ["laf-marker-pos-orders", "dpl_pos", expect.any(String)],
+        tags: ["live:orders"],
+      },
+      {
+        keyParts: ["laf-marker-pos-karaoke", "dpl_pos", expect.any(String)],
+        tags: ["live:karaoke"],
+      },
+    ]);
   });
 });
