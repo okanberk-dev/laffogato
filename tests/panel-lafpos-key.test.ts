@@ -12,13 +12,15 @@ import {
 
 /**
  * LafPOS, the café's till server, on the panel's routes with a key of its
- * own (docs/LAFPOS.md): `LAFPOS_SYNC_SECRET` opens the menu read and write
- * and the bar screen's read and stage beside the panel's
+ * own (docs/LAFPOS.md): `LAFPOS_SYNC_SECRET` opens the menu read and write,
+ * the bar screen's read and stage and the karaoke read beside the panel's
  * `KARAOKE_SYNC_SECRET`, so the panel's key never sits on the café's
- * machine. What is pinned: LafPOS's signature opens each of the four
- * routes, its writes are audited "lafpos:<name>", the panel's requests are
- * answered exactly as before, a route with neither key is shut, and the
- * karaoke and sales routes stay the panel's alone.
+ * machine. What is pinned: LafPOS's signature opens each of the five
+ * routes, its writes are audited "lafpos:<name>", its karaoke read is the
+ * panel's whitelist and nothing more, the panel's requests are answered
+ * exactly as before, a route with neither key is shut, the panel's value
+ * pasted in as LafPOS's opens nothing to LafPOS, and the sales route stays
+ * the panel's alone.
  */
 
 const store = vi.hoisted(() => ({
@@ -69,6 +71,8 @@ function signed(path: string, secret: string, body?: string): Request {
   });
 }
 
+const KARAOKE_WINDOW = "/api/panel/karaoke?from=2026-10-26&to=2026-10-26";
+
 const MENU_CHANGE = JSON.stringify({
   id: "mnu-0011",
   isActive: false,
@@ -81,7 +85,7 @@ const TAP = JSON.stringify({
   actor: "Selin",
 });
 
-/** The four routes, each as LafPOS (or the panel) calls it. */
+/** The five routes, each as LafPOS (or the panel) calls it. */
 const ROUTES = {
   "GET /api/panel/menu": (secret: string) =>
     menu.GET(signed("/api/panel/menu", secret)),
@@ -91,7 +95,12 @@ const ROUTES = {
     orders.GET(signed("/api/panel/orders", secret)),
   "POST /api/panel/orders/stage": (secret: string) =>
     stage.POST(signed("/api/panel/orders/stage", secret, TAP)),
+  "GET /api/panel/karaoke": (secret: string) =>
+    karaoke.GET(signed(KARAOKE_WINDOW, secret)),
 };
+
+/** Every read behind the five routes: none may run for a refused request. */
+const READS = () => [...Object.values(store), listReservationsForAdmin];
 
 function menuItem(over: Record<string, unknown> = {}) {
   return {
@@ -103,6 +112,31 @@ function menuItem(over: Record<string, unknown> = {}) {
     isActive: true,
     sortOrder: 6,
     updatedAt: "2026-10-20T08:00:00.000Z",
+    ...over,
+  };
+}
+
+/** A paid web booking, every column the table has (the whitelist narrows). */
+function booking(over: Record<string, unknown> = {}) {
+  return {
+    id: "krk-0007",
+    customerEmail: "ayse@example.com",
+    customerName: "Ayşe Yılmaz",
+    date: "2026-10-26",
+    startHour: 20,
+    hours: 2,
+    guests: 5,
+    status: "confirmed",
+    priceMinor: 200000,
+    discountMinor: 0,
+    totalMinor: 200000,
+    note: "Doğum günü",
+    createdAt: "2026-10-20T09:00:00.000Z",
+    updatedAt: "2026-10-20T09:05:00.000Z",
+    contactPhone: "+905551112233",
+    paymentStatus: "paid",
+    paymentRef: "PNK-1",
+    channel: "web",
     ...over,
   };
 }
@@ -150,6 +184,7 @@ beforeEach(() => {
   store.setMenuItemSaleFields.mockResolvedValue(menuItem({ isActive: false }));
   store.markMenuPricesChanged.mockResolvedValue(undefined);
   store.listPanelOpenOrderRows.mockResolvedValue([order()]);
+  listReservationsForAdmin.mockResolvedValue([booking()]);
   store.getOrder.mockResolvedValue(order());
   store.transitionOrder.mockResolvedValue({
     ok: true,
@@ -228,7 +263,7 @@ describe("the keys (signed-callers.ts)", () => {
   });
 });
 
-describe("LafPOS's key on the four routes", () => {
+describe("LafPOS's key on the five routes", () => {
   it.each([
     ["alone", ""],
     ["beside the panel's", PANEL],
@@ -280,7 +315,7 @@ describe("LafPOS's key on the four routes", () => {
       expect(res.status, route).toBe(401);
       expect(await res.json(), route).toEqual({ error: "unauthorized" });
     }
-    for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+    for (const fn of READS()) expect(fn).not.toHaveBeenCalled();
   });
 
   it("writes Tükendi / Satışta only: a price is 403 before anything is read", async () => {
@@ -317,13 +352,13 @@ describe("LafPOS's key on the four routes", () => {
     });
   });
 
-  it("is shut out of the four routes once revoked, with the panel's key still set", async () => {
+  it("is shut out of the five routes once revoked, with the panel's key still set", async () => {
     vi.stubEnv("LAFPOS_SYNC_SECRET", "");
     for (const [route, call] of Object.entries(ROUTES)) {
       const res = await call(LAFPOS);
       expect(res.status, route).toBe(401);
     }
-    for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+    for (const fn of READS()) expect(fn).not.toHaveBeenCalled();
   });
 
   it("refuses its own signature once stale (±300 s), on each route", async () => {
@@ -350,14 +385,72 @@ describe("LafPOS's key on the four routes", () => {
       await menu.POST(stale("/api/panel/menu", MENU_CHANGE)),
       await orders.GET(stale("/api/panel/orders")),
       await stage.POST(stale("/api/panel/orders/stage", TAP)),
+      await karaoke.GET(stale(KARAOKE_WINDOW)),
     ];
     for (const res of answers) expect(res.status).toBe(401);
-    for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+    for (const fn of READS()) expect(fn).not.toHaveBeenCalled();
+  });
+});
+
+describe("LafPOS's karaoke read", () => {
+  it("is the panel's whitelist: a first name, the hour, the states, the note, the amount", async () => {
+    const res = await ROUTES["GET /api/panel/karaoke"](LAFPOS);
+    expect(res.status).toBe(200);
+    expect(listReservationsForAdmin).toHaveBeenCalledWith({
+      from: "2026-10-26",
+      to: "2026-10-26",
+      limit: expect.any(Number),
+      ascending: true,
+    });
+    const body = await res.json();
+    expect(body).toMatchObject({
+      from: "2026-10-26",
+      to: "2026-10-26",
+      complete: true,
+    });
+    expect(body.reservations).toEqual([
+      {
+        id: "krk-0007",
+        date: "2026-10-26",
+        startHour: 20,
+        hours: 2,
+        startsAt: "2026-10-26T17:00:00.000Z",
+        endsAt: "2026-10-26T19:00:00.000Z",
+        guests: 5,
+        status: "confirmed",
+        paymentStatus: "paid",
+        firstName: "Ayşe",
+        note: "Doğum günü",
+        totalMinor: 200000,
+        channel: "web",
+        createdAt: "2026-10-20T09:00:00.000Z",
+        updatedAt: "2026-10-20T09:05:00.000Z",
+      },
+    ]);
+    const text = JSON.stringify(body);
+    for (const secret of ["ayse@example.com", "+905551112233", "Yılmaz"]) {
+      expect(text).not.toContain(secret);
+    }
+    expect(text).not.toContain("PNK-1");
+  });
+
+  it("does not count the panel's value pasted in as LafPOS's", async () => {
+    // The panel's link off (a PANEL_URL that is not https): the pasted value
+    // is then the only key on offer, and it is not LafPOS's.
+    vi.stubEnv("PANEL_URL", "http://ladmin.laffogato.net");
+    vi.stubEnv("LAFPOS_SYNC_SECRET", PANEL);
+    const pasted = await ROUTES["GET /api/panel/karaoke"](PANEL);
+    expect(pasted.status).toBe(503);
+    expect(await pasted.json()).toEqual({ error: "not_configured" });
+    expect(listReservationsForAdmin).not.toHaveBeenCalled();
+    // LafPOS's own value opens it.
+    vi.stubEnv("LAFPOS_SYNC_SECRET", LAFPOS);
+    expect((await ROUTES["GET /api/panel/karaoke"](LAFPOS)).status).toBe(200);
   });
 });
 
 describe("the panel's key, unchanged", () => {
-  it("opens the four routes beside LafPOS's key and audits panel:<name>", async () => {
+  it("opens the five routes beside LafPOS's key and audits panel:<name>", async () => {
     for (const [route, call] of Object.entries(ROUTES)) {
       expect((await call(PANEL)).status, route).toBe(200);
     }
@@ -395,6 +488,16 @@ describe("the panel's key, unchanged", () => {
       expect(panel.version, route).toBe(1);
       expect(await strip(await ROUTES[route](LAFPOS)), route).toEqual(panel);
     }
+    const route = "GET /api/panel/karaoke";
+    const panel = await strip(await ROUTES[route](PANEL));
+    expect(panel.reservations, route).toHaveLength(1);
+    expect(await strip(await ROUTES[route](LAFPOS)), route).toEqual(panel);
+  });
+
+  it("is the only key the karaoke read takes while LafPOS's is unset", async () => {
+    vi.stubEnv("LAFPOS_SYNC_SECRET", "");
+    expect((await ROUTES["GET /api/panel/karaoke"](PANEL)).status).toBe(200);
+    expect((await ROUTES["GET /api/panel/karaoke"](LAFPOS)).status).toBe(401);
   });
 });
 
@@ -403,7 +506,7 @@ describe("neither key", () => {
     ["unset", ""],
     ["too short to be one", "k".repeat(31)],
   ])(
-    "shuts all four with 503 when LafPOS's key is %s and the panel's is unset",
+    "shuts all five with 503 when LafPOS's key is %s and the panel's is unset",
     async (_, lafposKey) => {
       vi.stubEnv("KARAOKE_SYNC_SECRET", "");
       vi.stubEnv("LAFPOS_SYNC_SECRET", lafposKey);
@@ -412,28 +515,22 @@ describe("neither key", () => {
         expect(res.status, route).toBe(503);
         expect(await res.json(), route).toEqual({ error: "not_configured" });
       }
-      for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+      for (const fn of READS()) expect(fn).not.toHaveBeenCalled();
     },
   );
 });
 
-describe("the routes LafPOS does not get", () => {
-  const pulls = (secret: string) => [
-    karaoke.GET(signed("/api/panel/karaoke", secret)),
-    sales.GET(signed("/api/panel/sales?month=2026-10", secret)),
-  ];
+describe("the route LafPOS does not get", () => {
+  const pull = (secret: string) =>
+    sales.GET(signed("/api/panel/sales?month=2026-10", secret));
 
-  it("karaoke and sales stay the panel's: LafPOS's key is not theirs", async () => {
+  it("sales stays the panel's: LafPOS's key is not its", async () => {
     vi.stubEnv("KARAOKE_SYNC_SECRET", "");
-    for (const res of await Promise.all(pulls(LAFPOS))) {
-      expect(res.status).toBe(503);
-    }
+    expect((await pull(LAFPOS)).status).toBe(503);
     vi.stubEnv("KARAOKE_SYNC_SECRET", PANEL);
-    for (const res of await Promise.all(pulls(LAFPOS))) {
-      expect(res.status).toBe(401);
-    }
-    expect(listReservationsForAdmin).not.toHaveBeenCalled();
+    expect((await pull(LAFPOS)).status).toBe(401);
     expect(store.listPanelSalesOrderRows).not.toHaveBeenCalled();
+    expect(store.listPanelSalesBookingRows).not.toHaveBeenCalled();
   });
 });
 

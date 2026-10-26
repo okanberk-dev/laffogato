@@ -3,15 +3,16 @@ import { NextResponse } from "next/server";
 import { listReservationsForAdmin } from "@/lib/mobile/karaoke";
 import {
   PANEL_MAX_ROWS,
-  panelSyncConfig,
   parsePanelRange,
-  SIGNATURE_HEADER,
   sortForPanel,
-  TIMESTAMP_HEADER,
   toPanelReservation,
-  verifySignature,
   type PanelKaraokeReservation,
 } from "@/lib/panel/karaoke-sync-core";
+import {
+  signedCaller,
+  signedCallerKeys,
+  type SignedCaller,
+} from "@/lib/panel/signed-callers";
 
 /**
  * `GET /api/panel/karaoke?from=YYYY-MM-DD&to=YYYY-MM-DD` - the köşk's panel
@@ -21,11 +22,17 @@ import {
  *
  * Server to server, no cookie: the panel signs the request with the shared
  * `KARAOKE_SYNC_SECRET` (HMAC-SHA256 over the instant, method, path, query
- * and body, five minutes of clock skew at most; CLAUDE.md rule 7). Unset
- * secret: 503, the link is off. Bad, missing or stale signature: 401, with
- * nothing more said. The answer is the whitelisted shape of
- * `toPanelReservation` - a first name, the hour, the head count, the states;
- * never an e-mail, phone, surname, consent record or payment reference.
+ * and body, five minutes of clock skew at most; CLAUDE.md rule 7). LafPOS,
+ * the café's till, reads the same window with its own `LAFPOS_SYNC_SECRET`
+ * (signed-callers.ts, docs/LAFPOS.md), so a room booked on the site is not
+ * free on the till and an hour paid online is not charged again; it pulls
+ * when the `karaoke` marker of `/api/pos/orders/version` moves. Neither key
+ * set: 503, the link is off; LafPOS's key unset, or the panel's value
+ * pasted in as it, leaves this route the panel's alone, as before. Bad,
+ * missing or stale signature: 401, with nothing more said. Both callers get
+ * the same whitelisted shape of `toPanelReservation` - a first name, the
+ * hour, the head count, the states, the note, the amount; never an e-mail,
+ * phone, surname, consent record or payment reference.
  *
  * `src/proxy.ts` lets every `/api/*` path through untouched, so this one
  * gets no session refresh and no page CSP.
@@ -36,23 +43,19 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
 
+/** The panel, and LafPOS with its own key. */
+const CALLERS: readonly SignedCaller[] = ["panel", "lafpos"];
+
 export async function GET(request: Request) {
-  const config = panelSyncConfig(process.env);
-  if (!config) {
+  const keys = signedCallerKeys(process.env, CALLERS);
+  if (!keys) {
     return NextResponse.json(
       { error: "not_configured" },
       { status: 503, headers: NO_STORE },
     );
   }
   const url = new URL(request.url);
-  const signed = verifySignature(config.secret, {
-    method: "GET",
-    url,
-    body: "",
-    timestamp: request.headers.get(TIMESTAMP_HEADER),
-    signature: request.headers.get(SIGNATURE_HEADER),
-  });
-  if (!signed) {
+  if (!signedCaller(keys, request, "GET", url, "")) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },

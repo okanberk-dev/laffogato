@@ -58,6 +58,9 @@ function signed(query = "", at = Date.now(), secret = SECRET): Request {
 
 beforeEach(() => {
   vi.stubEnv("KARAOKE_SYNC_SECRET", SECRET);
+  // The panel's side alone; LafPOS's key on this route is pinned in
+  // tests/panel-lafpos-key.test.ts.
+  vi.stubEnv("LAFPOS_SYNC_SECRET", "");
   listReservationsForAdmin.mockReset();
   listReservationsForAdmin.mockResolvedValue([]);
 });
