@@ -118,6 +118,18 @@ export async function POST(request: Request) {
   const parsed = parsePanelMenuChange(raw);
   if (!parsed.ok) return deny(400, "invalid", { field: parsed.field });
   const { change } = parsed;
+  // LafPOS writes Tükendi / Satışta only (docs/LAFPOS.md). Its key sits on
+  // the café's machine; a stolen machine must not be able to change a price
+  // the site and the app charge (src/lib/mobile/order-pricing.ts).
+  if (caller === "lafpos") {
+    const priceField =
+      change.priceMinor !== undefined
+        ? "priceMinor"
+        : change.priceMinorL !== undefined
+          ? "priceMinorL"
+          : null;
+    if (priceField) return deny(403, "forbidden", { field: priceField });
+  }
 
   try {
     const current = await getMenuItemForPanel(change.id);

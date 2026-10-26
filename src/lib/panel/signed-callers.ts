@@ -50,7 +50,8 @@ export function lafposSyncSecret(
  * deployment has none of them (the route answers 503 `not_configured`).
  * The panel's key counts exactly as it always has (`panelSyncConfig`: a
  * secret under 32 characters, or a `PANEL_URL` that is not https, turns the
- * panel's link off); LafPOS's counts by `lafposSyncSecret`.
+ * panel's link off); LafPOS's counts by `lafposSyncSecret`, and not at all
+ * when it is the same value as `KARAOKE_SYNC_SECRET`.
  */
 export function signedCallerKeys(
   env: Record<string, string | undefined>,
@@ -63,7 +64,12 @@ export function signedCallerKeys(
   }
   if (accept.includes("lafpos")) {
     const lafpos = lafposSyncSecret(env);
-    if (lafpos) keys.lafpos = lafpos;
+    // The panel's value pasted in as LafPOS's (docs/LAFPOS.md "Anahtarı
+    // değiştirmek") is a mistake, not a second key: LafPOS's key then counts
+    // as unset, so `/api/pos/orders/version` answers 503 and the mix-up shows
+    // instead of LafPOS's writes being audited as the panel's.
+    const panelValue = env.KARAOKE_SYNC_SECRET?.trim() ?? "";
+    if (lafpos && lafpos !== panelValue) keys.lafpos = lafpos;
   }
   return keys.panel || keys.lafpos ? keys : null;
 }

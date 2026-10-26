@@ -48,15 +48,15 @@ ModPOS, NarPOS, Toast, Square ve Lightspeed'deki düzen):
 
 ## Hangi uçlar
 
-| Uç                             | Panelin anahtarı | LafPOS'un anahtarı | LafPOS ne için kullanır                                 |
-| ------------------------------ | ---------------- | ------------------ | ------------------------------------------------------- |
-| `GET /api/panel/menu`          | açar             | açar               | Tükendi kalemleri de görmek (`isActive`)                |
-| `POST /api/panel/menu`         | açar             | açar               | Kasada Tükendi / Satışa aç: önce site, 2xx gelince kasa |
-| `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı             |
-| `POST /api/panel/orders/stage` | açar             | açar               | Hazırlanıyor / Hazır / Teslim edildi                    |
-| `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş sürüm sinyali (aşağıda)                         |
-| `GET /api/panel/karaoke`       | açar             | açmaz              | LafPOS'un işi değil                                     |
-| `GET /api/panel/sales`         | açar             | açmaz              | LafPOS'un işi değil                                     |
+| Uç                             | Panelin anahtarı | LafPOS'un anahtarı | LafPOS ne için kullanır                                                                                                                                                                         |
+| ------------------------------ | ---------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/panel/menu`          | açar             | açar               | Tükendi kalemleri de görmek (`isActive`)                                                                                                                                                        |
+| `POST /api/panel/menu`         | açar             | açar               | Kasada Tükendi / Satışa aç: önce site, 2xx gelince kasa. LafPOS'un anahtarıyla yalnız `isActive`; `priceMinor` ya da `priceMinorL` 403 `forbidden` (çalınan kafe makinesi fiyat değiştiremesin) |
+| `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı                                                                                                                                                     |
+| `POST /api/panel/orders/stage` | açar             | açar               | Hazırlanıyor / Hazır / Teslim edildi                                                                                                                                                            |
+| `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş sürüm sinyali (aşağıda)                                                                                                                                                                 |
+| `GET /api/panel/karaoke`       | açar             | açmaz              | LafPOS'un işi değil                                                                                                                                                                             |
+| `GET /api/panel/sales`         | açar             | açmaz              | LafPOS'un işi değil                                                                                                                                                                             |
 
 - Panel uçlarının yanıt biçimi, `version`'ı, gövde sınırı ve hata kodları kim
   imzalarsa imzalasın aynıdır: `docs/PANEL-MENU.md`, `docs/PANEL-ORDERS.md`.
@@ -139,6 +139,10 @@ LafPOS'a kapalıdır.
 5. LafPOS bu değişiklik yayına girmeden önce geçici olarak panelin anahtarıyla
    çalıştıysa o anahtar kafedeki makinede durmuştur: kendi anahtarına geçince
    panelinkini de değiştirin.
+
+Panelin anahtarını (`KARAOKE_SYNC_SECRET`) `LAFPOS_SYNC_SECRET` olarak yapıştırmak işe yaramaz: aynı değer LafPOS'un
+anahtarı sayılmaz (`signedCallerKeys`), `GET /api/pos/orders/version` 503 `not_configured` verir ve karışıklık
+hemen görünür. İki anahtar her zaman farklı olmalıdır.
 
 ## Elle denemek
 

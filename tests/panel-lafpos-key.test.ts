@@ -200,6 +200,21 @@ describe("the keys (signed-callers.ts)", () => {
     expect(signedCallerKeys(env, ["panel"])).toBeNull();
   });
 
+  it("does not count LafPOS's key when it is the panel's value pasted in", () => {
+    const env = {
+      KARAOKE_SYNC_SECRET: PANEL,
+      LAFPOS_SYNC_SECRET: ` ${PANEL} `,
+      PANEL_URL: "",
+    };
+    expect(signedCallerKeys(env, ["lafpos"])).toBeNull();
+    expect(signedCallerKeys(env, ["panel", "lafpos"])).toEqual({
+      panel: PANEL,
+    });
+    expect(
+      signedCallerKeys({ ...env, LAFPOS_SYNC_SECRET: LAFPOS }, ["lafpos"]),
+    ).toEqual({ lafpos: LAFPOS });
+  });
+
   it("tells the two callers apart; one value set as both keys is the panel's", () => {
     const keys: SignedCallerKeys = { panel: PANEL, lafpos: LAFPOS };
     const url = new URL("https://laffogato.net/api/panel/menu");
@@ -265,6 +280,78 @@ describe("LafPOS's key on the four routes", () => {
       expect(res.status, route).toBe(401);
       expect(await res.json(), route).toEqual({ error: "unauthorized" });
     }
+    for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("writes Tükendi / Satışta only: a price is 403 before anything is read", async () => {
+    for (const [field, change] of [
+      ["priceMinor", { id: "mnu-0011", priceMinor: 1, actor: "x" }],
+      ["priceMinorL", { id: "mnu-0011", priceMinorL: 0, actor: "x" }],
+      [
+        "priceMinor",
+        { id: "mnu-0011", isActive: false, priceMinor: 9900, actor: "x" },
+      ],
+    ] as const) {
+      const res = await menu.POST(
+        signed("/api/panel/menu", LAFPOS, JSON.stringify(change)),
+      );
+      expect(res.status, field).toBe(403);
+      expect(await res.json(), field).toEqual({ error: "forbidden", field });
+    }
+    for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+    // The panel's key still moves a price, as before
+    store.setMenuItemSaleFields.mockResolvedValue(
+      menuItem({ priceMinor: 15000 }),
+    );
+    const panel = await menu.POST(
+      signed(
+        "/api/panel/menu",
+        PANEL,
+        JSON.stringify({ id: "mnu-0011", priceMinor: 15000, actor: "Selin" }),
+      ),
+    );
+    expect(panel.status).toBe(200);
+    expect(store.setMenuItemSaleFields).toHaveBeenCalledWith("mnu-0011", {
+      priceMinor: 15000,
+    });
+  });
+
+  it("is shut out of the four routes once revoked, with the panel's key still set", async () => {
+    vi.stubEnv("LAFPOS_SYNC_SECRET", "");
+    for (const [route, call] of Object.entries(ROUTES)) {
+      const res = await call(LAFPOS);
+      expect(res.status, route).toBe(401);
+    }
+    for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
+  });
+
+  it("refuses its own signature once stale (±300 s), on each route", async () => {
+    const stale = (path: string, body?: string) => {
+      const url = new URL(path, "https://laffogato.net");
+      const method = body === undefined ? "GET" : "POST";
+      return new Request(url, {
+        method,
+        headers: {
+          "content-type": "application/json",
+          ...signedHeaders(
+            LAFPOS,
+            method,
+            url,
+            body ?? "",
+            Date.now() - 10 * 60_000,
+          ),
+        },
+        body,
+      });
+    };
+    const answers = [
+      await menu.GET(stale("/api/panel/menu")),
+      await menu.POST(stale("/api/panel/menu", MENU_CHANGE)),
+      await orders.GET(stale("/api/panel/orders")),
+      await stage.POST(stale("/api/panel/orders/stage", TAP)),
+    ];
+    for (const res of answers) expect(res.status).toBe(401);
     for (const fn of Object.values(store)) expect(fn).not.toHaveBeenCalled();
   });
 });

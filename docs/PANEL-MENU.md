@@ -74,7 +74,7 @@ Hepsi karaoke bağlantısının imzasını kullanır (`x-laf-timestamp`,
 anahtar `KARAOKE_SYNC_SECRET`, adı tarihsel: sitenin panelle **bütün**
 bağlantısının anahtarıdır). Anahtar yoksa uçlar 503 döner, ping gitmez.
 
-Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, yazımları olay kaydına `lafpos:<ad>` diye düşer: `docs/LAFPOS.md`.
+Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, yazımları olay kaydına `lafpos:<ad>` diye düşer; LafPOS'un anahtarı yalnız satış durumunu (`isActive`) yazar, fiyat yazımı 403 `forbidden`: `docs/LAFPOS.md`.
 
 1. **Ping (site → panel).** `pub:menu` etiketini düşüren her yazım
    (`menu_items`) yanıttan sonra panele imzalı tek bir istek gönderir:
