@@ -370,9 +370,11 @@ sunucu, kasa ekranı Chrome'da açık. **Tek sistem, iki yüz:** ürün yalnız 
 eklenir ve değişir (ad, fiyat, boy, KDV, görsel); LafPOS menüyü herkese açık menü
 ucundan (ETag) çeker, kasaya özgü alanları (istasyon, kısa ad, porsiyon) ve yalnız
 kafede satılan hizmetleri (karaoke odası saatlik ücreti) kendisi tutar. Panelin imzalı
-uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/pos/orders/version`) **kendi
-anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET` (`src/lib/panel/signed-callers.ts`;
-`KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır). LafPOS fiyat yazamaz (403), yalnız
+uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/karaoke`,
+`/api/pos/orders/version`) **kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
+(`src/lib/panel/signed-callers.ts`; `KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır;
+lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un her isteği
+reddedilir (sahip, 26 Eki 2026: varsayılan kapalı). LafPOS fiyat yazamaz (403), yalnız
 Tükendi / Satışta; olay kaydında `lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
 kalır, LafPOS gün sonunu oraya iter. Ayrıntı: `docs/LAFPOS.md`.
 

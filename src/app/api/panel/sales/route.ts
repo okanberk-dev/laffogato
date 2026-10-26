@@ -75,7 +75,8 @@ export async function GET(request: Request) {
     // so its KDV is the invoice's at full price (ASK-COUPON), as the order
     // CSV counts it. How each order was paid, read as the e-Arşiv plan
     // reads it: an app or web order settled at the till in cash or on the
-    // counter's card terminal is ModPOS money, counted apart (`counter`).
+    // counter's card terminal is the till's money (ModPOS; LafPOS after the
+    // switch), counted apart (`counter`).
     // A failed read fails the export, never a wrong KDV or a till sale
     // counted online a second time.
     const [coupons, payments] = await Promise.all([

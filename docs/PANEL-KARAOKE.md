@@ -46,12 +46,31 @@ birkaç saniyede bir sormadan.
    da erkenden geçe yapar: kesilen pencerenin **uzak ucudur**, bugün ve bu
    hafta hep gelir; `complete: false` listenin kesildiğini söyler.
 
+## Çekme ucunu kim çağırır
+
+| Arayan                               | Anahtar               | Ne zaman çeker                                                                                        |
+| ------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------------------- |
+| Köşkün paneli (ladmin.laffogato.net) | `KARAOKE_SYNC_SECRET` | Ping gelince ve ekranı eskimiş açılınca (yukarıda)                                                    |
+| Kafenin kasası LafPOS (26 Ekim 2026) | `LAFPOS_SYNC_SECRET`  | `GET /api/pos/orders/version` yanıtındaki `karaoke` değişince, oda kutusu açılınca (`docs/LAFPOS.md`) |
+
+- İkisi aynı yanıtı, aynı beyaz listeyi (`toPanelReservation`) ve aynı hata
+  kodlarını alır; site isteği hangi anahtarın imzaladığını iki anahtarı da
+  deneyerek bulur (`src/lib/panel/signed-callers.ts`).
+- Ping yalnız panele gider: kafedeki LafPOS'a internetten ulaşılamaz. LafPOS
+  değişikliği sürüm yanıtındaki `karaoke` işaretinden öğrenir; o işaret
+  `live:karaoke`'yu düşüren aynı yazımlarla değişir ve veritabanına gitmez.
+- `LAFPOS_SYNC_SECRET` yoksa, 32 karakterden kısaysa ya da panelin değeriyle
+  aynıysa uç yalnız panelindir, bu değişiklikten önceki gibi (LafPOS
+  varsayılan kapalı; sahibin 26 Ekim 2026 kararı, `docs/LAFPOS.md`).
+- LafPOS rezervasyonu yalnız okur: oda sitede rezerveyken kasada boş
+  görünmesin, sitede ödenmiş saat kasada yeniden ücretlenmesin.
+
 ## Ortam değişkenleri
 
-| Değişken              | Nerede          | Açıklama                                                                           |
-| --------------------- | --------------- | ---------------------------------------------------------------------------------- |
-| `KARAOKE_SYNC_SECRET` | site **ve** panel | Ortak gizli anahtar, iki projede **aynı** değer, en az 32 karakter. Yoksa bağlantı kapalı: ping gitmez, çekme ucu 503 döner. |
-| `PANEL_URL`           | site            | Panelin adresi. Boşsa `https://ladmin.laffogato.net`. http yalnız localhost için. |
+| Değişken              | Nerede            | Açıklama                                                                                                                                                                                     |
+| --------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KARAOKE_SYNC_SECRET` | site **ve** panel | Ortak gizli anahtar, iki projede **aynı** değer, en az 32 karakter. Yoksa bağlantı kapalı: ping gitmez, çekme ucu 503 döner (LafPOS'un anahtarı da yoksa; varsa uç yalnız LafPOS'a açıktır). |
+| `PANEL_URL`           | site              | Panelin adresi. Boşsa `https://ladmin.laffogato.net`. http yalnız localhost için.                                                                                                            |
 
 Üretmek için: `openssl rand -base64 48`. Değeri Vercel'de iki projeye de
 "Sensitive" olarak ekleyin, sonra iki projeyi de yeniden yayımlayın.
@@ -104,4 +123,5 @@ satırındaki sıra fark etmez.
 
 Testler: `tests/panel-karaoke-sync-core.test.ts` (imza, pencere, beyaz liste),
 `tests/api-panel-karaoke-route.test.ts` (uç), `tests/panel-karaoke-ping.test.ts`
-(ping ve yazım kancası).
+(ping ve yazım kancası), `tests/panel-lafpos-key.test.ts` (LafPOS'un anahtarı),
+`tests/api-pos-orders-version-route.test.ts` (LafPOS'un `karaoke` işareti).

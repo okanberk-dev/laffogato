@@ -21,9 +21,9 @@ _"bar ekranından tek dokunuşla Hazır"_).
   üç ileri adım vardır; iptal, iade ve geri alma yalnız bu panelde
   (`/admin/siparisler/<id>`) yapılır, ekran her siparişte oraya giden
   bağlantıyı (`path`) taşır.
-- Kasada (ModPOS) bu siparişler **çalınmaz**: parası sanal POS'tan
-  (PayNkolay) ya da cüzdandan alınmıştır. Kasanın cirosu ile sitenin cirosu
-  ayrı kalır; panel ikisini `docs/PANEL-SALES.md` ile toplar.
+- Kasada (ModPOS; geçişten sonra LafPOS) bu siparişler **çalınmaz**: parası
+  sanal POS'tan (PayNkolay) ya da cüzdandan alınmıştır. Kasanın cirosu ile
+  sitenin cirosu ayrı kalır; panel ikisini `docs/PANEL-SALES.md` ile toplar.
 
 ## Ekrana ne düşer
 
