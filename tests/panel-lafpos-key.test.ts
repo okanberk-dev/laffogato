@@ -428,10 +428,14 @@ describe("LafPOS's karaoke read", () => {
       },
     ]);
     const text = JSON.stringify(body);
-    for (const secret of ["ayse@example.com", "+905551112233", "Yılmaz"]) {
-      expect(text).not.toContain(secret);
+    for (const pii of [
+      "ayse@example.com",
+      "+905551112233",
+      "Yılmaz",
+      "PNK-1",
+    ]) {
+      expect(text).not.toContain(pii);
     }
-    expect(text).not.toContain("PNK-1");
   });
 
   it("does not count the panel's value pasted in as LafPOS's", async () => {
