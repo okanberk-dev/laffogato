@@ -4,12 +4,6 @@ import { safeAudit } from "@/lib/admin/audit";
 import { orderFulfillment } from "@/lib/admin/order-channel";
 import { getOrder, transitionOrder, type AdminOrder } from "@/lib/admin/store";
 import {
-  panelSyncConfig,
-  SIGNATURE_HEADER,
-  TIMESTAMP_HEADER,
-  verifySignature,
-} from "@/lib/panel/karaoke-sync-core";
-import {
   toPanelOrder,
   type PanelOrderFulfillment,
 } from "@/lib/panel/orders-feed-core";
@@ -20,6 +14,11 @@ import {
   panelStageMove,
   parsePanelStageChange,
 } from "@/lib/panel/orders-stage-core";
+import {
+  signedCaller,
+  signedCallerKeys,
+  type SignedCaller,
+} from "@/lib/panel/signed-callers";
 
 /**
  * `POST /api/panel/orders/stage` - the köşk panel's bar screen moving a
@@ -41,7 +40,9 @@ import {
  * - 400 `{error:"invalid", field}`, 401, 413, 503 as the other panel routes.
  *
  * Server to server, signed with the shared `KARAOKE_SYNC_SECRET` (CLAUDE.md
- * rule 7). A replay inside the signature's five minutes meets the
+ * rule 7), or by LafPOS, the café's till, with its own `LAFPOS_SYNC_SECRET`
+ * (signed-callers.ts, docs/LAFPOS.md): its moves are audited
+ * "lafpos:<actor>". A replay inside the signature's five minutes meets the
  * conditional move and gets 409, never a second move.
  */
 
@@ -49,6 +50,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
+
+/** The panel, and LafPOS with its own key. */
+const CALLERS: readonly SignedCaller[] = ["panel", "lafpos"];
 
 function deny(status: number, error: string, extra: object = {}) {
   return NextResponse.json({ error, ...extra }, { status, headers: NO_STORE });
@@ -59,8 +63,8 @@ function shape(order: AdminOrder | null, now: Date) {
 }
 
 export async function POST(request: Request) {
-  const config = panelSyncConfig(process.env);
-  if (!config) return deny(503, "not_configured");
+  const keys = signedCallerKeys(process.env, CALLERS);
+  if (!keys) return deny(503, "not_configured");
   const declared = Number(request.headers.get("content-length") ?? "0");
   if (declared > PANEL_STAGE_MAX_BODY_BYTES) return deny(413, "too_large");
   const body = await request.text();
@@ -68,14 +72,8 @@ export async function POST(request: Request) {
     return deny(413, "too_large");
   }
   const url = new URL(request.url);
-  const signed = verifySignature(config.secret, {
-    method: "POST",
-    url,
-    body,
-    timestamp: request.headers.get(TIMESTAMP_HEADER),
-    signature: request.headers.get(SIGNATURE_HEADER),
-  });
-  if (!signed) return deny(401, "unauthorized");
+  const caller = signedCaller(keys, request, "POST", url, body);
+  if (!caller) return deny(401, "unauthorized");
   let raw: unknown;
   try {
     raw = JSON.parse(body);
@@ -95,7 +93,7 @@ export async function POST(request: Request) {
     if (!move || order.status !== move.expectStatus) {
       return deny(409, "stale", { order: shape(order, now) });
     }
-    const actor = panelStageActor(change.actor);
+    const actor = panelStageActor(change.actor, caller);
     const moved = await transitionOrder(change.id, move.transition, {
       actor,
       expectStatus: move.expectStatus,
@@ -114,7 +112,7 @@ export async function POST(request: Request) {
         transition: move.transition,
         from: order.status,
         to: moved.order.status,
-        via: "panel",
+        via: caller,
       },
     });
     return NextResponse.json(

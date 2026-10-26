@@ -4,6 +4,7 @@ import type { AdminOrderStatus, OrderTransition } from "@/lib/admin/store";
 import { orderFulfillment, orderKind } from "@/lib/admin/order-channel";
 
 import type { PanelOrderFulfillment, PanelOrderStage } from "./orders-feed-core";
+import type { SignedCaller } from "./signed-callers";
 
 /**
  * The köşk panel's bar screen moving a café order one step
@@ -123,7 +124,14 @@ export function isBarScreenOrder(order: {
   return orderFulfillment(order) !== "shipping";
 }
 
-/** The audit actor, the menu link's convention: "panel:<name>". */
-export function panelStageActor(actor: string): string {
-  return `panel:${actor.trim().slice(0, PANEL_STAGE_ACTOR_MAX)}`;
+/**
+ * The audit actor, the menu link's convention: "panel:<name>", or
+ * "lafpos:<name>" for a tap LafPOS signed with its own key
+ * (docs/LAFPOS.md).
+ */
+export function panelStageActor(
+  actor: string,
+  caller: SignedCaller = "panel",
+): string {
+  return `${caller}:${actor.trim().slice(0, PANEL_STAGE_ACTOR_MAX)}`;
 }

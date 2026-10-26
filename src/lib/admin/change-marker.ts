@@ -50,12 +50,14 @@ import {
  * missed order.
  *
  * Markers carry no data. Whatever is read when one moves goes through the
- * normal checks (the account re-read, rule 30). Every marker also sits
- * under `live:access`, which every write to the panel accounts expires: a
- * user deactivated, demoted or given a new password moves it too, so the
- * "nothing changed" answer lasts only while no account changed since the
- * full answer that re-read this session's account (the poll cursors are
- * bound to that session, poll-binding.ts).
+ * normal checks (the account re-read, rule 30). Every panel marker also
+ * sits under `live:access`, which every write to the panel accounts
+ * expires: a user deactivated, demoted or given a new password moves it
+ * too, so the "nothing changed" answer lasts only while no account changed
+ * since the full answer that re-read this session's account (the poll
+ * cursors are bound to that session, poll-binding.ts). The one marker that
+ * is not a panel poll's, LafPOS's order signal (`readPosOrdersMarker`),
+ * sits under `live:orders` alone.
  */
 
 export type ChangeMarkerKind = "orders" | "karaoke" | "invoices" | "venue";
@@ -79,12 +81,31 @@ export function newChangeMarker(now: number = Date.now()): string {
 export async function readChangeMarker(
   kind: ChangeMarkerKind,
 ): Promise<string | null> {
+  return readMarker(kind, MARKER_TAGS[kind]);
+}
+
+/**
+ * LafPOS's order signal (`GET /api/pos/orders/version`, docs/LAFPOS.md):
+ * a marker like the others, under `live:orders` alone. Not under
+ * `live:access`: LafPOS holds no panel session to re-read, it signs every
+ * request with its own key, so an account write has nothing to tell it.
+ * Kept out of `ChangeMarkerKind` so that no panel poll can pick a marker
+ * that ignores rule 30.
+ */
+export async function readPosOrdersMarker(): Promise<string | null> {
+  return readMarker("pos-orders", [TAG_ORDERS]);
+}
+
+async function readMarker(
+  name: string,
+  tags: readonly string[],
+): Promise<string | null> {
   if (!presentationCacheEnabled()) return null;
   try {
     const marker = await unstable_cache(
       async () => newChangeMarker(),
-      presentationCacheKey(`laf-marker-${kind}`),
-      { tags: [...MARKER_TAGS[kind]] },
+      presentationCacheKey(`laf-marker-${name}`),
+      { tags: [...tags] },
     )();
     return isChangeMarker(marker) ? marker : null;
   } catch {

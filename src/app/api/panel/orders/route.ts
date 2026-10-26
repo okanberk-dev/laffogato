@@ -2,12 +2,6 @@ import { NextResponse } from "next/server";
 
 import { listPanelOpenOrderRows } from "@/lib/admin/store";
 import {
-  panelSyncConfig,
-  SIGNATURE_HEADER,
-  TIMESTAMP_HEADER,
-  verifySignature,
-} from "@/lib/panel/karaoke-sync-core";
-import {
   PANEL_ORDERS_MAX,
   PANEL_ORDERS_VERSION,
   panelOrderRowsComplete,
@@ -17,6 +11,11 @@ import {
   toPanelOrder,
   type PanelOrder,
 } from "@/lib/panel/orders-feed-core";
+import {
+  signedCaller,
+  signedCallerKeys,
+  type SignedCaller,
+} from "@/lib/panel/signed-callers";
 
 /**
  * `GET /api/panel/orders` - the köşk's panel (ladmin.laffogato.net) reading
@@ -25,7 +24,9 @@ import {
  * (src/lib/panel/orders-feed-core.ts, docs/PANEL-ORDERS.md).
  *
  * Server to server, no cookie: signed with the shared `KARAOKE_SYNC_SECRET`
- * like the karaoke route (CLAUDE.md rule 7). Unset secret: 503. Bad,
+ * like the karaoke route (CLAUDE.md rule 7), or by LafPOS, the café's till,
+ * with its own `LAFPOS_SYNC_SECRET` (signed-callers.ts, docs/LAFPOS.md; it
+ * pulls when `/api/pos/orders/version` moves). Neither key set: 503. Bad,
  * missing or stale signature: 401, nothing more said. The answer is the
  * whitelisted shape of `toPanelOrder`: the lines to make with their notes,
  * where they go, the planned time, a first name and the member's note on a
@@ -41,23 +42,19 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" } as const;
 
+/** The panel, and LafPOS with its own key. */
+const CALLERS: readonly SignedCaller[] = ["panel", "lafpos"];
+
 export async function GET(request: Request) {
-  const config = panelSyncConfig(process.env);
-  if (!config) {
+  const keys = signedCallerKeys(process.env, CALLERS);
+  if (!keys) {
     return NextResponse.json(
       { error: "not_configured" },
       { status: 503, headers: NO_STORE },
     );
   }
   const url = new URL(request.url);
-  const signed = verifySignature(config.secret, {
-    method: "GET",
-    url,
-    body: "",
-    timestamp: request.headers.get(TIMESTAMP_HEADER),
-    signature: request.headers.get(SIGNATURE_HEADER),
-  });
-  if (!signed) {
+  if (!signedCaller(keys, request, "GET", url, "")) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },

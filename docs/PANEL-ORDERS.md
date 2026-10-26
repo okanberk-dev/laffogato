@@ -54,6 +54,8 @@ Karaoke bağlantısının imzası (`x-laf-timestamp`,
 `x-laf-signature: v1=<hex>`, `src/lib/panel/karaoke-sync-core.ts`) ve ortak
 anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
 
+Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, `GET /api/pos/orders/version` değişince çeker: `docs/LAFPOS.md`.
+
 1. **Ping (site → panel).** `live:orders` etiketini düşüren her yazım
    (sipariş açıldı, ödendi, ilerledi, iade edildi; mağaza kolisi de) yanıttan
    sonra panele imzalı tek bir istek gönderir:
