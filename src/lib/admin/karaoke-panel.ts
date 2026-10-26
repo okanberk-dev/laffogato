@@ -1016,10 +1016,14 @@ const ACTOR_LABELS: Record<string, string> = {
 
 /** A change the köşk's panel made, as its audit row names it: "panel:Selin". */
 const PANEL_ACTOR = /^panel:(.+)$/;
+/** One LafPOS, the café's till, made with its own key: "lafpos:Selin". */
+const LAFPOS_ACTOR = /^lafpos:(.+)$/;
 
 export function auditActorLabel(actor: string): string {
   const panel = PANEL_ACTOR.exec(actor);
   if (panel) return `Yönetim paneli · ${panel[1]}`;
+  const lafpos = LAFPOS_ACTOR.exec(actor);
+  if (lafpos) return `LafPOS · ${lafpos[1]}`;
   return ACTOR_LABELS[actor] ?? actor;
 }
 

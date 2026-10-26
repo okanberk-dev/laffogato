@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { CATALOG_MONEY_MAX_MINOR } from "@/lib/utils/format";
 
+import type { SignedCaller } from "./signed-callers";
+
 /**
  * The menu link between this site and the köşk's back-office panel
  * (ladmin.laffogato.net, the `lafmaliyet` project): the panel keeps a copy
@@ -19,7 +21,9 @@ import { CATALOG_MONEY_MAX_MINOR } from "@/lib/utils/format";
  *    panel stores its change only after this answers 2xx.
  *
  * Signed like the karaoke link (src/lib/panel/karaoke-sync-core.ts), with
- * the same secret. Pure: the route and the tests share it.
+ * the same secret; LafPOS, the café's till, reads and writes the same way
+ * with a key of its own (signed-callers.ts, docs/LAFPOS.md). Pure: the
+ * route and the tests share it.
  */
 
 /** The shape's version: the panel refuses a list it does not know. */
@@ -210,7 +214,13 @@ export function changesPrice(fields: PanelMenuSaleFields): boolean {
   return fields.priceMinor !== undefined || fields.priceMinorL !== undefined;
 }
 
-/** The audit row's actor for a change the panel made: `panel:Selin`. */
-export function panelAuditActor(actor: string): string {
-  return `panel:${actor.trim().slice(0, PANEL_MENU_ACTOR_MAX)}`;
+/**
+ * The audit row's actor for a change the panel made: `panel:Selin`; one
+ * LafPOS made with its own key reads `lafpos:Selin` (docs/LAFPOS.md).
+ */
+export function panelAuditActor(
+  actor: string,
+  caller: SignedCaller = "panel",
+): string {
+  return `${caller}:${actor.trim().slice(0, PANEL_MENU_ACTOR_MAX)}`;
 }

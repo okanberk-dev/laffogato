@@ -93,11 +93,13 @@ function auditItem(
   order: Pick<AdminOrder, "fulfillment">,
 ): OrderTimelineItem | null {
   const p = row.payload ?? {};
-  // A move from the köşk panel's bar screen reads "Yönetim paneli · Selin",
-  // as on the audit log, not the raw "panel:Selin" row actor.
-  const actor = row.actor.startsWith("panel:")
-    ? auditActorLabel(row.actor)
-    : row.actor;
+  // A move from the köşk panel's bar screen reads "Yönetim paneli · Selin"
+  // and one from LafPOS "LafPOS · Selin", as on the audit log, not the raw
+  // "panel:Selin" / "lafpos:Selin" row actor.
+  const actor =
+    row.actor.startsWith("panel:") || row.actor.startsWith("lafpos:")
+      ? auditActorLabel(row.actor)
+      : row.actor;
   const base = { id: `aud-${row.id}`, at: row.createdAt, actor };
   if (row.entity === "order_item") {
     const index = Number(String(row.entityId).split("#")[1] ?? "-1");

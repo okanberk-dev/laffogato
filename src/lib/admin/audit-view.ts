@@ -622,7 +622,7 @@ const VALUE_LABELS: Record<string, Record<string, string>> = {
   deletionRequest: { opened: "Açıldı", withdrawn: "Geri çekildi" },
   reset: { owner: "Sahip sıfırladı" },
   tracking: { set: "Kaydedildi" },
-  via: { app: "Uygulama", panel: "Yönetim paneli" },
+  via: { app: "Uygulama", panel: "Yönetim paneli", lafpos: "LafPOS" },
   source: { counter: "Kasa", admin: "Panel", app: "Uygulama" },
   move: { up: "Yukarı", down: "Aşağı" },
   outcome: { unknown: "Belirsiz", refunded: "Yapıldı", refused: "Reddedildi" },
