@@ -356,11 +356,25 @@ bağlar (`products.siteMenuId` + `siteMenuSlot` M/L, panelde) ve:
   pingi atar (`menu-ping.ts`).
 
 Anahtar karaoke'ninki (`KARAOKE_SYNC_SECRET`). Ad, açıklama, kategori, görsel
-ve alerjen eşitlenmez. Kasanın (ModPOS) fiyatı elle değişir.
+ve alerjen eşitlenmez. Kafenin kasası LafPOS menüyü ve fiyatı buradan çeker
+(aşağıda); geçiş bitene dek ModPOS'un fiyatı elle değişir.
 
 Fiyat listesi tarihini bağlantı değiştirmez (OP-PRICE-LISTS). Her fiyat
 değişikliği `settings."menuPricesChangedAt"`'i yazar; Kafe menüsü, girilen
 gün daha eskiyse uyarır. Ayrıntı: `docs/PANEL-MENU.md`.
+
+## Kafenin kasası: LafPOS (26 Eki 2026)
+
+Kafede ModPOS'un yerine geçen kasa `RiosenBeq/lafpos`: kafedeki bilgisayarda yerel
+sunucu, kasa ekranı Chrome'da açık. **Tek sistem, iki yüz:** ürün yalnız bu panelde
+eklenir ve değişir (ad, fiyat, boy, KDV, görsel); LafPOS menüyü herkese açık menü
+ucundan (ETag) çeker, kasaya özgü alanları (istasyon, kısa ad, porsiyon) ve yalnız
+kafede satılan hizmetleri (karaoke odası saatlik ücreti) kendisi tutar. Panelin imzalı
+uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/pos/orders/version`) **kendi
+anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET` (`src/lib/panel/signed-callers.ts`;
+`KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır). LafPOS fiyat yazamaz (403), yalnız
+Tükendi / Satışta; olay kaydında `lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
+kalır, LafPOS gün sonunu oraya iter. Ayrıntı: `docs/LAFPOS.md`.
 
 ## Köşkün paneli: bar ekranı ve online satış (22 Eki 2026)
 
