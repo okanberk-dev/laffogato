@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi yedi gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi sekiz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -29,6 +29,7 @@ kilitlediğine bak.
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |
 | karaoke-iptal-istegi.html | işlemsel          | Karaoke iptal isteğini aldık                |
+| karaoke-saat-degisikligi.html | işlemsel      | Karaoke rezervasyonunun saati değişti       |
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
 | hesap-silme-talebi.html   | işlemsel          | L'Affogato - hesap silme talebin alındı     |
 | hesap-silindi.html        | işlemsel          | L'Affogato - hesabın silindi / kapatıldı    |

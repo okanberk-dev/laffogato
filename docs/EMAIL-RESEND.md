@@ -245,7 +245,7 @@ listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
 | `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-Yirmi yedi şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
+Yirmi sekiz şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
 | Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -261,6 +261,7 @@ Yirmi yedi şablon - her satırda **tetikleyici · izin sınıfı · idempotency
 | `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı + onaylanan karaoke sözleşmesinin doldurulmuş metni ek olarak |
 | `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı; personel iptalinde nedenle açılır |
 | `karaoke-iptal-istegi`                 | işlemsel          | misafirin telefonla ya da e-postayla geç iptal isteği, kural iade vermiyor: rezervasyon iptal edilmez (`notifyLateCancelRequest`) · kilit yok, her panel kaydı bir istek |
+| `karaoke-saat-degisikligi`             | işlemsel          | personel rezervasyonun tarihini / saatini değiştirdi (`rescheduleReservation`, panelde "Saati değiştir") · eski akşamla korumalı UPDATE: bir taşıma, bir mail; yeni ve eski saat, tek ödeme satırı (`karaokeRescheduleFlags`), yeni imzalı bağlantı |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
 | `hesap-silme-talebi`                   | işlemsel          | üye `/uye/hesap/sil`'den silme talebi gönderdi (`requestAccountDeletionAction`) · yalnız talep **açıldığında**, `account-deletion-<üye>-<talep anı>-member` |
 | `hesap-silindi`                        | işlemsel          | ekip panelden "Hesabı sil" ile hesabı kapattı (`closeCustomerAccountAction`), kapanmadan önceki adrese · `account-deletion-<üye>-<talep anı>-closed`; giriş kimliği kaldıysa "kapatıldı" der |
@@ -817,6 +818,15 @@ rezervasyon onun adına durur, kodunu devredebilir, saat başkasına verilirse
 tamamı iade edilir. Akşam bittikten sonra kaydedilen istek yalnız denetim
 kaydına girer, mail gitmez (karar D7). Onay maili son ücretsiz iptal anını yazar
 (`[KARAOKE_SON_IPTAL]`, karaoke koşulları §7).
+
+Personel rezervasyonu başka bir gün ya da saate taşıyınca (27 Ekim 2026,
+operatör: "saati değiştirebilir yap, değişince de kişiye mail gitsin")
+`karaoke-saat-degisikligi` gider: yeni tarih ve saat, üstü çizili eski saat
+ve imzalı yeni bağlantı. Süre, kişi, ücret, ödeme ve rezervasyonun iptal
+kuralı aynı kalır; ödenmiş rezervasyonda kural cümleleri yeniden yazılır
+(süreler yeni saate göre işler). Tek bir ödeme satırı: `KARAOKE_ODENDI`,
+`KARAOKE_ODEME_MEKANDA` ya da `KARAOKE_TELAFI_SAATI`
+(`karaokeRescheduleFlags`). Ayrıntı `docs/ADMIN.md` "Karaoke: saati değiştir".
 
 ### Karaoke - yeni talep bildirimi (operatöre)
 

@@ -73,9 +73,12 @@ function renderWith(
   });
 }
 
-describe("the twenty-seven templates render", () => {
-  it("ships exactly the twenty-seven designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment; siparis-hazir and e-arsiv-fatura added 22 Eki 2026)", () => {
-    expect(NAMES).toHaveLength(27);
+describe("the twenty-eight templates render", () => {
+  it("ships exactly the twenty-eight designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment; siparis-hazir and e-arsiv-fatura added 22 Eki 2026, karaoke-saat-degisikligi 27 Eki 2026)", () => {
+    expect(NAMES).toHaveLength(28);
+    // A karaoke booking the staff moved to another day or hour (27 Eki
+    // 2026): the member is told the new evening.
+    expect(NAMES).toContain("karaoke-saat-degisikligi");
     // A pickup order ready at the counter, when no phone notification
     // reached the member (src/lib/push/order-push.ts).
     expect(NAMES).toContain("siparis-hazir");

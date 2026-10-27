@@ -9,7 +9,7 @@ import {
   okWithNotice,
   type ActionResult,
 } from "@/lib/admin/action-result";
-import { logAudit } from "@/lib/admin/audit";
+import { logAudit, safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { KARAOKE_PANEL_PATH } from "@/lib/admin/karaoke-panel";
 import { panelSignal } from "@/lib/admin/panel-signal";
@@ -23,8 +23,10 @@ import {
   getReservation,
   listReservationsForDate,
   paymentStatusOf,
+  rescheduleReservation,
   setReservationStatus,
   type KaraokeReservation,
+  type RescheduleReservationFailure,
   type SetReservationStatusFailure,
 } from "@/lib/mobile/karaoke";
 import {
@@ -49,6 +51,7 @@ import {
   formatReservationDate,
   formatReservationTime,
 } from "@/lib/mobile/karaoke-format";
+import { KARAOKE_RESCHEDULE_REFUSAL } from "@/lib/mobile/karaoke-reschedule-core";
 import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
 import { refundAnswerForStaff } from "@/lib/payment/refund-answer";
@@ -574,6 +577,84 @@ export async function giveKaraokeMakeGoodHourAction(
     `Telafi saati verildi: ${hour.id.toUpperCase()}, ${formatReservationDate(hour.date)} ${formatReservationTime(hour.startHour, hour.hours)}.`,
     result.notified,
     recipient(hour),
+  );
+}
+
+const RESCHEDULE_MESSAGE: Record<
+  Exclude<RescheduleReservationFailure, "invalid">,
+  string
+> = {
+  not_found: "Rezervasyon bulunamadı. Silinmiş olabilir; sayfayı yenile.",
+  ...KARAOKE_RESCHEDULE_REFUSAL,
+  same_slot:
+    "Seçtiğin gün ve saat rezervasyonun şimdiki saatiyle aynı. Başka bir gün ya da saat seç.",
+  slot_taken:
+    "Seçtiğin saatlerden biri başka bir rezervasyonda (ya da ödemesi beklenen bir rezervasyonda). Başka bir saat seç.",
+  raced: "Bu rezervasyonu az önce başka biri değiştirdi. Sayfayı yenile.",
+};
+
+/**
+ * "Saati değiştir" (operator, 27 Eki 2026): the booking moves to another
+ * day or hour and the member gets the new evening by mail. Only the evening
+ * moves - length, party, price, payment and cancellation rule stay - so no
+ * money moves and the karaoke panel's own gate is enough (Personel
+ * included). The server checks the new hours like a booking's
+ * (rescheduleReservation); the dialog only asks.
+ */
+export async function rescheduleReservationAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("karaoke");
+  const id = readId(formData);
+  if (!id) return actionError("Rezervasyon numarası eksik.");
+  const day = DaySchema.safeParse(formData.get("tarih"));
+  if (!day.success) {
+    const message = day.error.issues[0]?.message ?? "Tarih geçersiz.";
+    return actionError(message, { tarih: message });
+  }
+  const hourRaw = String(formData.get("saat") ?? "").trim();
+  if (!/^\d{1,2}$/.test(hourRaw)) {
+    const message = "Başlangıç saatini seç.";
+    return actionError(message, { saat: message });
+  }
+  const result = await rescheduleReservation(id, {
+    date: day.data,
+    startHour: Number(hourRaw),
+  });
+  revalidate(id);
+  if (!result.ok) {
+    if (result.reason === "invalid") {
+      const message = result.message ?? "Seçilen gün ya da saat geçersiz.";
+      return actionError(message, { [result.field ?? "saat"]: message });
+    }
+    const message = RESCHEDULE_MESSAGE[result.reason];
+    if (result.reason === "slot_taken" || result.reason === "same_slot") {
+      return actionError(message, { saat: message });
+    }
+    return actionError(message);
+  }
+  const moved = result.reservation;
+  // After the move and its mail: the row is the record of something that
+  // already happened, so a failed insert is logged, never the answer.
+  await safeAudit({
+    action: "update",
+    entity: "karaoke_reservation",
+    entityId: id,
+    payload: {
+      event: "rescheduled",
+      fromDate: result.previous.date,
+      fromStartHour: result.previous.startHour,
+      toDate: moved.date,
+      toStartHour: moved.startHour,
+      hours: moved.hours,
+      notified: result.notified,
+    },
+  });
+  return okWithNotice(
+    `Rezervasyonun saati değiştirildi: ${formatReservationDate(moved.date)}, ${formatReservationTime(moved.startHour, moved.hours)}.`,
+    result.notified,
+    recipient(moved),
   );
 }
 
