@@ -877,6 +877,14 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > `account_disabled`). Oturumu uygulama kapatır. **409** `orders_in_progress`:
 > `pending_payment`/`paid`/`preparing`/`shipped` bir sipariş varken hesap
 > kapatılmaz (Üyelik Sözleşmesi §14) — sipariş bitince tekrar denenir.
+> **27 Ekim 2026 (yalnız ekleme):** artık yalnız `paid` / `preparing` / `shipped`
+> bir sipariş hesabın kapatılmasını bekletir; üyenin ödenmemiş (`pending_payment`)
+> siparişleri `DELETE /me` tarafından iptal edilir, stok ve kupon geri döner. Her
+> biri önce POS'a sorulur: ödendiği çıkan sipariş `paid` olur ve 409 döner. Yine
+> 409 dönen iki durum: o an POS'a sorulamayan bir sipariş ödenmediği bilinmeden
+> iptal edilmez (bir günden eskiyse iptal edilir); panelden girilmiş, kapıda
+> ödenecek bir sipariş hiç iptal edilmez. İptalden sonra gelen bir ödeme siparişi
+> canlandırmaz, iade için yönetim paneline düşer.
 > **`identity` (23 Eyl 2026, yalnız ekleme):** 200 yanıtı
 > `{ "ok": true, "identity": "deleted" | "skipped" | "failed" }` olur; ayrıntı
 > aşağıda. `neighbourhood` sütunu yoktur: `line1`'e
@@ -1360,7 +1368,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
     },
     "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
-    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20) VE standart sözleşmenin imza ve bildirim kaydı (19 Eki 2026, §20); false iken uygulama yalnız cihazda okur (§20)
+    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20) VE standart sözleşmenin imza ve bildirim kaydı (19 Eki 2026, §20); false iken uygulama yalnız cihazda okur (§20) · 27 Ekim 2026: uygulama karar 330'dan sonra bu uçları (§20) çağırmaz ve app.fal'ı okumaz (App Review 4.3(b)); uçlar v1 gereği yanıt vermeye devam eder, yapay zekâ yolu kapalıdır, POST /fal 503 fal_unavailable döner
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
 }
@@ -1931,6 +1939,13 @@ Hatalar: **400** `invalid_request` (`legalConsent` yok, §3 siparişiyle aynı `
 > bağlantıyla gelir, üyelik yalnız bozdururken istenir.
 
 ## 20. fA'L yapay zekâ yorumu - `POST /fal` · `GET|POST|DELETE /fal/consent` (kimlik)
+
+> **27 Ekim 2026:** uygulama karar 330'dan sonra bu uçları çağırmaz ve `app.fal`'ı
+> okumaz (App Review 4.3(b)); uçlar v1 gereği yanıt vermeye devam eder, yapay zekâ
+> yolu kapalıdır, `POST /fal` **503** `fal_unavailable` döner. Yeni kayıt yazılmaz:
+> `POST /fal/consent` her sürümü **409** `consent_outdated` ile reddeder (R12 metni
+> yürürlükte değil), `POST /fal/report` oturumlu çağrıya **503** `fal_unavailable`
+> döner; `GET` ve `DELETE /fal/consent` eskisi gibi yanıt verir.
 
 23 Eyl 2026, karar 177, yalnız ekleme. Üye içeceğinin fotoğrafını çeker; açık rızası
 (Açık Rıza Metni **R12**, bölüm 15/A) varsa fotoğraf küçültülüp yapay zekâ
