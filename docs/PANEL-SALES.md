@@ -32,14 +32,16 @@ Site kendi Raporlar ve Gün sonu ekranlarıyla aynı kuralla sayar
 - **Kasada kapatılan uygulama / web siparişi** (`counter`, 23 Eki 2026):
   kart ödemesi düşen sipariş panelde "Ödendi olarak işaretle" ile nakit ya
   da kasadaki kart cihazıyla kapatılınca kaynağı `app` / `web` kalır ama
-  parası ModPOS'tan geçmiştir (fişi kasanın ÖKC fişidir). Siparişin başarılı
-  ödeme kayıtları (`payment_transactions`, e-Arşiv planının okuduğu
-  `paymentsFor`) arasında `manual:nakit` ya da `manual:kart` varsa sipariş
-  `cafe`, `shop` ve `cafe.lines`'a girmez, yalnız `counter` altında sayılır
-  (`paidAtTill`). Kart ödemesinin başarısız denemesi bunu değiştirmez.
+  parası kasadan (ModPOS; geçişten sonra LafPOS) geçmiştir (fişi kasanın ÖKC
+  fişidir). Siparişin başarılı ödeme kayıtları (`payment_transactions`,
+  e-Arşiv planının okuduğu `paymentsFor`) arasında `manual:nakit` ya da
+  `manual:kart` varsa sipariş `cafe`, `shop` ve `cafe.lines`'a girmez, yalnız
+  `counter` altında sayılır (`paidAtTill`). Kart ödemesinin başarısız
+  denemesi bunu değiştirmez.
   - `manual:havale` (havale / EFT) **online** kalır: para bankaya gelir,
-    kasadan geçmez, ModPOS'ta yoktur; faturası da e-postayla gider
-    (`receiptInvoiceNote`). `cafe` / `shop` ve satırlarda sayılır.
+    kasadan geçmez, kasada (ModPOS; geçişten sonra LafPOS) yoktur; faturası
+    da e-postayla gider (`receiptInvoiceNote`). `cafe` / `shop` ve satırlarda
+    sayılır.
   - `manual:diger` de **online** kalır: panel bu yolu adlandırmaz, kasada
     olduğunu bilemeyiz; kasaya girmesi gereken para "Nakit" ya da "Kasadaki
     kart cihazı" ile işaretlenir. Kasada alınıp "Diğer" seçilirse çift
@@ -209,12 +211,12 @@ KDV hariç gelir: `netMinor − kdvMinor − unknownKdvNetMinor × r / (100 + r)
 
 `counter` 23 Eki 2026'da eklendi (v1'e ekleme; `version` 1 kalır). Daha
 önce bu siparişler `cafe` / `shop`'ta ve `cafe.lines`'ta da sayılıyordu:
-para hem ModPOS'ta hem "Kafe online"da, KDV iki kez, içecekler
+para hem kasada (ModPOS) hem "Kafe online"da, KDV iki kez, içecekler
 tutarlılıkta iki kez. Artık `cafe` ve `shop` belgelendikleri anlamı
 ("kasadan geçmez") taşır; panel hiçbir şey çıkarmaz. `counter` bilgi
-içindir: kâr-zarara ve tüketime **eklenmez** (ModPOS'ta zaten var). Eski
-panel alanı tanımaz ve yok sayar; onun gördüğü düzelme, çift sayımın
-kalkmasıdır.
+içindir: kâr-zarara ve tüketime **eklenmez** (kasada, ModPOS'ta; geçişten
+sonra LafPOS'ta zaten var). Eski panel alanı tanımaz ve yok sayar; onun
+gördüğü düzelme, çift sayımın kalkmasıdır.
 
 | Durum | Gövde                         | Ne zaman                                             |
 | ----- | ----------------------------- | ---------------------------------------------------- |

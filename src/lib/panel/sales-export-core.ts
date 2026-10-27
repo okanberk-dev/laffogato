@@ -23,9 +23,10 @@ import {
  * The online sales of a period for the köşk panel's P&L and till report
  * (ladmin.laffogato.net, the `lafmaliyet` project; docs/PANEL-SALES.md).
  *
- * The panel's revenue is the till's (ModPOS, pasted in monthly), so the
- * money this site takes - app and web café orders, shop parcels, prepaid
- * karaoke - was in no figure there, and the drinks an app order used up
+ * The panel's revenue is the till's (ModPOS, pasted in monthly; LafPOS,
+ * pushed day by day, once the panel switches to it), so the money this
+ * site takes - app and web café orders, shop parcels, prepaid karaoke -
+ * was in no figure there, and the drinks an app order used up
  * were missing from its consumption check. `GET /api/panel/sales` hands it
  * the period's totals and the café lines by menu item and size, which the
  * panel maps to its own products through the menu link (`siteMenuId` +
@@ -46,8 +47,8 @@ import {
  * card payment failed and that were then settled at the till with "Ödendi
  * olarak işaretle" in cash or on the counter's card terminal
  * ({@link paidAtTill}): they keep their source, but their money went
- * through ModPOS, so they are counted apart too (`counter`), never in
- * `cafe`, `shop` or the café lines.
+ * through the till (ModPOS; LafPOS after the switch), so they are counted
+ * apart too (`counter`), never in `cafe`, `shop` or the café lines.
  *
  * The KDV is the invoice's (`invoiceKdvBreakdown`: a reward coupon pays for
  * the goods, the base stays the full price), shared over what the order
@@ -170,9 +171,10 @@ export function panelSalesClosed(range: PanelSalesRange, now: Date): boolean {
 
 /**
  * The "Ödendi olarak işaretle" methods that are the till's: cash and the
- * counter's card terminal, rung on ModPOS with its ÖKC fiş (the receipt
- * says so, `receiptInvoiceNote`). A bank transfer ("havale") never touches
- * the till and "Diğer" names no till, so both stay online money.
+ * counter's card terminal, rung on the till (ModPOS; LafPOS after the
+ * switch) with its ÖKC fiş (the receipt says so, `receiptInvoiceNote`). A
+ * bank transfer ("havale") never touches the till and "Diğer" names no
+ * till, so both stay online money.
  */
 export const PANEL_SALES_TILL_METHODS = [
   "nakit",

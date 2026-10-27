@@ -247,6 +247,31 @@ export function parsePanelRange(
   return { from, to };
 }
 
+/** LafPOS's key reaches this many Istanbul days either side of today. */
+export const LAFPOS_KARAOKE_REACH_DAYS = 1;
+
+/**
+ * Whether `range` stays inside what LafPOS's key may read: Istanbul
+ * yesterday to tomorrow, both inclusive. The till runs today's room; a day
+ * either way covers its business day, which runs to 05:00 (a session begun
+ * last night is still on the till's yesterday), and a clock a little off
+ * at midnight. The panel reads up to 400 days (`parsePanelRange`), but
+ * LafPOS's key sits on the café's machine: a stolen machine must read a
+ * few days of first names and notes, not the years the site keeps them
+ * (src/lib/retention.ts). The route answers a wider window from LafPOS's
+ * key 403, a window with no `from` too (yesterday and 90 days on).
+ */
+export function withinLafposKaraokeReach(
+  range: { from: string; to: string },
+  now: Date,
+): boolean {
+  const today = istanbulDayOf(now);
+  return (
+    range.from >= addDays(today, -LAFPOS_KARAOKE_REACH_DAYS) &&
+    range.to <= addDays(today, LAFPOS_KARAOKE_REACH_DAYS)
+  );
+}
+
 // ─── What the panel is told ────────────────────────────────────────────────
 
 const STATUSES: readonly KaraokeReservationStatus[] = [

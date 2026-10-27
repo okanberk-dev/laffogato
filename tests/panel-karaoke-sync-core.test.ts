@@ -19,6 +19,7 @@ import {
   TIMESTAMP_HEADER,
   toPanelReservation,
   verifySignature,
+  withinLafposKaraokeReach,
 } from "@/lib/panel/karaoke-sync-core";
 
 /**
@@ -268,6 +269,42 @@ describe("the pull's window", () => {
     expect(range("to=yarın")).toBeNull();
     expect(range("from=2026-10-20&to=2026-10-19")).toBeNull();
     expect(range("from=2026-01-01&to=2027-02-06")).toBeNull();
+  });
+});
+
+describe("what LafPOS's key may read", () => {
+  // 00:30 on 27 October in Tuzla, still 26 October in UTC (rule 22).
+  const night = new Date("2026-10-26T21:30:00Z");
+  const reach = (from: string, to: string, now = night) =>
+    withinLafposKaraokeReach({ from, to }, now);
+
+  it("is Istanbul yesterday to tomorrow, both inclusive", () => {
+    expect(reach("2026-10-27", "2026-10-27")).toBe(true);
+    expect(reach("2026-10-26", "2026-10-28")).toBe(true);
+    // The till's business day runs to 05:00: at 00:30 it still asks for
+    // the 26th.
+    expect(reach("2026-10-26", "2026-10-26")).toBe(true);
+    expect(reach("2026-10-28", "2026-10-28")).toBe(true);
+  });
+
+  it("is not a day further either way", () => {
+    expect(reach("2026-10-25", "2026-10-27")).toBe(false);
+    expect(reach("2026-10-27", "2026-10-29")).toBe(false);
+    expect(reach("2025-10-01", "2026-10-27")).toBe(false);
+  });
+
+  it("turns with Tuzla's midnight, not UTC's", () => {
+    const evening = new Date("2026-10-26T20:59:59Z"); // 23:59:59 on the 26th
+    expect(reach("2026-10-25", "2026-10-27", evening)).toBe(true);
+    expect(reach("2026-10-28", "2026-10-28", evening)).toBe(false);
+    expect(reach("2026-10-28", "2026-10-28", night)).toBe(true);
+    expect(reach("2026-10-25", "2026-10-25", night)).toBe(false);
+  });
+
+  it("refuses the window a request with no query gets (yesterday, ninety days on)", () => {
+    const fallback = parsePanelRange(new URLSearchParams(""), night);
+    expect(fallback).toEqual({ from: "2026-10-26", to: "2027-01-24" });
+    expect(withinLafposKaraokeReach(fallback!, night)).toBe(false);
   });
 });
 

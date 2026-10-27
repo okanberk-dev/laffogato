@@ -18,10 +18,11 @@ import {
  *   machine and each key is rotated on its own.
  *
  * Both sign the same way (karaoke-sync-core.ts); only the key differs. A
- * route names the callers it takes: the menu routes and the bar screen's
- * two order routes take both, `/api/pos/orders/version` takes LafPOS only.
- * The karaoke and sales routes do not use this module: they stay the
- * panel's alone.
+ * route names the callers it takes: the menu routes, the bar screen's two
+ * order routes and the karaoke read take both (LafPOS's room box shows the
+ * site's bookings, the panel's whitelist and nothing more, from yesterday
+ * to tomorrow only), `/api/pos/orders/version` takes LafPOS only. The sales
+ * route does not use this module: it stays the panel's alone.
  *
  * Pure (no `server-only`, no database): the routes and the tests share it.
  */
