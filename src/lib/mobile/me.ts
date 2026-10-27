@@ -7,6 +7,7 @@ import {
   customerOrdersByEmail,
   getMenuItem,
   getSettings,
+  type AdminOrder,
   type AdminOrderStatus,
 } from "@/lib/admin/store";
 import { isActiveBarista } from "@/lib/admin/staff-members";
@@ -212,7 +213,8 @@ export function anonymizedEmail(customerId: string): string {
 }
 
 /**
- * Statuses that mean the member still has something running with us.
+ * Statuses that mean the member still has something running with us: the
+ * orders the 409 `orders_in_progress` counts.
  *
  * Üyelik Sözleşmesi §14 promises that a closure request lands *after* an
  * order in flight, an unfinished return or an open dispute is settled - so
@@ -220,11 +222,15 @@ export function anonymizedEmail(customerId: string): string {
  * is about to hand over. `paid` is on the list with the other three: it is
  * "Sipariş alındı", the most in-flight an order gets.
  *
- * `pending_payment` stays on the list, but since 27 Oct 2026 `deleteMe`
- * cancels the member's unpaid checkouts before it counts
- * (`cancelUnpaidOrdersOfClosingAccount`). What is still pending by then is
- * not known to be unpaid - the POS could not be asked (rule 29) - or is a
- * panel order paid on delivery: both hold the closure.
+ * `pending_payment` stays on the list, but since 27 Oct 2026 an unpaid
+ * checkout does not hold the closure by itself. `deleteMe` reads the orders
+ * first and refuses at once, cancelling nothing, when one holds the closure
+ * whatever its payment state ({@link holdsClosure}: paid, preparing,
+ * shipped, or a panel order paid on delivery). Otherwise it cancels the
+ * member's unpaid checkouts (`cancelUnpaidOrdersOfClosingAccount`) and
+ * counts again. What is still pending by then is not known to be unpaid -
+ * the POS could not be asked (rule 29), or a sale is still at the bank's
+ * 3-D Secure step - and holds the closure.
  */
 export const IN_PROGRESS_ORDER_STATUSES: readonly AdminOrderStatus[] = [
   "pending_payment",
@@ -232,6 +238,34 @@ export const IN_PROGRESS_ORDER_STATUSES: readonly AdminOrderStatus[] = [
   "preparing",
   "shipped",
 ];
+
+/**
+ * An order that holds the closure whatever happens to the member's unpaid
+ * checkouts: one already paid for, being prepared or on its way (`paid`,
+ * `preparing`, `shipped`), and a panel order paid on delivery
+ * (`pending_payment` with `source: "manual"`), which the closure never
+ * cancels. `deleteMe` refuses on it before it touches anything.
+ */
+export function holdsClosure(
+  order: Pick<AdminOrder, "status" | "source">,
+): boolean {
+  switch (order.status) {
+    case "paid":
+    case "preparing":
+    case "shipped":
+      return true;
+    case "pending_payment":
+      return order.source === "manual";
+    default:
+      return false;
+  }
+}
+
+/** The 409's count: every order still in progress, unpaid ones included. */
+function inProgressCount(orders: readonly AdminOrder[]): number {
+  return orders.filter((o) => IN_PROGRESS_ORDER_STATUSES.includes(o.status))
+    .length;
+}
 
 /**
  * Every place a member's e-mail is stored outside their own row.
@@ -584,8 +618,14 @@ export interface DeleteMeOptions {
  * Refused, not queued, while an order is in flight - Üyelik Sözleşmesi §14 and
  * the `hesap-silme` document both say the closure waits for it, and the member
  * would otherwise lose sight of an order they have already paid for. An
- * order that was never paid is not in flight: it is cancelled first (see
- * IN_PROGRESS_ORDER_STATUSES).
+ * order that was never paid is not in flight, and it is cancelled - but only
+ * on the way to a closure: (1) an order that holds the closure in any case
+ * ({@link holdsClosure}) refuses it at once, with nothing cancelled and no
+ * timeline row written; (2) otherwise the unpaid checkouts are cancelled,
+ * each asked about at the POS first; (3) the orders are counted again, and
+ * anything still in progress refuses as before (see
+ * IN_PROGRESS_ORDER_STATUSES). The 409's count is every in-progress order at
+ * the moment it is refused.
  *
  * The sign-in identity goes too: `deleteSupabaseIdentity` removes the Supabase
  * user when the deployment holds a service-role key, so the old password stops
@@ -607,30 +647,41 @@ export async function deleteMe(
   const at = new Date();
   const now = at.toISOString();
 
-  // The member's own checkouts that were never paid are cancelled before the
-  // count, whatever their age (docs/API-MOBILE.md §4, since 27 Oct 2026). A
-  // member who stopped on the payment page and then deleted the account was
-  // refused until the 45-minute sweep reached that order; App Review's
-  // tester does exactly that (5.1.1(v)). Each is asked about at the POS
-  // first (rule 29): one the POS says was paid is booked, and then holds the
-  // closure below like any paid order. A failure here leaves the orders
-  // pending and the count refuses: nothing is closed over an order nobody
-  // could settle.
+  // (1) An order that holds the closure whatever its payment state (paid,
+  // preparing, shipped, a panel order paid on delivery) refuses it at once,
+  // before anything is touched: a closure that is refused anyway must not
+  // cancel the member's unpaid checkouts on the way, nor write their
+  // timeline rows. The count is the same as the one below.
+  const before = await customerOrdersByEmail(customer.email);
+  if (before.some(holdsClosure)) {
+    return {
+      ok: false,
+      error: "orders_in_progress",
+      count: inProgressCount(before),
+    };
+  }
+
+  // (2) The member's own checkouts that were never paid are cancelled before
+  // the count, whatever their age (docs/API-MOBILE.md §4, since 27 Oct 2026).
+  // A member who stopped on the payment page and then deleted the account was
+  // refused until the 45-minute sweep reached that order; App Review's tester
+  // does exactly that (5.1.1(v)). Each is asked about at the POS first (rule
+  // 29): one the POS says was paid is booked, one whose sale is still at the
+  // bank's 3-D Secure step stays pending, and either then holds the closure
+  // below. A failure here leaves the orders pending and the count refuses:
+  // nothing is closed over an order nobody could settle.
   try {
     await cancelUnpaidOrdersOfClosingAccount(customer.email);
   } catch (err) {
     console.error("[deleteMe] cancelling unpaid orders failed", err);
   }
+
+  // (3) Counted again: what the cancel left pending, booked as paid, or what
+  // arrived in between still holds the closure.
   const orders = await customerOrdersByEmail(customer.email);
-  const inProgress = orders.filter((o) =>
-    IN_PROGRESS_ORDER_STATUSES.includes(o.status),
-  );
-  if (inProgress.length > 0) {
-    return {
-      ok: false,
-      error: "orders_in_progress",
-      count: inProgress.length,
-    };
+  const inProgress = inProgressCount(orders);
+  if (inProgress > 0) {
+    return { ok: false, error: "orders_in_progress", count: inProgress };
   }
 
   const identityId = await linkedIdentityId(customer.email);

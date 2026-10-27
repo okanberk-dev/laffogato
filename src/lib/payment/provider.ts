@@ -193,6 +193,20 @@ export interface PaymentProvider {
     since: Date,
   ): Promise<ReturnConfirmation | null>;
   /**
+   * Asks the provider whether a sale for an order is still in flight:
+   * started and not finished, the customer on the bank's 3-D Secure step at
+   * this very moment, so the charge may still complete. Called before a
+   * young unpaid order is cancelled for a reason that does not wait for the
+   * 45-minute sweep (the account closure,
+   * `cancelUnpaidOrdersOfClosingAccount`): a sale that completes after the
+   * cancel leaves money with no order behind it. Resolves `false` when
+   * nothing is in flight (no sale started, a finished one, a failed one);
+   * throws when the provider could not be asked - the caller must not read
+   * that as "nothing in flight". Providers without such a state leave this
+   * undefined.
+   */
+  hasPaymentInFlight?(orderId: string, since: Date): Promise<boolean>;
+  /**
    * The cancels and refunds the provider holds for an order's payment, from
    * `since` (the payment) to now: "PayNkolay'dan iadeyi bul" records the part
    * the panel does not have yet. Throws when the provider could not be

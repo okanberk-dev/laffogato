@@ -23,7 +23,8 @@ import {
  * an inactive account cannot open one, an open request keeps the member
  * out of commercial mail (migration 20261018090100), and the closure
  * (`deleteMe`, the app's DELETE /me too) blanks it with the rest of the
- * row. Skipped without TEST_DATABASE_URL.
+ * row - and what the closure does with the member's orders (27 Oct 2026,
+ * docs/API-MOBILE.md §4). Skipped without TEST_DATABASE_URL.
  */
 const URL_ = process.env.TEST_DATABASE_URL;
 const maybe = URL_ ? describe : describe.skip;
@@ -51,7 +52,34 @@ vi.mock("next/headers", () => ({
     delete: () => {},
   }),
 }));
-vi.mock("@/lib/payment", () => ({ getPaymentProvider: () => null }));
+/**
+ * The POS the closure asks before it cancels an unpaid order: nothing is
+ * paid and nothing is in flight unless a test says so.
+ */
+const pos = vi.hoisted(() => ({
+  /** A sale at the bank's 3-D Secure step (`hasPaymentInFlight`). */
+  inFlight: new Set<string>(),
+  /** A payment the lookup finds (the return never arrived). */
+  paid: new Set<string>(),
+}));
+vi.mock("@/lib/payment", () => ({
+  getPaymentProvider: () => ({
+    name: "fakepos",
+    hasPaymentInFlight: async (orderId: string) => pos.inFlight.has(orderId),
+    lookupPayment: async (orderId: string) =>
+      pos.paid.has(orderId)
+        ? {
+            status: "succeeded",
+            orderId,
+            providerRef: `REF-${orderId}`,
+            amountMinor: 5000,
+            currency: "TRY",
+            raw: { source: "test" },
+            trxDate: "2026-10-27",
+          }
+        : null,
+  }),
+}));
 vi.mock("@/lib/supabase/admin", () => ({
   deleteSupabaseIdentity: async () => "skipped",
   updateSupabasePassword: async () => {},
@@ -289,22 +317,61 @@ maybe("deletion request against a real Postgres", () => {
     orderNo: number,
     email: string,
     status: string,
+    source = "",
   ): Promise<void> {
     await pool!.query(
       `insert into public.orders (id, "orderNo", "customerEmail", status,
-         channel, "totalMinor", "subtotalMinor", items, refunds, "createdAt")
-       values ($1, $2, $3, $4, 'app', 5000, 5000, '[]'::jsonb, '[]'::jsonb, $5)`,
-      [id, orderNo, email, status, new Date(Date.now() - 60_000).toISOString()],
+         channel, "totalMinor", "subtotalMinor", items, refunds, "createdAt",
+         source)
+       values ($1, $2, $3, $4, 'app', 5000, 5000, '[]'::jsonb, '[]'::jsonb, $5,
+         $6)`,
+      [
+        id,
+        orderNo,
+        email,
+        status,
+        new Date(Date.now() - 60_000).toISOString(),
+        source,
+      ],
     );
   }
 
-  it("closes an account whose only order was never paid, and cancels that order", async () => {
+  async function statuses(): Promise<Array<{ id: string; status: string }>> {
+    const { rows } = await pool!.query(
+      `select id, status from public.orders where id like 'ord-silme-%'
+        order by id`,
+    );
+    return rows as Array<{ id: string; status: string }>;
+  }
+
+  /** The order's timeline rows written since `since`. */
+  async function timeline(id: string, since: string) {
+    const { rows } = await pool!.query(
+      `select actor, payload from public.audit_logs
+        where entity = 'order' and "entityId" = $1 and "createdAt" >= $2`,
+      [id, since],
+    );
+    return rows as Array<{ actor: string; payload: Record<string, unknown> }>;
+  }
+
+  beforeEach(async () => {
+    pos.inFlight.clear();
+    pos.paid.clear();
+    await pool!.query(
+      `delete from public.payment_transactions where "orderId" like 'ord-silme-%'`,
+    );
     await pool!.query(`delete from public.orders where id like 'ord-silme-%'`);
+  });
+
+  it("closes an account whose only order was never paid, and cancels that order", async () => {
+    // audit_logs is append-only: rows from an earlier run stay.
+    const startedAt = new Date().toISOString();
     const { deleteMe } = await import("@/lib/mobile/me");
     const { getCustomerByEmail } = await import("@/lib/customer/store");
     const email = `${PREFIX}odenmemis@laffogato.net`;
     await insertMember(email);
-    // A minute old: the 45-minute sweep would not have reached it.
+    // A minute old: the 45-minute sweep would not have reached it, and the
+    // POS has no record of it (App Review's tester).
     await insertOrder("ord-silme-1", 995701, email, "pending_payment");
     const customer = await getCustomerByEmail(email);
 
@@ -317,10 +384,20 @@ maybe("deletion request against a real Postgres", () => {
     expect(rows[0].customerEmail).toMatch(/@anon\.local$/);
     expect(rows[0].stockReleasedAt).not.toBe("");
     expect((await row(`cst-${email}`)).email).toMatch(/@anon\.local$/);
+    // The timeline says the deletion request cancelled it, not that the
+    // account was closed.
+    const lines = await timeline("ord-silme-1", startedAt);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].actor).toBe("system");
+    expect(lines[0].payload).toMatchObject({
+      from: "pending_payment",
+      to: "cancelled",
+      reason: "Hesap silme isteğiyle ödenmemiş sipariş iptal edildi",
+    });
   });
 
-  it("still refuses while a paid order runs, and leaves the account open", async () => {
-    await pool!.query(`delete from public.orders where id like 'ord-silme-%'`);
+  it("refuses at once while a paid order runs: nothing is cancelled, the account stays open", async () => {
+    const startedAt = new Date().toISOString();
     const { deleteMe } = await import("@/lib/mobile/me");
     const { getCustomerByEmail } = await import("@/lib/customer/store");
     const email = `${PREFIX}odenmis@laffogato.net`;
@@ -332,17 +409,82 @@ maybe("deletion request against a real Postgres", () => {
     expect(await deleteMe(customer!)).toEqual({
       ok: false,
       error: "orders_in_progress",
+      // Every order in progress, the unpaid one included.
+      count: 2,
+    });
+    expect((await row(`cst-${email}`)).email).toBe(email);
+    expect(await statuses()).toEqual([
+      { id: "ord-silme-2", status: "paid" },
+      // A closure that is refused anyway cancels nothing on the way.
+      { id: "ord-silme-3", status: "pending_payment" },
+    ]);
+    expect(await timeline("ord-silme-3", startedAt)).toEqual([]);
+  });
+
+  it("refuses at once on a panel order paid on delivery", async () => {
+    const { deleteMe } = await import("@/lib/mobile/me");
+    const { getCustomerByEmail } = await import("@/lib/customer/store");
+    const email = `${PREFIX}kapida@laffogato.net`;
+    await insertMember(email);
+    await insertOrder(
+      "ord-silme-4",
+      995704,
+      email,
+      "pending_payment",
+      "manual",
+    );
+    await insertOrder("ord-silme-5", 995705, email, "pending_payment");
+    const customer = await getCustomerByEmail(email);
+
+    expect(await deleteMe(customer!)).toEqual({
+      ok: false,
+      error: "orders_in_progress",
+      count: 2,
+    });
+    expect((await row(`cst-${email}`)).email).toBe(email);
+    expect(await statuses()).toEqual([
+      { id: "ord-silme-4", status: "pending_payment" },
+      { id: "ord-silme-5", status: "pending_payment" },
+    ]);
+  });
+
+  it("waits while a young order's sale is at the bank's 3-D Secure step", async () => {
+    const startedAt = new Date().toISOString();
+    const { deleteMe } = await import("@/lib/mobile/me");
+    const { getCustomerByEmail } = await import("@/lib/customer/store");
+    const email = `${PREFIX}3d@laffogato.net`;
+    await insertMember(email);
+    await insertOrder("ord-silme-6", 995706, email, "pending_payment");
+    pos.inFlight.add("ord-silme-6");
+    const customer = await getCustomerByEmail(email);
+
+    expect(await deleteMe(customer!)).toEqual({
+      ok: false,
+      error: "orders_in_progress",
       count: 1,
     });
     expect((await row(`cst-${email}`)).email).toBe(email);
-    const { rows } = await pool!.query(
-      `select id, status from public.orders where id like 'ord-silme-%'
-        order by id`,
-    );
-    expect(rows).toEqual([
-      { id: "ord-silme-2", status: "paid" },
-      // The unpaid one is cancelled all the same: nothing was bought.
-      { id: "ord-silme-3", status: "cancelled" },
+    expect(await statuses()).toEqual([
+      { id: "ord-silme-6", status: "pending_payment" },
     ]);
+    expect(await timeline("ord-silme-6", startedAt)).toEqual([]);
+  });
+
+  it("waits for an unpaid order the POS reports paid: it is booked, and then it runs", async () => {
+    const { deleteMe } = await import("@/lib/mobile/me");
+    const { getCustomerByEmail } = await import("@/lib/customer/store");
+    const email = `${PREFIX}geldi@laffogato.net`;
+    await insertMember(email);
+    await insertOrder("ord-silme-7", 995707, email, "pending_payment");
+    pos.paid.add("ord-silme-7");
+    const customer = await getCustomerByEmail(email);
+
+    expect(await deleteMe(customer!)).toEqual({
+      ok: false,
+      error: "orders_in_progress",
+      count: 1,
+    });
+    expect((await row(`cst-${email}`)).email).toBe(email);
+    expect(await statuses()).toEqual([{ id: "ord-silme-7", status: "paid" }]);
   });
 });

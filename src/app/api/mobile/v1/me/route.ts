@@ -51,8 +51,12 @@ export async function PATCH(request: Request) {
  * §14 and the `hesap-silme` document both say the closure waits for it, and
  * anonymising the buyer of an order the kitchen is about to hand over would
  * leave the member unable to follow what they already paid for. Since 27 Oct
- * 2026 an unpaid (`pending_payment`) order does not hold it: `deleteMe`
- * cancels the member's unpaid checkouts first, after asking the POS.
+ * 2026 `deleteMe` refuses at once, touching nothing, while a paid, preparing,
+ * shipped or cash-on-delivery order exists; otherwise it cancels the member's
+ * unpaid checkouts after asking the POS. An unpaid order the POS reports paid,
+ * one whose sale is still at the bank's 3-D Secure step, or one the POS could
+ * not be asked about is not cancelled and holds the closure (docs/API-MOBILE.md
+ * §4).
  *
  * `identity` (additive, docs/API-MOBILE.md §4) says what happened to the
  * Supabase sign-in identity, which still holds the member's e-mail and name

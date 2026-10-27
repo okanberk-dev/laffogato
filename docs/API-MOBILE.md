@@ -877,14 +877,15 @@ Hesap silme: `DELETE /me` → Neon satırı anonimleştirilir, Supabase kimliği
 > `account_disabled`). Oturumu uygulama kapatır. **409** `orders_in_progress`:
 > `pending_payment`/`paid`/`preparing`/`shipped` bir sipariş varken hesap
 > kapatılmaz (Üyelik Sözleşmesi §14) — sipariş bitince tekrar denenir.
-> **27 Ekim 2026 (yalnız ekleme):** artık yalnız `paid` / `preparing` / `shipped`
-> bir sipariş hesabın kapatılmasını bekletir; üyenin ödenmemiş (`pending_payment`)
-> siparişleri `DELETE /me` tarafından iptal edilir, stok ve kupon geri döner. Her
-> biri önce POS'a sorulur: ödendiği çıkan sipariş `paid` olur ve 409 döner. Yine
-> 409 dönen iki durum: o an POS'a sorulamayan bir sipariş ödenmediği bilinmeden
-> iptal edilmez (bir günden eskiyse iptal edilir); panelden girilmiş, kapıda
-> ödenecek bir sipariş hiç iptal edilmez. İptalden sonra gelen bir ödeme siparişi
-> canlandırmaz, iade için yönetim paneline düşer.
+> **27 Ekim 2026 (yalnız ekleme):** `DELETE /me` önce üyenin siparişlerine bakar.
+> `paid` / `preparing` / `shipped` ya da panelden girilmiş, kapıda ödenecek bir
+> sipariş varsa hemen 409 döner ve hiçbir şeye dokunmaz. Yoksa üyenin ödenmemiş
+> (`pending_payment`) siparişleri iptal edilir, stok ve kupon geri döner; her biri
+> önce POS'a sorulur ve şu üç durumda iptal edilmez, kapatmayı bekletir (409): POS
+> ödendiğini söylerse (sipariş `paid` olur); ödemesi o an bankanın 3D Secure
+> adımındaysa (45 dakikadan genç bir siparişte POS'ta `NEW` satış satırı); POS'a o
+> an sorulamazsa (bir günden eskiyse iptal edilir). İptalden sonra gelen bir ödeme
+> siparişi canlandırmaz, iade için yönetim paneline düşer.
 > **`identity` (23 Eyl 2026, yalnız ekleme):** 200 yanıtı
 > `{ "ok": true, "identity": "deleted" | "skipped" | "failed" }` olur; ayrıntı
 > aşağıda. `neighbourhood` sütunu yoktur: `line1`'e
