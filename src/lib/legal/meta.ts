@@ -26,7 +26,8 @@
 // AI provider (Anthropic) is a recipient; R12 (Açık Rıza 15/A) is retired,
 // R7 to R11 keep their numbers; the phone is optional at the app's sign-up
 // ("verdiyseniz"); an unpaid checkout is cancelled at account closure
-// instead of holding it. The ÖBF (§18, §20) and the MSS (§1, §2, §16)
+// instead of holding it, unless its payment is still at the bank or the
+// POS cannot be asked (then the closure waits, at most 24 h). The ÖBF (§18, §20) and the MSS (§1, §2, §16)
 // changed, so the label moved; the four documents that carried 25 Ekim 2026
 // of their own read the set's day again. LEGAL-REDLINES §36.
 // 22 Ekim 2026: the ÖBF (§17, §19) and the MSS (§16) say the app gets

@@ -65,30 +65,68 @@ describe("hesap-silme", () => {
     );
   });
 
-  it("an unpaid checkout is cancelled, not waited for (27 Ekim 2026)", () => {
+  it("an unpaid checkout is cancelled at closure, once the POS is asked (27 Ekim 2026)", () => {
     // App Review 5.1.1(v): the reviewer stops on the payment page and then
     // deletes the account. DELETE /me cancels the member's unpaid checkouts
-    // before it counts what is in flight (src/lib/mobile/me.ts), so the texts
-    // that say a running order holds the closure say this one does not
-    // (LEGAL-REDLINES §36).
+    // before it counts what is in flight (src/lib/mobile/me.ts), each one
+    // asked about at the POS first (rule 29), so the texts that say a running
+    // order holds the closure say this one does not (LEGAL-REDLINES §36).
+    // Not always at once, though: a sale still on the bank's 3-D Secure step,
+    // or a POS that cannot be asked, leaves the order pending and the closure
+    // waiting, at most 24 hours (POS_LOOKUP_GIVE_UP_MS, src/lib/admin/store.ts;
+    // LEGAL-REDLINES §36.10).
     const deferral = findLegalDoc("hesap-silme")!
       .sections.find((s) => s.heading.startsWith("4."))!
       .paragraphs!.find((p) => p.startsWith("Devam eden bir sipariş"))!;
     expect(deferral).toContain(
-      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz: silme sırasında iptal edilir ve silmeyi ertelemez; iptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez.",
+      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz: silme sırasında iptal edilir; iptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat bekler.",
     );
     const agreement = findLegalDoc("uyelik-sozlesmesi")!.sections.find((s) =>
       s.heading.startsWith("14."),
     )!;
     expect((agreement.paragraphs ?? []).join("\n")).toContain(
-      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; hesap kapatılırken iptal edilir ve kapatmayı ertelemez.",
+      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; hesap kapatılırken iptal edilir. Şirket iptalden önce ödemenin durumunu ödeme kuruluşuna sorar ve ödemesinin alındığı anlaşılan siparişi iptal etmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa kapatma işlemi, siparişin durumu netleşene kadar, en çok 24 saat bekler.",
     );
     const app = findLegalDoc("mobil-uygulama-kosullari")!.sections.find((s) =>
       s.heading.startsWith("17."),
     )!;
     expect((app.paragraphs ?? []).join("\n")).toContain(
-      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; silme sırasında iptal edilir.",
+      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; silme sırasında iptal edilir. İptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat bekler.",
     );
+  });
+
+  it("no text says an unpaid order never delays the closure (27 Ekim 2026)", () => {
+    // The first wording said it "ertelemez", and the code never promised
+    // that: an order the POS could not be asked about has always held the
+    // closure, for up to a day (rule 29, POS_LOOKUP_GIVE_UP_MS), and one
+    // whose sale is on the bank's 3-D Secure step holds it too. Every
+    // passage that takes an unpaid checkout out of the running orders
+    // carries the wait in the same breath (LEGAL-REDLINES §36.10).
+    const exempts = /ödemesi tamamlanmamış[^.]*devam eden sipariş sayılmaz/;
+    const waits =
+      /[Öö]deme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa (silme|kapatma işlemi), siparişin durumu netleşene kadar, en çok 24 saat bekler/;
+    const exempting: string[] = [];
+    for (const d of LEGAL_DOCS) {
+      for (const s of d.sections) {
+        for (const block of [
+          ...(s.paragraphs ?? []),
+          ...(s.bullets ?? []),
+          ...(s.ordered ?? []),
+          ...(s.table ?? []).flatMap((r) => [r.key, r.value]),
+        ]) {
+          expect(block, d.slug).not.toMatch(/(kapatmayı|silmeyi) ertelemez/);
+          if (!exempts.test(block)) continue;
+          exempting.push(d.slug);
+          expect(block, d.slug).toMatch(waits);
+        }
+      }
+    }
+    expect(exempting.sort()).toEqual([
+      "hesap-silme",
+      "kullanim-sartlari",
+      "mobil-uygulama-kosullari",
+      "uyelik-sozlesmesi",
+    ]);
   });
 
   it("gives the Kurul's complaint periods as KVKK m.14 sets them", () => {
@@ -154,7 +192,7 @@ describe("the other texts that sent members to /uye/hesap/sil", () => {
   it("Kullanım Şartları §7 names each channel and its time", () => {
     const terms = all("kullanim-sartlari");
     expect(terms).toContain(
-      "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir); Site'deki hesap silme sayfasından (https://",
+      "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir; ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat bekler); Site'deki hesap silme sayfasından (https://",
     );
     expect(terms).toMatch(
       /\/uye\/hesap\/sil\) veya \S+@\S+ adresine iletilen talep en geç otuz gün içinde sonuçlandırılır\./,

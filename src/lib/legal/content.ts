@@ -9878,8 +9878,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Kullanım Şartları",
     shortTitle: "Kullanım Şartları",
     // 27 Ekim 2026: Kahve Modu instead of fA'L (App Review 4.3(b)); §7 the
-    // phone "verildiyse" and an unpaid checkout does not hold the app's
-    // account deletion (5.1.1(v)). LEGAL-REDLINES §36.
+    // phone "verildiyse" and an unpaid checkout is cancelled at the app's
+    // account deletion instead of holding it (5.1.1(v)), unless its payment
+    // is still at the bank or the POS cannot be asked: then the deletion
+    // waits, at most 24 hours (§36.10). LEGAL-REDLINES §36.
     // 19 Ekim 2026: the karaoke definition no longer describes the request
     // mode (online prepayment cannot be switched off). LEGAL-REDLINES §17.
     category: "Site & Üyelik",
@@ -10033,7 +10035,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Bir gerçek kişi adına yalnızca bir üyelik hesabı açılabilir. Kampanya, promosyon kodu, kupon veya damgalardan haksız yarar sağlamak amacıyla mükerrer hesap açılması yasaktır.",
           "Hesabın üçüncü kişilere devredilmesi, kiralanması, satılması veya ortak kullanıma açılması yasaktır.",
-          "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir); Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine iletilen talep en geç otuz gün içinde sonuçlandırılır. Üyeliğin sonlandırılması, devam eden siparişlerden doğan hak ve yükümlülükleri ortadan kaldırmaz; hesaptaki damgalar ve kullanılmamış kuponlar ise sona erer.",
+          "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir; ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat bekler); Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine iletilen talep en geç otuz gün içinde sonuçlandırılır. Üyeliğin sonlandırılması, devam eden siparişlerden doğan hak ve yükümlülükleri ortadan kaldırmaz; hesaptaki damgalar ve kullanılmamış kuponlar ise sona erer.",
           "213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu ve tüketici mevzuatı uyarınca saklanması zorunlu olan fatura, sipariş ve işlem kayıtları; üyelik sonlandırılsa dahi kanuni saklama süreleri boyunca muhafaza edilir.",
           "Şirket; işbu Şartların ihlali, sahtecilik şüphesi, ödeme sistemlerinin kötüye kullanılması veya yargı mercilerince verilmiş bir karar bulunması hâlinde hesabı geçici olarak askıya alabilir ya da kalıcı olarak kapatabilir. Askıya alma veya kapatma kararı, mümkün olan hâllerde gerekçesiyle birlikte Kullanıcıya bildirilir.",
         ],
@@ -10408,7 +10410,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Üyelik",
     // 27 Ekim 2026: Kahve Modu instead of fA'L (App Review 4.3(b)); §14 an
     // unpaid checkout is cancelled at closure instead of holding it
-    // (5.1.1(v)). LEGAL-REDLINES §36.
+    // (5.1.1(v)), once the POS is asked; while its payment is still at the
+    // bank or the POS cannot be asked, the closure waits, at most 24 hours
+    // (§36.10). LEGAL-REDLINES §36.
     // 18 Ekim 2026: §14, Site'de hesap ekibe talep olarak silinir. Üye
     // aleyhine esaslı bir değişiklik değil, §22'nin on beş günlük bildirimi
     // gerekmez (TBK m.24 aleyhe tek yanlı değişikliği zaten yazılmamış
@@ -10803,7 +10807,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur: Üye'nin yapacağı tek adım, Mobil Uygulama'daki hesap silme seçeneğini onaylamak ya da Site'deki talebi göndermektir; talebin sonuçlandırılması için Üye'den başka bir işlem veya gerekçe istenmez.",
           "Hesap kapatma talebi; Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden, Site'de {{SITE_URL}}/uye/hesap/sil sayfasından veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Mobil Uygulama'daki seçenek hesabı hemen kapatır; Site'den veya e-postayla iletilen talep Şirket tarafından en geç otuz gün içinde sonuçlandırılır ve sonuç Üye'ye e-postayla bildirilir. Üye, Site'den verdiği talebi hesap kapatılana kadar aynı sayfadan geri alabilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
-          "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir. Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; hesap kapatılırken iptal edilir ve kapatmayı ertelemez.",
+          "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir. Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; hesap kapatılırken iptal edilir. Şirket iptalden önce ödemenin durumunu ödeme kuruluşuna sorar ve ödemesinin alındığı anlaşılan siparişi iptal etmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa kapatma işlemi, siparişin durumu netleşene kadar, en çok 24 saat bekler.",
           "Hesabın kapatılmasıyla birlikte biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve dolmuş kartını ödüle çevirme imkânı tanınır.",
           "Üyeliğin sona ermesi, sona erme tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları etkilemez. Üye, teslim aldığı ürünlere ilişkin cayma hakkını, ayıplı mal hükümlerinden doğan seçimlik haklarını ve garanti haklarını üyeliği kapansa dahi mevzuatta öngörülen süreler içinde kullanabilir.",
         ],
@@ -11047,8 +11051,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
     shortTitle: "Hesap Silme",
     // 27 Ekim 2026: §4 an unpaid checkout is cancelled at deletion instead of
-    // holding it (App Review 5.1.1(v)); §6 names the retired AI reading's
-    // records without fA'L. LEGAL-REDLINES §36.
+    // holding it (App Review 5.1.1(v)), unless its payment is still at the
+    // bank or the POS cannot be asked: then the deletion waits, at most 24
+    // hours (§36.10); §6 names the retired AI reading's records without
+    // fA'L. LEGAL-REDLINES §36.
     category: "Site & Üyelik",
     // 18 Ekim 2026: Site'de hesabı, üyenin talebi üzerine ekip siler
     // (/uye/hesap/sil); uygulama kendi anında silmesini korur. §1-§4, §8.
@@ -11103,7 +11109,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Uygulama içinden verilen silme talebi anında uygulanır: hesap aynı işlemde kapatılır ve kişisel alanlar silinir.",
           "Site'den, e-posta veya posta ile iletilen talepler, 6698 sayılı Kanun'un 13. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde ücretsiz olarak sonuçlandırılır; hedefimiz üç iş günüdür. Site'den gelen talebin alındığı size hemen e-postayla, diğer kanallardan gelen talebin alındığı aynı kanaldan teyit edilir. Hesabınız silindiğinde bu da size e-postayla bildirilir. Site'den verdiğiniz talep açık kaldığı sürece size kampanya, bülten veya doğum günü e-postası gibi ticari elektronik ileti gönderilmez.",
-          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz: silme sırasında iptal edilir ve silmeyi ertelemez; iptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez. Uygulamadan verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz. Site\'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır. Bu durumda da talebiniz otuz gün içinde yanıtlanır; silmenin hangi süreç nedeniyle ertelendiği ve ne zaman uygulanacağı size bildirilir.',
+          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz: silme sırasında iptal edilir; iptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat bekler. Uygulamadan verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz. Site\'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır. Bu durumda da talebiniz otuz gün içinde yanıtlanır; silmenin hangi süreç nedeniyle ertelendiği ve ne zaman uygulanacağı size bildirilir.',
           'Talebi geri alma: Site\'den verdiğiniz talebi, hesabınız silinene kadar aynı sayfadaki "Talebi geri al" düğmesiyle geri alabilirsiniz; e-posta veya posta ile verdiğiniz talebi aynı kanaldan geri alabilirsiniz. Geri alınan talep işleme konmaz ve hesabınız olduğu gibi kalır. Silinmiş bir hesap geri getirilemez; aynı adresle yeniden üye olabilirsiniz (bkz. 9. madde).',
         ],
       },
@@ -11613,7 +11619,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Mobil Uygulama Kullanım Koşulları",
     shortTitle: "Mobil Uygulama",
     // 27 Ekim 2026: Kahve Modu instead of fA'L (App Review 4.3(b)); §17 an
-    // unpaid checkout is cancelled at deletion (5.1.1(v)). LEGAL-REDLINES §36.
+    // unpaid checkout is cancelled at deletion (5.1.1(v)) once the POS is
+    // asked; while its payment is still at the bank or the POS cannot be
+    // asked, the deletion waits, at most 24 hours (§36.10). LEGAL-REDLINES
+    // §36.
     // 21 Ekim 2026: at the till a stamp goes only to the member's own
     // code; no stamp by typed e-mail, a missed one is corrected by a
     // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
@@ -12058,7 +12067,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Kullanıcı, Uygulama'yı dilediği zaman cihazından kaldırabilir. Uygulama'nın kaldırılması, cihazda saklanan geçici verileri siler; ancak üyelik hesabını ve sunucuda tutulan kayıtları tek başına sona erdirmez.",
           "Kullanıcı, üyelik hesabını Uygulama içindeki hesap ayarları bölümünde yer alan hesap silme seçeneğiyle doğrudan sona erdirebilir. Bu seçenek, uygulama mağazası kuralları gereği Uygulama içinden erişilebilir durumda tutulur; ayrıca Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine gönderilecek bir talep ile de hesabın silinmesi istenebilir; bu talepler en geç otuz gün içinde sonuçlandırılır.",
-          "Hesap silme talebi alındığında Kullanıcı'ya işlemin sonuçları özetlenir ve teyit istenir. Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık bulunması hâlinde silme işlemi, bu süreçlerin tamamlanmasının ardından uygulanır ve durum Kullanıcı'ya bildirilir. Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; silme sırasında iptal edilir.",
+          "Hesap silme talebi alındığında Kullanıcı'ya işlemin sonuçları özetlenir ve teyit istenir. Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık bulunması hâlinde silme işlemi, bu süreçlerin tamamlanmasının ardından uygulanır ve durum Kullanıcı'ya bildirilir. Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; silme sırasında iptal edilir. İptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat bekler.",
           "Hesabın silinmesiyle birlikte biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; adres defteri ve tercihler erişime kapatılır, İYS'ye kaydedilmiş bir ticari elektronik ileti onayı bulunuyorsa ret kaydı en geç üç iş günü içinde İYS üzerine işlenir. Mevzuattan doğan saklama yükümlülüğü bulunan kayıtlar, özellikle 213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca fatura ve ticari defter kayıtları ile 6563 sayılı Kanun kapsamındaki sipariş ve onay kayıtları, ilgili süreler boyunca sınırlı erişimle muhafaza edilir.",
           "Saklama süresi dolan veriler, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca ilk periyodik imha döneminde silinir, yok edilir veya anonim hâle getirilir.",
         ],

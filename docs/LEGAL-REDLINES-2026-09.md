@@ -4389,6 +4389,10 @@ der.
   yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış
   siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir); ..."
 
+Aynı gün düzeltildi: "ertelemez" kalktı, ödemesi bankada süren ya da ödeme
+kuruluşuna sorulamayan sipariş kapatmayı en çok 24 saat bekletir. Dört
+cümlenin bugünkü hâli 36.10'dadır.
+
 ### 36.6 Tarihler
 
 - `LEGAL_UPDATED` 22 Ekim 2026'dan **27 Ekim 2026**'ya: ödeme adımında
@@ -4427,7 +4431,8 @@ der.
 5. **Hesap kapatma.** Ödeme kuruluşuna ulaşılamazsa ödenmemiş sipariş iptal
    edilemez ve kapatmayı bekletir (sipariş süpürme kuralının süresi dolana
    kadar); panelden girilen manuel sipariş de bekletir. Metin bunları ayrıca
-   saymıyor. Sayılmalı mı?
+   saymıyor. Sayılmalı mı? (Aynı gün metin koda uyduruldu: 36.10. Avukat
+   yine okur.)
 6. **B5.** Kullanım Şartları §7'deki "isteğe bağlı netleştirme" uygulandı
    ("ad, soyad ve e-posta adresi ile, verildiyse telefon numarası ve adres
    bilgileri").
@@ -4467,6 +4472,134 @@ olmadığını söyleyip eski süreleri korur. `tests/legal-kvkk-transfers.test.
 `tests/legal-account-deletion.test.ts` (ödenmemiş sipariş),
 `tests/legal-dates.test.ts` ve `tests/legal-consent-version.test.ts` (27
 Ekim 2026) yeni durumu tutar.
+
+### 36.10 Hesap kapatma: bankada süren ya da sorulamayan ödeme kapatmayı en çok 24 saat bekletir (27 Ekim 2026)
+
+> **Durum: metin kodda değişti, avukat okuması bekliyor.** Aynı günün
+> izleyen işi (dal `claude/delete-me-followups-2026-10-27`). Değişen dört
+> belge zaten **27 Ekim 2026** basar; hiçbiri ödeme adımında onaylanmadığı
+> için `LEGAL_UPDATED` taşınmadı.
+
+**Neden.** 36.5'in dört cümlesi ödeme adımında bırakılmış siparişin hesap
+kapatılırken her durumda iptal edildiğini söylüyordu; Üyelik Sözleşmesi ile
+Hesap Silme ayrıca kapatmayı "ertelemez" diyordu. Kod bunu her durumda
+yapmaz. `deleteMe` önce üyenin siparişlerini okur: ödenmiş, hazırlanan,
+kargoda ya da hazır (`paid`, `preparing`, `shipped`) bir sipariş ya da
+panelden girilmiş, teslimde ödenecek manuel sipariş varsa hiçbir şeyi iptal
+etmeden 409 `orders_in_progress` döner. Yoksa
+`cancelUnpaidOrdersOfClosingAccount` ödenmemiş siparişleri ödeme kuruluşuna
+sorup iptal eder; ödendiği anlaşılan sipariş ödenmiş olarak işlenir ve
+devam eden sipariş olarak kapatmayı bekletir. İki durumda ise sipariş iptal
+edilmez, ödenmiş de sayılmaz:
+
+- **Ödeme o anda bankada sürüyor.** Sipariş 45 dakikadan
+  (`PENDING_ORDER_TTL_MINUTES`) gençse PayNkolay `PaymentList`'te satışın
+  sürüp sürmediğine de bakılır: siparişin satışı için `STATUS: NEW`
+  (başlatılmış ama bitmemiş: bankanın 3-D Secure adımı, `docs/PAYNKOLAY.md`
+  §2) bir satır varsa ve `SUCCESS` satırı yoksa ya da bu sorgu
+  yapılamıyorsa sipariş iptal edilmez. Üye kartını o sırada onaylıyor
+  olabilir; iptalden sonra tamamlanan çekim siparişi geri getirmez, iade
+  için insanın önüne düşer (`order_not_open`). Bu durum yeni.
+- **Ödeme kuruluşuna ulaşılamıyor.** Ulaşılamaması "ödenmedi" sayılmaz
+  (kural 29); sipariş 24 saatlik olunca (`POS_LOOKUP_GIVE_UP_MS`, süpürmenin
+  kuralı) sorulamasa da iptal edilir. 36.5'te de böyleydi, metin
+  söylemiyordu.
+
+Bu siparişler beklemede kalır ve ardından yapılan sayım kapatmayı yine 409
+ile reddeder: bekleme en çok 24 saattir (bankadaki satışta en çok 45
+dakika). Uygulamada üye talebi sonra yineler; Site'deki talep açık kalır ve
+ekip durum netleşince uygular. Bu yolla iptal edilen siparişin zaman
+çizelgesindeki gerekçe "Hesap kapatıldı, ödenmemiş sipariş iptal edildi"
+yerine "Hesap silme isteğiyle ödenmemiş sipariş iptal edildi" olur: iptalden
+sonraki sayım kapatmayı yine reddedebilir.
+
+**Değişen cümleler.** Kesin "ertelemez" kalktı, bekleme cümlesi her belgeye
+kendi sesiyle girdi; Üyelik Sözleşmesi ve Mobil Uygulama Kullanım Koşulları
+ödeme kuruluşuna sorulduğunu da Hesap Silme gibi söyler. Başka cümleye
+dokunulmadı.
+
+- **Üyelik Sözleşmesi §14** (3. paragraf).
+  Eski: "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş
+  sayılmaz; hesap kapatılırken iptal edilir ve kapatmayı ertelemez."
+  Yeni: "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş
+  sayılmaz; hesap kapatılırken iptal edilir. Şirket iptalden önce ödemenin
+  durumunu ödeme kuruluşuna sorar ve ödemesinin alındığı anlaşılan siparişi
+  iptal etmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna
+  ulaşılamıyorsa kapatma işlemi, siparişin durumu netleşene kadar, en çok
+  24 saat bekler."
+- **Hesap Silme §4** (3. paragraf).
+  Eski: "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş
+  sayılmaz: silme sırasında iptal edilir ve silmeyi ertelemez; iptalden önce
+  ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı
+  anlaşılan sipariş iptal edilmez."
+  Yeni: "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş
+  sayılmaz: silme sırasında iptal edilir; iptalden önce ödemenin durumu
+  ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal
+  edilmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna
+  ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat
+  bekler."
+- **Mobil Uygulama Kullanım Koşulları §17** (3. paragraf).
+  Eski: "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş
+  sayılmaz; silme sırasında iptal edilir."
+  Yeni: "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş
+  sayılmaz; silme sırasında iptal edilir. İptalden önce ödemenin durumu
+  ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal
+  edilmez. Ödeme o sırada bankada sürüyorsa ya da ödeme kuruluşuna
+  ulaşılamıyorsa silme, siparişin durumu netleşene kadar, en çok 24 saat
+  bekler."
+- **Kullanım Şartları §7** (üyeliğin sonlandırılması maddesi, ilk cümle).
+  Eski: "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin
+  sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir
+  sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış
+  siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir);
+  Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya
+  {{EMAIL}} adresine iletilen talep en geç otuz gün içinde sonuçlandırılır."
+  Yeni: "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin
+  sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir
+  sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış
+  siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir; ödeme o
+  sırada bankada sürüyorsa ya da ödeme kuruluşuna ulaşılamıyorsa silme,
+  siparişin durumu netleşene kadar, en çok 24 saat bekler); Site'deki hesap
+  silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine
+  iletilen talep en geç otuz gün içinde sonuçlandırılır."
+
+**Avukata.** 36.7'nin 5. sorusu metni koda uydurarak yanıtlandı: ulaşılamayan
+ödeme kuruluşu ve bankada süren ödeme artık 24 saatlik üst sınırıyla
+yazılıdır. Panelden girilen manuel sipariş ayrıca sayılmadı: ödeme adımından
+geçmez, devam eden siparişin kendisidir ve her belgenin ilk cümlesiyle
+kapatmayı bekletir. Karar yine avukatındır; metni okur. Bir nokta da
+açık: Hesap Silme §4'ün "Uygulamadan verdiğiniz silme talebi devam eden bir
+sipariş varsa hemen uygulanmaz; ..." cümlesi bekleme durumunu ayrıca anmıyor
+(uygulamada talep aynı 409 ile reddedilir). Cümle değiştirilmedi; anılsın mı?
+Değişiklik bildirimi (Üyelik Sözleşmesi §22, Mobil Uygulama Kullanım
+Koşulları §22, Kullanım Şartları §19): düzeltme üye aleyhine esaslı bir
+değişiklik sayılmadı, bildirim yapılmadı. 27 Ekim 2026'dan önce ödenmemiş
+sipariş de kapatmayı bekletiyordu: süpürme onu iptal edene kadar (en az 45
+dakika; ödeme kuruluşuna sorulamıyorsa süpürme de 24 saat dolmadan iptal
+etmez). Bugünkü bekleme hiçbir durumda ondan uzun değildir. 36.5'in
+"ertelemez" cümlesi ise kodun yapmadığı bir şeyi vaat ediyordu. Bunun
+kararı da avukatındır.
+
+**Bilerek değişmeyenler.** Uygulamadaki seçeneğin hesabı "hemen" ya da
+"anında" kapattığını söyleyen genel cümleler ödenmemiş siparişi anmaz; bu
+işin konusu değildi, dokunulmadı: Hesap Silme §1, §2 ve §4'ün ilk paragrafı
+ile Üyelik Sözleşmesi §14'ün 2. paragrafı (istisnalar aynı belgenin §4'ünde
+ve §14'ünde), Gizlilik Politikası §14 ve KVKK Başvuru Formu §5 (bu ikisi
+devam eden sipariş istisnasını da anmaz; bu işten önce de böyleydi).
+Güvenli Alışveriş §12'nin "PayNkolay'a ulaşılamaması ödemenin alınmadığı
+anlamına gelmez ve sipariş bu gerekçeyle iptal edilmez" cümlesi de olduğu
+gibi kaldı: 45 dakikalık süpürmeyi anlatır ve onun 24 saatlik sınırını anmaz
+(sipariş bir günlük olunca sorulamasa da iptal edilir). Hesap kapatmanın
+konusu değildi; avukat aynı sınırı orada da anmak isteyebilir.
+
+**Testler ve uygulamanın kopyası.** `tests/legal-account-deletion.test.ts`
+dört cümleyi harfi harfine tutar, ödenmemiş siparişi devam eden siparişten
+ayıran her paragrafta bekleme cümlesini arar (tam bu dört belge) ve hiçbir
+metinde "kapatmayı ertelemez" ya da "silmeyi ertelemez" kalmadığını
+denetler. Uygulamanın paketli kopyası (lafmobil `src/data/legal.seed.json`)
+Kullanım Şartları, Üyelik Sözleşmesi ve Mobil Uygulama Kullanım
+Koşulları'nın eski cümlelerini taşır; §2'nin 5. adımıyla
+(`npm run legal:export`) ayrı bir lafmobil commit'inde yenilenir.
 
 ## Ek A - Cümle cümle düzeltme listesi
 
