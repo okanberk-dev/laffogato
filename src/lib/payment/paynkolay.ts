@@ -66,7 +66,10 @@ import {
  */
 
 const DEFAULT_BASE_URL = "https://paynkolay.nkolayislem.com.tr";
-/** `lookupPayment`'in siparişten sonra taradığı gün sayısı (servis ≤ 1 ay). */
+/**
+ * `lookupPayment`'in (ve `hasPaymentInFlight`'ın) siparişten sonra taradığı
+ * gün sayısı (servis ≤ 1 ay).
+ */
 const LOOKUP_WINDOW_DAYS = 3;
 /**
  * `lookupRefunds`'ın ödemeden sonra baktığı en uzun süre. Servis bir
@@ -1283,6 +1286,45 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       raw: { source: "paynkolay_lookup", transaction: withoutHolderName(row) },
       ...transactionDay(row),
     };
+  }
+
+  /**
+   * Siparişin POS'ta yarıda duran bir satışı var mı: başlatılmış ama
+   * bitmemiş (`STATUS: NEW`, §2), müşteri tam o an bankanın 3D ekranında.
+   *
+   * Hesap kapatma (`cancelUnpaidOrdersOfClosingAccount`) 45 dakikadan genç
+   * ödenmemiş bir siparişi iptal etmeden önce buraya sorar: 3D ekranındaki
+   * ödeme iptalden sonra tamamlanırsa para, sipariş olmadan çekilmiş olur.
+   *
+   * `lookupPayment` ile aynı sorgu, aynı pencere. Bir `SUCCESS` satırı varsa
+   * yarıda kalan satış yoktur (ödeme bitmiştir; onu `lookupPayment` bulur)
+   * ve false döner. Yoksa türü `sales` olan ya da türü yazılmamış bir `NEW`
+   * satırı true demektir. `ERROR` bitmiş, başarısız bir denemedir. POS'a
+   * sorulamazsa (zaman aşımı, anahtar reddi, okunamayan yanıt) fırlatır:
+   * "yarıda satış yok" demek iptale izin verirdi (kural 29).
+   */
+  async hasPaymentInFlight(orderId: string, since: Date): Promise<boolean> {
+    const id = orderId.trim();
+    if (!id) return false;
+    const now = new Date();
+    const placed = Number.isFinite(since.getTime())
+      ? Math.min(since.getTime(), now.getTime())
+      : now.getTime();
+    // `lookupPayment`'in penceresi: siparişin gününden bir gün geriden,
+    // birkaç günle sınırlı (servis bir aydan uzun aralık kabul etmiyor, §2).
+    const rows = await this.queryTransactions(
+      id,
+      new Date(placed - DAY_MS),
+      new Date(Math.min(now.getTime(), placed + LOOKUP_WINDOW_DAYS * DAY_MS)),
+    );
+    const status = (r: Record<string, unknown>) =>
+      readField(r, "STATUS", "status").toUpperCase();
+    if (rows.some((r) => status(r) === "SUCCESS")) return false;
+    const kind = (r: Record<string, unknown>) =>
+      readField(r, "TRANSACTION_TYPE", "transactionType").toLowerCase();
+    return rows.some(
+      (r) => status(r) === "NEW" && (!kind(r) || kind(r) === "sales"),
+    );
   }
 
   /**

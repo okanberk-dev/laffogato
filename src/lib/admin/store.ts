@@ -3879,14 +3879,53 @@ export async function isOwnUnpaidWebOrder(
   );
 }
 
-/** The timeline's reason for an unpaid order the account closure cancelled. */
+/**
+ * The timeline's reason for an unpaid order an account closure request
+ * cancelled. It does not say the account was closed: `deleteMe` counts again
+ * after the cancel, and the closure can still be refused then by another of
+ * the member's orders (one the POS reported paid, could not be asked about,
+ * or found at the bank's 3-D Secure step).
+ */
 export const ACCOUNT_CLOSED_CANCEL_REASON =
-  "Hesap kapatıldı, ödenmemiş sipariş iptal edildi";
+  "Hesap silme isteğiyle ödenmemiş sipariş iptal edildi";
+
+/**
+ * Whether the POS has a sale for this order in flight - started and not
+ * finished, the customer on the bank's 3-D Secure step at this very moment
+ * (`hasPaymentInFlight`) - or could not say. Either one holds the order: not
+ * knowing is never "nothing there" (rule 29). Only a clear no lets the cancel
+ * go ahead. Bounded like the payment lookup (POS_LOOKUP_TIMEOUT_MS); a
+ * provider without the check has nothing in flight to report.
+ */
+async function saleInFlightAtPos(
+  order: AdminOrder,
+  provider: PaymentProvider,
+): Promise<boolean> {
+  if (!provider.hasPaymentInFlight) return false;
+  try {
+    const inFlight = await withTimeout(
+      provider.hasPaymentInFlight(order.id, new Date(order.createdAt)),
+      POS_LOOKUP_TIMEOUT_MS,
+    );
+    if (inFlight !== false) {
+      console.info(
+        `[orders] sale in flight at the POS, unpaid order left pending order=${order.id}`,
+      );
+    }
+    return inFlight !== false;
+  } catch (err) {
+    console.error(`[orders] POS in-flight check failed order=${order.id}`, err);
+    return true;
+  }
+}
 
 /**
  * Cancels every order of this member still waiting for its payment - of any
  * age, from any channel - and returns what each held: the account is closing
  * (`deleteMe`, docs/API-MOBILE.md §4). Resolves to how many it cancelled.
+ * `deleteMe` calls it only when no order holds the closure in any case (paid,
+ * preparing, shipped, a panel order paid on delivery): a closure that is
+ * refused anyway cancels nothing.
  *
  * An unpaid checkout used to hold the closure (409 `orders_in_progress`)
  * until the 45-minute sweep reached it, so a member who stopped on the
@@ -3902,8 +3941,16 @@ export const ACCOUNT_CLOSED_CANCEL_REASON =
  * (a phone order paid on delivery) is a delivery the köşk owes, not an
  * abandoned checkout, and is left alone.
  *
- * A charge that completes afterwards (the bank's 3-D Secure page was still
- * open) does not revive the order: `applyPaymentSucceeded` advances only a
+ * The lookup sees only a finished sale. An order younger than
+ * PENDING_ORDER_TTL_MINUTES may be at the bank's 3-D Secure step right now,
+ * so the POS is first asked whether a sale is in flight (`saleInFlightAtPos`,
+ * PayNkolay's STATUS NEW): if one is, or the POS cannot say, the order is
+ * left pending - no cancel, no timeline row - and holds the closure until
+ * the sale finishes or the sweep reaches the order. A provider without that
+ * check is not asked, and the order goes on as before.
+ *
+ * A charge that completes afterwards anyway (a sale started after the check)
+ * does not revive the order: `applyPaymentSucceeded` advances only a
  * `pending_payment` row; it records the money and flags the order
  * `order_not_open` for a refund. The card page starts no sale on a cancelled
  * order (`bridgeChargeGate`).
@@ -3930,13 +3977,19 @@ export async function cancelUnpaidOrdersOfClosingAccount(
   const provider = await lookupProvider();
   const now = Date.now();
   const outcomes = await Promise.allSettled(
-    open.map((order) =>
-      cancelUnpaidOrder(order, provider, {
-        giveUpOnUnknown:
-          now - Date.parse(order.createdAt) >= POS_LOOKUP_GIVE_UP_MS,
+    open.map(async (order) => {
+      const age = now - Date.parse(order.createdAt);
+      // Written so that an unreadable date (NaN) counts as young: the POS is
+      // asked rather than the order assumed to be old.
+      const young = !(age >= PENDING_ORDER_TTL_MINUTES * 60_000);
+      if (young && provider && (await saleInFlightAtPos(order, provider))) {
+        return false;
+      }
+      return cancelUnpaidOrder(order, provider, {
+        giveUpOnUnknown: age >= POS_LOOKUP_GIVE_UP_MS,
         reason: ACCOUNT_CLOSED_CANCEL_REASON,
-      }),
-    ),
+      });
+    }),
   );
   let cancelled = 0;
   for (const outcome of outcomes) {

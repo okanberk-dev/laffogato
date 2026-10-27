@@ -39,6 +39,12 @@ const execute: Executor = async (q) => {
 const pos = vi.hoisted(() => ({
   answers: new Map<string, "paid" | "unpaid" | "down" | "wrong-amount">(),
   asked: [] as string[],
+  /**
+   * `hasPaymentInFlight`: a sale started and not finished (the bank's 3-D
+   * Secure step), or a POS that cannot say. Absent: nothing in flight.
+   */
+  inFlight: new Map<string, "in-flight" | "down">(),
+  inFlightAsked: [] as string[],
 }));
 
 vi.mock("@/lib/db", async (importOriginal) => {
@@ -75,6 +81,12 @@ vi.mock("@/lib/payment", () => ({
         raw: { source: "test" },
         trxDate: "2026-09-22",
       };
+    },
+    hasPaymentInFlight: async (orderId: string) => {
+      pos.inFlightAsked.push(orderId);
+      const answer = pos.inFlight.get(orderId);
+      if (answer === "down") throw new Error("POS unreachable");
+      return answer === "in-flight";
     },
   }),
 }));
@@ -128,6 +140,8 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
   beforeEach(async () => {
     pos.answers.clear();
     pos.asked.length = 0;
+    pos.inFlight.clear();
+    pos.inFlightAsked.length = 0;
     // The sweep takes the oldest pending orders of the whole table; leftovers
     // from other suites would crowd these out.
     await pool!.query(
@@ -215,6 +229,28 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
     expect(await expireStalePendingOrders()).toBe(0);
     expect(pos.asked).not.toContain("ord-swp-new");
     expect(await statusOf("ord-swp-new")).toBe("pending_payment");
+  });
+
+  it("the sweep and a new web checkout never ask about a sale in flight", async () => {
+    // Only the account closure asks it (cancelUnpaidOrdersOfClosingAccount):
+    // the sweep reaches an order after 45 minutes, and a new checkout is the
+    // member's own proof that the old one was abandoned.
+    const member = "yeniden@laffogato.net";
+    await insertPending("ord-swp-if1", 993011, { ageMs: 2 * HOUR });
+    await insertPending("ord-swp-if2", 993012, {
+      ageMs: 60_000,
+      email: member,
+    });
+    pos.inFlight.set("ord-swp-if1", "in-flight");
+    pos.inFlight.set("ord-swp-if2", "in-flight");
+    const { expireStalePendingOrders, supersedeUnpaidWebOrders } =
+      await import("@/lib/admin/store");
+
+    expect(await expireStalePendingOrders()).toBe(1);
+    expect(await supersedeUnpaidWebOrders(member)).toBe(1);
+    expect(pos.inFlightAsked).toEqual([]);
+    expect(await statusOf("ord-swp-if1")).toBe("cancelled");
+    expect(await statusOf("ord-swp-if2")).toBe("cancelled");
   });
 
   it("a new web checkout releases the member's own unpaid web orders", async () => {
@@ -351,6 +387,67 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
       expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(1);
       expect(await statusOf("ord-swp-cls5")).toBe("pending_payment");
       expect(await statusOf("ord-swp-cls6")).toBe("cancelled");
+    });
+
+    it("leaves a young order pending while its sale is at the bank's 3-D Secure step", async () => {
+      const startedAt = new Date().toISOString();
+      await insertPending("ord-swp-cls9", 993109, {
+        ageMs: 2 * 60_000,
+        email: member,
+        channel: "app",
+      });
+      pos.inFlight.set("ord-swp-cls9", "in-flight");
+      const { cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(0);
+      expect(await statusOf("ord-swp-cls9")).toBe("pending_payment");
+      // Asked first; with a sale in flight the lookup has nothing to find.
+      expect(pos.inFlightAsked).toEqual(["ord-swp-cls9"]);
+      expect(pos.asked).not.toContain("ord-swp-cls9");
+      const { rows } = await pool!.query(
+        `select "stockReleasedAt" from public.orders where id = 'ord-swp-cls9'`,
+      );
+      expect(rows[0].stockReleasedAt ?? "").toBe("");
+      // Nothing happened, so the timeline says nothing.
+      const audit = await pool!.query(
+        `select 1 from public.audit_logs
+          where entity = 'order' and "entityId" = 'ord-swp-cls9'
+            and "createdAt" >= $1`,
+        [startedAt],
+      );
+      expect(audit.rows).toHaveLength(0);
+    });
+
+    it("leaves a young order pending when the POS cannot say whether a sale is in flight", async () => {
+      await insertPending("ord-swp-cls10", 993110, {
+        ageMs: 2 * 60_000,
+        email: member,
+      });
+      pos.inFlight.set("ord-swp-cls10", "down");
+      const { cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(0);
+      expect(await statusOf("ord-swp-cls10")).toBe("pending_payment");
+      expect(pos.asked).not.toContain("ord-swp-cls10");
+    });
+
+    it("asks about a sale in flight only while the order is younger than 45 minutes", async () => {
+      // No 3-D Secure step lasts that long; past the window the lookup
+      // alone decides, the way the sweep does.
+      await insertPending("ord-swp-cls11", 993111, {
+        ageMs: 50 * 60_000,
+        email: member,
+      });
+      pos.inFlight.set("ord-swp-cls11", "in-flight");
+      const { cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(1);
+      expect(pos.inFlightAsked).toEqual([]);
+      expect(pos.asked).toContain("ord-swp-cls11");
+      expect(await statusOf("ord-swp-cls11")).toBe("cancelled");
     });
 
     it("leaves a panel order paid on delivery alone", async () => {

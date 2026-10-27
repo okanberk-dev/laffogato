@@ -876,6 +876,12 @@ yakalıyor; dönmek, "iade edildi" yazan ama parayı göndermemiş bir kayıt
    `applyPaymentSucceeded` ile işlenir; POS'a ulaşılamazsa sipariş iptal
    edilmez (bir gün dolana kadar). Testler:
    `tests/db-integration-payment-sweep.test.ts`, `tests/payment-paynkolay.test.ts`.
+   **27 Ekim 2026:** üçüncü yer hesap kapatma (`cancelUnpaidOrdersOfClosingAccount`,
+   `DELETE /me` ve panelin "Hesabı sil"i). 45 dakikadan genç bir siparişte önce
+   `hasPaymentInFlight` sorulur: aynı servis, `SUCCESS` satırı olmayan ve `NEW`
+   satış satırı olan bir sipariş için "banka adımında" der ve sipariş iptal
+   edilmez, kapatma bekler. Testler: `tests/paynkolay-payment-in-flight.test.ts`,
+   `tests/delete-me-sale-in-flight.test.ts`.
 3. ~~**`TRX_DATE` ve `REFERENCE_CODE` kolonları.**~~ **Çözüldü (23 Eyl
    2026).** `REFERENCE_CODE` zaten `payment_transactions."providerRef"`'teydi;
    `TRX_DATE` artık `payment_transactions."trxDate"`'te. Geriye arama yalnız
