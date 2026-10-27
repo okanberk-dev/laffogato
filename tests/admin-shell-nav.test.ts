@@ -707,12 +707,13 @@ describe("the layout", () => {
     const rows = [
       ...side.matchAll(/<li class="relative"><a href="([^"]+)"[^]*?<\/a>/g),
     ];
-    // 22 since Faturalar (e-Arşiv, 22 Ekim 2026, docs/EARSIV.md).
-    expect(rows).toHaveLength(22);
+    // 22 since Faturalar (e-Arşiv, 22 Ekim 2026, docs/EARSIV.md); 21 since
+    // fA'L bildirimleri left the nav (27 Ekim 2026, fA'L retired).
+    expect(rows).toHaveLength(21);
     // Each row draws a lucide icon, and no two rows draw the same one.
     const icons = rows.map((m) => /class="lucide ([^" ]+)/.exec(m[0])?.[1]);
     expect(icons.every(Boolean)).toBe(true);
-    expect(new Set(icons).size).toBe(22);
+    expect(new Set(icons).size).toBe(21);
     expect(side).not.toContain("Mağaza Hero");
     expect(html).toContain("PAGE");
   });

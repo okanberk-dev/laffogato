@@ -17,6 +17,10 @@ import {
  * notified to the Kurum. This file holds the code to that promise with the
  * record as shipped: empty, so the AI reading is off whatever the
  * environment says - the switch and the key included.
+ *
+ * Since 27 Oct 2026 the reading is retired outright (App Review 4.3(b),
+ * lafmobil karar 330; tests/mobile-fal-retired.test.ts): the switch no
+ * longer reads the record, and the record stays as the sender's second lock.
  */
 
 const requireMobileCustomer = vi.fn();
@@ -100,8 +104,7 @@ describe("the shipped record: no contract yet, so no photo leaves", () => {
   });
 
   it("keeps the switch off with FAL_AI_ENABLED=true and the key", () => {
-    expect(falAiEnabled(ON)).toBe(false);
-    expect(falAiEnabled(ON, new Date("2030-01-01T12:00:00Z"))).toBe(false);
+    expect(falAiEnabled()).toBe(false);
   });
 
   it("the bootstrap says fal.ai false", async () => {
@@ -204,16 +207,18 @@ describe("falTransferSafeguardInForce: signed, filed, receipted, and filed by to
     }
   });
 
-  it("is the first thing the switch and the sender check", () => {
+  it("the sender asks the retired switch first and the record second; the switch is a plain false", () => {
     const core = readFileSync("src/lib/mobile/fal-core.ts", "utf8");
     const enabled = core.slice(core.indexOf("export function falAiEnabled"));
-    expect(enabled.split("\n")[1]).toContain(
-      "if (!falTransferSafeguardInForce(now)) return false;",
-    );
+    expect(enabled.split("\n")[1]).toBe("  return false;");
     const fal = readFileSync("src/lib/mobile/fal.ts", "utf8");
     const send = fal.slice(fal.indexOf("export async function readCupWithAI"));
-    expect(send.slice(0, send.indexOf("const provider"))).toContain(
-      'if (!falTransferSafeguardInForce(now)) return { ok: false, reason: "failed" };',
-    );
+    const before = send.slice(0, send.indexOf("const provider"));
+    const gate = 'if (!falAiEnabled()) return { ok: false, reason: "failed" };';
+    const record =
+      'if (!falTransferSafeguardInForce(now)) return { ok: false, reason: "failed" };';
+    expect(before).toContain(gate);
+    expect(before).toContain(record);
+    expect(before.indexOf(gate)).toBeLessThan(before.indexOf(record));
   });
 });

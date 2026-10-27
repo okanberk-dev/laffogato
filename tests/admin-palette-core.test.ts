@@ -153,7 +153,10 @@ describe("matching: the Turkish fold, then the loose ASCII one, on both sides", 
     expect(labels(core.rankEntries(go("owner"), "iade"))).toContain(
       "Siparişler",
     );
-    expect(first("owner", "fal")).toBe("fA'L bildirimleri");
+    // fA'L bildirimleri left the nav on 27 Oct 2026 (fA'L retired).
+    expect(labels(core.rankEntries(go("owner"), "fal"))).not.toContain(
+      "fA'L bildirimleri",
+    );
     expect(first("owner", "gun sonu")).toBe("Gün sonu");
   });
 

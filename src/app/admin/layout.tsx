@@ -363,13 +363,10 @@ const NAV_GROUPS: NavGroupDef[] = [
           },
         ],
       },
-      {
-        href: "/admin/mobil/fal-bildirimleri",
-        label: "fA'L bildirimleri",
-        section: "mobileApp",
-        icon: "appFal",
-        keywords: ["fal", "fA'L", "bildir", "şikayet"],
-      },
+      // fA'L bildirimleri left the nav on 27 Oct 2026: fA'L and its AI
+      // reading left the app (App Review 4.3(b), lafmobil karar 330), so the
+      // app sends no new report. /admin/mobil/fal-bildirimleri still opens
+      // from a direct link, read-only, until the old rows run out (90 days).
     ],
   },
   {

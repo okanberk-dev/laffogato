@@ -539,10 +539,10 @@ describe("the folded rail", () => {
   const nav = navOf(html);
   const items = itemsOf(NAV());
 
-  it("keeps all 22 links (Faturalar since 22 Ekim 2026), each named by aria-label (a badge's count included) and none with a visible label", () => {
+  it("keeps all 21 links (Faturalar in since 22 Ekim, fA'L bildirimleri out since 27 Ekim 2026), each named by aria-label (a badge's count included) and none with a visible label", () => {
     const links = nav.match(/<a [^>]*data-rail-link=""[^>]*>/g) ?? [];
-    expect(items).toHaveLength(22);
-    expect(links).toHaveLength(22);
+    expect(items).toHaveLength(21);
+    expect(links).toHaveLength(21);
     for (const item of items) {
       const link = links.find((l) => l.includes(`href="${item.href}"`));
       expect(link, item.label).toBeDefined();
@@ -564,7 +564,7 @@ describe("the folded rail", () => {
   it("names each as a tooltip: a hidden child that hover and focus-visible reveal, Esc and leaving put away", () => {
     const tips =
       nav.match(/<span aria-hidden="true" class="fixed [^"]*">/g) ?? [];
-    expect(tips).toHaveLength(22);
+    expect(tips).toHaveLength(21);
     expect(tokens(classOf(tips[0] ?? ""))).toEqual(
       expect.arrayContaining([
         "hidden",
@@ -574,7 +574,7 @@ describe("the folded rail", () => {
         "top-[var(--tip-y,0px)]",
       ]),
     );
-    expect(nav.match(/<a [^>]*class="group\/tip /g)).toHaveLength(22);
+    expect(nav.match(/<a [^>]*class="group\/tip /g)).toHaveLength(21);
   });
 
   it("opens every group (a folded one has no title to unfold it), keeps the titles for screen readers, draws rules between", () => {

@@ -678,7 +678,7 @@ export function buildBootstrap(
   >,
   site: BootstrapSite,
   now: Date = new Date(),
-  /** Karar 177: fA'L's AI reading is on (key AND switch). */
+  /** Karar 177: fA'L's AI reading (`falAiEnabled`), always false since 27 Oct 2026. */
   falAi = false,
 ): MobileBootstrap {
   const a = site.address;

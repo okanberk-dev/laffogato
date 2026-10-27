@@ -132,7 +132,9 @@ const OWNER_BEFORE = [
   "/admin/mobil/duyurular",
   "/admin/mobil/gonderiler",
   "/admin/mobil/canli-durum",
-  "/admin/mobil/fal-bildirimleri",
+  // Removed on purpose (27 Oct 2026): fA'L bildirimleri left the nav when
+  // fA'L left the app (App Review 4.3(b), lafmobil karar 330). The page
+  // stays for direct links until its old rows run out (EXEMPT below).
   "/admin/mobil/ayarlar",
   "/admin/siparisler",
   "/admin/mobil/karaoke",
@@ -177,13 +179,14 @@ const BEFORE: Record<AdminRole, string[]> = {
 };
 
 describe("what each role sees", () => {
-  it("owner 22 items in 5 groups, manager 19 in 5, staff 6 flat, cashier no chrome", () => {
+  it("owner 21 items in 5 groups, manager 18 in 5, staff 6 flat, cashier no chrome", () => {
     const groupTitles = ["Bugün", "Katalog", "Pazarlama", "İçerik", "Yönetim"];
     expect(NAV.owner.map((g) => g.title)).toEqual(groupTitles);
     expect(NAV.manager.map((g) => g.title)).toEqual(groupTitles);
-    // Faturalar (e-Arşiv, 22 Ekim 2026) is the 22nd item, owner and manager.
-    expect(items("owner")).toHaveLength(22);
-    expect(items("manager")).toHaveLength(19);
+    // Faturalar (e-Arşiv, 22 Ekim 2026) came in as the 22nd item, owner and
+    // manager; fA'L bildirimleri went out on 27 Ekim 2026.
+    expect(items("owner")).toHaveLength(21);
+    expect(items("manager")).toHaveLength(18);
     expect(items("staff").map((i) => i.label)).toEqual([
       "Genel bakış",
       "Siparişler",
@@ -205,8 +208,8 @@ describe("what each role sees", () => {
   });
 
   it("every role reaches exactly the pages it reached before (items and tabs)", () => {
-    expect(BEFORE.owner).toHaveLength(31);
-    expect(BEFORE.manager).toHaveLength(27);
+    expect(BEFORE.owner).toHaveLength(30);
+    expect(BEFORE.manager).toHaveLength(26);
     for (const role of ROLES) {
       expect([...hrefsOf(role)].sort(), role).toEqual([...BEFORE[role]].sort());
     }
@@ -349,6 +352,9 @@ describe("every link lands on a page that lets the role in", () => {
       "/admin/ara",
       "/admin/[...rest]",
       "/admin/masalar/yazdir",
+      // Out of the nav since 27 Oct 2026 (fA'L retired); read-only for old
+      // reports, opened from a direct link until they run out.
+      "/admin/mobil/fal-bildirimleri",
     ];
     const roots = [...hrefsOf("owner")];
     const unreached = pages.filter(
@@ -366,7 +372,7 @@ describe("every link lands on a page that lets the role in", () => {
 });
 
 describe("names and icons", () => {
-  it("keeps the 29 old names findable (label, tab or keyword)", () => {
+  it("keeps the 28 old names findable (label, tab or keyword)", () => {
     const fold = (s: string) => s.toLocaleLowerCase("tr-TR");
     const words = items("owner").flatMap((i) => [
       i.label,
@@ -388,7 +394,7 @@ describe("names and icons", () => {
       "Duyurular",
       "Gönderiler",
       "Canlı durum",
-      "fA'L bildirimleri",
+      // "fA'L bildirimleri" left on purpose (27 Oct 2026, fA'L retired).
       "Uygulama ayarları",
       "Siparişler",
       "Karaoke",
@@ -405,7 +411,8 @@ describe("names and icons", () => {
       "Kullanıcılar",
       "Ayarlar",
     ];
-    expect(OLD).toHaveLength(29);
+    expect(OLD).toHaveLength(28);
+    expect(found("fA'L bildirimleri")).toBe(false);
     expect(OLD.filter((n) => !found(n))).toEqual([]);
   });
 
@@ -431,7 +438,8 @@ describe("names and icons", () => {
     expect(owner("kupon")).toEqual(["Promosyonlar"]);
     expect(owner("damga")).toEqual(["Kasa"]);
     expect(owner("abone")).toEqual(["Bülten"]);
-    expect(owner("fal")).toEqual(["fA'L bildirimleri"]);
+    // fA'L is retired (27 Oct 2026): nothing in the nav answers to it.
+    expect(owner("fal")).toEqual([]);
   });
 
   it("every item names an icon of the map, and no two items share one", () => {

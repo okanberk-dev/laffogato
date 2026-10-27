@@ -3,10 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiError } from "@/lib/mobile/respond";
 import {
   FAL_CONSENT_VERSION,
-  FAL_DAILY_LIMIT,
   FAL_IMAGE_MAX_BYTES,
   FAL_INSTRUCTIONS,
-  FAL_TIMEOUT_MS,
   decodeCupImage,
   falAiEnabled,
   falContextLine,
@@ -17,18 +15,20 @@ import {
   visitsWord,
 } from "@/lib/mobile/fal-core";
 
-// The standard contract's record as the enabling PR will fill it: these
-// tests are about a reading that is switched on. With the shipped, empty
-// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+// The standard contract's record as if it had been filed: the strongest
+// case for the switch. Since 27 Oct 2026 the reading stays off even then
+// (tests/mobile-fal-retired.test.ts); with the shipped, empty record nothing
+// was ever sent (tests/mobile-fal-safeguard.test.ts).
 vi.mock("@/lib/mobile/fal-safeguard", () => ({
   FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
 }));
 
 /**
- * Karar 177 - fA'L read by AI. The rules that make it lawful are tested
- * here rather than trusted: off without the key AND the switch, no identity
- * in what the model is told, no promise in what it answers, and the order of
- * the endpoint's refusals.
+ * Karar 177 - fA'L read by AI, retired on 27 Oct 2026 (App Review 4.3(b),
+ * lafmobil karar 330). The switch is off whatever the environment says, and
+ * POST /fal answers 503 to every signed-in caller. The pure rules the
+ * retired code kept (no identity in what the model was told, no promise in
+ * what it answered) stay tested while the code stays.
  */
 
 const READING = {
@@ -42,24 +42,19 @@ const READING = {
 /** A tiny but real JPEG header, base64. */
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]).toString("base64");
 
-describe("fal-core: on and off", () => {
-  it("is off without the key, off with the key alone, on with both", () => {
-    expect(falAiEnabled({})).toBe(false);
-    expect(falAiEnabled({ ANTHROPIC_API_KEY: "test-key" })).toBe(false);
-    expect(falAiEnabled({ FAL_AI_ENABLED: "true" })).toBe(false);
-    expect(falAiEnabled({ ANTHROPIC_API_KEY: "test-key", FAL_AI_ENABLED: "true" })).toBe(true);
-    expect(falAiEnabled({ ANTHROPIC_API_KEY: "  ", FAL_AI_ENABLED: "true" })).toBe(false);
-  });
-
-  it("stays off on OpenAI while the published texts name Anthropic as the recipient", () => {
-    // 17 Eki 2026: the R12, aydınlatma and gizlilik texts name Anthropic,
-    // PBC. Sending the photo to OpenAI would be a transfer the member was not
-    // told about, so its key and the switch are not enough any more.
-    expect(falAiEnabled({ OPENAI_API_KEY: "sk-test", FAL_AI_ENABLED: "true" })).toBe(false);
-    expect(falAiEnabled({ OPENAI_API_KEY: "sk-test", FAL_AI_PROVIDER: "openai", FAL_AI_ENABLED: "true" })).toBe(false);
-    expect(
-      falAiEnabled({ ANTHROPIC_API_KEY: "test-key", OPENAI_API_KEY: "sk-test", FAL_AI_PROVIDER: "openai", FAL_AI_ENABLED: "true" }),
-    ).toBe(false);
+describe("fal-core: always off", () => {
+  it("is off with the switch, either key and a filed contract record", () => {
+    for (const env of [
+      {},
+      { FAL_AI_ENABLED: "true", FAL_AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test-key" },
+      { FAL_AI_ENABLED: "true", FAL_AI_PROVIDER: "openai", OPENAI_API_KEY: "sk-test" },
+      { FAL_AI_ENABLED: "TRUE", ANTHROPIC_API_KEY: "test-key", OPENAI_API_KEY: "sk-test" },
+    ]) {
+      vi.unstubAllEnvs();
+      for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+      expect(falAiEnabled(), JSON.stringify(env)).toBe(false);
+    }
+    vi.unstubAllEnvs();
   });
 
   it("reads with the configured model, Claude Opus by default", () => {
@@ -171,8 +166,9 @@ function req(body: unknown, method = "POST") {
 
 describe("POST /fal", () => {
   beforeEach(() => {
-    // Every switch set here, so a key in the shell running the tests decides nothing.
-    vi.stubEnv("FAL_AI_PROVIDER", "");
+    // Everything the environment could ever do, and a member who has it all:
+    // verified, consented, a free quota. None of it opens the route now.
+    vi.stubEnv("FAL_AI_PROVIDER", "anthropic");
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
     vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("FAL_AI_ENABLED", "true");
@@ -181,132 +177,48 @@ describe("POST /fal", () => {
     lib.hasFalConsent.mockResolvedValue(true);
     lib.falReadingsToday.mockResolvedValue(0);
     lib.reserveFalReading.mockResolvedValue({ ok: true, id: 7, used: 0 });
-    // Promises, as the real ones are: the route chains .catch() on the release.
-    lib.releaseFalReading.mockResolvedValue(undefined);
-    lib.completeFalReading.mockResolvedValue(undefined);
     lib.buildFalContext.mockResolvedValue({ tier: "L'AF", visits: "new", usual: "" });
     lib.readCupWithAI.mockResolvedValue({ ok: true, reading: READING, model: "claude-opus-5-5" });
   });
 
-  it("refuses a caller without a bearer", async () => {
+  it("refuses a caller without a bearer first (401, as §20 orders it)", async () => {
     requireMobileCustomer.mockResolvedValue({ ok: false, response: apiError(401, "unauthorized", "Giriş yapman gerekiyor.") });
     expect((await POST(req({ image: JPEG }))).status).toBe(401);
     expect(lib.readCupWithAI).not.toHaveBeenCalled();
   });
 
-  it("is 503 fal_unavailable while the key or the switch is missing", async () => {
-    vi.stubEnv("FAL_AI_ENABLED", "");
+  it("is 503 fal_unavailable for a verified, consenting member with a readable photo", async () => {
     const res = await POST(req({ image: JPEG }));
     expect(res.status).toBe(503);
-    expect((await res.json()).error).toBe("fal_unavailable");
-    expect(lib.readCupWithAI).not.toHaveBeenCalled();
-  });
-
-  it("is 503 fal_unavailable, before any consent or photo, for a provider the texts do not name", async () => {
-    vi.stubEnv("FAL_AI_PROVIDER", "openai");
-    vi.stubEnv("OPENAI_API_KEY", "sk-test");
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(503);
-    expect((await res.json()).error).toBe("fal_unavailable");
-    expect(lib.hasFalConsent).not.toHaveBeenCalled();
-    expect(lib.reserveFalReading).not.toHaveBeenCalled();
-    expect(lib.readCupWithAI).not.toHaveBeenCalled();
-  });
-
-  it("is 403 email_unverified for an unconfirmed sign-up, before any seat or model call", async () => {
-    // A row exists for every Supabase sign-up, confirmed or not; without the
-    // gate each throwaway address bought FAL_DAILY_LIMIT paid model calls.
-    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "throwaway@ornek.com", emailVerified: false } });
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("email_unverified");
-    expect(lib.reserveFalReading).not.toHaveBeenCalled();
-    expect(lib.readCupWithAI).not.toHaveBeenCalled();
-  });
-
-  it("wants the member's consent before the photo goes anywhere", async () => {
-    lib.hasFalConsent.mockResolvedValue(false);
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("consent_required");
-    expect(lib.readCupWithAI).not.toHaveBeenCalled();
-  });
-
-  it(`stops at ${FAL_DAILY_LIMIT} readings a day`, async () => {
-    lib.falReadingsToday.mockResolvedValue(FAL_DAILY_LIMIT);
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(429);
-    expect((await res.json()).error).toBe("fal_limit");
-  });
-
-  it("refuses what is not a JPEG", async () => {
-    const res = await POST(req({ image: Buffer.from("GIF89a-----").toString("base64") }));
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("invalid_image");
-  });
-
-  it("reads the cup, records only the usage, and says how many are left", async () => {
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toMatchObject({ reading: READING, ai: true, consentVersion: FAL_CONSENT_VERSION, remainingToday: FAL_DAILY_LIMIT - 1 });
-    // Additive: which model wrote it, so "Bu yorumu bildir" can name it.
-    expect(body.model).toBe("claude-opus-5-5");
-    expect(lib.reserveFalReading).toHaveBeenCalledWith("eda@ornek.com", FAL_DAILY_LIMIT);
-    expect(lib.completeFalReading).toHaveBeenCalledWith(7, true, "claude-opus-5-5");
-    expect(res.headers.get("Cache-Control")).toContain("private");
+    expect(body.error).toBe("fal_unavailable");
+    expect(body.message).not.toMatch(/[\u2013\u2014]/);
+    // Nothing behind the answer: no consent, quota, seat, context or model.
+    for (const [name, fn] of Object.entries(lib)) expect(fn, name).not.toHaveBeenCalled();
   });
 
-  it("is 502 fal_failed when the model fails or answers unfit, and records nothing", async () => {
-    lib.readCupWithAI.mockResolvedValue({ ok: false, reason: "unfit" });
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(502);
-    expect((await res.json()).error).toBe("fal_failed");
-    expect(lib.completeFalReading).not.toHaveBeenCalled();
-    // The seat goes back: a failed reading does not spend the member's turn.
-    expect(lib.releaseFalReading).toHaveBeenCalledWith(7);
+  it("is the same 503 whatever the body or the member is: the body is never read", async () => {
+    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "throwaway@ornek.com", emailVerified: false } });
+    for (const body of [{ image: JPEG }, { image: "GIF89a" }, {}, "not json"]) {
+      const res = await POST(req(body));
+      expect(res.status, JSON.stringify(body)).toBe(503);
+      expect((await res.json()).error).toBe("fal_unavailable");
+    }
+    for (const [name, fn] of Object.entries(lib)) expect(fn, name).not.toHaveBeenCalled();
   });
 
-  it("is 429 fal_limit when a racing request took the last seat, and never asks the model", async () => {
-    lib.falReadingsToday.mockResolvedValue(FAL_DAILY_LIMIT - 1);
-    lib.reserveFalReading.mockResolvedValue({ ok: false });
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(429);
-    expect((await res.json()).error).toBe("fal_limit");
-    expect(lib.readCupWithAI).not.toHaveBeenCalled();
-  });
-
-  it("gives the seat back when the model call throws", async () => {
-    lib.readCupWithAI.mockRejectedValue(new Error("socket hang up"));
-    const res = await POST(req({ image: JPEG }));
-    expect(res.status).toBe(500);
-    expect(lib.releaseFalReading).toHaveBeenCalledWith(7);
-  });
-
-  it("does not take a seat for a photo it cannot read", async () => {
-    await POST(req({ image: Buffer.from("GIF89a-----").toString("base64") }));
-    expect(lib.reserveFalReading).not.toHaveBeenCalled();
-  });
-
-  it("counts the remaining readings from the seat it took", async () => {
-    lib.reserveFalReading.mockResolvedValue({ ok: true, id: 9, used: FAL_DAILY_LIMIT - 2 });
-    const body = await (await POST(req({ image: JPEG }))).json();
-    expect(body.remainingToday).toBe(1);
-  });
-
-  it("waits for the model no longer than the route may run, with room for the steps before it", () => {
-    // maxDuration is 30 s and the app waits 30 s (docs/API-MOBILE.md §0);
-    // sign-in, consent, quota, the seat and the member's context come first.
+  it("keeps the 30 s the contract still names for this route", () => {
+    // docs/API-MOBILE.md §0 lists POST /fal as its one 30 s exception.
     expect(maxDuration).toBe(30);
-    expect(FAL_TIMEOUT_MS + 5_000).toBeLessThanOrEqual(maxDuration * 1000);
   });
 });
 
 describe("/fal/consent", () => {
   beforeEach(() => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    // Switched on and keyed: GET says off all the same (27 Oct 2026).
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
     vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("FAL_AI_ENABLED", "");
+    vi.stubEnv("FAL_AI_ENABLED", "true");
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "eda@ornek.com", emailVerified: true } });
     for (const fn of Object.values(lib)) fn.mockReset();
     lib.hasFalConsent.mockResolvedValue(false);
@@ -317,13 +229,14 @@ describe("/fal/consent", () => {
     expect(await res.json()).toEqual({ enabled: false, version: FAL_CONSENT_VERSION, granted: false, doc: "acik-riza-metni" });
   });
 
-  it("records a consent only to the text in force", async () => {
-    const old = await consent.POST(req({ version: "2020-01-01" }));
-    expect(old.status).toBe(409);
+  it("records no consent since R12 was retired (27 Oct 2026): every version is refused 409", async () => {
+    // Veri Saklama: no new consent is taken; §20's own 409 says so.
+    for (const version of ["2020-01-01", FAL_CONSENT_VERSION]) {
+      const res = await consent.POST(req({ version }));
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toBe("consent_outdated");
+    }
     expect(lib.grantFalConsent).not.toHaveBeenCalled();
-    const ok = await consent.POST(req({ version: FAL_CONSENT_VERSION }));
-    expect(ok.status).toBe(200);
-    expect(lib.grantFalConsent).toHaveBeenCalledWith("eda@ornek.com");
   });
 
   it("refuses the 23 Eyl version, whose text named OpenAI: the new recipient is read first", async () => {
