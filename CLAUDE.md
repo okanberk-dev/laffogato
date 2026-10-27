@@ -333,7 +333,9 @@ etiketini düşüren her yazım, yazım kancasından (`src/lib/db/index.ts`
 `onWrite`) yanıttan sonra panele içeriksiz, imzalı bir ping atar
 (`src/lib/panel/karaoke-ping.ts`); panel pencerenin rezervasyonlarını imzalı
 `GET /api/panel/karaoke`'tan çeker. Paylaşılan anahtar `KARAOKE_SYNC_SECRET`
-(iki projede aynı); yoksa ikisi de kapalıdır. Panele yalnız ad, saat, kişi
+(iki projede aynı); yoksa ping gitmez ve çekme ucu panele kapalıdır; LafPOS'un
+anahtarı (`LAFPOS_SYNC_SECRET`) tanımlıysa uç yalnız LafPOS'a, dünden yarına
+açıktır (`docs/LAFPOS.md`). Panele yalnız ad, saat, kişi
 sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
 (`toPanelReservation` beyaz listesi). İmza kuralları
 `src/lib/panel/karaoke-sync-core.ts`'te ve panelde bayt bayt aynı; iki tarafın
@@ -375,7 +377,8 @@ uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/karaoke`,
 (`src/lib/panel/signed-callers.ts`; `KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır;
 lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un imzalı her
 isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı). LafPOS fiyat yazamaz (403), yalnız
-Tükendi / Satışta; olay kaydında `lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
+Tükendi / Satışta; karaokeyi yalnız dünden yarına okur (daha genişi 403); olay kaydında
+`lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
 kalır, LafPOS gün sonunu oraya iter. Ayrıntı: `docs/LAFPOS.md`.
 
 ## Köşkün paneli: bar ekranı ve online satış (22 Eki 2026)
