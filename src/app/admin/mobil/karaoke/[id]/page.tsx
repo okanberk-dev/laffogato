@@ -66,6 +66,7 @@ import {
   listReservationsForDate,
 } from "@/lib/mobile/karaoke";
 import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
+import { karaokeRoomCalendar } from "@/lib/mobile/karaoke-reschedule-core";
 import { formatReservationDate } from "@/lib/mobile/karaoke-format";
 import {
   isPartialRefund,
@@ -719,7 +720,13 @@ export default async function KaraokeReservationPage({
         title={`${view.day}, ${view.time}`}
         description={`${r.customerName || "İsimsiz"} · ${r.guests} kişi`}
         badges={<KaraokeBadges view={view} />}
-        action={<KaraokeActions view={view} layout="page" />}
+        action={
+          <KaraokeActions
+            view={view}
+            layout="page"
+            room={karaokeRoomCalendar(roomRules, today)}
+          />
+        }
       />
 
       <div className="flex flex-col gap-6">

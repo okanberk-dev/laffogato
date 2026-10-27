@@ -47,6 +47,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
   cancelReservationAction: vi.fn(),
   confirmReservationAction: vi.fn(),
+  rescheduleReservationAction: vi.fn(),
   retryKaraokeRefundAction: vi.fn(),
   settleKaraokeRefundAction: vi.fn(),
 }));
