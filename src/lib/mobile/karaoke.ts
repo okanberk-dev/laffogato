@@ -13,6 +13,7 @@ import {
   sendKaraokeCancellationEmail,
   sendKaraokeConfirmationEmail,
   sendKaraokeLateRequestEmail,
+  sendKaraokeRescheduleEmail,
   type KaraokeEmailData,
   type MailDurableCopy,
 } from "@/lib/email/send";
@@ -29,6 +30,11 @@ import type { KaraokeCancelCause } from "./karaoke-cancel-cause";
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
 import { makeGoodStateOf, resaleAllocation } from "./karaoke-make-good-core";
 import { karaokeLinkUrl } from "./karaoke-link";
+import {
+  karaokeRescheduleBlock,
+  karaokeRescheduleRules,
+  type KaraokeRescheduleBlock,
+} from "./karaoke-reschedule-core";
 import { istanbulClock } from "./venue";
 import {
   buildSlots,
@@ -1055,6 +1061,148 @@ async function chargeResale(
   }
 }
 
+// ─── Moving a booking (panel) ──────────────────────────────────────────────
+
+export type RescheduleReservationFailure =
+  | "not_found"
+  | KaraokeRescheduleBlock
+  /** The new day and hour are the booking's own. */
+  | "same_slot"
+  /** A day or hour the room does not take (`message`, `field`). */
+  | "invalid"
+  /** Another booking (or an unpaid hold) holds one of the new hours. */
+  | "slot_taken"
+  /** Someone changed the booking between the read and the write. */
+  | "raced";
+
+export type RescheduleReservationResult =
+  | {
+      ok: true;
+      reservation: KaraokeReservation;
+      /** Where the evening was before the move. */
+      previous: Pick<KaraokeReservation, "date" | "startHour">;
+      /** Did the member's mail leave? The move stands either way. */
+      notified: boolean;
+    }
+  | {
+      ok: false;
+      reason: RescheduleReservationFailure;
+      message?: string;
+      field?: "tarih" | "saat";
+    };
+
+/**
+ * The staff move a booking to another day or hour (operator, 27 Eki 2026),
+ * and the member is told by mail. Only the evening moves - the length, the
+ * party, the price, the payment and the booking's cancellation policy stay
+ * (karaoke-reschedule-core.ts) - so no money moves and nothing is asked of
+ * the POS.
+ *
+ * The new hours are checked like a booking's (the room's hours, its window,
+ * not in the past) and against the day's other bookings; the exclusion
+ * constraint `karaoke_reservations_no_overlap` holds when two writes cross.
+ * The UPDATE is guarded on the status, the payment state and the old
+ * evening, so a payment, a cancel or another move that landed in between
+ * wins and this one writes nothing.
+ *
+ * `updatedAt` is not touched: it is the instant of the booking's last
+ * status decision (the app's inbox, the make-good's cancel day read it), and
+ * a move is not one. The audit row is the record of the move.
+ */
+export async function rescheduleReservation(
+  id: string,
+  slot: { date: string; startHour: number },
+  now: Date = new Date(),
+): Promise<RescheduleReservationResult> {
+  const existing = await getReservation(id);
+  if (!existing) return { ok: false, reason: "not_found" };
+  const block = karaokeRescheduleBlock(existing, now);
+  if (block) return { ok: false, reason: block };
+  if (slot.date === existing.date && slot.startHour === existing.startHour) {
+    return { ok: false, reason: "same_slot" };
+  }
+
+  const settings = await getSettings();
+  const clock = istanbulClock(now);
+  const valid = validateReservationRequest(
+    {
+      date: slot.date,
+      startHour: slot.startHour,
+      hours: existing.hours,
+      // The room's capacity may have changed since; the party stays.
+      guests: Math.max(1, Math.min(existing.guests, settings.karaokeCapacity)),
+      note: "",
+    },
+    {
+      today: clock.date,
+      capacity: settings.karaokeCapacity,
+      nowMinutes: clock.minutes,
+      rules: karaokeRescheduleRules(settings.mobileApp.karaoke, existing.hours),
+    },
+  );
+  if (!valid.ok) {
+    return {
+      ok: false,
+      reason: "invalid",
+      message: valid.message,
+      // A day the room does not take, else the hour (its start, its end).
+      field: /tarih|gün/i.test(valid.message) ? "tarih" : "saat",
+    };
+  }
+
+  const sameDay = await listByDate(slot.date);
+  const others = sameDay.filter((r) => r.id !== existing.id);
+  if (rangeConflicts(slot.startHour, existing.hours, others)) {
+    return { ok: false, reason: "slot_taken" };
+  }
+
+  const payment = paymentStatusOf(existing);
+  // The policy's deadline is counted from the start, so it follows it. A row
+  // from before the snapshot has none stored and already counts from its
+  // own date and hour (`karaokeCancelDeadline`).
+  const patch: Pick<KaraokeReservation, "date" | "startHour"> &
+    Partial<Pick<KaraokeReservation, "cancelDeadline">> = {
+    date: slot.date,
+    startHour: slot.startHour,
+    ...(existing.cancelDeadline
+      ? {
+          cancelDeadline: karaokeDeadlineFor(
+            karaokeCancelPolicyOf(existing),
+            slot,
+          ).toISOString(),
+        }
+      : {}),
+  };
+  const res = await getDb()
+    .from(TABLES.karaokeReservations)
+    .update(patch)
+    .eq("id", id)
+    .eq("status", existing.status)
+    .eq("paymentStatus", payment)
+    .eq("date", existing.date)
+    .eq("startHour", existing.startHour)
+    .select("id");
+  // 23P01: a booking took one of the hours between our read and our write.
+  if (res.error?.code === "23P01") return { ok: false, reason: "slot_taken" };
+  const moved = rows<{ id: string }>(res, "karaoke.rescheduleReservation");
+  if (moved.length === 0) return { ok: false, reason: "raced" };
+
+  const reservation: KaraokeReservation = { ...existing, ...patch };
+  // A confirmed booking moved onto hours a late-cancelled booking of that
+  // day left: the hour is sold again, as when a booking is confirmed there
+  // (ASK-OTH-3-CFG). Never fails the move.
+  if (reservation.status === "confirmed") {
+    await chargeResale(reservation, sameDay);
+  }
+  const notified = await notifyReservationRescheduled(reservation, existing);
+  return {
+    ok: true,
+    reservation,
+    previous: { date: existing.date, startHour: existing.startHour },
+    notified,
+  };
+}
+
 // ─── Notifying the member ──────────────────────────────────────────────────
 
 export { formatReservationDate, formatReservationTime };
@@ -1276,6 +1424,33 @@ export async function notifyReservationStatus(
       ...payload,
       durableCopy: await confirmationCopy(r, deadline),
       deadline,
+    });
+  } catch (err) {
+    logMailFailure(r, err);
+    return false;
+  }
+}
+
+/**
+ * Tells the member their evening moved (`rescheduleReservation`): the new
+ * day and hour, the old ones, and the booking's page under its new signed
+ * link. Transactional, like the confirmation. IDEMPOTENCY: the guarded
+ * UPDATE before the call - one move, one mail. Failures swallowed and
+ * logged; the move stands.
+ */
+export async function notifyReservationRescheduled(
+  r: KaraokeReservation,
+  previous: Pick<KaraokeReservation, "date" | "startHour" | "hours">,
+): Promise<boolean> {
+  const payload = karaokeMailPayload(r);
+  if (!payload) return false;
+  try {
+    return await sendKaraokeRescheduleEmail({
+      ...payload,
+      previous: {
+        date: formatReservationDate(previous.date),
+        time: formatReservationTime(previous.startHour, previous.hours),
+      },
     });
   } catch (err) {
     logMailFailure(r, err);

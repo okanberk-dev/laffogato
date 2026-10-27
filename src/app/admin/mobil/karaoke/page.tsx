@@ -60,6 +60,8 @@ import {
   listReservationsForAdmin,
   type KaraokeReservation,
 } from "@/lib/mobile/karaoke";
+import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
+import { karaokeRoomCalendar } from "@/lib/mobile/karaoke-reschedule-core";
 import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Karaoke" };
@@ -313,6 +315,10 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
         sort={sort}
         searchParams={sp}
         pathname={KARAOKE_PANEL_PATH}
+        room={karaokeRoomCalendar(
+          settings.mobileApp?.karaoke ?? DEFAULT_KARAOKE_RULES,
+          today,
+        )}
         empty={
           <EmptyState
             title="Bu sekmede rezervasyon yok."

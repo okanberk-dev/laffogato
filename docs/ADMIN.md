@@ -572,6 +572,22 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   bittikten sonra iptale düşen rezervasyon, `heldTheRoom`) ve
   geçen haftanın aynı günüyle puan farkını: "%42 · 5/12 saat, +17 puan,
   geçen cuma %25".
+- **Karaoke: saati değiştir** (27 Eki 2026, operatör: "admin panelden saati
+  değiştirebilir yap, değişince de kişiye mail gitsin"): rezervasyonun
+  sayfasında ve listenin ⋯ menüsünde "Saati değiştir" (`karaoke-reschedule-
+  dialog.tsx` → `rescheduleReservationAction` → `rescheduleReservation`).
+  Tarih ve başlangıç seçilir; süre, kişi, ücret, ödeme ve iptal kuralı aynı
+  kalır, para hareket etmez. Personel de yapar. İptal edilmiş, akşamı
+  bitmiş, ödemesi beklenen ya da iadesi süren rezervasyon taşınmaz
+  (`karaokeRescheduleBlock`). Yeni saat bir rezervasyon gibi denetlenir
+  (açılış saatleri, rezervasyon penceresi, geçmiş saat yok) ve günün diğer
+  rezervasyonlarıyla çakışamaz (`karaoke_reservations_no_overlap`). İptal
+  kuralının son anı yeni başlangıca göre yeniden hesaplanır; `updatedAt`
+  değişmez (son durum kararının anıdır). Onaylı rezervasyon, geç iptal
+  edilmiş bir saate taşınırsa saat yeniden satılmış sayılır (onaydaki gibi
+  `chargeResale`). Müşteriye `karaoke-saat-degisikligi` e-postası gider
+  (yeni ve eski saat, yeni imzalı bağlantı); taşıma Geçmiş'e "Tarih / saat
+  değiştirildi" olarak düşer, köşkün paneline ve LafPOS'a yazım pingi gider.
 - **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
   ("Genel bakış · Kasa · damga · Siparişler +3"); "Roller neyi açar" artık
   bir tablo: her bölüm bir satır, her rol bir sütun, açtığı yerde tik

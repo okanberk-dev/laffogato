@@ -1432,6 +1432,49 @@ export async function sendKaraokeLateRequestEmail(
   });
 }
 
+/** A booking the staff moved: where its evening was before. */
+export interface KaraokeRescheduleEmailData extends KaraokeEmailData {
+  /** Already formatted, as `date` and `time`: "30 Ekim 2026", "20:00 - 22:00". */
+  previous: { date: string; time: string };
+}
+
+/**
+ * Sent when the staff move a karaoke booking to another day or hour
+ * (`rescheduleReservation`, operator 27 Eki 2026): the new evening, the old
+ * one beside it, and the booking's page. Transactional - the member is told
+ * where their evening now is; no consent gate, no unsubscribe link.
+ */
+export async function sendKaraokeRescheduleEmail(
+  k: KaraokeRescheduleEmailData,
+): Promise<boolean> {
+  return sendTemplate("karaoke-saat-degisikligi", k.to, {
+    vars: {
+      ...karaokeVars(k),
+      KARAOKE_ESKI_TARIH: k.previous.date,
+      KARAOKE_ESKI_SAAT: k.previous.time,
+    },
+    flags: karaokeRescheduleFlags(k),
+  });
+}
+
+/**
+ * Which payment line the move prints: exactly one. Paid online: the payment
+ * holds for the new evening, under the booking's own cancellation rule; a
+ * free hour the köşk gave: nothing is paid; else it is paid at the köşk.
+ * Exported for tests.
+ */
+export function karaokeRescheduleFlags(
+  k: Pick<KaraokeEmailData, "payment" | "makeGoodHourFor">,
+): Record<string, boolean> {
+  const online = k.payment?.kind === "online";
+  const makeGood = !online && Boolean(k.makeGoodHourFor);
+  return {
+    KARAOKE_ODENDI: online,
+    KARAOKE_TELAFI_SAATI: makeGood,
+    KARAOKE_ODEME_MEKANDA: !online && !makeGood,
+  };
+}
+
 /**
  * What the counter needs to know about a booking that was just taken.
  *

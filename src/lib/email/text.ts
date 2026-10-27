@@ -494,6 +494,38 @@ Bir yanlışlık varsa bizi ara: [TELEFON]
 
 ${SIGNATURE}`,
 
+  // The staff moved the booking to another day or hour (operator, 27 Eki
+  // 2026): the new evening, the old one, and exactly one payment line, as
+  // send.ts `karaokeRescheduleFlags` sets it. A paid booking quotes its own
+  // rule, whose clock now runs from the new start.
+  "karaoke-saat-degisikligi": `Merhaba,
+
+Karaoke rezervasyonunu [KARAOKE_ESKI_TARIH] · [KARAOKE_ESKI_SAAT] yerine
+[KARAOKE_TARIH] · [KARAOKE_SAAT] olarak güncelledik. Rezervasyon kodun ve
+kişi sayın aynı; girişte kodunu söylemen yeterli.
+
+Rezervasyon kodu: [KARAOKE_KOD]
+Yeni tarih: [KARAOKE_TARIH]
+Yeni saat: [KARAOKE_SAAT]
+Kişi: [KARAOKE_KISI]
+Önceki saat: [KARAOKE_ESKI_TARIH] · [KARAOKE_ESKI_SAAT]
+
+<!--IF:KARAOKE_ODENDI-->Ödediğin [KARAOKE_TUTAR] yeni saat için geçerli; senden ayrıca ödeme istenmez.
+İptal kuralın değişmedi, süreler yeni saate göre işler:
+[KARAOKE_IADE_KURALI]
+[KARAOKE_GEC_KURALI]
+
+<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi eskisi gibi köşkte yaparsın; tutar değişmedi.
+
+<!--/IF:KARAOKE_ODEME_MEKANDA--><!--IF:KARAOKE_TELAFI_SAATI-->Bu saat, [KARAOKE_TELAFI_KOD] rezervasyonun için verdiğimiz telafidir; senden ödeme alınmaz.
+
+<!--/IF:KARAOKE_TELAFI_SAATI-->Rezervasyon sayfan:
+[KARAOKE_LINK]
+
+Yeni saat sana uymuyorsa bizi ara: [TELEFON]
+
+${SIGNATURE}`,
+
   "sadakat-ikram": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 Kartınız doldu - [DAMGA_HEDEFI] damga tamamlandı ve bir içecek bizden.

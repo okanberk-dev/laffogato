@@ -22,10 +22,12 @@ import {
 } from "@/lib/admin/list-params";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 import { needsCallHint } from "@/lib/mobile/karaoke-cancel-cause";
+import type { KaraokeRoomCalendar } from "@/lib/mobile/karaoke-reschedule-core";
 import { karaokeCancelDeadline } from "@/lib/mobile/karaoke-time";
 
 import { formatTRY } from "./forms";
 import { KaraokeRefundCancel } from "./karaoke-cancel-dialog";
+import { KaraokeReschedule } from "./karaoke-reschedule-dialog";
 import {
   ActionMenu,
   ActionMenuLink,
@@ -187,13 +189,17 @@ export function unpaidCancelText(
  * `page` buttons for the booking's page. Which ones exist, and which are
  * shown off with a reason, is `view.plan` (lib/admin/karaoke-panel.ts).
  * Every one asks first; the ones that move money ask for a reason too.
+ * "Saati değiştir" needs the room's calendar (`room`, from Ayarlar) for its
+ * date and hour boxes; without it the button is not drawn.
  */
 export function KaraokeActions({
   view,
   layout,
+  room,
 }: {
   view: KaraokeRowView;
   layout: "menu" | "page";
+  room?: KaraokeRoomCalendar;
 }) {
   const { plan, r } = view;
   const menu = layout === "menu";
@@ -215,6 +221,23 @@ export function KaraokeActions({
         tone="default"
         variant={menu ? "menu" : "primary"}
         disabledReason={plan.confirm.disabledReason}
+      />,
+    );
+  }
+
+  if (plan.reschedule && room) {
+    items.push(
+      <KaraokeReschedule
+        key="reschedule"
+        id={r.id}
+        date={r.date}
+        startHour={r.startHour}
+        hours={r.hours}
+        current={`${view.day}, ${view.time}`}
+        paid={view.money === "paid"}
+        room={room}
+        variant={menu ? "menu" : "ghost"}
+        disabledReason={plan.reschedule.disabledReason}
       />,
     );
   }
@@ -320,9 +343,11 @@ export function KaraokeActions({
 }
 
 /** True when the booking offers any action at all. */
-function hasActions(view: KaraokeRowView): boolean {
+function hasActions(view: KaraokeRowView, room?: KaraokeRoomCalendar): boolean {
   const p = view.plan;
-  return Boolean(p.confirm || p.cancel || p.refund || p.settle);
+  return Boolean(
+    p.confirm || p.cancel || p.refund || p.settle || (p.reschedule && room),
+  );
 }
 
 /**
@@ -332,19 +357,21 @@ function hasActions(view: KaraokeRowView): boolean {
 export function KaraokeRowMenu({
   view,
   back,
+  room,
 }: {
   view: KaraokeRowView;
   back?: string;
+  room?: KaraokeRoomCalendar;
 }) {
   return (
     <ActionMenu label={`${view.r.id} işlemleri`}>
       <ActionMenuLink href={karaokeDetailHref(view.r.id, back)}>
         Detay
       </ActionMenuLink>
-      {hasActions(view) ? (
+      {hasActions(view, room) ? (
         <>
           <ActionMenuSeparator />
-          <KaraokeActions view={view} layout="menu" />
+          <KaraokeActions view={view} layout="menu" room={room} />
         </>
       ) : null}
     </ActionMenu>
@@ -431,12 +458,15 @@ export function KaraokeTable({
   searchParams,
   pathname,
   empty,
+  room,
 }: {
   views: readonly KaraokeRowView[];
   sort: SortState;
   searchParams?: SearchParamsInput;
   pathname: string;
   empty?: ReactNode;
+  /** The room's calendar, for "Saati değiştir" in each row's menu. */
+  room?: KaraokeRoomCalendar;
 }) {
   // The list as it stands (tab, filters, sort, page), for the way back.
   const back = withParams(searchParams, {}, pathname);
@@ -513,7 +543,7 @@ export function KaraokeTable({
             ) : null,
         },
       ]}
-      rowActions={(v) => <KaraokeRowMenu view={v} back={back} />}
+      rowActions={(v) => <KaraokeRowMenu view={v} back={back} room={room} />}
       mobileCard={(v) => (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">

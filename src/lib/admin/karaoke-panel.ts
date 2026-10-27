@@ -35,6 +35,10 @@ import {
   type KaraokeCancelCause,
   type KaraokeRequestChannel,
 } from "@/lib/mobile/karaoke-cancel-cause";
+import {
+  KARAOKE_RESCHEDULE_REFUSAL,
+  karaokeRescheduleBlock,
+} from "@/lib/mobile/karaoke-reschedule-core";
 import { refundAnswerForStaff } from "@/lib/payment/refund-answer";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
@@ -554,6 +558,12 @@ export interface KaraokeActionPlan {
    */
   makeGoodHour: { disabledReason?: string } | null;
   makeGoodPaid: { disabledReason?: string } | null;
+  /**
+   * "Saati değiştir" (27 Eki 2026): a live booking whose evening is not
+   * over, paid online or at the köşk (`karaokeRescheduleBlock`). An unpaid
+   * hold or one whose refund is under way shows it off, with the reason.
+   */
+  reschedule: { disabledReason?: string } | null;
 }
 
 /**
@@ -643,7 +653,24 @@ export function karaokeActionPlan(
           };
   }
 
-  return { confirm, cancel, refund, settle, makeGoodHour, makeGoodPaid };
+  // Only the evening moves, never money: the karaoke panel's own right.
+  const block = karaokeRescheduleBlock(r, ctx.now);
+  const reschedule: KaraokeActionPlan["reschedule"] =
+    block === null
+      ? {}
+      : block === "payment_open" && r.status !== "cancelled" && !ended
+        ? { disabledReason: KARAOKE_RESCHEDULE_REFUSAL.payment_open }
+        : null;
+
+  return {
+    confirm,
+    cancel,
+    refund,
+    settle,
+    makeGoodHour,
+    makeGoodPaid,
+    reschedule,
+  };
 }
 
 // ─── One row, read once ────────────────────────────────────────────────────
@@ -1076,6 +1103,18 @@ function formatDateTimeTr(iso: string): string {
   return `${formatReservationDate(day)} ${istanbulTimeLabel(iso)}`;
 }
 
+/** A move's "30 Ekim 2026, 20:00 - 22:00 → 31 Ekim 2026, 21:00 - 23:00". */
+function movedLabel(p: Record<string, unknown>): string {
+  const hours = typeof p.hours === "number" ? p.hours : 1;
+  const at = (date: unknown, hour: unknown) =>
+    typeof date === "string" && typeof hour === "number"
+      ? `${formatReservationDate(date)}, ${formatReservationTime(hour, hours)}`
+      : "";
+  const from = at(p.fromDate, p.fromStartHour);
+  const to = at(p.toDate, p.toStartHour);
+  return from && to ? `${from} → ${to}` : "";
+}
+
 function auditEntry(
   row: KaraokeAuditRow,
   canRefund: boolean,
@@ -1107,6 +1146,9 @@ function auditEntry(
         ? `Geç iptal edildi; kurala göre %${p.lateRefundPercent} iade bekliyor`
         : "Geç iptal edildi; kısmi iade bekliyor";
     tone = "warning";
+  } else if (event === "rescheduled") {
+    title = "Tarih / saat değiştirildi";
+    tone = "info";
   } else if (event.startsWith("make_good")) {
     title = EVENT_TITLES[event] ?? event;
     tone = "info";
@@ -1146,6 +1188,10 @@ function auditEntry(
   const parts = [
     amount,
     makeGood,
+    event === "rescheduled" ? movedLabel(p) : "",
+    event === "rescheduled" && p.notified === false
+      ? "Müşteriye e-posta gönderilemedi"
+      : "",
     str(p.hourId) ? `Telafi saati: ${code(p.hourId)}` : "",
     str(p.makeGoodFor) ? `Telafi edilen: ${code(p.makeGoodFor)}` : "",
     str(p.soldBy) ? `Satıldığı rezervasyon: ${code(p.soldBy)}` : "",

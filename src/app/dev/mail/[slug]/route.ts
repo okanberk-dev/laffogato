@@ -40,6 +40,10 @@ const SAMPLE: Record<string, string> = {
   KARAOKE_SAAT: "20:00 - 22:00",
   KARAOKE_KISI: "4 kişi",
   KARAOKE_KOD: "KRK-8H31",
+  KARAOKE_LINK: "https://laffogato.net/rezervasyon?t=ornek",
+  // karaoke-saat-degisikligi: the evening before the staff moved it.
+  KARAOKE_ESKI_TARIH: "11 Eylül 2026, Cuma",
+  KARAOKE_ESKI_SAAT: "21:00 - 23:00",
   KAMPANYA_BASLIK: "Eylülde köşkte matcha haftası",
   KAMPANYA_METIN:
     "Ay boyunca matcha bar'da üç yeni demleme ve yanına eşleşen bir dolce.",
