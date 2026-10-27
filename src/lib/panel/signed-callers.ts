@@ -20,9 +20,9 @@ import {
  * Both sign the same way (karaoke-sync-core.ts); only the key differs. A
  * route names the callers it takes: the menu routes, the bar screen's two
  * order routes and the karaoke read take both (LafPOS's room box shows the
- * site's bookings, the panel's whitelist and nothing more),
- * `/api/pos/orders/version` takes LafPOS only. The sales route does not use
- * this module: it stays the panel's alone.
+ * site's bookings, the panel's whitelist and nothing more, from yesterday
+ * to tomorrow only), `/api/pos/orders/version` takes LafPOS only. The sales
+ * route does not use this module: it stays the panel's alone.
  *
  * Pure (no `server-only`, no database): the routes and the tests share it.
  */

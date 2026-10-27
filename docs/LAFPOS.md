@@ -79,12 +79,15 @@ LafPOS'a geçiş günü) tek liste olarak lafmaliyet `docs/LAFPOS.md` ve lafpos 
 | `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı                                                                                                                                                     |
 | `POST /api/panel/orders/stage` | açar             | açar               | Hazırlanıyor / Hazır / Teslim edildi                                                                                                                                                            |
 | `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş ve karaoke sürüm sinyali (aşağıda)                                                                                                                                                      |
-| `GET /api/panel/karaoke`       | açar             | açar               | Karaoke odası: sitedeki rezervasyonlar (saat, kişi, ad, not, ödeme durumu); sürüm yanıtındaki `karaoke` değişince çeker                                                                         |
+| `GET /api/panel/karaoke`       | açar             | açar               | Karaoke odası: sitedeki rezervasyonlar (saat, kişi, ad, not, ödeme durumu), `karaoke` değişince. LafPOS'un anahtarıyla yalnız dünden yarına (İstanbul); daha genişi 403 `forbidden`             |
 | `GET /api/panel/sales`         | açar             | açmaz              | LafPOS'un işi değil                                                                                                                                                                             |
 
 - Panel uçlarının yanıt biçimi, `version`'ı, gövde sınırı, beyaz listesi ve
   hata kodları kim imzalarsa imzalasın aynıdır: `docs/PANEL-MENU.md`,
-  `docs/PANEL-ORDERS.md`, `docs/PANEL-KARAOKE.md`.
+  `docs/PANEL-ORDERS.md`, `docs/PANEL-KARAOKE.md`. İki fark yalnız LafPOS'un
+  anahtarındadır, ikisi de hiçbir şey okunmadan 403 `forbidden`: menüde fiyat
+  yazımı, karaokede dünden yarına dışında kalan pencere (çalınan kafe makinesi
+  fiyat değiştiremesin, geçmişin adlarını ve notlarını okuyamasın).
 - Panel uçlarından biri, iki anahtardan en az biri tanımlıysa açıktır; ikisi
   de yoksa 503 `not_configured`. `LAFPOS_SYNC_SECRET` yoksa her şey bu
   değişiklikten önceki gibidir: uçlar yalnız panelin anahtarını tanır.
@@ -151,9 +154,52 @@ x-laf-signature: v1=<hex>
   24). Kendiliğinden çekim en sık 5 dakikada bir (lafpos `AGENTS.md` kural 6).
   Bu okuma veritabanına gider; yalnız rezervasyonlar gerçekten değişince olur.
   Yanıt, panelin aldığıyla aynıdır (`docs/PANEL-KARAOKE.md` "Ne nereye gider"
-  madde 2).
+  madde 2); satırların kasada nasıl okunacağı aşağıda.
+- **Karaoke penceresi dünden yarınadır.** LafPOS `from` ve `to`'yu her zaman
+  gönderir; anahtarı yalnız İstanbul'da dünden yarına kadarki günleri okur,
+  iki uç dahil (`withinLafposKaraokeReach`). Bu, kasanın 05:00'e uzanan iş
+  gününü (00:30'da kasa hâlâ dünü sorar) ve gece yarısındaki küçük saat farkını
+  içine alır. Daha geniş, geçmişe ya da ileriye uzanan ya da `from`'suz pencere
+  (sorgusuz istek dün + 90 gün okurdu) hiçbir şey okunmadan 403
+  `{"error":"forbidden"}` alır. Panelin penceresi değişmez: 400 güne kadar.
 - Menüyü herkese açık uçtan ETag ile, imzalı uçtan en çok 5 dakikada bir okur
   (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5).
+
+## Karaoke satırını kasa nasıl okur
+
+Okuma penceredeki **bütün** satırları verir, iptal edilenler de gelir (panel
+iptali de görmeli). Kasa her satıra iki soru sorar: oda bu saatte tutulu mu,
+blok önceden ödenmiş mi. Cevap `status` ile `paymentStatus`'un birlikte
+okunmasıdır; tek başına `paymentStatus` yetmez. Kurallar sitenin kendi
+kurallarıdır (`holdsSlot`, `src/lib/mobile/karaoke-core.ts`; para:
+`karaokeMoneyOf`, `src/lib/admin/karaoke-money.ts`):
+
+- **Oda tutulu** yalnız `status` `requested` ya da `confirmed` iken.
+  `cancelled` satır odayı bırakmıştır, ödeme durumu ne olursa olsun (`paid`:
+  iadesi henüz yapılmamış iptal; `refunding`: geç iptalin payı ödenecek ya da
+  iadesi yolda; `refunded`, `expired`, `none`). İptal satırı "Sayacı başlat"ta
+  önerilmez, kasada hiçbir şeye sayılmaz.
+- **Önceden ödenmiş blok** yalnız `status` `cancelled` değilken ve
+  `paymentStatus` `paid` iken. Bloğun parası sitededir (online karaoke cirosu,
+  `docs/PANEL-SALES.md`); kasa yalnız bloğu aşan süreyi kendi saat ücretiyle
+  alır. `totalMinor` 0 olabilir: ön ödemeli %100 ORO indirimli rezervasyon da
+  `paid` yazılır.
+- **`none`**: ödemesi köşkte alınacak rezervasyon (panelde ön ödeme kapalıyken
+  ya da ön ödeme istemeyen eski bir uygulama sürümünden). Blok kasanın saat
+  ücretini değil, satırın `totalMinor`'ını öder: üye indirimi o tutarın
+  içindedir. `totalMinor` 0 ve notu `Telafi: KRK-…` olan satır köşkün verdiği
+  ücretsiz telafi saatidir (köşkün geç iptal ettiği bir rezervasyonun
+  karşılığı; personelin açtığı satır, yanıtta `channel: ""`): hiç ücretlenmez.
+- **`pending`**: online ödemesi süren tutma (`status` `requested`). Henüz
+  ödenmiş değildir: ödeme gelirse `paid` olur; gelmezse site onu (bir sonraki
+  rezervasyonda ya da günlük işte) `cancelled` + `expired` yapar ve oda boşalır.
+- **`refunding`, `refunded`, `expired`** hiçbir zaman önceden ödenmiş sayılmaz
+  ve "Sayacı başlat"ta önerilmez. `refunding` çoğunlukla iptal satırındadır;
+  köşkün iptalinde iade yoldayken satır bir süre `confirmed` + `refunding`
+  görünebilir: oda o arada tutulu, blok ödenmiş değil.
+- Bilinmeyen bir durum güvenli tarafa okunur (`toPanelReservation`): bilinmeyen
+  `status` `requested` (oda tutulu), bilinmeyen `paymentStatus` `none` (blok
+  `totalMinor`'ı öder).
 
 ## Kişisel veri (KVKK)
 
@@ -168,6 +214,13 @@ Karaoke okumasıyla rezervasyonun adı ve notu kafedeki makineye de gider. Bu
 bilgi barın panel ekranında zaten görünür; LafPOS'a açılması, odayı ücretleyen
 kasanın sitede ödenmiş saati görmesi içindir (karar: sahibin LafPOS'u açması,
 yukarıda "Varsayılan kapalı"). Anahtar girilmedikçe hiçbir şey gitmez.
+
+LafPOS'un anahtarı yalnız dünden yarına kadarki rezervasyonları okur (en çok
+üç gün; panel 400 güne kadar okur, yukarıda "LafPOS ne zaman çeker"). Kafedeki
+makine çalınır ya da `.env`'i kopyalanırsa, anahtar değişene dek okunabilecek
+olan bu birkaç günün adları ve notlarıdır; sitenin üç yıl tuttuğu geçmiş değil
+(`src/lib/retention.ts`, `karaoke-guest-data`). Ölçülülük (KVKK m.4/2-ç):
+kasanın işi bugünün odasıdır.
 
 ## Anahtarı değiştirmek
 
@@ -207,6 +260,7 @@ Sorgu boş olduğu için yolun ardından boş bir satır gelir.
 Site: `src/lib/panel/signed-callers.ts` (hangi anahtar kimin),
 `src/app/api/pos/orders/version/route.ts`, `src/app/api/panel/karaoke/route.ts`,
 `src/lib/admin/change-marker.ts`. Testler: `tests/panel-lafpos-key.test.ts`
-(beş uç, karaoke beyaz listesi, olay kaydı, kapalı uçlar),
+(beş uç, karaoke beyaz listesi ve dünden yarına penceresi, olay kaydı, kapalı
+uçlar), `tests/panel-karaoke-sync-core.test.ts` (`withinLafposKaraokeReach`),
 `tests/api-pos-orders-version-route.test.ts` (sürüm ucu ve karaoke işareti,
 veritabanısız).

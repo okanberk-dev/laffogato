@@ -6,6 +6,7 @@ import {
   parsePanelRange,
   sortForPanel,
   toPanelReservation,
+  withinLafposKaraokeReach,
   type PanelKaraokeReservation,
 } from "@/lib/panel/karaoke-sync-core";
 import {
@@ -34,6 +35,12 @@ import {
  * hour, the head count, the states, the note, the amount; never an e-mail,
  * phone, surname, consent record or payment reference.
  *
+ * The panel reads any window up to 400 days, as before. LafPOS's key, which
+ * sits on the café's machine, reads Istanbul yesterday to tomorrow and no
+ * more (`withinLafposKaraokeReach`): a wider window, or one with no `from`,
+ * is 403 `forbidden` before anything is read, the way the menu route
+ * refuses LafPOS a price.
+ *
  * `src/proxy.ts` lets every `/api/*` path through untouched, so this one
  * gets no session refresh and no page CSP.
  */
@@ -55,7 +62,8 @@ export async function GET(request: Request) {
     );
   }
   const url = new URL(request.url);
-  if (!signedCaller(keys, request, "GET", url, "")) {
+  const caller = signedCaller(keys, request, "GET", url, "");
+  if (!caller) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },
@@ -67,6 +75,14 @@ export async function GET(request: Request) {
     return NextResponse.json(
       { error: "invalid_range" },
       { status: 400, headers: NO_STORE },
+    );
+  }
+  // The till runs today's room: a stolen café machine must not page
+  // through years of first names and notes (docs/LAFPOS.md).
+  if (caller === "lafpos" && !withinLafposKaraokeReach(range, now)) {
+    return NextResponse.json(
+      { error: "forbidden" },
+      { status: 403, headers: NO_STORE },
     );
   }
 

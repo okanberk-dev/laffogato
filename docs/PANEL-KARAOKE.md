@@ -33,7 +33,8 @@ birkaç saniyede bir sormadan.
    ```
 
    `from` varsayılanı İstanbul'da dün, `to` varsayılanı `from` + 90 gün; en
-   geniş pencere 400 gün. Yanıt `{ now, from, to, complete, reservations }`,
+   geniş pencere 400 gün (LafPOS'un anahtarıyla yalnız dünden yarına,
+   aşağıda). Yanıt `{ now, from, to, complete, reservations }`,
    `Cache-Control: no-store`. Her rezervasyon yalnız şunları taşır: kimlik,
    gün, başlangıç saati, süre, başlangıç ve bitiş anı, kişi sayısı, durum,
    ödeme durumu, **yalnız ad** (soyad değil), not (en çok 300 karakter),
@@ -56,6 +57,17 @@ birkaç saniyede bir sormadan.
 - İkisi aynı yanıtı, aynı beyaz listeyi (`toPanelReservation`) ve aynı hata
   kodlarını alır; site isteği hangi anahtarın imzaladığını iki anahtarı da
   deneyerek bulur (`src/lib/panel/signed-callers.ts`).
+- **Tek fark pencerededir.** LafPOS'un anahtarı yalnız İstanbul'da dünden
+  yarına kadarki günleri okur, iki uç dahil (`withinLafposKaraokeReach`,
+  `src/lib/panel/karaoke-sync-core.ts`): kasa bugünün odasını yürütür, anahtarı
+  kafedeki makinede durur. Daha geniş, geçmişe ya da ileriye uzanan ya da
+  `from`'suz pencere hiçbir şey okunmadan 403 `{"error":"forbidden"}` alır.
+  Panelin penceresi değişmez (400 güne kadar, varsayılanı dün + 90 gün).
+- Kasa bir satırı `status` ile `paymentStatus`'u birlikte okuyarak tartar: oda
+  yalnız `requested` / `confirmed` iken tutulu, blok yalnız `cancelled` değilken
+  ve `paid` iken önceden ödenmiş; `none` blok `totalMinor`'ını öder (köşkün
+  `Telafi: KRK-…` saati 0). Ayrıntı: `docs/LAFPOS.md` "Karaoke satırını kasa
+  nasıl okur".
 - Ping yalnız panele gider: kafedeki LafPOS'a internetten ulaşılamaz. LafPOS
   değişikliği sürüm yanıtındaki `karaoke` işaretinden öğrenir; o işaret
   `live:karaoke`'yu düşüren aynı yazımlarla değişir ve veritabanına gitmez.
@@ -121,7 +133,8 @@ curl -s "https://laffogato.net/api/panel/karaoke?from=2026-10-20&to=2026-10-31" 
 Sorgu parametreleri imzada **sıralı** yazılır (`from` sonra `to`); adres
 satırındaki sıra fark etmez.
 
-Testler: `tests/panel-karaoke-sync-core.test.ts` (imza, pencere, beyaz liste),
-`tests/api-panel-karaoke-route.test.ts` (uç), `tests/panel-karaoke-ping.test.ts`
-(ping ve yazım kancası), `tests/panel-lafpos-key.test.ts` (LafPOS'un anahtarı),
+Testler: `tests/panel-karaoke-sync-core.test.ts` (imza, pencere, LafPOS'un
+penceresi, beyaz liste), `tests/api-panel-karaoke-route.test.ts` (uç),
+`tests/panel-karaoke-ping.test.ts` (ping ve yazım kancası),
+`tests/panel-lafpos-key.test.ts` (LafPOS'un anahtarı ve dünden yarına sınırı),
 `tests/api-pos-orders-version-route.test.ts` (LafPOS'un `karaoke` işareti).

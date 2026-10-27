@@ -17,10 +17,11 @@ import {
  * `KARAOKE_SYNC_SECRET`, so the panel's key never sits on the café's
  * machine. What is pinned: LafPOS's signature opens each of the five
  * routes, its writes are audited "lafpos:<name>", its karaoke read is the
- * panel's whitelist and nothing more, the panel's requests are answered
- * exactly as before, a route with neither key is shut, the panel's value
- * pasted in as LafPOS's opens nothing to LafPOS, and the sales route stays
- * the panel's alone.
+ * panel's whitelist and nothing more, from Istanbul yesterday to tomorrow
+ * only (a wider window is 403 before anything is read), the panel's
+ * requests are answered exactly as before, a route with neither key is
+ * shut, the panel's value pasted in as LafPOS's opens nothing to LafPOS,
+ * and the sales route stays the panel's alone.
  */
 
 const store = vi.hoisted(() => ({
@@ -56,6 +57,13 @@ const sales = await import("@/app/api/panel/sales/route");
 
 const PANEL = "panel-secret-0123456789-abcdefghijklmnop";
 const LAFPOS = "lafpos-secret-0123456789-abcdefghijklmno";
+
+/**
+ * The clock the routes read, pinned: 15:00 on 26 October in Tuzla. LafPOS's
+ * karaoke reach is counted from today in Istanbul, so the windows below
+ * would go stale on a real clock.
+ */
+const NOW = new Date("2026-10-26T12:00:00.000Z");
 
 /** A request signed with `secret`: a GET, or a POST of `body`. */
 function signed(path: string, secret: string, body?: string): Request {
@@ -169,6 +177,8 @@ function order(over: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   vi.stubEnv("KARAOKE_SYNC_SECRET", PANEL);
   vi.stubEnv("LAFPOS_SYNC_SECRET", LAFPOS);
   vi.stubEnv("PANEL_URL", "");
@@ -194,6 +204,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
@@ -438,6 +449,36 @@ describe("LafPOS's karaoke read", () => {
     }
   });
 
+  it("reads Istanbul yesterday to tomorrow, both ends inclusive", async () => {
+    const res = await karaoke.GET(
+      signed("/api/panel/karaoke?from=2026-10-25&to=2026-10-27", LAFPOS),
+    );
+    expect(res.status).toBe(200);
+    expect(listReservationsForAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ from: "2026-10-25", to: "2026-10-27" }),
+    );
+  });
+
+  it("still gets the till's business day at 00:30, the calendar's yesterday", async () => {
+    vi.setSystemTime(new Date("2026-10-26T21:30:00.000Z")); // 00:30 on the 27th
+    const res = await karaoke.GET(signed(KARAOKE_WINDOW, LAFPOS));
+    expect(res.status).toBe(200);
+  });
+
+  it.each([
+    ["the day before yesterday", "?from=2026-10-24&to=2026-10-26"],
+    ["the day after tomorrow", "?from=2026-10-26&to=2026-10-28"],
+    ["a past year", "?from=2025-10-01&to=2026-10-26"],
+    ["next month", "?from=2026-11-20&to=2026-11-20"],
+    ["no query (yesterday and ninety days on)", ""],
+  ])("refuses %s with 403, before reading anything", async (_, query) => {
+    const res = await karaoke.GET(signed(`/api/panel/karaoke${query}`, LAFPOS));
+    expect(res.status).toBe(403);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toEqual({ error: "forbidden" });
+    expect(listReservationsForAdmin).not.toHaveBeenCalled();
+  });
+
   it("does not count the panel's value pasted in as LafPOS's", async () => {
     // The panel's link off (a PANEL_URL that is not https): the pasted value
     // is then the only key on offer, and it is not LafPOS's.
@@ -496,6 +537,23 @@ describe("the panel's key, unchanged", () => {
     const panel = await strip(await ROUTES[route](PANEL));
     expect(panel.reservations, route).toHaveLength(1);
     expect(await strip(await ROUTES[route](LAFPOS)), route).toEqual(panel);
+  });
+
+  it("still reads any karaoke window up to 400 days, the ones LafPOS is refused too", async () => {
+    for (const [query, from, to] of [
+      ["?from=2025-10-01&to=2026-10-26", "2025-10-01", "2026-10-26"],
+      ["?from=2026-11-20&to=2026-11-20", "2026-11-20", "2026-11-20"],
+      ["", "2026-10-25", "2027-01-23"],
+    ]) {
+      listReservationsForAdmin.mockClear();
+      const res = await karaoke.GET(
+        signed(`/api/panel/karaoke${query}`, PANEL),
+      );
+      expect(res.status, query).toBe(200);
+      expect(listReservationsForAdmin, query).toHaveBeenCalledWith(
+        expect.objectContaining({ from, to }),
+      );
+    }
   });
 
   it("is the only key the karaoke read takes while LafPOS's is unset", async () => {
