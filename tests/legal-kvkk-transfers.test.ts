@@ -81,7 +81,6 @@ describe("KVKK Aydınlatma §15: the transfers as they are", () => {
       "Resend (Plus Five Five, Inc.; ABD; gönderim bölgesi İrlanda; imza sürecinde)",
       `${LEGAL_ENTITY.dbProvider} (Databricks, Inc. / Neon, LLC; ABD; sunucu bölgesi ABD, Ohio; imza sürecinde)`,
       `${LEGAL_ENTITY.authProvider} (Supabase Pte. Ltd.; Singapur; proje bölgesi Singapur; imza sürecinde)`,
-      "Anthropic, PBC (ABD)",
       // 22 Ekim 2026: order-status push (LEGAL-REDLINES §30). Expo carries
       // the message; Apple and Google deliver it to the phone.
       "Expo (650 Industries, Inc.; ABD; sunucu bölgesi ABD, Google Cloud; imza sürecinde)",
@@ -91,6 +90,9 @@ describe("KVKK Aydınlatma §15: the transfers as they are", () => {
       expect(recipients, part).toContain(part);
     }
     expect(recipients).not.toMatch(/\{\{/);
+    // 27 Ekim 2026: fA'L and its AI reading left the app (App Review 4.3(b),
+    // LEGAL-REDLINES §36), so no AI provider receives anything.
+    expect(text).not.toMatch(/Anthropic|OpenAI|yapay zekâ/i);
     // None of §15's lines is lost to an empty token.
     const source = LEGAL_CONTENT.find(
       (d) => d.slug === "kvkk-aydinlatma-metni",
@@ -146,17 +148,16 @@ describe("KVKK Aydınlatma §15: the transfers as they are", () => {
 });
 
 describe("no text says an unsigned contract carries a transfer today", () => {
-  it("present tense for the standard contract only where nothing is sent before it (fA'L)", () => {
-    // fA'L sends no photo before the contract is signed and notified
-    // (fal-safeguard.ts), so "dayandırılır" is true there. Everywhere else
-    // the transfers run today, so the contract "will" carry them.
+  it("no present tense for a standard contract that is not signed yet", () => {
+    // The transfers run today, so the contract "will" carry them. Until 27
+    // Ekim 2026 the fA'L photo was the one exception: it was to be sent only
+    // after its contract was signed and notified. fA'L left the app
+    // (LEGAL-REDLINES §36) and with it the exception.
     const present =
       /dayandırılır\b|dayanılarak (?:gerçekleştirilir|yapılır)|metni imzalanır|uygun olarak gerçekleştirilir|uygulanır\b/;
     let checked = 0;
     for (const doc of LEGAL_DOCS) {
       for (const text of strings(doc)) {
-        // A passage about the fA'L photo may say it; the rest may not.
-        if (/fA'L|Anthropic/.test(text)) continue;
         // A sentence ends at a full stop before a capital ("9. maddesi" does not).
         for (const sentence of text.split(/(?<=\.)\s+(?=[A-ZÇĞİÖŞÜ])/)) {
           if (!/standart sözleşme/.test(sentence)) continue;
@@ -215,7 +216,8 @@ describe("Açık Rıza R6 is a note, not a consent item", () => {
     const table = section("acik-riza-metni", "6. Açık Rızanıza").table!.map(
       (r) => r.key.split(" - ")[0],
     );
-    expect(table).toEqual(["R2", "R5", "R7", "R12"]);
+    // R12 (fA'L's AI reading) left on 27 Ekim 2026 (LEGAL-REDLINES §36).
+    expect(table).toEqual(["R2", "R5", "R7"]);
     const note = section("acik-riza-metni", "6. Açık Rızanıza").paragraphs![0]!;
     expect(note).toContain(
       "R1, R3, R4, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez",
@@ -228,7 +230,7 @@ describe("Açık Rıza R6 is a note, not a consent item", () => {
     );
   });
 
-  it("R7 to R12 keep their numbers, so the references elsewhere hold", () => {
+  it("R7 to R11 keep their numbers, so the references elsewhere hold", () => {
     const headings = consent.sections.map((s) => s.heading);
     for (const prefix of [
       "10. R5",
@@ -237,13 +239,17 @@ describe("Açık Rıza R6 is a note, not a consent item", () => {
       "13. R8",
       "14. R9",
       "15. R10 ve R11",
-      "15/A. R12",
     ]) {
       expect(
         headings.some((h) => h.startsWith(prefix)),
         prefix,
       ).toBe(true);
     }
+    // R12 (15/A, fA'L's AI reading) left the text on 27 Ekim 2026: the
+    // feature left the app (App Review 4.3(b), LEGAL-REDLINES §36). It was
+    // the last item, so no number moved, and nothing points at it.
+    expect(headings.some((h) => h.startsWith("15/A"))).toBe(false);
+    expect(JSON.stringify(consent)).not.toMatch(/\bR12\b|15\/A/);
     // R5 is a consent item again (25 Ekim 2026): the Meta Pixel, switched on
     // in the cookie panel and withdrawn from the same place.
     const r5 = section("acik-riza-metni", "10. R5");
@@ -394,14 +400,17 @@ describe("the karaoke inbox is the company's, in Türkiye", () => {
 });
 
 describe("the processor lists agree with the aydınlatma", () => {
-  it("Veri Saklama names the login provider and Anthropic, and Google only as the push carrier", () => {
+  it("Veri Saklama names the login provider, no AI provider, and Google only as the push carrier", () => {
     const vsip = LEGAL_CONTENT.find(
       (d) => d.slug === "veri-saklama-ve-imha-politikasi",
     )!;
     const src = JSON.stringify(vsip);
+    // 27 Ekim 2026: the AI reading left the app, and Anthropic the list
+    // (LEGAL-REDLINES §36).
     expect(src).toContain(
-      "üyelik kimlik doğrulaması ({{AUTH_PROVIDER}}), işlemsel e-posta gönderimi (Resend), yalnızca fA'L yapay zekâ yorumuna açık rıza verilmesi hâlinde yapay zekâ hizmeti (Anthropic, PBC),",
+      "üyelik kimlik doğrulaması ({{AUTH_PROVIDER}}), işlemsel e-posta gönderimi (Resend), ödeme hizmeti (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş., PayNkolay),",
     );
+    expect(src).not.toMatch(/Anthropic|OpenAI/);
     // No Google analytics or tag processor; since 22 Ekim 2026 Google LLC
     // appears once, as the service that delivers order-status push to
     // Android phones (LEGAL-REDLINES §30).

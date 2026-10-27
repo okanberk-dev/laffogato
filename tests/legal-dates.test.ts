@@ -49,13 +49,14 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
-    // 22 Ekim 2026: the ÖBF and the MSS say the app gets order-status push
-    // notifications once the member allows them, and who carries them
-    // (LEGAL-REDLINES §30). The consent version moved with the checkout
-    // documents, the set with it. (20 Ekim 2026: the e-Arşiv invoice by
-    // e-mail, §24; 19 Ekim 2026: the KDV rule, §16.4; 18 Ekim 2026: the
-    // distance-sales rules of 2026.)
-    expect(LEGAL_UPDATED).toBe("22 Ekim 2026");
+    // 27 Ekim 2026: App Review 4.3(b) and 5.1.1(v). fA'L left the app and
+    // Kahve Modu took its place; R12 retired; the phone is optional at
+    // sign-up (LEGAL-REDLINES §36). The ÖBF and the MSS changed, so the
+    // consent version moved, the set with it. (22 Ekim 2026: order-status
+    // push, §30; 20 Ekim 2026: the e-Arşiv invoice by e-mail, §24; 19 Ekim
+    // 2026: the KDV rule, §16.4; 18 Ekim 2026: the distance-sales rules of
+    // 2026.)
+    expect(LEGAL_UPDATED).toBe("27 Ekim 2026");
     // The karaoke terms carry their own label: 21 Ekim 2026, §8 makes good
     // a late köşk cancel and §9 refunds a share within 14 days
     // (LEGAL-REDLINES §26). (20 Ekim 2026: §12 says how the advance is
@@ -64,8 +65,11 @@ describe("legal document dates", () => {
   });
 
   it("a document that changes after the revision carries its own day", () => {
-    // Empty on 16, 18, 20 and 22 Ekim 2026: every coded document carries
-    // the set's day. On the 22nd the push wording moved the checkout
+    // Empty on 16, 18, 20, 22 and 27 Ekim 2026: every coded document carries
+    // the set's day. On the 27th the Kahve Modu wording moved the checkout
+    // documents, and with them the revision, past the four that carried 25
+    // Ekim 2026 of their own (the Meta Pixel, §35): they read the set's day
+    // again (LEGAL-REDLINES §36). On the 22nd the push wording moved the checkout
     // documents, and with them the revision, past the ten documents that
     // carried 21 Ekim 2026 of their own (the karaoke make-good, the durable
     // copy, the karaoke periods, the till code, the admin cookies;
@@ -79,21 +83,20 @@ describe("legal document dates", () => {
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
       // Dated by its own constant: its day is the version every commercial
       // consent records (COMMERCIAL_CONSENT_UPDATED, consent-ledger.ts).
-      // 22 Ekim 2026, the set's day too: the İYS sync, §9 and §10 say how
-      // consents and refusals reach İYS (LEGAL-REDLINES §31).
+      // 27 Ekim 2026, the set's day too: §1, §13 and §20 say Kahve Modu
+      // instead of fA'L (LEGAL-REDLINES §36). (22 Ekim 2026: the İYS sync,
+      // §31.)
       "ticari-elektronik-ileti": COMMERCIAL_CONSENT_UPDATED,
-      // 25 Ekim 2026: the Meta Pixel (LEGAL-REDLINES §35, a draft awaiting
-      // the lawyer) entered the four documents that speak of cookies and
-      // tags. None of the checkout documents changed, so the set's revision
-      // (the version a checkout consent records) stays where it was and these
-      // four carry the day themselves.
-      "cerez-politikasi": META_PIXEL_LEGAL_UPDATED,
-      "kvkk-aydinlatma-metni": META_PIXEL_LEGAL_UPDATED,
-      "gizlilik-politikasi": META_PIXEL_LEGAL_UPDATED,
-      "acik-riza-metni": META_PIXEL_LEGAL_UPDATED,
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
+    }
+    expect(COMMERCIAL_CONSENT_UPDATED).toBe("27 Ekim 2026");
+    // 25 Ekim 2026 (the Meta Pixel, §35) is before the revision now, so no
+    // document carries it of its own any more.
+    expect(META_PIXEL_LEGAL_UPDATED).toBe("25 Ekim 2026");
+    for (const src of LEGAL_CONTENT) {
+      expect(src.updatedAt, src.slug).not.toBe(META_PIXEL_LEGAL_UPDATED);
     }
     // Every other document still reads the revision it was issued under.
     for (const doc of LEGAL_DOCS) {

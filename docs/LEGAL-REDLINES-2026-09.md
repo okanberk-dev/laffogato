@@ -945,6 +945,9 @@ belgede basılmıyor) ve `scripts/legal-export.mjs` satır 92'deki başlık
 > **19 Eki 2026:** avukat turu yok (operatör kararı, 18 Eki 2026). Yurt dışına
 > aktarım metinleri, R12'nin saklama cümleleri ve fA'L'ın kod kapısı §15.6'da;
 > Y1-3, Y1-4, Y1-6 ve Y1-10 orada kapandı.
+>
+> **27 Eki 2026: bu bölüm tarihçedir.** fA'L ve yapay zekâ yorumu uygulamadan
+> kalktı (App Review 4.3(b)); R12 ve Anthropic metinlerden çıktı (§36).
 
 ### 15.1 Neden
 
@@ -4200,6 +4203,270 @@ durumu tutar.
 - "Haritayı göster" bağlantısı ve Google Haritalar cümlesi.
 - Kart bilgilerinin girildiği ödeme sayfası: pikselin yüklenmediği sayfa
   olarak anıldı, o sayfanın metinleri değişmedi.
+
+## 36. Y21 - App Review 4.3(b) ve 5.1.1(v): fA'L yerine Kahve Modu, R12 kalktı, kayıtta telefon isteğe bağlı, ödenmemiş sipariş hesap kapatmayı durdurmaz (27 Ekim 2026)
+
+> **Durum: metin kodda değişti, avukat okuması bekliyor.** Operatör, uygulama
+> tarafının devir notundaki önerilen cümlelerin hemen uygulanmasına ve `main`'e
+> birleştirilmesine izin verdi; avukat metni sonradan okur. Devir notu
+> lafmobil deposunda `docs/site-handoff/APP-TO-SITE-2026-10-27.md` (bölüm
+> (a), (b), (c) ve (g) 4. madde); reddin kaydı aynı depoda
+> `docs/APP-REVIEW-2026-10-27.md` (bölüm 3, bulgu 1 ve 4). `LEGAL_UPDATED`
+> ve ticari ileti metninin sürümü (`COMMERCIAL_CONSENT_UPDATED`) **27 Ekim
+> 2026** oldu.
+
+### 36.1 Neden
+
+App Review 27 Ekim 2026'da iOS uygulamasını iki gerekçeyle reddetti:
+Guideline 4.3(b) (fal, astroloji ve benzeri: konu fA'L'ın kahve falı ekranı
+ve isteğe bağlı yapay zekâ yorumuydu) ve 5.1.1(v) (kayıtta zorunlu telefon).
+Uygulama fA'L'ı kaldırdı (lafmobil karar 330): yerine **Kahve Modu** geldi.
+Üye günün kahve modunu (herkese aynı, ya da kendi seçtiği başka bir mod) kendi
+içeceğinin fotoğrafına yazdırır ve bir Story görseli oluşturur. Fotoğraf
+yalnızca cihazda işlenir, L'Affogato'ya ya da başka bir yere gönderilmez,
+yapay zekâ yoktur, fotoğrafa bakılmaz. Telefon kayıtta isteğe bağlı oldu
+(karar 329); yalnızca teslimat adresinde (kurye, kargo) istenir.
+
+Uygulama sitenin hukuk metinlerini içinde gösterir ve mağaza formundaki
+Gizlilik Politikası adresi aynı metindir. Metinler hâlâ fA'L'ı, "falın yapay
+zekâ ile yorumlanması"nı, Anthropic, PBC'yi, R12 rızasını ve "mobil
+uygulamadan kayıt olunduğunda telefon"u anlatıyordu. Bu yüzden uygulama yeniden
+gönderilmeden önce metinler değişti.
+
+Ayrıca App Review öncesi taramanın 4. bulgusu: ödenmemiş bir sipariş varken
+uygulama içinden hesap silme reddediliyordu (409 `orders_in_progress`) ve
+inceleme notu inceleyiciye ödeme sayfasında durabileceğini söylüyor. Kod
+artık ödeme adımında bırakılmış siparişleri silme sırasında iptal ediyor
+(`cancelUnpaidOrdersOfClosingAccount`, `deleteMe`); metinler de bunu söyler.
+
+### 36.2 Devir notundaki cümle çiftleri (a) ve (b)
+
+Devir notunun **A1-A51** ve **B1-B5** maddelerindeki her "Bugün:" cümlesi
+`src/lib/legal/content.ts`'te bulundu ve "Öneri:" cümlesiyle **birebir**
+değiştirildi; eski ve yeni cümlelerin tamamı devir notunda yazılıdır, burada
+tekrarlanmaz. Eşleştirme, depoya eklenmeyen bir betikle yapıldı: 56 maddenin
+her biri kaynakta tam bir kez bulundu; metinde `{{BRAND}}` yer tutucusu
+olan yerlerde (devir notunda "L'Affogato" diye basılmış) yer tutucu korundu.
+"Silinir" diyen maddeler (A8, A9-A10, A19, A24-A25, A26, A27) elle
+silindi: Gizlilik §6 R12 maddesi ve §8 "Yapay zekâ hizmet sağlayıcısı"
+satırı; KVKK Aydınlatma §9 R12 maddesi, §14 Anthropic satırı, §15'in fA'L
+paragrafı ve alıcılar listesinin Anthropic öğesi.
+
+| Belge | Maddeler |
+|---|---|
+| Ön Bilgilendirme Formu | A1 (§18), A2 (§20) |
+| Mesafeli Satış Sözleşmesi | A3 (§2), A4 (§16), B4 (§1) |
+| İptal, İade ve Cayma Hakkı | A5 (§1) |
+| Gizlilik Politikası | A6-A12 (§3, §4, §6, §8, §14), B1 (§8) |
+| KVKK Aydınlatma Metni | A13-A28 (§5, §6, §7, §8, §9, §12, §14, §15, §19), B2 (§6), B3 (§14) |
+| Ticari Elektronik İleti ve İYS Aydınlatması | A29-A32 (§1, §13, §20) |
+| Kullanım Şartları | A33-A35 (§4, §5, §21), B5 (§7, devir notunda "isteğe bağlı netleştirme"; uygulandı) |
+| Üyelik Sözleşmesi | A36-A39 (§11, §17) |
+| Mobil Uygulama Kullanım Koşulları | A40-A45 (§4, §9, §21) |
+| Şirket ve İletişim Bilgileri | A46-A47 (§4, §6) |
+| Kafe Hizmet Koşulları | A48-A51 (§2, §9) |
+
+Devir notunun "değişmez" dediği iki cümle aynen kaldı: Üyelik Sözleşmesi §6
+1. madde ("Kayıt ve sipariş sırasında verdiği ...") ve KVKK Aydınlatma §6 2.
+madde (iletişim verisi kategorisi).
+
+### 36.3 Devir notunda olmayan belgeler: aynı ilkeyle
+
+Uygulamanın paketli kopyası 27 belgenin yalnız 14'ünün gövdesini taşıdığı
+için devir notu şu yerleri saymıyordu; devir notunun dediği gibi aynı ilkeyle
+düzeltildi (fA'L yerine Kahve Modu; yapay zekâ yorumu, R12, yapay zekâ
+sağlayıcısı ve "Bu yorumu bildir" kalkar; fotoğraf için "yalnızca cihazda
+işlenir, gönderilmez"; kamera cümlesine masadaki QR eklenir; telefon için
+"verildiyse"):
+
+| Belge | Yer | Ne oldu |
+|---|---|---|
+| Satış Politikası | §2 (tanım), §11 (cihaz izinleri) | fA'L yerine Kahve Modu; fotoğraf cihazda işlenir, gönderilmez; kamera ayrıca masadaki QR için (görüntü kaydedilmez, yalnız masa kodu iletilir). |
+| Ödeme Koşulları | §16 (iki paragraf) | Aynı. |
+| Güvenli Alışveriş | §14 (iki paragraf), §22 (Supabase satırı) | Aynı; R12 ve yapay zekâ aktarımı cümlesi kalktı. §22: "ad-soyad, telefon" yerine "ad-soyad, mobil uygulamadan kayıt olurken verildiyse telefon". |
+| Açık Rıza Metni | §3, §4, §6, §8, §11, §15, 15/A, §16, §17, §18, §20 | Ayrıntı 36.4'te. |
+| Veri Saklama ve İmha Politikası | §5, §8 (üç satır), §9 (iki paragraf), §14, §15 | §5 telefon "verildiyse"; §8 satırları 36.4'te; §9 Kahve Modu ve masadaki QR; §14 veri işleyenler listesinden "yalnızca fA'L yapay zekâ yorumuna açık rıza verilmesi hâlinde yapay zekâ hizmeti (Anthropic, PBC)" kalktı; §15 günlük imha görevinin listesinde "fA'L kullanım ve bildirim kayıtları" yerine "mobil uygulamadan kaldırılan yapay zekâ fotoğraf yorumu özelliğinden kalan kullanım ve bildirim kayıtları". |
+| Çerez Politikası | §15 (üç paragraf) | Kahve Modu; R12 ve aktarım cümlesi kalktı; kamera ayrıca masadaki QR için. |
+| Hesap Silme | §4, §6 | §4 için 36.5; §6'daki iki madde fA'L adını taşımadan "27 Ekim 2026'da mobil uygulamadan kaldırılan yapay zekâ fotoğraf yorumu özelliği" diye anılır, kural aynen kalır. |
+| Kullanım Şartları | §7 | 36.5. |
+| Mobil Uygulama Kullanım Koşulları | §17 | 36.5. |
+| Üyelik Sözleşmesi | §14 | 36.5. |
+| Fikri Mülkiyet | §7 | "kamera (fA'L fotoğrafı ve personel kasa ekranı)" yerine "kamera (Kahve Modu fotoğrafı, masadaki QR koduyla sipariş ve personel kasa ekranı)". |
+| Şikâyet ve Uyuşmazlık | §12, §13 | Kahve Modu; fotoğraf cihazda kalır; kamera ayrıca masadaki QR için. |
+
+### 36.4 R12 ve fA'L'ın kayıtları (devir notu (c))
+
+**Açık Rıza Metni.** R12 bölümü (15/A, "fA'L Yapay Zekâ Yorumu İçin
+Fotoğrafın İşlenmesi ve Yurt Dışına Aktarılması") metinden çıktı; §6
+özet tablosunun R12 satırı da. R7-R11'in numaraları değişmedi; R12 son kalem
+olduğu için numara boşluğu oluşmadı. Devir notunun isteğe bağlı bıraktığı
+"R12 ... 27 Ekim 2026'dan itibaren uygulanmaz" satırı **eklenmedi**: metin
+fA'L adını hiç anmasın diye (avukat isterse eklenir, soru 1). R12'ye ya da
+fA'L ekranına işaret eden yerler de çıktı:
+
+- §4 ("ticari elektronik ileti ..., görsel içerikte yer alma ve fA'L yapay zekâ
+  yorumu gibi") artık "ticari elektronik ileti (kampanya e-postaları ve
+  bülten) ve görsel içerikte yer alma gibi".
+- §6: onayın verildiği yerler arasında "fA'L ekranındaki onay" yerine
+  "çerez panelindeki Pazarlama çerezleri anahtarı" (tablodaki R5 satırının
+  kendi söylediği yer; 25 Ekim'de eksik kalmıştı).
+- §8 son cümle: "fA'L yapay zekâ yorumu veya görsel içerik onaylarını" yerine
+  "görsel içerik onayını".
+- §11 (R6) son cümle "fA'L yapay zekâ yorumu için verilen onay R12 bölümünde
+  ayrıca düzenlenmiştir." silindi.
+- §15: kamera ve fotoğraf izni Kahve Modu ve masadaki QR için; "15/A.
+  bölümdeki onayı vermediğiniz sürece" kalktı.
+- §16 tablosu "Yalnızca etkilenen alan": "ve fA'L'ın yapay zekâ yorumu"
+  kalktı.
+- §17: örnek "fA'L'da fotoğraf çekmeyi" yerine "Kahve Modu'nda fotoğraf
+  çekmeyi"; "pazarlama ve fA'L yapay zekâ yorumu (R12) onaylarının" yerine
+  "pazarlama onaylarının"; tercihlerin göründüğü yerlerden "fA'L yapay zekâ
+  yorumu onayınız fA'L ekranında" kalktı.
+- §18: "fA'L yapay zekâ yorumu onayınızı (R12) fA'L ekranından geri
+  çekebilirsiniz" kalktı.
+- §20: "fA'L yapay zekâ yorumu onayının (R12) kaydı aşağıda ayrıca
+  açıklanmıştır." cümlesi ve "fA'L yapay zekâ yorumu onayı (R12): ..." maddesi
+  silindi.
+
+**Saklanan rızalar.** Site PR'ı `db/migrations/20261027120000_retire_fal_ai_consents.sql`
+ile 27 Ekim 2026'da hâlâ geçerli olan R12 rızalarına (`feature_consents`,
+`feature = 'fal-ai'`) o günün `revokedAt`'ini yazar; satır silinmez (rıza
+kaydı ispattır) ve geri çekmeden üç yıl sonra imha kuralıyla düşer
+(`src/lib/retention.ts`). Yapay zekâ yolu üretimde hiç açılmadığından satır
+beklenmez.
+
+**Veri Saklama ve İmha Politikası §8.** Üç satır silinmedi, daraltıldı:
+yeni kayıt oluşmaz, eski kayıtların süresi kalır. `src/lib/retention.ts`'in
+alıntıladığı süre cümleleri (`tests/mobile-retention.test.ts`) harfi harfine
+korundu.
+
+- Anahtar: "27 Ekim 2026'da mobil uygulamadan kaldırılan yapay zekâ fotoğraf
+  yorumu özelliği (içecek fotoğrafı, üretilen yorum ve kullanım kaydı)".
+  Değer: "Özellik kaldırıldığından 27 Ekim 2026'dan itibaren yeni kayıt
+  oluşturulmaz. Fotoğraf saklanmaz; üretilen yorum, kullanıcı onu
+  bildirmedikçe saklanmaz (bildirimler için bir sonraki satır). Daha önce
+  oluşmuş kullanım kayıtlarının (yorumun istendiği gün, fincanın görülüp
+  görülmediği ve model adı) süresi değişmez: kullanım kaydı günlük sınırın
+  uygulanması için doksan gün saklanır ve ardından silinir."
+- Anahtar: "Aynı özelliğin yorum bildirimleri (bildirilen yorumun metni,
+  bildirim sebebi ve model adı)". Değer: "Bildirim tarihinden itibaren 90 gün
+  saklanır ve ardından silinir; fotoğraf bildirime girmez. Özellik
+  kaldırıldığından 27 Ekim 2026'dan itibaren yeni bildirim alınmaz."
+- Anahtar: "Özellik bazlı açık rıza kayıtları (aynı özelliğin yapay zekâ
+  yorumu için verilen onay; rıza metninin sürümü, onay ve geri çekme
+  zamanı)". Değer: süre cümlesi aynen, ardından "Özellik kaldırıldığından 27
+  Ekim 2026'dan itibaren yeni onay alınmaz; o gün hâlâ geçerli olan onaylar
+  aynı gün geri çekilmiş olarak işaretlenmiştir ve süreleri bu tarihten
+  itibaren işler."
+
+**Yapay zekâ sağlayıcısı.** Gizlilik Politikası, KVKK Aydınlatma Metni ve Veri
+Saklama'da Anthropic, PBC artık alıcı ya da veri işleyen olarak geçmez; hiçbir
+kodlu metin Anthropic'i ya da OpenAI'yi anmaz. Öbür sağlayıcılar (Vercel,
+Resend, Neon, Supabase, Expo, Apple, Google, Paraşüt, Meta) aynen kaldı.
+
+### 36.5 Hesap kapatma: ödenmemiş sipariş (devir notu (g) 4. madde)
+
+Dört metin "devam eden bir sipariş varken hesap kapatılmaz" diyordu. Kural
+kaldı; ödeme adımında bırakılmış sipariş için istisna eklendi. Kod da böyle
+çalışır: `deleteMe` önce üyenin `pending_payment` siparişlerini ödeme
+kuruluşuna sorup iptal eder (ödenmiş çıkan iptal edilmez), sonra sayar;
+panelden girilen manuel sipariş (`source = 'manual'`) iptal edilmez ve
+kapatmayı bekletir. Bu yüzden metin "yalnız ödenmiş sipariş bekletir" demez,
+"ödeme adımında ödemesi tamamlanmamış sipariş devam eden sipariş sayılmaz"
+der.
+
+- Üyelik Sözleşmesi §14, mevcut cümleden sonra: "Ödeme adımında ödemesi
+  tamamlanmamış bir sipariş devam eden sipariş sayılmaz; hesap kapatılırken
+  iptal edilir ve kapatmayı ertelemez."
+- Hesap Silme §4, ilk cümleden sonra: "Ödeme adımında ödemesi tamamlanmamış
+  bir sipariş devam eden sipariş sayılmaz: silme sırasında iptal edilir ve
+  silmeyi ertelemez; iptalden önce ödemenin durumu ödeme kuruluşundan sorulur
+  ve ödemesinin alındığı anlaşılan sipariş iptal edilmez."
+- Mobil Uygulama Kullanım Koşulları §17, mevcut cümleden sonra: "Ödeme
+  adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz;
+  silme sırasında iptal edilir."
+- Kullanım Şartları §7: "... hesap silme seçeneği, devam eden bir sipariş
+  yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış
+  siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir); ..."
+
+### 36.6 Tarihler
+
+- `LEGAL_UPDATED` 22 Ekim 2026'dan **27 Ekim 2026**'ya: ödeme adımında
+  onaylanan iki belge (Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi)
+  değişti. Bu andan sonraki siparişlerin onay kaydı bu sürümü yazar.
+- `COMMERCIAL_CONSENT_UPDATED` **27 Ekim 2026**: Ticari Elektronik İleti
+  metni değişti; yeni ticari ileti onayları
+  `ticari-elektronik-ileti@27 Ekim 2026` sürümünü kaydeder.
+- 25 Ekim 2026'dan beri kendi gününü taşıyan dört belge (Çerez Politikası,
+  KVKK Aydınlatma, Gizlilik, Açık Rıza; `META_PIXEL_LEGAL_UPDATED`, §35)
+  setin gününe döndü: basılan tarih setin revizyonundan önce olamaz.
+- `KARAOKE_LEGAL_UPDATED` (21 Ekim 2026) değişmedi: karaoke belgesi
+  değişmedi.
+
+### 36.7 Avukata sorular (karar avukatındır)
+
+1. **R12'nin yerinde tek satır.** Devir notu, avukat isterse 15/A'nın yerinde
+   "R12 (fA'L yapay zekâ yorumu), özellik uygulamadan kaldırıldığı için 27
+   Ekim 2026'dan itibaren uygulanmaz." satırının kalabileceğini söylüyor.
+   Eklenmedi (metin fA'L'ı anmasın, App Review). Rıza vermiş üye (üretimde
+   beklenmiyor) için bu satır ya da ayrı bir bildirim gerekir mi?
+2. **Saklama satırları.** Kaldırılan özelliğin kayıtları "yeni kayıt yok, eski
+   süre işler" diye kaldı ve özelliğin adı yerine "yapay zekâ fotoğraf yorumu
+   özelliği" yazıldı. Satırlar tümüyle kaldırılıp kayıtlar tek seferde mi imha
+   edilmeli (devir notu (c) iki yolu da açık bırakıyor)?
+3. **Kahve Modu cümleleri.** Metinler fotoğraf için "yalnızca cihazda
+   işlenir, gönderilmez" der, cihaz için "saklanmaz" demez (seçicinin
+   önbellek kopyası ve Story dosyası en iyi çabayla silinir; Android'in kırpma
+   ara dosyasına uygulama ulaşamaz). Kahve Modu hiçbir yerde "eğlence amaçlı"
+   diye anlatılmaz (fal uygulamalarının sesi; App Review taraması bulgu 6).
+   Yeterli mi?
+4. **Masadan sipariş.** Kamera cümlelerine masadaki QR eklendi (16 Ekim
+   2026'dan beri kamera onun için de açılıyor, metinler söylemiyordu).
+   Belgelerin işlev listelerine (tanımlar) "masadan sipariş" eklensin mi?
+   Devir notu bunu avukata bırakıyor; eklenmedi.
+5. **Hesap kapatma.** Ödeme kuruluşuna ulaşılamazsa ödenmemiş sipariş iptal
+   edilemez ve kapatmayı bekletir (sipariş süpürme kuralının süresi dolana
+   kadar); panelden girilen manuel sipariş de bekletir. Metin bunları ayrıca
+   saymıyor. Sayılmalı mı?
+6. **B5.** Kullanım Şartları §7'deki "isteğe bağlı netleştirme" uygulandı
+   ("ad, soyad ve e-posta adresi ile, verildiyse telefon numarası ve adres
+   bilgileri").
+
+### 36.8 Bilerek değişmeyenler
+
+- Ön Bilgilendirme §12, Mesafeli Satış §12 ve İade ve Cayma §7 ile §21'deki
+  "eğlence" sözü (MSY m.15/1-g'nin sözü, karaoke odası ve etkinlikler için)
+  ve karaoke belgesinin aynı cümlesi: Kahve Modu ile ilgisi yok.
+- Fikri Mülkiyet §10-§11'deki "yapay zekâ" (site içeriğinin yapay zekâ
+  eğitiminde kullanılmasının yasağı).
+- Kod yorumlarındaki tarihçe satırları (`content.ts`'te belge başlarındaki
+  19 Ekim 2026 notları gibi).
+- `docs/API-MOBILE.md` §20 ve uçlar: bu PR'ın hukuk akışı dışında.
+
+### 36.9 Yeniden göndermeden önce (operatör)
+
+Panelden yayımlanmış bir hukuk metni (`/admin/hukuk/<slug>`, boş olmayan
+gövdeyle) kodlu metnin yerine geçer: hem sitede (`getPublishedLegalOverride`)
+hem uygulamanın açtığı metinde (`src/lib/mobile/legal.ts`). Bu bölümde
+değişen 20 belgeden biri için yayımlanmış bir üzerine yazma varsa, fA'L'lı
+eski metin yayında kalır ve bu PR'ın değişikliği görünmez. Yayından sonra,
+App Store'a yeniden göndermeden önce: panelde bu belgelerin hiçbirinde
+yayımlanmış üzerine yazma olmadığına ya da varsa fA'L, R12, Anthropic ve
+yapay zekâ yorumu geçmediğine bakılır; canlıda `/hukuk/gizlilik-politikasi`,
+`/hukuk/kvkk-aydinlatma-metni` ve `/hukuk/mobil-uygulama-kosullari`
+sayfalarında "fA'L" aranır (sonuç boş olmalı).
+
+`tests/legal-fal-recipient.test.ts` artık tersini tutar: kod fotoğrafı
+hiçbir yere göndermez (`falAiEnabled()` hep `false`), hiçbir kodlu metin
+Anthropic'i, OpenAI'yi, fA'L'ı, fal sözünü, R12'yi, 15/A'yı ya da "Bu yorumu
+bildir"i anmaz, Kahve Modu cümleleri "eğlence" demez ve cihaz için
+"saklanmaz" vaat etmez, Kahve Modu fA'L'ın geçtiği her belgede geçer,
+kamera cümleleri masadaki QR'ı anar ve saklama satırları yeni kayıt
+olmadığını söyleyip eski süreleri korur. `tests/legal-kvkk-transfers.test.ts`
+(R12'siz özet tablo, 15/A'sız başlıklar, Anthropic'siz alıcılar),
+`tests/legal-account-deletion.test.ts` (ödenmemiş sipariş),
+`tests/legal-dates.test.ts` ve `tests/legal-consent-version.test.ts` (27
+Ekim 2026) yeni durumu tutar.
 
 ## Ek A - Cümle cümle düzeltme listesi
 

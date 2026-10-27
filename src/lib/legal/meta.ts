@@ -19,6 +19,16 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
+// 27 Ekim 2026: App Review 4.3(b) and 5.1.1(v). fA'L left the app (lafmobil
+// karar 330) and Kahve Modu took its place: a mood written on the member's
+// own photo on the device, nothing uploaded, no AI. Every coded text says
+// Kahve Modu instead of fA'L and that the camera also reads the table QR; no
+// AI provider (Anthropic) is a recipient; R12 (Açık Rıza 15/A) is retired,
+// R7 to R11 keep their numbers; the phone is optional at the app's sign-up
+// ("verdiyseniz"); an unpaid checkout is cancelled at account closure
+// instead of holding it. The ÖBF (§18, §20) and the MSS (§1, §2, §16)
+// changed, so the label moved; the four documents that carried 25 Ekim 2026
+// of their own read the set's day again. LEGAL-REDLINES §36.
 // 22 Ekim 2026: the ÖBF (§17, §19) and the MSS (§16) say the app gets
 // order-status push notifications once the member allows them, the device's
 // notification token reaches the server, and Expo, Apple and Google carry
@@ -37,7 +47,7 @@
 // (`legalConsent.textHashes`) and the text is stored under it
 // (`legal_doc_versions`), so the hash, not the day, tells two texts apart.
 // The label still names the day the set was published.
-export const LEGAL_UPDATED = "22 Ekim 2026";
+export const LEGAL_UPDATED = "27 Ekim 2026";
 
 /**
  * The Ticari Elektronik İleti ve İYS Aydınlatması's own revision, printed
@@ -46,12 +56,14 @@ export const LEGAL_UPDATED = "22 Ekim 2026";
  * a grant names the text it refers to. Until 22 Ekim 2026 the document had
  * no date of its own and the version borrowed `LEGAL_UPDATED`. 22 Ekim 2026:
  * §9 and §10 say how consents and refusals reach İYS and that İYS is checked
- * before every send (LEGAL-REDLINES §31). Move it when that document's words
- * change; it is never earlier than `LEGAL_UPDATED` (a printed date never
- * is, tests/legal-dates.test.ts), so a later revision of the set moves it
- * too, as the version always did.
+ * before every send (LEGAL-REDLINES §31). 27 Ekim 2026: §1, §13 and §20 say
+ * Kahve Modu instead of fA'L and that the camera also reads the table QR;
+ * §20 no longer points at R12 (LEGAL-REDLINES §36). Move it when that
+ * document's words change; it is never earlier than `LEGAL_UPDATED` (a
+ * printed date never is, tests/legal-dates.test.ts), so a later revision of
+ * the set moves it too, as the version always did.
  */
-export const COMMERCIAL_CONSENT_UPDATED = "22 Ekim 2026";
+export const COMMERCIAL_CONSENT_UPDATED = "27 Ekim 2026";
 
 /**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,
@@ -113,9 +125,13 @@ export const META_PIXEL_IN_LEGAL_TEXTS = true;
 /**
  * The day the Meta Pixel passages entered the four documents that speak of
  * cookies and tags (Çerez Politikası, KVKK Aydınlatma Metni, Gizlilik
- * Politikası, Açık Rıza Metni; LEGAL-REDLINES §35). They carry it as their own
- * `updatedAt`: the set's revision (`LEGAL_UPDATED`) is the version a checkout
- * consent records, and none of the checkout documents changed.
+ * Politikası, Açık Rıza Metni; LEGAL-REDLINES §35). They carried it as their
+ * own `updatedAt` until 27 Ekim 2026: the set's revision (`LEGAL_UPDATED`) is
+ * the version a checkout consent records, and none of the checkout documents
+ * had changed. On 27 Ekim 2026 the set moved past this day (LEGAL-REDLINES
+ * §36) and the four read the set's day again, since a printed date is never
+ * before the revision (tests/legal-dates.test.ts). Kept as the record of when
+ * the pixel entered the texts.
  */
 export const META_PIXEL_LEGAL_UPDATED = "25 Ekim 2026";
 
