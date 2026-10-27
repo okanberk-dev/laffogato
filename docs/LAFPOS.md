@@ -39,8 +39,24 @@ sistem bozulmasın"_. Sitede bunun anlamı `LAFPOS_SYNC_SECRET`'ın yokluğudur:
 imzalı isteği reddedilir (sürüm ucu 503, panel uçları 401; panelin anahtarı da yoksa 503), site, uygulama ve
 panel bugünkü gibi çalışır. Kod yayına girince hiçbir şey açılmaz; açan yalnız anahtardır.
 
-Anahtar, açılış sırasının "anahtarlar" adımında girilir; sıra (anahtarlar → deneme gönderimi → lafmaliyet'te
-LafPOS'a geçiş günü) tek liste olarak lafmaliyet `docs/LAFPOS.md` ve lafpos `docs/03-ENTEGRASYON.md` içinde durur.
+Açılış sırası (anahtarlar → deneme gönderimi → lafmaliyet'te LafPOS'a geçiş günü) tek liste olarak lafmaliyet
+`docs/LAFPOS.md` ve lafpos `docs/03-ENTEGRASYON.md` › "Açılış sırası" içinde durur. Sitenin anahtarı o listenin 1.
+adımına (anahtarlar) aittir, lafmaliyet'in anahtarıyla aynı oturumda ama ondan ayrı girilir. Sitenin payı:
+
+1. Yeni bir değer üretin: `openssl rand -base64 48`. Panelin `KARAOKE_SYNC_SECRET`'ından da lafmaliyet'in
+   `LAFPOS_SYNC_SECRET`'ından da farklı olsun (aşağıda "Anahtar").
+2. laffogato'nun Vercel projesinde Production'a `LAFPOS_SYNC_SECRET` adıyla "Sensitive" olarak ekleyin ve siteyi
+   yeniden yayımlayın: değişken yalnız yeni yayında okunur.
+3. LafPOS'un `.env`'ine `LAFFOGATO_URL=https://laffogato.net` ve aynı değerle `LAFFOGATO_SYNC_SECRET` yazın, LafPOS
+   sunucusunu yeniden başlatın.
+4. Denetleyin: aşağıdaki "Elle denemek", `SECRET`'ı LafPOS'un `.env`'indeki `LAFFOGATO_SYNC_SECRET`'tan kopyalayarak
+   (böylece iki taraf birlikte sınanır), 200 ve `{"version":"…","karaoke":"…"}` döner. 503 `not_configured`: sitede
+   anahtar yok, 32 karakterden kısa, panelinkiyle aynı ya da site yeniden yayımlanmadı. 401: iki taraftaki değer
+   farklı ya da saat 5 dakikadan fazla kaymış.
+
+Listenin deneme gönderimi yalnız lafmaliyet'e gidişi sınar; sitenin bağlantısını 4. madde sınar. Bu adım atlanırsa
+geçiş gününden sonra sitede ödenmiş karaoke saati LafPOS'un oda kutusunda boş görünür ve kasada yeniden ücretlenir,
+uygulama ve web siparişleri bar ekranına düşmez, kasada işaretlenen Tükendi siteye ulaşmaz.
 
 ## Anahtar
 
