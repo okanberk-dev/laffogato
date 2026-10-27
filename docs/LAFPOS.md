@@ -147,10 +147,11 @@ x-laf-signature: v1=<hex>
 - Ayrıca 5 dakikada bir, ekran açılınca ve elle yenileyince çeker.
 - **Karaoke:** aynı yanıttaki `karaoke` değişince, oda kutusu açılınca ve elle
   yenileyince `GET /api/panel/karaoke?from=<gün>&to=<gün>` (bugünün penceresi;
-  gece yarısını aşan blok için `from` dün olabilir). Kendiliğinden çekim en sık
-  5 dakikada bir (lafpos `AGENTS.md` kural 6). Bu okuma veritabanına gider;
-  yalnız rezervasyonlar gerçekten değişince olur. Yanıt, panelin aldığıyla
-  aynıdır (`docs/PANEL-KARAOKE.md` "Ne nereye gider" 2).
+  rezervasyon en geç 24:00'te biter, gece yarısını aşmaz: `closeHour` en çok
+  24). Kendiliğinden çekim en sık 5 dakikada bir (lafpos `AGENTS.md` kural 6).
+  Bu okuma veritabanına gider; yalnız rezervasyonlar gerçekten değişince olur.
+  Yanıt, panelin aldığıyla aynıdır (`docs/PANEL-KARAOKE.md` "Ne nereye gider"
+  madde 2).
 - Menüyü herkese açık uçtan ETag ile, imzalı uçtan en çok 5 dakikada bir okur
   (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5).
 

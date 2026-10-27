@@ -373,8 +373,8 @@ kafede satılan hizmetleri (karaoke odası saatlik ücreti) kendisi tutar. Panel
 uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/karaoke`,
 `/api/pos/orders/version`) **kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
 (`src/lib/panel/signed-callers.ts`; `KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır;
-lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un her isteği
-reddedilir (sahip, 26 Eki 2026: varsayılan kapalı). LafPOS fiyat yazamaz (403), yalnız
+lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un imzalı her
+isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı). LafPOS fiyat yazamaz (403), yalnız
 Tükendi / Satışta; olay kaydında `lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
 kalır, LafPOS gün sonunu oraya iter. Ayrıntı: `docs/LAFPOS.md`.
 
