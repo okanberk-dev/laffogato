@@ -14,8 +14,8 @@ const linkedRow: { supabaseUserId: string } = { supabaseUserId: "" };
 
 vi.mock("@/lib/supabase/admin", () => ({ deleteSupabaseIdentity }));
 vi.mock("@/lib/admin/store", () => ({
+  cancelUnpaidOrdersOfClosingAccount: vi.fn(async () => 0),
   customerOrdersByEmail: vi.fn(async () => []),
-  expireStalePendingOrders: vi.fn(async () => undefined),
   getMenuItem: vi.fn(),
   getSettings: vi.fn(),
 }));

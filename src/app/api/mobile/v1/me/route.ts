@@ -50,7 +50,9 @@ export async function PATCH(request: Request) {
  * 409 `orders_in_progress` while an order is still running: Üyelik Sözleşmesi
  * §14 and the `hesap-silme` document both say the closure waits for it, and
  * anonymising the buyer of an order the kitchen is about to hand over would
- * leave the member unable to follow what they already paid for.
+ * leave the member unable to follow what they already paid for. Since 27 Oct
+ * 2026 an unpaid (`pending_payment`) order does not hold it: `deleteMe`
+ * cancels the member's unpaid checkouts first, after asking the POS.
  *
  * `identity` (additive, docs/API-MOBILE.md §4) says what happened to the
  * Supabase sign-in identity, which still holds the member's e-mail and name

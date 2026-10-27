@@ -15,6 +15,7 @@ import { createDb, type Executor } from "@/lib/db/client";
 const resumePendingCampaigns = vi.fn();
 const runBirthdayGreetings = vi.fn();
 const expireUnpaidReservations = vi.fn();
+const expireStalePendingOrders = vi.fn();
 const runRetention = vi.fn();
 const destructionEnabled = vi.fn();
 const recordShownLegalVersions = vi.fn();
@@ -44,6 +45,8 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/email/campaigns", () => ({ resumePendingCampaigns }));
 vi.mock("@/app/api/cron/_birthday", () => ({ runBirthdayGreetings }));
 vi.mock("@/lib/mobile/karaoke-payment", () => ({ expireUnpaidReservations }));
+// The unpaid-order sweep has its own tests (tests/db-integration-payment-sweep.test.ts).
+vi.mock("@/lib/admin/store", () => ({ expireStalePendingOrders }));
 // The log line is the real one (tests/api-cron-retention-record.test.ts
 // pins it against /api/cron/retention's).
 vi.mock("@/lib/retention", async (importOriginal) => ({
@@ -117,6 +120,7 @@ function expectOtherJobsRan(): void {
   expect(resumePendingCampaigns).toHaveBeenCalledTimes(1);
   expect(runBirthdayGreetings).toHaveBeenCalledTimes(1);
   expect(expireUnpaidReservations).toHaveBeenCalledTimes(1);
+  expect(expireStalePendingOrders).toHaveBeenCalledTimes(1);
   expect(recordShownLegalVersions).toHaveBeenCalledTimes(1);
   expect(runRetention).toHaveBeenCalledTimes(1);
   expect(reconcileIys).toHaveBeenCalledTimes(1);
@@ -134,6 +138,7 @@ beforeEach(() => {
   resumePendingCampaigns.mockResolvedValue([]);
   runBirthdayGreetings.mockResolvedValue(BIRTHDAY);
   expireUnpaidReservations.mockResolvedValue(0);
+  expireStalePendingOrders.mockResolvedValue(0);
   checkPushReceipts.mockResolvedValue({ read: 0, forgotten: 0, cleared: 0 });
   reconcileIys.mockResolvedValue({ onay: 0, ret: 0, superseded: 0 });
   destructionEnabled.mockReturnValue(false);
@@ -186,6 +191,7 @@ describe("/api/cron/daily", () => {
       birthday: { ok: true, ...BIRTHDAY },
       iys: { ok: true, reconcile: { onay: 0, ret: 0, superseded: 0 } },
       karaoke: { ok: true, expired: 0 },
+      orders: { ok: true, expired: 0 },
       pushReceipts: { ok: true, read: 0, forgotten: 0, cleared: 0 },
       legalVersions: { ok: true, documents: 27 },
       retention: { ok: true, ...RETENTION },
@@ -287,6 +293,32 @@ describe("/api/cron/daily", () => {
     expect(runRetention).toHaveBeenCalledWith(
       expect.objectContaining({ keep: {} }),
     );
+    expectOtherJobsRan();
+  });
+
+  it("closes the orders nobody paid for within their window, before the e-Arşiv step", async () => {
+    // Handoff (g) 2: an unpaid order closes when its window passes even on a
+    // day with no checkout to run the sweep, so a dead checkout does not sit
+    // in the app as an order in progress.
+    expireStalePendingOrders.mockResolvedValue(2);
+    const res = await GET(get());
+    expect((await res.json()).orders).toEqual({ ok: true, expired: 2 });
+    expect(expireStalePendingOrders).toHaveBeenCalledTimes(1);
+    expect(expireStalePendingOrders).toHaveBeenCalledWith();
+    // A payment the sweep finds at the POS is booked, and the invoice run
+    // after it then sees that order.
+    expect(expireStalePendingOrders.mock.invocationCallOrder[0]).toBeLessThan(
+      runInvoices.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("reports a failed order sweep on its own and still runs the rest", async () => {
+    expireStalePendingOrders.mockRejectedValue(new Error("db down"));
+    const res = await GET(get());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.orders).toEqual({ ok: false, error: "internal" });
+    expect(body.retention).toEqual({ ok: true, ...RETENTION });
     expectOtherJobsRan();
   });
 

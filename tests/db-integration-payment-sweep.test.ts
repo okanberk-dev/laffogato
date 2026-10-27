@@ -84,19 +84,20 @@ const HOUR = 60 * 60_000;
 async function insertPending(
   id: string,
   orderNo: number,
-  opts: { ageMs: number; channel?: string; email?: string },
+  opts: { ageMs: number; channel?: string; email?: string; source?: string },
 ): Promise<void> {
   await pool!.query(
     `insert into public.orders (id, "orderNo", "customerEmail", status, channel,
-       "totalMinor", "subtotalMinor", items, refunds, "createdAt")
+       "totalMinor", "subtotalMinor", items, refunds, "createdAt", source)
      values ($1, $2, $3, 'pending_payment', $4, 5000, 5000, '[]'::jsonb,
-       '[]'::jsonb, $5)`,
+       '[]'::jsonb, $5, $6)`,
     [
       id,
       orderNo,
       opts.email ?? "supurme@laffogato.net",
       opts.channel ?? "web",
       new Date(Date.now() - opts.ageMs).toISOString(),
+      opts.source ?? "",
     ],
   );
 }
@@ -262,6 +263,151 @@ maybe("unpaid orders are cancelled only after asking the POS", () => {
 
     expect(await supersedeUnpaidWebOrders(member)).toBe(0);
     expect(await statusOf("ord-swp-web3")).toBe("pending_payment");
+  });
+
+  // The account closure (DELETE /me, 27 Oct 2026; docs/API-MOBILE.md §4):
+  // the member's own unpaid checkouts go first, whatever their age, so a
+  // member who stopped on the payment page can still delete the account.
+  describe("cancelUnpaidOrdersOfClosingAccount (account closure)", () => {
+    const member = "kapanis@laffogato.net";
+
+    it("cancels the member's own unpaid orders of any age and gives back what they held", async () => {
+      // audit_logs is append-only: rows from an earlier run of this suite stay.
+      const startedAt = new Date().toISOString();
+      await insertPending("ord-swp-cls1", 993101, {
+        ageMs: 60_000,
+        email: member,
+        channel: "app",
+      });
+      await insertPending("ord-swp-cls2", 993102, {
+        ageMs: 60_000,
+        // Stored with whatever case the checkout captured.
+        email: "Kapanis@Laffogato.net",
+      });
+      await insertPending("ord-swp-cls3", 993103, { ageMs: 60_000 });
+      const {
+        cancelUnpaidOrdersOfClosingAccount,
+        ACCOUNT_CLOSED_CANCEL_REASON,
+      } = await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(2);
+      // Rule 29: the POS was asked about each before it was cancelled.
+      expect(pos.asked).toEqual(
+        expect.arrayContaining(["ord-swp-cls1", "ord-swp-cls2"]),
+      );
+      expect(await statusOf("ord-swp-cls1")).toBe("cancelled");
+      expect(await statusOf("ord-swp-cls2")).toBe("cancelled");
+      // Someone else's order is never touched.
+      expect(await statusOf("ord-swp-cls3")).toBe("pending_payment");
+      const { rows } = await pool!.query(
+        `select "stockReleasedAt" from public.orders where id = 'ord-swp-cls1'`,
+      );
+      expect(rows[0].stockReleasedAt).not.toBe("");
+      // The order page's timeline says why nobody pressed a button.
+      const audit = await pool!.query(
+        `select actor, action, payload from public.audit_logs
+          where entity = 'order' and "entityId" = 'ord-swp-cls1'
+            and "createdAt" >= $1`,
+        [startedAt],
+      );
+      expect(audit.rows).toHaveLength(1);
+      expect(audit.rows[0].actor).toBe("system");
+      expect(audit.rows[0].action).toBe("transition");
+      expect(audit.rows[0].payload).toMatchObject({
+        from: "pending_payment",
+        to: "cancelled",
+        reason: ACCOUNT_CLOSED_CANCEL_REASON,
+      });
+    });
+
+    it("books instead of cancelling when the POS says it was paid", async () => {
+      await insertPending("ord-swp-cls4", 993104, {
+        ageMs: 60_000,
+        email: member,
+      });
+      pos.answers.set("ord-swp-cls4", "paid");
+      const { cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(0);
+      // Paid: the closure then waits for it like any paid order.
+      expect(await statusOf("ord-swp-cls4")).toBe("paid");
+    });
+
+    it("leaves a fresh order pending while the POS cannot be asked, gives up after a day", async () => {
+      await insertPending("ord-swp-cls5", 993105, {
+        ageMs: 60_000,
+        email: member,
+      });
+      await insertPending("ord-swp-cls6", 993106, {
+        ageMs: 25 * HOUR,
+        email: member,
+      });
+      pos.answers.set("ord-swp-cls5", "down");
+      pos.answers.set("ord-swp-cls6", "down");
+      const { cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(1);
+      expect(await statusOf("ord-swp-cls5")).toBe("pending_payment");
+      expect(await statusOf("ord-swp-cls6")).toBe("cancelled");
+    });
+
+    it("leaves a panel order paid on delivery alone", async () => {
+      await insertPending("ord-swp-cls7", 993107, {
+        ageMs: 60_000,
+        email: member,
+        source: "manual",
+      });
+      const { cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(0);
+      expect(pos.asked).not.toContain("ord-swp-cls7");
+      expect(await statusOf("ord-swp-cls7")).toBe("pending_payment");
+    });
+
+    it("a payment that lands afterwards does not revive the order: it waits for a refund", async () => {
+      // The bank's 3-D Secure page was still open when the account closed.
+      await insertPending("ord-swp-cls8", 993108, {
+        ageMs: 60_000,
+        email: member,
+        channel: "app",
+      });
+      const { applyPaymentSucceeded, cancelUnpaidOrdersOfClosingAccount } =
+        await import("@/lib/admin/store");
+      expect(await cancelUnpaidOrdersOfClosingAccount(member)).toBe(1);
+      // The closure rewrites the address on the member's orders.
+      await pool!.query(
+        `update public.orders set "customerEmail" = 'deleted-cst-cls@anon.local'
+          where id = 'ord-swp-cls8'`,
+      );
+
+      expect(
+        await applyPaymentSucceeded({
+          orderId: "ord-swp-cls8",
+          provider: "fakepos",
+          providerRef: "REF-late-cls8",
+          amountMinor: 5000,
+          currency: "TRY",
+          trxDate: "2026-10-27",
+        }),
+      ).toEqual({ ok: true, reconcile: "order_not_open" });
+      const { rows } = await pool!.query(
+        `select status, "paidAt", attention from public.orders
+          where id = 'ord-swp-cls8'`,
+      );
+      expect(rows[0].status).toBe("cancelled");
+      expect(rows[0].paidAt ?? "").toBe("");
+      // In front of a person: "Kapalı siparişe ödeme geldi" → iade.
+      expect(rows[0].attention).toBe("order_not_open");
+      // The money is on record, so the refund path can find it.
+      const paid = await pool!.query(
+        `select status from public.payment_transactions
+          where "orderId" = 'ord-swp-cls8'`,
+      );
+      expect(paid.rows).toEqual([{ status: "succeeded" }]);
+    });
   });
 
   // The web checkout asks the POS before it hands an old order's payload

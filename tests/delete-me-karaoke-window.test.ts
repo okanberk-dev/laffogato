@@ -22,8 +22,8 @@ vi.mock("@/lib/supabase/admin", () => ({
   deleteSupabaseIdentity: vi.fn(async () => "deleted"),
 }));
 vi.mock("@/lib/admin/store", () => ({
+  cancelUnpaidOrdersOfClosingAccount: vi.fn(async () => 0),
   customerOrdersByEmail: vi.fn(async () => []),
-  expireStalePendingOrders: vi.fn(async () => undefined),
   getMenuItem: vi.fn(),
   getSettings: vi.fn(),
 }));

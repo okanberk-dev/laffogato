@@ -3689,11 +3689,15 @@ export async function checkPendingOrderPaid(
  * Cancels one unpaid order and returns what it held - after asking the POS.
  * The write is conditional on `pending_payment`, so a payment or a staff
  * action that lands in between wins. Resolves true when this call cancelled.
+ *
+ * `reason`: a cancel nobody pressed a button for gets a line on the order
+ * page's timeline saying why (an audit `transition` row, actor `system`).
+ * The 45-minute sweep writes none, as before.
  */
 async function cancelUnpaidOrder(
   order: AdminOrder,
   provider: PaymentProvider | null,
-  { giveUpOnUnknown }: { giveUpOnUnknown: boolean },
+  { giveUpOnUnknown, reason }: { giveUpOnUnknown: boolean; reason?: string },
 ): Promise<boolean> {
   const verdict = await settlePendingFromProvider(order, provider);
   if (verdict === "paid") return false;
@@ -3709,7 +3713,40 @@ async function cancelUnpaidOrder(
   );
   if (moved.length === 0) return false;
   await releaseOrderInventory(order);
+  if (reason) await auditUnpaidCancel(order, reason);
   return true;
+}
+
+/**
+ * The timeline row for an unpaid order the system cancelled. Never throws:
+ * the cancel has happened and the stock is back; the row only says why.
+ * Lazily imported, like the unreconciled-payment row: the audit module
+ * reads the admin session.
+ */
+async function auditUnpaidCancel(
+  order: AdminOrder,
+  reason: string,
+): Promise<void> {
+  try {
+    const { safeAudit } = await import("./audit");
+    await safeAudit({
+      actor: "system",
+      action: "transition",
+      entity: "order",
+      entityId: order.id,
+      payload: {
+        orderNo: order.orderNo,
+        from: "pending_payment",
+        to: "cancelled",
+        reason,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[orders] audit row for the unpaid cancel failed order=${order.id}`,
+      err,
+    );
+  }
 }
 
 /**
@@ -3840,6 +3877,79 @@ export async function isOwnUnpaidWebOrder(
     orderChannel(order) === "web" &&
     order.customerEmail.trim().toLowerCase() === owner
   );
+}
+
+/** The timeline's reason for an unpaid order the account closure cancelled. */
+export const ACCOUNT_CLOSED_CANCEL_REASON =
+  "Hesap kapatıldı, ödenmemiş sipariş iptal edildi";
+
+/**
+ * Cancels every order of this member still waiting for its payment - of any
+ * age, from any channel - and returns what each held: the account is closing
+ * (`deleteMe`, docs/API-MOBILE.md §4). Resolves to how many it cancelled.
+ *
+ * An unpaid checkout used to hold the closure (409 `orders_in_progress`)
+ * until the 45-minute sweep reached it, so a member who stopped on the
+ * payment page and then deleted the account was refused (App Review
+ * 5.1.1(v), 27 Oct 2026). Nothing was bought, so nothing is owed: the order
+ * is closed the way the sweep closes it, stock and coupon handed back.
+ *
+ * Rule 29 holds here too: each order is asked about at the POS first
+ * (`cancelUnpaidOrder`). A payment the POS reports is booked, the order is
+ * paid, and it then holds the closure as it should. A POS that cannot be
+ * asked leaves the order pending - and the closure waiting - unless the order
+ * is older than POS_LOOKUP_GIVE_UP_MS, the sweep's own rule. A manual order
+ * (a phone order paid on delivery) is a delivery the köşk owes, not an
+ * abandoned checkout, and is left alone.
+ *
+ * A charge that completes afterwards (the bank's 3-D Secure page was still
+ * open) does not revive the order: `applyPaymentSucceeded` advances only a
+ * `pending_payment` row; it records the money and flags the order
+ * `order_not_open` for a refund. The card page starts no sale on a cancelled
+ * order (`bridgeChargeGate`).
+ */
+export async function cancelUnpaidOrdersOfClosingAccount(
+  customerEmail: string,
+): Promise<number> {
+  const needle = customerEmail.trim().toLowerCase();
+  if (!needle) return 0;
+  await ensureSeed();
+  const open = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      // Case-insensitive, the way `customerOrdersByEmail` reads them back:
+      // the count that follows must not find a row this missed.
+      .ieq("customerEmail", needle)
+      .eq("status", "pending_payment")
+      .order("createdAt", { ascending: true })
+      .limit(20),
+    "cancelUnpaidOrdersOfClosingAccount",
+  ).filter((order) => order.source !== "manual");
+  if (open.length === 0) return 0;
+  const provider = await lookupProvider();
+  const now = Date.now();
+  const outcomes = await Promise.allSettled(
+    open.map((order) =>
+      cancelUnpaidOrder(order, provider, {
+        giveUpOnUnknown:
+          now - Date.parse(order.createdAt) >= POS_LOOKUP_GIVE_UP_MS,
+        reason: ACCOUNT_CLOSED_CANCEL_REASON,
+      }),
+    ),
+  );
+  let cancelled = 0;
+  for (const outcome of outcomes) {
+    if (outcome.status === "fulfilled") {
+      if (outcome.value) cancelled += 1;
+    } else {
+      console.error(
+        "[orders] cancelling an unpaid order at account closure failed",
+        outcome.reason,
+      );
+    }
+  }
+  return cancelled;
 }
 
 export async function placeOrder(
