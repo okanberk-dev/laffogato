@@ -3,8 +3,8 @@ import "server-only";
 import type { DbError } from "@/lib/db";
 
 import {
+  cancelUnpaidOrdersOfClosingAccount,
   customerOrdersByEmail,
-  expireStalePendingOrders,
   getMenuItem,
   getSettings,
   type AdminOrderStatus,
@@ -219,6 +219,12 @@ export function anonymizedEmail(customerId: string): string {
  * the API refuses rather than anonymising the buyer of an order the kitchen
  * is about to hand over. `paid` is on the list with the other three: it is
  * "Sipariş alındı", the most in-flight an order gets.
+ *
+ * `pending_payment` stays on the list, but since 27 Oct 2026 `deleteMe`
+ * cancels the member's unpaid checkouts before it counts
+ * (`cancelUnpaidOrdersOfClosingAccount`). What is still pending by then is
+ * not known to be unpaid - the POS could not be asked (rule 29) - or is a
+ * panel order paid on delivery: both hold the closure.
  */
 export const IN_PROGRESS_ORDER_STATUSES: readonly AdminOrderStatus[] = [
   "pending_payment",
@@ -577,7 +583,9 @@ export interface DeleteMeOptions {
  *
  * Refused, not queued, while an order is in flight - Üyelik Sözleşmesi §14 and
  * the `hesap-silme` document both say the closure waits for it, and the member
- * would otherwise lose sight of an order they have already paid for.
+ * would otherwise lose sight of an order they have already paid for. An
+ * order that was never paid is not in flight: it is cancelled first (see
+ * IN_PROGRESS_ORDER_STATUSES).
  *
  * The sign-in identity goes too: `deleteSupabaseIdentity` removes the Supabase
  * user when the deployment holds a service-role key, so the old password stops
@@ -599,13 +607,19 @@ export async function deleteMe(
   const at = new Date();
   const now = at.toISOString();
 
-  // Reclaim the member's own abandoned checkouts before counting them: a
-  // pending_payment row nobody swept would otherwise block the closure
-  // for good.
+  // The member's own checkouts that were never paid are cancelled before the
+  // count, whatever their age (docs/API-MOBILE.md §4, since 27 Oct 2026). A
+  // member who stopped on the payment page and then deleted the account was
+  // refused until the 45-minute sweep reached that order; App Review's
+  // tester does exactly that (5.1.1(v)). Each is asked about at the POS
+  // first (rule 29): one the POS says was paid is booked, and then holds the
+  // closure below like any paid order. A failure here leaves the orders
+  // pending and the count refuses: nothing is closed over an order nobody
+  // could settle.
   try {
-    await expireStalePendingOrders();
+    await cancelUnpaidOrdersOfClosingAccount(customer.email);
   } catch (err) {
-    console.error("[deleteMe] expiring stale pending orders failed", err);
+    console.error("[deleteMe] cancelling unpaid orders failed", err);
   }
   const orders = await customerOrdersByEmail(customer.email);
   const inProgress = orders.filter((o) =>

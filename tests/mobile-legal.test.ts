@@ -99,9 +99,10 @@ describe("legal index", () => {
     expect(index.updatedAt).toBe(LEGAL_UPDATED);
     const coded = (slug: string) =>
       LEGAL_DOCS.find((d) => d.slug === slug)!.updatedAt;
-    // (The cookie documents carry 25 Ekim 2026 of their own since the Meta
-    // Pixel, META_PIXEL_LEGAL_UPDATED, so a document that did not move stands
-    // in for the set's day here.)
+    // (The cookie documents carried 25 Ekim 2026 of their own from the Meta
+    // Pixel, META_PIXEL_LEGAL_UPDATED, until 27 Ekim 2026 moved the set past
+    // it, LEGAL-REDLINES §36; two plain documents stand in for the set's day
+    // here.)
     for (const slug of ["odul-programi", "kullanim-sartlari"]) {
       const other = index.docs.find((d) => d.slug === slug)!;
       expect(other.updatedAt, slug).toBe(coded(slug));

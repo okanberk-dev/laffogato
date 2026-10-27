@@ -1,6 +1,17 @@
 /**
  * fA'L read by AI (karar 177, 23 Eyl 2026) - the pure half.
  *
+ * RETIRED, 27 Oct 2026. App Review refused the iOS app under Guideline
+ * 4.3(b) (fortune telling) and fA'L left the app (lafmobil karar 330: Kahve
+ * Modu took its place, the photo never leaves the device, no AI). The AI
+ * reading is off in code, whatever the environment says (`falAiEnabled`),
+ * and never comes back. The endpoints stay because v1 only grows
+ * (docs/API-MOBILE.md §20): POST /fal answers 503 `fal_unavailable`, the
+ * bootstrap says `fal.ai` false, the R12 consents were closed by
+ * db/migrations/20261027120000_retire_fal_ai_consents.sql and the old rows
+ * run out under their retention rules (src/lib/retention.ts). Everything
+ * below is the record of what the feature was; nothing reads with it.
+ *
  * The operator: "let them photograph their americano or latte and read it
  * by the situation; they are members, so you know a little about them; say
  * 'AI ile yorumlanıyor'; I will give the OpenAI key later." On 17 Eki 2026
@@ -168,15 +179,21 @@ export function falTransferSafeguardInForce(
 }
 
 /**
- * On only with the explicit switch AND the chosen provider's key, only when
- * that provider is the recipient the texts name, and only once the standard
- * contract for the transfer is signed and notified (`fal-safeguard.ts`).
+ * Always off. App Review refused the iOS app on 27 Oct 2026 under Guideline
+ * 4.3(b) and fA'L, with its AI reading, left the app (lafmobil karar 330).
+ * So the reading is off in code, not by an environment value someone could
+ * set again: `FAL_AI_ENABLED`, the providers' keys and the standard
+ * contract's record (`fal-safeguard.ts`) are no longer read here. It used
+ * to need all of them: the switch, the chosen provider's key, that provider
+ * being the recipient the texts named, and the contract signed and notified.
+ *
+ * The bootstrap (`app.fal.ai`), GET /fal/consent (`enabled`) and
+ * `readCupWithAI`, the only function that ever sent the photo, ask this.
+ * POST /fal no longer has anything to ask it for: it answers 503
+ * `fal_unavailable` to every signed-in caller.
  */
-export function falAiEnabled(env: Env, now: Date = new Date()): boolean {
-  if (!falTransferSafeguardInForce(now)) return false;
-  if (env.FAL_AI_ENABLED?.trim().toLowerCase() !== "true") return false;
-  const provider = falProvider(env);
-  return provider === FAL_DISCLOSED_PROVIDER && falApiKey(env, provider) !== "";
+export function falAiEnabled(): boolean {
+  return false;
 }
 
 /** The model that reads: the provider's model switch, else its default. */

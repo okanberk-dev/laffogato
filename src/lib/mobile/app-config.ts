@@ -166,10 +166,10 @@ export interface BootstrapApp {
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
   /**
-   * Karar 177: whether fA'L's AI reading is on - the explicit switch AND the
-   * chosen provider's key, Anthropic or OpenAI, for a provider the published
-   * texts name as the recipient (`fal-core.ts` `falAiEnabled`). Off, the app
-   * never offers it and reads the cup on the device.
+   * Karar 177: whether fA'L's AI reading is on (`fal-core.ts`
+   * `falAiEnabled`). Always false since 27 Oct 2026: fA'L left the app after
+   * App Review's 4.3(b) refusal (lafmobil karar 330) and the app no longer
+   * reads this. It stays in the bootstrap because v1 only grows.
    */
   fal: { ai: boolean };
 }
@@ -591,7 +591,7 @@ export function toBootstrapApp(
   cfg: MobileAppConfig,
   /** `settings.isShopOpen` - see `BootstrapApp["ordering"]`. */
   shopEnabled: boolean,
-  /** Karar 177: fA'L's AI reading, from the environment (`falAiEnabled`). */
+  /** Karar 177: fA'L's AI reading (`falAiEnabled`), always false since 27 Oct 2026. */
   falAi = false,
 ): BootstrapApp {
   return {

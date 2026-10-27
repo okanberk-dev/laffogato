@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isClosedAccountEmail } from "@/lib/admin/store";
 import { rememberCardUserKey } from "@/lib/customer/store";
 import type {
   PaymentProvider,
@@ -63,7 +64,9 @@ export async function settleKaraokeReturn(
     // "Kartımı kaydet" for a member's booking, as for an order. A guest has
     // no account to keep a card key on.
     const r = applied.reservation;
-    if (result.cardUserKey && !r.guest && r.customerEmail) {
+    // Not onto a closed account: a late charge on a booking DELETE /me
+    // cancelled carries the anonymised placeholder, as an order does.
+    if (result.cardUserKey && !r.guest && r.customerEmail && !isClosedAccountEmail(r.customerEmail)) {
       await rememberCardUserKey(r.customerEmail, result.cardUserKey).catch(
         (err: unknown) =>
           console.error("[odeme/donus] karaoke cardUserKey not stored", err),

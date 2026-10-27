@@ -109,7 +109,6 @@ const CONTENT_PAGES: ReadonlyArray<readonly [string, string]> = [
   ["basin", "Basın"],
   ["mobil/duyurular", "Duyurular"],
   ["mobil/gonderiler", "Gönderiler"],
-  ["mobil/fal-bildirimleri", "fA'L bildirimleri"],
   ["raporlar", "Raporlar"],
   ["masalar", "Masalar"],
   ["ayarlar", "Ayarlar"],
@@ -132,6 +131,17 @@ describe("İçerik and Yönetim pages say the nav's word", () => {
       expect(page).not.toMatch(/>\s*\+ [A-ZÇĞİÖŞÜ]/);
     });
   }
+
+  it("fA'L bildirimleri, out of the nav since 27 Oct 2026, keeps its own word and the kit's shell", () => {
+    // fA'L left the app (App Review 4.3(b), lafmobil karar 330); the page
+    // stays for direct links until its old rows run out.
+    expect(layout).not.toContain(`label: "fA'L bildirimleri"`);
+    const page = source("mobil/fal-bildirimleri");
+    expect(page).toContain(`title="fA'L bildirimleri"`);
+    expect(page).not.toMatch(/\beyebrow=/);
+    expect(page).toContain("<PageShell");
+    expect(page).not.toMatch(/<main\b/);
+  });
 
   it("the dashboard says Genel bakış and greets in its description", () => {
     const page = readFileSync("src/app/admin/page.tsx", "utf8");

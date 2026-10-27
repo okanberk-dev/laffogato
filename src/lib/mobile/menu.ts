@@ -74,5 +74,8 @@ export async function listShopForMobile(): Promise<MobileShop> {
 
 export async function getBootstrap(): Promise<MobileBootstrap> {
   const settings = await getSettings();
-  return buildBootstrap(settings, SITE, new Date(), falAiEnabled(process.env));
+  // `app.fal.ai`: false since 27 Oct 2026, whatever the environment says
+  // (fA'L retired, App Review 4.3(b), lafmobil karar 330). The field stays
+  // because v1 only grows.
+  return buildBootstrap(settings, SITE, new Date(), falAiEnabled());
 }

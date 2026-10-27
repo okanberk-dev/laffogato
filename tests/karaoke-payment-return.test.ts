@@ -23,6 +23,7 @@ vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({ name: "paynkolay", confirmReturn: h.confirm }),
 }));
 vi.mock("@/lib/admin/store", () => ({
+  isClosedAccountEmail: (email: string) => email.endsWith("@anon.local"),
   applyPaymentSucceeded: h.applyOrder,
   getOrder: async () => null,
   orderChannel: () => "web",
@@ -149,6 +150,15 @@ describe("a karaoke return the POS confirmed", () => {
       ok: true,
       outcome: "paid",
       reservation: { ...PAID, guest: true },
+    });
+    await bankPost({ CLIENT_REFERENCE_CODE: "krk-00042" });
+    expect(h.remember).not.toHaveBeenCalled();
+    // Nor onto a closed account: DELETE /me cancelled the booking and left
+    // the anonymised placeholder; a late charge must not write a key back.
+    h.apply.mockResolvedValueOnce({
+      ok: true,
+      outcome: "paid",
+      reservation: { ...PAID, customerEmail: "deleted-cus-0007@anon.local" },
     });
     await bankPost({ CLIENT_REFERENCE_CODE: "krk-00042" });
     expect(h.remember).not.toHaveBeenCalled();

@@ -662,12 +662,45 @@ export async function listAppOrders(
   // The limit belongs in SQL: this used to read the member's entire history -
   // items jsonb, consent evidence and refund ledger included - and throw all
   // but the newest 50 away in JavaScript.
-  const [orders, stamped] = await Promise.all([
-    customerOrdersByEmail(customer.email, ORDER_LIST_LIMIT),
-    stampedOrders(customer.email),
-  ]);
+  const read = () =>
+    Promise.all([
+      customerOrdersByEmail(customer.email, ORDER_LIST_LIMIT),
+      stampedOrders(customer.email),
+    ]);
+  let [orders, stamped] = await read();
+  // A checkout left unpaid past its window sat in the app as an order in
+  // progress until some checkout ran the sweep. Only when the list holds
+  // one does the sweep run here (rule 29: the POS is asked first), so the
+  // common read costs nothing more; the list is read again if it moved.
+  if (holdsExpiredCheckout(orders, Date.now())) {
+    try {
+      if ((await expireStalePendingOrders()) > 0) {
+        [orders, stamped] = await read();
+      }
+    } catch (err) {
+      console.error("[orders] expiring stale pending orders failed", err);
+    }
+  }
   const now = new Date();
   return orders.map((o) => toMobileOrder(o, now, stamped));
+}
+
+/**
+ * Whether the member's list holds a checkout whose payment window has
+ * passed - what the 45-minute sweep would cancel. A panel order paid on
+ * delivery is not one (the sweep leaves it alone too); an unreadable
+ * timestamp is not evidence that the window has passed.
+ */
+export function holdsExpiredCheckout(
+  orders: readonly Pick<AdminOrder, "status" | "source" | "createdAt">[],
+  nowMs: number,
+): boolean {
+  const cutoff = nowMs - PENDING_ORDER_TTL_MINUTES * 60_000;
+  return orders.some((o) => {
+    if (o.status !== "pending_payment" || o.source === "manual") return false;
+    const at = Date.parse(o.createdAt);
+    return Number.isFinite(at) && at < cutoff;
+  });
 }
 
 /** `GET /orders/{id}` - only the owner's; anyone else sees nothing. */

@@ -14,7 +14,6 @@ import {
   FAL_TIMEOUT_MS,
   anthropicReplyText,
   anthropicRequestBody,
-  falAiEnabled,
   falContextLine,
   falModel,
   falProvider,
@@ -27,12 +26,23 @@ import {
 import type * as FalCore from "@/lib/mobile/fal-core";
 
 /**
- * Karar 177, 17 Eki 2026: fA'L's AI reading runs on Anthropic's Claude API,
- * and the OpenAI path stays. Which provider reads is the environment's
- * choice; whether it may read at all is also the published texts' (the
- * recipient they name). The network is a mocked fetch throughout: no real
+ * Karar 177, 17 Eki 2026: fA'L's AI reading ran on Anthropic's Claude API,
+ * with the OpenAI path kept. Which provider read was the environment's
+ * choice; whether it could read at all was also the published texts' (the
+ * recipient they named). The network is a mocked fetch throughout: no real
  * key, no real call.
+ *
+ * Retired on 27 Oct 2026 (App Review 4.3(b), lafmobil karar 330):
+ * `falAiEnabled` is a plain false and `readCupWithAI` sends nothing
+ * (tests/mobile-fal-retired.test.ts). The tests below read the retired
+ * request code as if that switch were on, so the locks it still keeps behind
+ * it (the recipient, no identity in the request, nothing secret in the log)
+ * stay pinned for as long as the code stays.
  */
+vi.mock("@/lib/mobile/fal-core", async (importOriginal) => ({
+  ...(await importOriginal<typeof FalCore>()),
+  falAiEnabled: () => true,
+}));
 
 // fal.ts reads the database for consents and seats; nothing here needs it.
 vi.mock("@/lib/db", () => ({
@@ -42,9 +52,9 @@ vi.mock("@/lib/db", () => ({
   TABLES: { falReadings: "fal_readings", featureConsents: "feature_consents", falReports: "fal_reports" },
 }));
 
-// The standard contract's record as the enabling PR will fill it: these
-// tests are about a reading that is switched on. With the shipped, empty
-// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+// The standard contract's record as if it had been filed: these tests read
+// the request code as if switched on. With the shipped, empty record nothing
+// was ever sent (tests/mobile-fal-safeguard.test.ts).
 vi.mock("@/lib/mobile/fal-safeguard", () => ({
   FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
 }));
@@ -144,39 +154,6 @@ describe("falProvider: the environment's choice", () => {
     for (const typo of ["gemini", "antropic", "open-ai", "claude"]) {
       expect(falProvider({ FAL_AI_PROVIDER: typo, ANTHROPIC_API_KEY: ANTHROPIC_KEY, OPENAI_API_KEY: OPENAI_KEY }), typo).toBeNull();
     }
-  });
-});
-
-describe("falAiEnabled: the switch, the chosen provider's key, and a recipient the texts name", () => {
-  const disclosed = FAL_DISCLOSED_PROVIDER;
-  const other: FalProvider = disclosed === "anthropic" ? "openai" : "anthropic";
-
-  it("is on with the switch and the disclosed provider's key", () => {
-    expect(falAiEnabled(envFor(disclosed))).toBe(true);
-    expect(falAiEnabled({ ...envFor(disclosed), FAL_AI_ENABLED: " TRUE " })).toBe(true);
-  });
-
-  it("is off without the switch, whatever keys there are", () => {
-    for (const value of [undefined, "", "false", "1", "yes", "on"]) {
-      expect(falAiEnabled({ ...envFor(disclosed), FAL_AI_ENABLED: value }), String(value)).toBe(false);
-    }
-  });
-
-  it("is off when the chosen provider's own key is missing or blank", () => {
-    // The other provider's key does not stand in for it.
-    const otherKey = FAL_PROVIDER_INFO[other].keyEnv;
-    expect(
-      falAiEnabled({ FAL_AI_ENABLED: "true", FAL_AI_PROVIDER: disclosed, [otherKey]: "some-key" }),
-    ).toBe(false);
-    expect(falAiEnabled({ ...envFor(disclosed), [FAL_PROVIDER_INFO[disclosed].keyEnv]: "   " })).toBe(false);
-  });
-
-  it("is off for a provider the published texts do not name, even with its key and the switch", () => {
-    expect(falAiEnabled(envFor(other))).toBe(false);
-  });
-
-  it("is off for a provider name it does not know", () => {
-    expect(falAiEnabled({ ...envFor(disclosed), FAL_AI_PROVIDER: "gemini" })).toBe(false);
   });
 });
 
@@ -295,6 +272,7 @@ describe("the OpenAI path, kept for a text that names OpenAI", () => {
     vi.resetModules();
     vi.doMock("@/lib/mobile/fal-core", async (importOriginal) => ({
       ...(await importOriginal<typeof FalCore>()),
+      falAiEnabled: () => true,
       FAL_DISCLOSED_PROVIDER: "openai",
     }));
     try {
@@ -507,35 +485,17 @@ describe("readCupWithAI: what it logs", () => {
 // ─── What the operator and the app read about it ────────────────────────
 
 describe("the documents that describe it", () => {
-  it(".env.example names every switch, the default model and why OpenAI stays off", () => {
+  it(".env.example says the switches are no longer read and offers none to set", () => {
     const env = readFileSync(".env.example", "utf8");
+    const fal = env.slice(env.indexOf("# fA'L yapay zekâ yorumu"), env.indexOf("# Geliver kargo webhook"));
+    expect(fal).toContain("KALDIRILDI");
+    expect(fal).toContain("falAiEnabled her zaman false");
     for (const name of ["FAL_AI_ENABLED", "FAL_AI_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_FAL_MODEL", "OPENAI_API_KEY", "OPENAI_FAL_MODEL"]) {
-      expect(env, name).toMatch(new RegExp(`^# ${name}=`, "m"));
+      expect(fal, name).toContain(name);
+      // No line, commented or not, that hands someone a value to paste.
+      expect(env, name).not.toMatch(new RegExp(`^#?\\s*${name}=`, "m"));
     }
-    expect(env).toContain("claude-opus-5-5");
-    expect(env).toContain("FAL_DISCLOSED_PROVIDER");
-  });
-
-  it("the switch waits for the standard contract and an app that names the right recipient", () => {
-    // KVKK m.9 (2024): the photo goes with every reading, so the transfer is
-    // not incidental and consent alone does not carry it. And the app shows
-    // its own four consent lines while posting back the server's version.
-    const env = readFileSync(".env.example", "utf8");
-    for (const gate of ["standart sözleşmesi", "arızi değil", "minSupportedAppVersion", "gerçek yorum"]) {
-      expect(env, gate).toContain(gate);
-    }
-    const doc = readFileSync("docs/API-MOBILE.md", "utf8");
-    const fal = doc.slice(doc.indexOf("## 20. fA'L"), doc.indexOf("## 21."));
-    for (const gate of ["beş iş günü", "arızi", "minSupportedAppVersion"]) {
-      expect(fal, gate).toContain(gate);
-    }
-    expect(fal).not.toContain("hiçbir\n  yerde saklanmaz");
-    const note = readFileSync("docs/LEGAL-REDLINES-2026-09.md", "utf8");
-    const y1 = note.slice(note.indexOf("## 15. Y1"), note.indexOf("## Ek A"));
-    for (const fact of ["m.9/4-c", "m.9/6-a", "Yönetmelik m.16/1", "beş iş günü", "minSupportedAppVersion", "avukat"]) {
-      expect(y1, fact).toContain(fact);
-    }
-    expect(y1).not.toContain("Hukuki sebep: açık rıza (KVKK m.5/1 ve m.9");
+    expect(fal).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("the contract (§20) describes both providers, the recipient gate and the version that names it", () => {
@@ -557,7 +517,9 @@ describe("the documents that describe it", () => {
       expect(fal, fact).toContain(fact);
     }
     expect(fal).not.toMatch(/[–—]/);
-    // The bootstrap flag keeps its meaning and says where the switches are.
-    expect(doc).toMatch(/"fal": \{ "ai": false \},.*FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı/);
+    // v1 only grows: the retired endpoints and the bootstrap flag stay
+    // documented, and the off answer is the one POST /fal now always gives.
+    expect(fal).toContain("fal_unavailable");
+    expect(doc).toMatch(/"fal": \{ "ai": false \}/);
   });
 });

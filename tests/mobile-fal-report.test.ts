@@ -19,6 +19,10 @@ import {
  * flags an AI reading of fA'L. The report keeps the words, a reason from a
  * closed list and the model - never the photo - and it must work whether or
  * not the AI is switched on, because a reading on screen stays reportable.
+ *
+ * Since 27 Oct 2026 the AI reading is retired (App Review 4.3(b), lafmobil
+ * karar 330) and no app build sends a report; the endpoint keeps the answer
+ * §20 documents, and the old rows run out after ninety days.
  */
 
 const WORDS =
@@ -83,41 +87,12 @@ function req(body: unknown) {
   );
 }
 
-describe("POST /fal/report", () => {
+describe("POST /fal/report, retired on 27 Oct 2026", () => {
   beforeEach(() => {
-    vi.unstubAllEnvs();
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "Eda@Ornek.com", emailVerified: true } });
     lib.falReportsToday.mockReset().mockResolvedValue([]);
     lib.recordFalReport.mockReset().mockResolvedValue(41);
     lib.withdrawFalReport.mockReset().mockResolvedValue(undefined);
-  });
-
-  it("is 403 email_unverified for an unconfirmed sign-up, and stores nothing (WS1-04)", async () => {
-    // No AI reading is ever given to an unverified address (POST /fal), so
-    // there is nothing it could report - only free text to post.
-    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "x@ornek.com", emailVerified: false } });
-    const res = await req({ text: WORDS });
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("email_unverified");
-    expect(lib.recordFalReport).not.toHaveBeenCalled();
-  });
-
-  it("takes its own row back when a burst carried the day past the cap (WS1-04)", async () => {
-    // Read before the insert: room for one more. Read after it: the burst's
-    // other rows landed too.
-    lib.falReportsToday
-      .mockResolvedValueOnce(Array.from({ length: FAL_REPORT_DAILY_LIMIT - 1 }, (_, i) => `yorum ${i}`))
-      .mockResolvedValueOnce(Array.from({ length: FAL_REPORT_DAILY_LIMIT + 3 }, (_, i) => `yorum ${i}`));
-    const res = await req({ text: WORDS });
-    expect(res.status).toBe(429);
-    expect((await res.json()).error).toBe("fal_report_limit");
-    expect(lib.withdrawFalReport).toHaveBeenCalledWith(41);
-  });
-
-  it("keeps the row when the re-count is within the cap", async () => {
-    lib.falReportsToday.mockResolvedValueOnce([]).mockResolvedValueOnce([WORDS]);
-    expect((await req({ text: WORDS })).status).toBe(201);
-    expect(lib.withdrawFalReport).not.toHaveBeenCalled();
   });
 
   it("refuses a caller without a bearer and stores nothing", async () => {
@@ -126,74 +101,30 @@ describe("POST /fal/report", () => {
     expect(lib.recordFalReport).not.toHaveBeenCalled();
   });
 
-  it("stores the words, the reason and the model, and answers 201 ok", async () => {
-    const res = await req({ text: WORDS, reason: "promise", model: "gpt-5.4-mini" });
-    expect(res.status).toBe(201);
-    expect(await res.json()).toEqual({ ok: true });
-    expect(res.headers.get("Cache-Control")).toContain("no-store");
-    expect(lib.recordFalReport).toHaveBeenCalledWith("Eda@Ornek.com", {
-      reason: "promise",
-      text: WORDS,
-      model: "gpt-5.4-mini",
-    });
-  });
-
-  it("works while the AI is switched off - a reading on screen stays reportable", async () => {
-    vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("FAL_AI_ENABLED", "");
-    expect((await req({ text: WORDS })).status).toBe(201);
-  });
-
-  it("files an unknown reason as other and a missing model as empty", async () => {
-    await req({ text: WORDS, reason: "newer-build-reason" });
-    expect(lib.recordFalReport).toHaveBeenCalledWith("Eda@Ornek.com", { reason: "other", text: WORDS, model: "" });
-  });
-
-  it("never takes a photo, whatever the body carries", async () => {
-    await req({ text: WORDS, image: "/9j/4AAQSkZJRg==" });
-    const stored = lib.recordFalReport.mock.calls[0]![1] as Record<string, unknown>;
-    expect(Object.keys(stored).sort()).toEqual(["model", "reason", "text"]);
-  });
-
-  it("is 400 for a body that is not JSON, has no words or too many", async () => {
-    expect((await req("not json")).status).toBe(400);
-    expect((await (await req({})).json()).error).toBe("invalid_request");
-    expect((await (await req({ text: "   " })).json()).error).toBe("invalid_request");
-    expect((await req({ text: "a".repeat(FAL_REPORT_TEXT_MAX + 1) })).status).toBe(400);
+  it("answers 503 fal_unavailable to a member and reads or writes nothing, whatever the body", async () => {
+    // Veri Saklama: no new report is taken once the feature left the app.
+    for (const body of [{ text: WORDS, reason: "promise", model: "gpt-5.4-mini" }, { text: "" }, "{not json", { photo: "AAAA" }]) {
+      const res = await req(body);
+      expect(res.status).toBe(503);
+      expect((await res.json()).error).toBe("fal_unavailable");
+    }
+    expect(lib.falReportsToday).not.toHaveBeenCalled();
     expect(lib.recordFalReport).not.toHaveBeenCalled();
-  });
-
-  it(`stops at ${FAL_REPORT_DAILY_LIMIT} reports a day with 429 fal_report_limit`, async () => {
-    lib.falReportsToday.mockResolvedValue(Array.from({ length: FAL_REPORT_DAILY_LIMIT }, (_, i) => `yorum ${i}`));
-    const res = await req({ text: WORDS });
-    expect(res.status).toBe(429);
-    expect((await res.json()).error).toBe("fal_report_limit");
-    expect(lib.recordFalReport).not.toHaveBeenCalled();
-  });
-
-  it("stores the same words once a day and still answers ok", async () => {
-    lib.falReportsToday.mockResolvedValue([WORDS]);
-    const res = await req({ text: WORDS });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
-    expect(lib.recordFalReport).not.toHaveBeenCalled();
+    expect(lib.withdrawFalReport).not.toHaveBeenCalled();
   });
 });
 
 describe("what the house publishes about it", () => {
   const legal = readFileSync("src/lib/legal/content.ts", "utf8");
 
-  it("no longer says the generated reading is never kept", () => {
-    // It is kept when the member reports it; the old sentence would be false.
+  it("never says the generated reading is never kept", () => {
+    // It was kept when the member reported it; the old sentence was false.
+    // Since 27 Oct 2026 the legal texts drop fA'L altogether (lafmobil
+    // docs/site-handoff/APP-TO-SITE-2026-10-27.md); what they must not do
+    // is bring this sentence back.
     expect(legal).not.toContain("fotoğraf ve üretilen yorum saklanmaz");
     expect(legal).not.toContain("Fotoğraf ve üretilen yorum şirketimizce saklanmaz");
     expect(legal).not.toContain("Fotoğraf ve üretilen yorum saklanmaz");
-  });
-
-  it("names the report, what it keeps, that the photo is not in it, and for how long", () => {
-    expect(legal).toContain("'Bu yorumu bildir'");
-    expect(legal).toContain("Bildirdiğiniz bir yorumun kaydı incelenmek üzere doksan gün saklanır ve ardından silinir.");
-    expect(legal).toContain("Fotoğraf bildirime girmez");
   });
 
   it("documents the endpoint in the contract", () => {

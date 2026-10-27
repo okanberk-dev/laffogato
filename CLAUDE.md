@@ -80,6 +80,31 @@ olmalıdır**.
   (yalnız ekleme). Uygulamanın bir değeri sessizce düşürdüğü yerde panel aynı
   sınırı **mesajla** zorlar (`APP_CONFIG_LIMITS`).
 
+**fA'L uygulamadan kalktı (27 Ekim 2026).** App Review iOS gönderimini
+Guideline 4.3(b) (fal, astroloji) ve 5.1.1(v) (kayıtta zorunlu telefon) ile
+reddetti. Uygulama fA'L'ı ve yapay zekâ yorumunu kaldırdı (lafmobil karar
+330); yerine **Kahve Modu** geldi: üye günün kahve modunu (herkese aynı) ya
+da seçtiği başka bir modu kendi içecek fotoğrafına yazdırıp Story olarak
+paylaşır ya da cihazına kaydeder. Fotoğrafa bakılmaz, yalnız telefonda
+işlenir; uygulama onu L'Affogato'ya ya da başka bir yere göndermez. Yapay
+zekâ, tahmin ya da okuma yok. Kayıtta telefon artık isteğe bağlı (lafmobil
+karar 329). Sitede bunun anlamı:
+
+- Müşteriye görünen hiçbir metin (hukuk metinleri, `public/llms*.txt`, SSS
+  ve SEO, e-posta şablonları, sayfa metadatası, panelden yazılan slayt,
+  kampanya ve gönderiler) fA'L'ı, fal, burç, kehanet ya da yapay zekâ
+  yorumunu uygulamanın bir özelliği olarak anlatmaz; Kahve Modu "eğlence
+  amaçlı" diye de anlatılmaz ve cihaz için "saklanmaz" denmez, "gönderilmez"
+  denir. Rehberlerdeki "telve" (demlemede kahve posası) bu kuralın konusu
+  değildir.
+- `/api/mobile/v1/fal*` uçları ve `bootstrap.app.fal` v1 gereği kalır (yalnız
+  ekleme); karar 330'dan sonraki uygulama derlemeleri onları çağırmaz ve
+  okumaz. `FAL_AI_ENABLED` hiçbir ortamda tanımlanmaz.
+- İş listesi ve önerilen hukuk cümleleri lafmobil
+  `docs/site-handoff/APP-TO-SITE-2026-10-27.md`; reddin kaydı lafmobil
+  `docs/APP-REVIEW-2026-10-27.md`. Bu depodaki fA'L geçen eski kayıtlar
+  (`docs/AUDIT.md` düzeltme satırları, `docs/handoff/**`) tarihçedir.
+
 **İş mantığını web ile paylaşırken uçtan değil kütüphaneden geç.** Web'in
 kimliği bcrypt çerez oturumu, uygulamanınki Supabase bearer token'ı — web bir
 mobil ucu HTTP ile çağıramaz. Doğru desen: ortak kuralları saf bir `*-core`

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { expireStalePendingOrders } from "@/lib/admin/store";
 import { recordSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { reconcileIys } from "@/lib/iys/store";
@@ -100,6 +101,16 @@ export async function GET(request: Request) {
   const karaoke = await step("karaoke-holds", async () => ({
     expired: await expireUnpaidReservations(),
   }));
+  // Orders nobody paid for within their window (45 minutes): the same rule
+  // as the karaoke holds - each asked about at the POS first, a payment
+  // found is booked, only "no payment" (or a day of not being able to ask)
+  // cancels and hands the stock back (rule 29). A checkout and the member's
+  // order list run it too; this catches a quiet day, so a dead checkout
+  // does not sit in the app as an order in progress. Before the e-Arşiv
+  // step, which then sees a payment the sweep booked.
+  const orders = await step("unpaid-orders", async () => ({
+    expired: await expireStalePendingOrders(),
+  }));
   // Expo's delivery receipts for yesterday's order notifications: a token
   // Apple or Google say reaches no device is forgotten, and the tokens kept
   // beside the tickets are cleared (src/lib/push/order-push.ts).
@@ -171,6 +182,7 @@ export async function GET(request: Request) {
       birthday,
       iys,
       karaoke,
+      orders,
       pushReceipts,
       legalVersions,
       retention,

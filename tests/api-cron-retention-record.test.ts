@@ -72,6 +72,9 @@ vi.mock("@/app/api/cron/_birthday", () => ({
 vi.mock("@/lib/mobile/karaoke-payment", () => ({
   expireUnpaidReservations: vi.fn(async () => 0),
 }));
+vi.mock("@/lib/admin/store", () => ({
+  expireStalePendingOrders: vi.fn(async () => 0),
+}));
 // The texts shown today (#193): none here, so the legal-versions rule runs
 // over an empty keep list like every other rule.
 vi.mock("@/lib/legal/store", () => ({

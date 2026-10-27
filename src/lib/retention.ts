@@ -242,8 +242,12 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir.",
     note:
       "Karar 177. The row holds the day, whether a cup was seen and the " +
-      "model - never the photo or the words - and the daily limit only needs " +
-      "today's. Ninety days is what Açık Rıza Metni R12 publishes.",
+      "model - never the photo or the words - and the daily limit only " +
+      "needed today's. Ninety days is what Açık Rıza Metni R12 published " +
+      "and what the Veri Saklama ve İmha Politikası keeps for the old rows. " +
+      "The AI reading was retired on 27 Oct 2026 (App Review 4.3(b), " +
+      "lafmobil karar 330), so no row arrives any more; the rule stays " +
+      "until the last old one has gone.",
   },
   {
     id: "fal-reports",
@@ -256,9 +260,10 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     note:
       "'Bu yorumu bildir' (Google Play's AI-generated content policy). The " +
       "row holds the reported reading's words, the reason and the model - " +
-      "never the photo - for the operator to review and tighten the " +
-      "instructions. Ninety days is what the Veri Saklama ve İmha Politikası " +
-      "and Açık Rıza Metni R12 publish.",
+      "never the photo - for the operator to review. Ninety days is what " +
+      "the Veri Saklama ve İmha Politikası and Açık Rıza Metni R12 " +
+      "published. Since the 27 Oct 2026 retirement (App Review 4.3(b), " +
+      "lafmobil karar 330) the app sends no report; old rows run out here.",
   },
   {
     id: "feature-consents",
@@ -271,7 +276,10 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "Karar 177. Measured from the WITHDRAWAL: a consent that still stands " +
       "has revokedAt '' and is never in scope (the neq guard). Three years " +
       "of proof that the processing had a consent, counted in 366-day years " +
-      "so nothing goes early.",
+      "so nothing goes early. The R12 consents ('fal-ai') still open on 27 " +
+      "Oct 2026 were stamped withdrawn that day when the AI reading was " +
+      "retired (db/migrations/20261027120000_retire_fal_ai_consents.sql), so " +
+      "they run out three years from it like any other withdrawal.",
   },
   {
     id: "counter-tokens",

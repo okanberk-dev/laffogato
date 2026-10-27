@@ -65,6 +65,32 @@ describe("hesap-silme", () => {
     );
   });
 
+  it("an unpaid checkout is cancelled, not waited for (27 Ekim 2026)", () => {
+    // App Review 5.1.1(v): the reviewer stops on the payment page and then
+    // deletes the account. DELETE /me cancels the member's unpaid checkouts
+    // before it counts what is in flight (src/lib/mobile/me.ts), so the texts
+    // that say a running order holds the closure say this one does not
+    // (LEGAL-REDLINES §36).
+    const deferral = findLegalDoc("hesap-silme")!
+      .sections.find((s) => s.heading.startsWith("4."))!
+      .paragraphs!.find((p) => p.startsWith("Devam eden bir sipariş"))!;
+    expect(deferral).toContain(
+      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz: silme sırasında iptal edilir ve silmeyi ertelemez; iptalden önce ödemenin durumu ödeme kuruluşundan sorulur ve ödemesinin alındığı anlaşılan sipariş iptal edilmez.",
+    );
+    const agreement = findLegalDoc("uyelik-sozlesmesi")!.sections.find((s) =>
+      s.heading.startsWith("14."),
+    )!;
+    expect((agreement.paragraphs ?? []).join("\n")).toContain(
+      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; hesap kapatılırken iptal edilir ve kapatmayı ertelemez.",
+    );
+    const app = findLegalDoc("mobil-uygulama-kosullari")!.sections.find((s) =>
+      s.heading.startsWith("17."),
+    )!;
+    expect((app.paragraphs ?? []).join("\n")).toContain(
+      "Ödeme adımında ödemesi tamamlanmamış bir sipariş devam eden sipariş sayılmaz; silme sırasında iptal edilir.",
+    );
+  });
+
   it("gives the Kurul's complaint periods as KVKK m.14 sets them", () => {
     const appeal = findLegalDoc("hesap-silme")!.sections.find((s) =>
       s.heading.startsWith("11."),
@@ -128,7 +154,7 @@ describe("the other texts that sent members to /uye/hesap/sil", () => {
   it("Kullanım Şartları §7 names each channel and its time", () => {
     const terms = all("kullanim-sartlari");
     expect(terms).toContain(
-      "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır; Site'deki hesap silme sayfasından (https://",
+      "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır (ödeme adımında ödemesi tamamlanmamış siparişler devam eden sipariş sayılmaz ve bu sırada iptal edilir); Site'deki hesap silme sayfasından (https://",
     );
     expect(terms).toMatch(
       /\/uye\/hesap\/sil\) veya \S+@\S+ adresine iletilen talep en geç otuz gün içinde sonuçlandırılır\./,

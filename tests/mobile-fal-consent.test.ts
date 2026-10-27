@@ -29,9 +29,9 @@ function matches(row: Row, filters: Record<string, unknown>) {
   return Object.entries(filters).every(([k, v]) => (row as Record<string, unknown>)[k] === v);
 }
 
-// The standard contract's record as the enabling PR will fill it: these
-// tests are about a reading that is switched on. With the shipped, empty
-// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+// The standard contract's record as if it had been filed, with the switch and
+// the key set below: the strongest case. Since 27 Oct 2026 the reading is
+// off even then (tests/mobile-fal-retired.test.ts).
 vi.mock("@/lib/mobile/fal-safeguard", () => ({
   FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
 }));
@@ -133,7 +133,7 @@ describe("hasFalConsent after the recipient changed", () => {
   });
 });
 
-describe("GET /fal/consent tells the app to ask again", () => {
+describe("GET /fal/consent after the retirement (27 Oct 2026)", () => {
   beforeEach(() => {
     rows = [consentRow("2026-09-23")];
     requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: EDA, emailVerified: true } });
@@ -143,12 +143,18 @@ describe("GET /fal/consent tells the app to ask again", () => {
     vi.stubEnv("FAL_AI_ENABLED", "true");
   });
 
-  it("answers on, not granted, at the new version: the old yes is not carried over", async () => {
+  it("answers off, not granted, at the same version: switched on and keyed, the reading stays retired", async () => {
     const res = await consentRoute.GET(new Request("https://laffogato.net/api/mobile/v1/fal/consent"));
-    expect(await res.json()).toEqual({ enabled: true, version: "2026-10-19-anthropic", granted: false, doc: "acik-riza-metni" });
+    expect(await res.json()).toEqual({ enabled: false, version: "2026-10-19-anthropic", granted: false, doc: "acik-riza-metni" });
   });
 
-  it("refuses the old version, then takes the new one", async () => {
+  it("answers not granted for a consent the retirement migration stamped", async () => {
+    rows = [consentRow(FAL_CONSENT_VERSION, { revokedAt: "2026-10-27T00:00:00.000Z" })];
+    const res = await consentRoute.GET(new Request("https://laffogato.net/api/mobile/v1/fal/consent"));
+    expect(await res.json()).toMatchObject({ enabled: false, granted: false });
+  });
+
+  it("refuses every version since R12 was retired, and reopens no closed row", async () => {
     const post = (version: string) =>
       consentRoute.POST(
         new Request("https://laffogato.net/api/mobile/v1/fal/consent", {
@@ -159,9 +165,12 @@ describe("GET /fal/consent tells the app to ask again", () => {
       );
     expect((await post("2026-09-23")).status).toBe(409);
     expect(rows[0]!.version).toBe("2026-09-23");
-    const ok = await post(FAL_CONSENT_VERSION);
-    expect(await ok.json()).toEqual({ granted: true, version: "2026-10-19-anthropic" });
+    const current = await post(FAL_CONSENT_VERSION);
+    expect(current.status).toBe(409);
+    expect((await current.json()).error).toBe("consent_outdated");
+    // The row the retirement closed stays closed.
+    expect(rows[0]!.version).toBe("2026-09-23");
     const after = await consentRoute.GET(new Request("https://laffogato.net/api/mobile/v1/fal/consent"));
-    expect((await after.json()).granted).toBe(true);
+    expect((await after.json()).granted).toBe(false);
   });
 });

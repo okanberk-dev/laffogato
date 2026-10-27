@@ -13,6 +13,10 @@ export const dynamic = "force-dynamic";
 /**
  * "Bu yorumu bildir" reports on fA'L's AI readings (docs/API-MOBILE.md §20).
  *
+ * Out of the nav since 27 Oct 2026: fA'L and its AI reading left the app
+ * (App Review 4.3(b), lafmobil karar 330), so the app sends no new report.
+ * The page still opens from a direct link until the old rows run out.
+ *
  * Read-only: the operator reads what the AI wrote and why a member flagged
  * it, and tightens the standing instructions (`FAL_INSTRUCTIONS`) or the
  * forbidden stems when a pattern shows. No address is shown - who flagged a
@@ -38,6 +42,8 @@ export default async function AdminFalReportsPage() {
         description="Üyelerin Bildir ile ilettiği yapay zekâ yorumları."
         help={
           <p>
+            {"fA'L 27 Ekim 2026'da uygulamadan kaldırıldı; yeni fA'L " +
+              "bildirimi gelmez ve bu sayfa menüde yer almaz. "}
             Fotoğraf saklanmaz; burada yalnızca yorumun metni, sebep ve model
             görünür. Kayıtlar 90 gün sonra silinir.
           </p>

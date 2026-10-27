@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   applyPaymentSucceeded,
   getOrder,
+  isClosedAccountEmail,
   orderChannel,
   type AdminOrder,
 } from "@/lib/admin/store";
@@ -235,7 +236,17 @@ export async function POST(req: NextRequest) {
       if (result.cardUserKey && applied.ok) {
         try {
           const paid = await getOrder(result.orderId);
-          if (paid?.customerEmail) {
+          // Not onto a closed account. A charge that completes after the
+          // member deleted the account (the bank's page was still open)
+          // lands on an order the closure cancelled: it is not revived, it
+          // goes to a person for a refund (`order_not_open`). The order now
+          // carries the closed row's placeholder address, and writing the
+          // key there would give a closed account a card again (deleteMe
+          // blanks `cardUserKey` and drops the cards at the POS).
+          if (
+            paid?.customerEmail &&
+            !isClosedAccountEmail(paid.customerEmail)
+          ) {
             await rememberCardUserKey(paid.customerEmail, result.cardUserKey);
           }
         } catch (err) {

@@ -14,6 +14,7 @@ import {
   FAL_TIMEOUT_MS,
   anthropicReplyText,
   anthropicRequestBody,
+  falAiEnabled,
   falApiKey,
   falModel,
   falProvider,
@@ -33,6 +34,12 @@ import { istanbulClock } from "./venue";
 /**
  * fA'L read by AI (karar 177) - the half that touches the database and the
  * network. The rules are in `fal-core.ts`; this module only carries them out.
+ *
+ * Retired on 27 Oct 2026 (App Review 4.3(b), lafmobil karar 330): the
+ * reading is off in code (`falAiEnabled`), so `readCupWithAI` sends nothing
+ * and POST /fal no longer takes a seat. What still runs is what v1 keeps
+ * answering: the consent row (GET, POST, DELETE /fal/consent), the reports
+ * (POST /fal/report) and the panel's read-only list of old reports.
  */
 
 function checkErr(error: DbError | null, ctx: string): void {
@@ -308,12 +315,12 @@ function errorName(err: unknown): string {
  * The log says which provider, and only a status code, a stop reason or an
  * error's class name: never the photo, the prompt, the member or the key.
  *
- * The route asks `falAiEnabled` first. This function, the only one that sends
- * the photo, holds the recipient rule too: a provider the published texts do
- * not name (`FAL_DISCLOSED_PROVIDER`) is asked nothing, whoever calls it and
- * whatever the environment says. So does the transfer rule: until the
- * standard contract is signed and notified (`fal-safeguard.ts`) nothing is
- * sent at all, as R12 promises.
+ * Since 27 Oct 2026 it asks `falAiEnabled` first and sends nothing: the AI
+ * reading is retired (App Review 4.3(b), lafmobil karar 330), whoever calls
+ * this and whatever the environment says. The older locks stay behind it:
+ * a provider the published texts do not name (`FAL_DISCLOSED_PROVIDER`) was
+ * asked nothing, and nothing was sent before the standard contract was
+ * signed and notified (`fal-safeguard.ts`), as R12 promised.
  */
 export async function readCupWithAI(
   jpegBase64: string,
@@ -322,6 +329,7 @@ export async function readCupWithAI(
   fetcher: typeof fetch = fetch,
   now: Date = new Date(),
 ): Promise<FalAiOutcome> {
+  if (!falAiEnabled()) return { ok: false, reason: "failed" };
   if (!falTransferSafeguardInForce(now)) return { ok: false, reason: "failed" };
   const provider = falProvider(env);
   if (!provider || provider !== FAL_DISCLOSED_PROVIDER) return { ok: false, reason: "failed" };
