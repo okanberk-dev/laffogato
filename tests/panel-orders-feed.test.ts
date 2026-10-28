@@ -17,6 +17,7 @@ import {
   PANEL_ORDER_READY_STALE_MS,
   PANEL_ORDER_STALE_MS,
   PANEL_ORDERS_LOOKBACK_DAYS,
+  isBarScreenOrder,
   panelAwaitingPaymentCount,
   panelAwaitingPaymentSince,
   panelOrderRowsComplete,
@@ -412,6 +413,28 @@ describe("awaitingPayment", () => {
     expect(toPanelOrder(row({ fulfillment: "shipping" }), NOW)).toBeNull();
   });
 
+  it("counts by the same rule as the screen: a café order for a table, pickup or courier, not typed into the panel", () => {
+    for (const kind of ["cafe", "shop", undefined]) {
+      for (const source of ["", "manual", "app", undefined]) {
+        for (const fulfillment of [
+          "table",
+          "pickup",
+          "delivery",
+          "shipping",
+          "",
+          undefined,
+        ]) {
+          const r = row({ kind, source, fulfillment });
+          expect(isBarScreenOrder(r)).toBe(toPanelOrder(r, NOW) !== null);
+        }
+      }
+    }
+    expect(isBarScreenOrder({ kind: "cafe", fulfillment: "table" })).toBe(true);
+    expect(
+      isBarScreenOrder({ kind: "cafe", source: "manual", fulfillment: "table" }),
+    ).toBe(false);
+  });
+
   it("is a whole number, never negative", () => {
     expect(panelAwaitingPaymentCount(3)).toBe(3);
     expect(panelAwaitingPaymentCount("2")).toBe(2);
@@ -521,6 +544,30 @@ describe("GET /api/panel/orders", () => {
     );
   });
 
+  it("reads the count before the list, so a payment in between is never in neither", async () => {
+    // An order only goes from waiting to paid. Counted first, one paid
+    // between the two reads is in the list; listed first, it was in
+    // neither and the panel read "0 waiting" with no new order.
+    let countDone = false;
+    let listStartedBeforeCount = false;
+    storeMock.countPanelAwaitingPaymentOrders.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      countDone = true;
+      return 1;
+    });
+    storeMock.listPanelOpenOrderRows.mockImplementation(async () => {
+      if (!countDone) listStartedBeforeCount = true;
+      return [row()];
+    });
+    const res = await get(signedGet("/api/panel/orders"));
+    expect(res.status).toBe(200);
+    expect(
+      storeMock.countPanelAwaitingPaymentOrders.mock.invocationCallOrder[0],
+    ).toBeLessThan(storeMock.listPanelOpenOrderRows.mock.invocationCallOrder[0]!);
+    // One after the other, not side by side.
+    expect(listStartedBeforeCount).toBe(false);
+  });
+
   it("answers 0, not a missing field, when nothing waits", async () => {
     const body = await (await get(signedGet("/api/panel/orders"))).json();
     expect(body.awaitingPayment).toBe(0);
@@ -560,6 +607,7 @@ describe("GET /api/panel/orders", () => {
     const res = await get(signedGet("/api/panel/orders"));
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: "unavailable" });
+    expect(storeMock.listPanelOpenOrderRows).not.toHaveBeenCalled();
   });
 });
 

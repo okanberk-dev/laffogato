@@ -30,8 +30,9 @@ import {
  *   the counter, with the columns `toPanelOrder` reads (the member's note
  *   on a gel-al order, never a courier order's door code);
  * - `countPanelAwaitingPaymentOrders`: the café orders for the screen
- *   opened in the last half hour and still waiting for their payment
- *   (`awaitingPayment`), never a manual one or a shop parcel;
+ *   still waiting for a payment on a checkout opened in the last half hour,
+ *   their own or a reopened one (`awaitingPayment`), never a manual one or
+ *   a shop parcel;
  * - `listPanelSalesOrderRows` / `listPanelSalesBookingRows`: the counted
  *   orders of a period with its margin, and every booking whose money
  *   reached the POS, with the rate it was sold at; the orders' payment rows
@@ -399,8 +400,8 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         createdAt: minutesAgo(29),
         fulfillment: "delivery",
       });
-      // Not counted: typed into the panel (paid at the till), a shop
-      // parcel, a café order with no screen fulfillment, one opened 31
+      // Not counted: typed into the panel (it never reaches the screen), a
+      // shop parcel, a café order with no screen fulfillment, one opened 31
       // minutes ago, and orders past their payment.
       await pending("ord-aw-03", 92_003, {
         createdAt: minutesAgo(2),
@@ -422,18 +423,69 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       ] as const) {
         await insertOrder(id, orderNo, { status, createdAt: minutesAgo(2) });
       }
+      // A checkout leaves a pending payment row (`recordPendingCheckout`):
+      // the first one with the order, a reopen ("Şimdi öde") later.
+      let ref = 0;
+      const checkout = (orderId: string, createdAt: string, status = "pending") =>
+        q(
+          `insert into public.payment_transactions ("orderId", provider,
+             "providerRef", status, "amountMinor", "createdAt")
+           values ($1, 'paynkolay', $2, $3, 0, $4)`,
+          [orderId, `pending:aw-${++ref}`, status, createdAt],
+        );
+      await checkout("ord-aw-01", minutesAgo(2));
+      // Counted by its reopened checkout: a table order opened 50 minutes
+      // ago, its payment page reopened twice (once 5 minutes ago).
+      await pending("ord-aw-09", 92_009, {
+        createdAt: minutesAgo(50),
+        fulfillment: "table",
+      });
+      await checkout("ord-aw-09", minutesAgo(50));
+      await checkout("ord-aw-09", minutesAgo(12));
+      await checkout("ord-aw-09", minutesAgo(5));
+      // Not counted: a reopen 40 minutes ago, a panel order or a parcel
+      // with a fresh payment row, a row that is not a checkout, and a
+      // karaoke booking's checkout (its id is no order's).
+      await pending("ord-aw-10", 92_010, { createdAt: minutesAgo(50) });
+      await checkout("ord-aw-10", minutesAgo(40));
+      await pending("ord-aw-11", 92_011, {
+        createdAt: minutesAgo(50),
+        source: "manual",
+      });
+      await checkout("ord-aw-11", minutesAgo(5));
+      await pending("ord-aw-12", 92_012, {
+        createdAt: minutesAgo(50),
+        kind: "shop",
+        fulfillment: "shipping",
+      });
+      await checkout("ord-aw-12", minutesAgo(5));
+      await pending("ord-aw-13", 92_013, { createdAt: minutesAgo(50) });
+      await checkout("ord-aw-13", minutesAgo(5), "failed");
+      await checkout("krk-pf-3", minutesAgo(5));
 
       expect(
         await store.countPanelAwaitingPaymentOrders(
           panelAwaitingPaymentSince(NOW),
         ),
-      ).toBe(3);
-      // A minute later ord-pf-07 has left the window.
+      ).toBe(4);
+      // A minute later ord-pf-07 has left the window; ord-aw-09 stays.
       expect(
         await store.countPanelAwaitingPaymentOrders(
           panelAwaitingPaymentSince(new Date(NOW.getTime() + 60_000)),
         ),
+      ).toBe(3);
+      // Half an hour after its last reopen (the bound included) it still
+      // counts, beside ord-aw-01; a minute after that it has left.
+      expect(
+        await store.countPanelAwaitingPaymentOrders(
+          panelAwaitingPaymentSince(new Date(NOW.getTime() + 25 * 60_000)),
+        ),
       ).toBe(2);
+      expect(
+        await store.countPanelAwaitingPaymentOrders(
+          panelAwaitingPaymentSince(new Date(NOW.getTime() + 26 * 60_000)),
+        ),
+      ).toBe(1);
       // None of them is on the screen until it is paid.
       const rows = await store.listPanelOpenOrderRows(
         panelOrdersSince(NOW),

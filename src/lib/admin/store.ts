@@ -33,6 +33,7 @@ import {
   type KaraokeRevenueRow,
 } from "@/lib/admin/karaoke-money";
 import {
+  PANEL_AWAITING_REOPEN_READ_MAX,
   PANEL_ORDER_FULFILLMENTS,
   PANEL_ORDER_STALE_MS,
   panelOrderDueAt,
@@ -2457,28 +2458,71 @@ export async function listPanelOpenOrderRows(
 
 /**
  * How many café orders the bar screen would show once paid are still
- * waiting for their payment, opened at or after `createdSince` (ISO text;
- * `panelAwaitingPaymentSince`): `pending_payment`, a table, pickup or
- * courier order, not typed into this panel (a manual "Ödeme bekleniyor"
- * order is paid at the till, no POS ping will follow it). The köşk panel
- * reads it with the open orders (`awaitingPayment`, docs/PANEL-ORDERS.md)
- * and polls a little while it is above zero, in case the ping that comes
- * with the payment is lost. A `head: true` count: only the number leaves
- * the database.
+ * waiting for their payment, with a checkout opened at or after `since`
+ * (ISO text; `panelAwaitingPaymentSince`): `pending_payment`, a table,
+ * pickup or courier order, not typed into this panel (a manual order never
+ * reaches the bar screen: `toPanelOrder` drops it). The köşk panel reads
+ * it with the open orders (`awaitingPayment`, docs/PANEL-ORDERS.md) and
+ * polls a little while it is above zero, in case the ping that comes with
+ * the payment is lost.
+ *
+ * A checkout is the order's creation or a later reopen of its payment page
+ * (`replayAppOrder`: "Şimdi öde", or the retry of a lost POST), which
+ * leaves a `pending` payment row (`recordPendingCheckout`) and no other
+ * mark. So: the orders created since the bound, by a `head: true` count,
+ * plus the older ones with a pending payment row written since it (their
+ * ids are read, never sent). The two sets are disjoint by `createdAt`.
+ * Only the number leaves this function.
  */
 export async function countPanelAwaitingPaymentOrders(
-  createdSince: string,
+  since: string,
 ): Promise<number> {
-  const { count, error, status } = await getDb()
+  const db = getDb();
+  const recent = await db
     .from(TABLES.orders)
     .select("*", { count: "exact", head: true })
     .eq("status", "pending_payment")
     .eq("kind", "cafe")
     .neq("source", "manual")
     .in("fulfillment", [...PANEL_ORDER_FULFILLMENTS])
-    .gte("createdAt", createdSince);
-  if (error) raiseDbError("countPanelAwaitingPaymentOrders", error, status);
-  return count ?? 0;
+    .gte("createdAt", since);
+  if (recent.error) {
+    raiseDbError("countPanelAwaitingPaymentOrders", recent.error, recent.status);
+  }
+  const older = await db
+    .from(TABLES.orders)
+    .select("id")
+    .eq("status", "pending_payment")
+    .eq("kind", "cafe")
+    .neq("source", "manual")
+    .in("fulfillment", [...PANEL_ORDER_FULFILLMENTS])
+    .lt("createdAt", since)
+    .order("createdAt", { ascending: false })
+    .limit(PANEL_AWAITING_REOPEN_READ_MAX);
+  if (older.error) {
+    raiseDbError("countPanelAwaitingPaymentOrders", older.error, older.status);
+  }
+  const ids = ((older.data as { id: string }[] | null) ?? []).map((r) =>
+    String(r.id),
+  );
+  let reopened = 0;
+  if (ids.length > 0) {
+    const tx = await db
+      .from(TABLES.paymentTransactions)
+      .select("orderId")
+      .in("orderId", ids)
+      .eq("status", "pending")
+      .gte("createdAt", since);
+    if (tx.error) {
+      raiseDbError("countPanelAwaitingPaymentOrders", tx.error, tx.status);
+    }
+    reopened = new Set(
+      ((tx.data as { orderId: string }[] | null) ?? []).map((r) =>
+        String(r.orderId),
+      ),
+    ).size;
+  }
+  return (recent.count ?? 0) + reopened;
 }
 
 /**

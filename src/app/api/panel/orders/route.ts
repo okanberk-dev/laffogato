@@ -40,10 +40,11 @@ import {
  * buttons move an order through `POST /api/panel/orders/stage`.
  *
  * Beside the list, `awaitingPayment` (added 28 Eki 2026; an older reader
- * ignores it): how many café orders for the screen were opened in the last
- * 30 minutes and still wait for their payment. A number only, no order: the
- * panel polls a little while it is above zero, so a payment whose ping was
- * lost still reaches the bar within minutes.
+ * ignores it): how many café orders for the screen still wait for a
+ * payment on a checkout opened in the last 30 minutes (the order's own, or
+ * a reopened one). A number only, no order: the panel polls a little while
+ * it is above zero, so a payment whose ping was lost still reaches the bar
+ * within minutes.
  *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
@@ -78,14 +79,20 @@ export async function GET(request: Request) {
   let rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
   let awaiting: number;
   try {
-    [rows, awaiting] = await Promise.all([
-      listPanelOpenOrderRows(
-        panelOrdersSince(now),
-        limit,
-        panelOrdersLiveSince(now),
-      ),
-      countPanelAwaitingPaymentOrders(panelAwaitingPaymentSince(now)),
-    ]);
+    // The count first, then the list, one after the other: an order only
+    // goes from waiting to paid, so one paid in between is in the list (at
+    // worst in both), never in neither. Read the other way round, a payment
+    // landing between the two reads left the order out of both and the
+    // panel saw "0 waiting" with no new order. The pool is one connection,
+    // so this costs no time.
+    awaiting = await countPanelAwaitingPaymentOrders(
+      panelAwaitingPaymentSince(now),
+    );
+    rows = await listPanelOpenOrderRows(
+      panelOrdersSince(now),
+      limit,
+      panelOrdersLiveSince(now),
+    );
   } catch (err) {
     console.error("[panel-orders] orders could not be read", err);
     return NextResponse.json(
