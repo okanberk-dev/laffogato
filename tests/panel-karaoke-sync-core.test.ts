@@ -91,6 +91,55 @@ describe("signature", () => {
     ).toBe("41bf0fb6897f703c2364405b7afac695fa55c5ac736d955683fc42f74470e610");
   });
 
+  it("matches the order and sales vectors the panel pins too", () => {
+    // The bar screen's read, this site's ping, the one-tap stage and the
+    // month's sales sign the same way (docs/PANEL-ORDERS.md,
+    // docs/PANEL-SALES.md). Same secret and instant as above; the bodies are
+    // the bytes each side builds: `createPanelPing`'s `{event, at}` and the
+    // panel's `buildStageBody` order `{id, action, from, actor}`. The panel
+    // pins these four in its own tests (lafmaliyet, senkron plan P2): a
+    // change on either side turns those requests into a 401.
+    const orders = new URL("https://laffogato.net/api/panel/orders");
+    expect(
+      sign(SECRET, { timestamp: TS, method: "GET", url: orders, body: "" }),
+    ).toBe("a2664bca1515711b3d757f1a9359c4866c7b864a51e6c547f779c8f8d1676401");
+    const ping = new URL("https://ladmin.laffogato.net/api/orders/ping");
+    const pingBody = JSON.stringify({
+      event: "orders.changed",
+      at: "2026-10-21T10:00:00.000Z",
+    });
+    expect(pingBody).toBe(
+      '{"event":"orders.changed","at":"2026-10-21T10:00:00.000Z"}',
+    );
+    expect(
+      sign(SECRET, {
+        timestamp: TS,
+        method: "POST",
+        url: ping,
+        body: pingBody,
+      }),
+    ).toBe("1f746949b11c4a3adbe74ac4e26ade3d82e05057f9ed61c864647e1e39b758b5");
+    const stage = new URL("https://laffogato.net/api/panel/orders/stage");
+    const tap = JSON.stringify({
+      id: "ord-0042",
+      action: "ready",
+      from: "new",
+      actor: "Selin",
+    });
+    expect(tap).toBe(
+      '{"id":"ord-0042","action":"ready","from":"new","actor":"Selin"}',
+    );
+    expect(
+      sign(SECRET, { timestamp: TS, method: "POST", url: stage, body: tap }),
+    ).toBe("61bdc771bae90abcf187561a6657da487035c209f14553ecb7e66cb53c963ba3");
+    const sales = new URL(
+      "https://laffogato.net/api/panel/sales?month=2026-10",
+    );
+    expect(
+      sign(SECRET, { timestamp: TS, method: "GET", url: sales, body: "" }),
+    ).toBe("cc20c85f8eebb2ea76b79c12e3e0b7e327fbca21ebd519148231ee6a9bb69f89");
+  });
+
   it("signs the instant, method, path, sorted query and body hash, not the host", () => {
     expect(
       canonicalString({

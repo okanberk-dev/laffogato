@@ -33,6 +33,7 @@ import {
   type KaraokeRevenueRow,
 } from "@/lib/admin/karaoke-money";
 import {
+  PANEL_ORDER_FULFILLMENTS,
   PANEL_ORDER_STALE_MS,
   panelOrderDueAt,
   type PanelOrderSourceRow,
@@ -2452,6 +2453,32 @@ export async function listPanelOpenOrderRows(
     ...rows<PanelOrderSourceRow>(open, "listPanelOpenOrderRows"),
     ...rows<PanelOrderSourceRow>(ready, "listPanelOpenOrderRows"),
   ];
+}
+
+/**
+ * How many café orders the bar screen would show once paid are still
+ * waiting for their payment, opened at or after `createdSince` (ISO text;
+ * `panelAwaitingPaymentSince`): `pending_payment`, a table, pickup or
+ * courier order, not typed into this panel (a manual "Ödeme bekleniyor"
+ * order is paid at the till, no POS ping will follow it). The köşk panel
+ * reads it with the open orders (`awaitingPayment`, docs/PANEL-ORDERS.md)
+ * and polls a little while it is above zero, in case the ping that comes
+ * with the payment is lost. A `head: true` count: only the number leaves
+ * the database.
+ */
+export async function countPanelAwaitingPaymentOrders(
+  createdSince: string,
+): Promise<number> {
+  const { count, error, status } = await getDb()
+    .from(TABLES.orders)
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending_payment")
+    .eq("kind", "cafe")
+    .neq("source", "manual")
+    .in("fulfillment", [...PANEL_ORDER_FULFILLMENTS])
+    .gte("createdAt", createdSince);
+  if (error) raiseDbError("countPanelAwaitingPaymentOrders", error, status);
+  return count ?? 0;
 }
 
 /**

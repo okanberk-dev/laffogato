@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { listPanelOpenOrderRows } from "@/lib/admin/store";
+import {
+  countPanelAwaitingPaymentOrders,
+  listPanelOpenOrderRows,
+} from "@/lib/admin/store";
 import {
   PANEL_ORDERS_MAX,
   PANEL_ORDERS_VERSION,
+  panelAwaitingPaymentCount,
+  panelAwaitingPaymentSince,
   panelOrderRowsComplete,
   panelOrdersLiveSince,
   panelOrdersSince,
@@ -33,6 +38,12 @@ import {
  * table or gel-al order; never a surname, e-mail, phone, address, courier
  * note or payment reference. Read only: the bar screen's
  * buttons move an order through `POST /api/panel/orders/stage`.
+ *
+ * Beside the list, `awaitingPayment` (added 28 Eki 2026; an older reader
+ * ignores it): how many café orders for the screen were opened in the last
+ * 30 minutes and still wait for their payment. A number only, no order: the
+ * panel polls a little while it is above zero, so a payment whose ping was
+ * lost still reaches the bar within minutes.
  *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
@@ -65,12 +76,16 @@ export async function GET(request: Request) {
   // One over the cap tells a full screen from a cut one.
   const limit = PANEL_ORDERS_MAX + 1;
   let rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
+  let awaiting: number;
   try {
-    rows = await listPanelOpenOrderRows(
-      panelOrdersSince(now),
-      limit,
-      panelOrdersLiveSince(now),
-    );
+    [rows, awaiting] = await Promise.all([
+      listPanelOpenOrderRows(
+        panelOrdersSince(now),
+        limit,
+        panelOrdersLiveSince(now),
+      ),
+      countPanelAwaitingPaymentOrders(panelAwaitingPaymentSince(now)),
+    ]);
   } catch (err) {
     console.error("[panel-orders] orders could not be read", err);
     return NextResponse.json(
@@ -94,6 +109,7 @@ export async function GET(request: Request) {
         panelOrderRowsComplete(rows, limit) &&
         orders.length <= PANEL_ORDERS_MAX,
       orders: orders.slice(0, PANEL_ORDERS_MAX),
+      awaitingPayment: panelAwaitingPaymentCount(awaiting),
     },
     { headers: NO_STORE },
   );

@@ -55,6 +55,24 @@ export const PANEL_ORDER_NOTE_MAX = 300;
 /** A line's barista note at most (the app takes 200). */
 export const PANEL_ORDER_LINE_NOTE_MAX = 200;
 
+/**
+ * How far back an unpaid order counts in `awaitingPayment`, by its
+ * creation: a card payment runs its course (the bank's 3D screen) well
+ * within this, and the panel follows a count above zero for at most as
+ * long (lafmaliyet docs/planlar/senkron.md §3.2 `siparis-bar-liste`).
+ */
+export const PANEL_AWAITING_PAYMENT_WINDOW_MS = 30 * 60_000;
+
+/**
+ * The fulfillments of an order the bar screen would show once paid: every
+ * café one but a parcel (`shipping`, which `toPanelOrder` drops).
+ */
+export const PANEL_ORDER_FULFILLMENTS = [
+  "table",
+  "pickup",
+  "delivery",
+] as const;
+
 /** The statuses the route reads; `toPanelOrder` decides which stay. */
 export const PANEL_ORDER_READ_STATUSES = [
   "paid",
@@ -151,6 +169,25 @@ export function panelOrdersSince(now: Date): string {
   return new Date(
     now.getTime() - PANEL_ORDERS_LOOKBACK_DAYS * 24 * 60 * 60_000,
   ).toISOString();
+}
+
+/**
+ * The instant `awaitingPayment` counts unpaid orders from (ISO, by
+ * `createdAt`, which sorts as text; inclusive).
+ */
+export function panelAwaitingPaymentSince(now: Date): string {
+  return new Date(
+    now.getTime() - PANEL_AWAITING_PAYMENT_WINDOW_MS,
+  ).toISOString();
+}
+
+/**
+ * `awaitingPayment` as the response carries it: a whole number, never
+ * negative. Only a count leaves: no order, no customer, no amount.
+ */
+export function panelAwaitingPaymentCount(count: unknown): number {
+  const n = Math.trunc(Number(count));
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /**
