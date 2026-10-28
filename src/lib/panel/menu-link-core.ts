@@ -18,7 +18,10 @@ import type { SignedCaller } from "./signed-callers";
  *    whitelisted shape below.
  * 3. **Write, panel → site.** `POST /api/panel/menu`: one item's price(s)
  *    and/or on-menu state, checked by the same rules as the menu form. The
- *    panel stores its change only after this answers 2xx.
+ *    panel stores its change only after this answers 2xx. With `expect`
+ *    (the values the panel's copy holds) a field that moved here meanwhile
+ *    is not written over: 409 `stale` with the item as it is
+ *    (`staleSaleFields`, docs/PANEL-SENKRON.md).
  *
  * Signed like the karaoke link (src/lib/panel/karaoke-sync-core.ts), with
  * the same secret; LafPOS, the café's till, reads and writes the same way
@@ -34,6 +37,17 @@ export const PANEL_MENU_MAX_BODY_BYTES = 4096;
 
 /** The panel user's name as the audit row carries it. */
 export const PANEL_MENU_ACTOR_MAX = 80;
+
+/**
+ * The read's capability flag (`writes` at the top level of
+ * `GET /api/panel/menu`): the optional request fields the write takes on
+ * top of the first version's. The write's schema is strict, so a field the
+ * site does not know is a 400; the panel sends `expect` only after a read
+ * that carried `expect: true` (lafmaliyet src/lib/site-menu/schema.ts), and
+ * on a 400 whose field is "expect" or "body" it tries once without it.
+ * A new optional field joins here in the same change that accepts it.
+ */
+export const PANEL_MENU_WRITES = { expect: true } as const;
 
 /** One item as the panel reads it: prices, state and what names it. */
 export interface PanelMenuItem {
@@ -108,11 +122,26 @@ const money = (min: number) =>
   z.number().int().min(min).max(CATALOG_MONEY_MAX_MINOR);
 
 /**
+ * What the writer last read of the fields it writes: the panel's copy of
+ * the item. Any of the three; a value the site's rules would refuse as a
+ * new price (an M of 0) may still be one the writer read.
+ */
+const expectSchema = z
+  .object({
+    priceMinor: money(0).optional(),
+    priceMinorL: money(0).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .strict();
+
+/**
  * A write from the panel. Every field but `id` and `actor` is optional and
- * at least one must be there; what is absent is left as it is. The rules
- * are the menu form's (src/lib/admin/menu-item-schema.ts): whole kuruş, an
- * M price above zero (0 ₺ is a free cup, CAT-05), an L price of 0 for a
- * single-size item, the catalogue's ceiling.
+ * at least one of the three sale fields must be there; what is absent is
+ * left as it is. The rules are the menu form's
+ * (src/lib/admin/menu-item-schema.ts): whole kuruş, an M price above zero
+ * (0 ₺ is a free cup, CAT-05), an L price of 0 for a single-size item, the
+ * catalogue's ceiling. `expect` is optional and announced by the read
+ * (`PANEL_MENU_WRITES`); a broken one names the field "expect".
  */
 export const panelMenuChangeSchema = z
   .object({
@@ -121,6 +150,7 @@ export const panelMenuChangeSchema = z
     priceMinorL: money(0).optional(),
     isActive: z.boolean().optional(),
     actor: z.string().trim().min(1).max(PANEL_MENU_ACTOR_MAX),
+    expect: expectSchema.optional(),
   })
   .strict();
 
@@ -190,6 +220,73 @@ export function changedSaleFields(
     out.isActive = wanted.isActive;
   }
   return out;
+}
+
+/**
+ * The changed fields (`changedSaleFields`) whose expected value the site no
+ * longer holds: someone moved them here (the menu form, another panel tab,
+ * LafPOS) after the writer read them, and writing would put the writer's
+ * older view over theirs. Only the fields the write would change are
+ * checked; a field with no expectation, or none at all, is never stale.
+ * The L price compares as the panel reads it (0 for a single size).
+ */
+export function staleSaleFields(
+  current: Pick<PanelMenuItem, "priceMinor" | "priceMinorL" | "isActive">,
+  fields: PanelMenuSaleFields,
+  expected: PanelMenuSaleFields | undefined,
+): Array<keyof PanelMenuSaleFields> {
+  if (!expected) return [];
+  const out: Array<keyof PanelMenuSaleFields> = [];
+  if (
+    fields.priceMinor !== undefined &&
+    expected.priceMinor !== undefined &&
+    expected.priceMinor !== current.priceMinor
+  ) {
+    out.push("priceMinor");
+  }
+  if (
+    fields.priceMinorL !== undefined &&
+    expected.priceMinorL !== undefined &&
+    expected.priceMinorL !== (current.priceMinorL > 0 ? current.priceMinorL : 0)
+  ) {
+    out.push("priceMinorL");
+  }
+  if (
+    fields.isActive !== undefined &&
+    expected.isActive !== undefined &&
+    expected.isActive !== current.isActive
+  ) {
+    out.push("isActive");
+  }
+  return out;
+}
+
+/**
+ * The write's condition when it carries `expect`: each changed field that
+ * has an expectation, at the value the site read a moment ago (which the
+ * expectation matched, `staleSaleFields` being empty). The UPDATE then
+ * touches the row only if those columns still hold it, so a write landing
+ * between the read and this one is not put back either. Null without an
+ * expectation for any changed field: the write is unconditional, as before
+ * `expect` existed.
+ */
+export function saleWriteGuard(
+  current: Pick<PanelMenuItem, "priceMinor" | "priceMinorL" | "isActive">,
+  fields: PanelMenuSaleFields,
+  expected: PanelMenuSaleFields | undefined,
+): PanelMenuSaleFields | null {
+  if (!expected) return null;
+  const out: PanelMenuSaleFields = {};
+  if (fields.priceMinor !== undefined && expected.priceMinor !== undefined) {
+    out.priceMinor = current.priceMinor;
+  }
+  if (fields.priceMinorL !== undefined && expected.priceMinorL !== undefined) {
+    out.priceMinorL = current.priceMinorL;
+  }
+  if (fields.isActive !== undefined && expected.isActive !== undefined) {
+    out.isActive = current.isActive;
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 /**

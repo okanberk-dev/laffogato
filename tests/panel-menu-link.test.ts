@@ -15,9 +15,12 @@ import {
   changesPrice,
   opensLargeSize,
   PANEL_MENU_MAX_BODY_BYTES,
+  PANEL_MENU_WRITES,
   panelAuditActor,
   parsePanelMenuChange,
+  saleWriteGuard,
   sortForPanelMenu,
+  staleSaleFields,
   toPanelMenuItem,
   type MenuItemForPanel,
 } from "@/lib/panel/menu-link-core";
@@ -207,6 +210,105 @@ describe("a write's rules (the menu form's)", () => {
     expect(panelAuditActor(" Selin ")).toBe("panel:Selin");
   });
 
+  it("takes an optional `expect` of the three fields, by strict rules", () => {
+    // The panel's body (lafmaliyet src/lib/site-menu/push.ts buildPushBody):
+    // the written fields, the actor, then what its copy held.
+    expect(
+      parsePanelMenuChange({
+        ...ok,
+        priceMinor: 14500,
+        expect: { priceMinor: 14000 },
+      }),
+    ).toEqual({
+      ok: true,
+      change: { ...ok, priceMinor: 14500, expect: { priceMinor: 14000 } },
+    });
+    expect(
+      parsePanelMenuChange({
+        ...ok,
+        isActive: false,
+        expect: { priceMinor: 0, priceMinorL: 0, isActive: true },
+      }).ok,
+    ).toBe(true);
+    // An `expect` alone is no change.
+    expect(parsePanelMenuChange({ ...ok, expect: { isActive: true } })).toEqual(
+      { ok: false, field: "fields" },
+    );
+    const field = (raw: unknown) => {
+      const r = parsePanelMenuChange(raw);
+      return r.ok ? null : r.field;
+    };
+    for (const expected of [
+      { priceMinor: -1 },
+      { priceMinor: 140.5 },
+      { priceMinorL: 100_000_001 },
+      { isActive: "true" },
+      { name: "Başka" },
+      [],
+      null,
+      "14000",
+    ]) {
+      expect(field({ ...ok, isActive: false, expect: expected })).toBe(
+        "expect",
+      );
+    }
+  });
+
+  it("finds the changed fields the site no longer holds as expected", () => {
+    const current = { priceMinor: 15000, priceMinorL: 0, isActive: false };
+    // No expectation, or none for a changed field: never stale.
+    expect(staleSaleFields(current, { priceMinor: 14500 }, undefined)).toEqual(
+      [],
+    );
+    expect(
+      staleSaleFields(current, { priceMinor: 14500 }, { isActive: true }),
+    ).toEqual([]);
+    expect(
+      staleSaleFields(
+        current,
+        { priceMinor: 14500, isActive: true },
+        { priceMinor: 14000, isActive: false },
+      ),
+    ).toEqual(["priceMinor"]);
+    expect(
+      staleSaleFields(current, { isActive: true }, { isActive: true }),
+    ).toEqual(["isActive"]);
+    // L as the panel reads it: a stored negative is a single size, 0.
+    expect(
+      staleSaleFields(
+        { ...current, priceMinorL: -5 },
+        { priceMinorL: 16000 },
+        { priceMinorL: 0 },
+      ),
+    ).toEqual([]);
+    expect(
+      staleSaleFields(
+        { ...current, priceMinorL: 15000 },
+        { priceMinorL: 16000 },
+        { priceMinorL: 0 },
+      ),
+    ).toEqual(["priceMinorL"]);
+  });
+
+  it("conditions the write on the expected columns as read", () => {
+    const current = { priceMinor: 14000, priceMinorL: -5, isActive: true };
+    expect(saleWriteGuard(current, { priceMinor: 14500 }, undefined)).toBe(
+      null,
+    );
+    expect(saleWriteGuard(current, { priceMinor: 14500 }, {})).toBe(null);
+    expect(
+      saleWriteGuard(
+        current,
+        { priceMinor: 14500, isActive: false },
+        { priceMinor: 14000, isActive: true, priceMinorL: 0 },
+      ),
+    ).toEqual({ priceMinor: 14000, isActive: true });
+    // The stored value, not the expectation's reading of it.
+    expect(
+      saleWriteGuard(current, { priceMinorL: 0 }, { priceMinorL: 0 }),
+    ).toEqual({ priceMinorL: -5 });
+  });
+
   it("lets only the site open an L size", () => {
     const single = { priceMinorL: 0 };
     expect(opensLargeSize(single, { priceMinorL: 16000 })).toBe(true);
@@ -283,6 +385,17 @@ describe("GET /api/panel/menu", () => {
     expect(body.items[0].categoryLabel).toBe("Matcha Bar");
     expect(body.items[1].isActive).toBe(false);
     expect(JSON.stringify(body)).not.toMatch(/image|desc|allergens|tags/);
+  });
+
+  it("announces the write's optional fields at the top level", async () => {
+    store.listMenuItemsForPanel.mockResolvedValue([item()]);
+    const body = await (await GET(signedGet())).json();
+    // The panel sends `expect` only after a read that carried this
+    // (lafmaliyet src/lib/site-menu/schema.ts, `writes.expect`).
+    expect(body.writes).toEqual({ expect: true });
+    expect(PANEL_MENU_WRITES).toEqual({ expect: true });
+    expect(Object.keys(body)).toEqual(["version", "now", "items", "writes"]);
+    expect(Object.keys(body.items[0])).not.toContain("writes");
   });
 
   it("says 503 when the menu cannot be read", async () => {
@@ -466,6 +579,198 @@ describe("POST /api/panel/menu", () => {
       isActive: false,
     });
     expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/panel/menu with `expect`", () => {
+  const written = (over: Partial<MenuItemForPanel> = {}) =>
+    store.setMenuItemSaleFields.mockImplementation(async (_id, fields) => ({
+      ...item(over),
+      ...fields,
+      updatedAt: "2026-10-22T09:00:00.000Z",
+    }));
+
+  it("writes when the site holds what the panel expected, on that condition", async () => {
+    store.getMenuItemForPanel.mockResolvedValue(item());
+    written();
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 14500,
+        actor: "Selin",
+        expect: { priceMinor: 14000 },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(store.setMenuItemSaleFields).toHaveBeenCalledWith(
+      "mnu-0011",
+      { priceMinor: 14500 },
+      { priceMinor: 14000 },
+    );
+    expect(store.markMenuPricesChanged).toHaveBeenCalledTimes(1);
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: "panel:Selin",
+        payload: {
+          name: "Espresso Macchiato",
+          priceMinor: 14500,
+          via: "panel",
+        },
+      }),
+    );
+    expect((await res.json()).item).toMatchObject({ priceMinor: 14500 });
+  });
+
+  it("refuses with 409 stale and the item when the site moved the field", async () => {
+    // The operator made it 150 ₺ here; the panel's copy still says 140 ₺.
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinor: 15000 }));
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 14500,
+        actor: "Selin",
+        expect: { priceMinor: 14000 },
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "stale",
+      item: toPanelMenuItem(item({ priceMinor: 15000 }), "Espresso"),
+    });
+    expect(store.setMenuItemSaleFields).not.toHaveBeenCalled();
+    expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a Tükendi whose expectation the site's own Satışa aç overtook", async () => {
+    // The panel's copy says sold out (a ping went missing after the
+    // operator put the item back on sale here); the panel's row says on
+    // sale and its user presses Tükendi. The site, newer than both, holds
+    // "on sale": a boolean is stale only in this shape.
+    store.getMenuItemForPanel.mockResolvedValue(item({ isActive: true }));
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        isActive: false,
+        actor: "Selin",
+        expect: { isActive: false },
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("stale");
+    expect(store.setMenuItemSaleFields).not.toHaveBeenCalled();
+  });
+
+  it("answers 200 and the item unchanged when the wanted value is the site's already", async () => {
+    // The expectation does not hold, but there is nothing to write: the
+    // panel's "zaten tükendi" rests on this 200 and the old stamp.
+    store.getMenuItemForPanel.mockResolvedValue(item({ isActive: false }));
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        isActive: false,
+        actor: "Selin",
+        expect: { isActive: true },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.item.isActive).toBe(false);
+    expect(body.item.updatedAt).toBe("2026-10-20T08:00:00.000Z");
+    expect(store.setMenuItemSaleFields).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("checks only the fields it would change", async () => {
+    // The price the panel resends is the site's already; only the state
+    // changes, and its expectation holds.
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinor: 15000 }));
+    written({ priceMinor: 15000 });
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 15000,
+        isActive: false,
+        actor: "Selin",
+        expect: { priceMinor: 14000, isActive: true },
+      }),
+    );
+    expect(res.status).toBe(200);
+    expect(store.setMenuItemSaleFields).toHaveBeenCalledWith(
+      "mnu-0011",
+      { isActive: false },
+      { isActive: true },
+    );
+    expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
+  });
+
+  it("answers 409 stale with the item as it now is when the row moved before the write", async () => {
+    store.getMenuItemForPanel
+      .mockResolvedValueOnce(item())
+      .mockResolvedValueOnce(item({ priceMinor: 15500 }));
+    // The conditional UPDATE found the row changed: no row.
+    store.setMenuItemSaleFields.mockResolvedValue(null);
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 14500,
+        actor: "Selin",
+        expect: { priceMinor: 14000 },
+      }),
+    );
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe("stale");
+    expect(body.item.priceMinor).toBe(15500);
+    expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("answers 404 when the item went before the conditional write", async () => {
+    store.getMenuItemForPanel
+      .mockResolvedValueOnce(item())
+      .mockResolvedValueOnce(null);
+    store.setMenuItemSaleFields.mockResolvedValue(null);
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        isActive: false,
+        actor: "Selin",
+        expect: { isActive: true },
+      }),
+    );
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "not_found" });
+  });
+
+  it("keeps the order: an L opening is single_size before it is stale", async () => {
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinorL: 16000,
+        actor: "Selin",
+        expect: { priceMinorL: 15000 },
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "single_size" });
+  });
+
+  it("names `expect` when it is broken, so the panel can retry without it", async () => {
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 14500,
+        actor: "Selin",
+        expect: { priceMinor: "14000" },
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "invalid", field: "expect" });
+    expect(store.getMenuItemForPanel).not.toHaveBeenCalled();
   });
 });
 

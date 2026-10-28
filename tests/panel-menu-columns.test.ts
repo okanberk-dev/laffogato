@@ -127,7 +127,12 @@ describe("/api/panel/menu on the narrow reads", () => {
     );
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ version: 1, now: body.now, items: [PANEL_ITEM] });
+    expect(body).toEqual({
+      version: 1,
+      now: body.now,
+      items: [PANEL_ITEM],
+      writes: { expect: true },
+    });
     expect(seen.length).toBeGreaterThan(0);
     for (const text of seen) {
       expect(text).not.toMatch(/\*|"image"/);

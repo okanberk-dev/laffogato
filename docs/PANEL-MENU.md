@@ -16,8 +16,14 @@ değişince diğer yerlerden de değişsin"_.
 - Panelde bağlı bir ürünün fiyatı ya da menü durumu değişince panel değişikliği
   **önce siteye** gönderir, site kabul edince kendisi yazar. Site
   ulaşılamazsa panel değişikliği kaydetmez ve bunu söyler ("Siteye
-  ulaşılamadı; fiyat değişmedi"): iki yer hiçbir an ayrışmaz, çakışma ve
-  "hangisi yeni" sorusu doğmaz.
+  ulaşılamadı; fiyat değişmedi"): iki yer kalıcı olarak ayrışmaz.
+- Ama iki yer **aynı anda** değişebilir: panelin kopyası bir ping kaçınca
+  eskir, sitenin formu da başka bir sekme ya da panel değiştirdikten sonra
+  açık kalmış olabilir. Eski görüntüden yapılan yazım yenisini ezmesin diye
+  iki yol da gördüğünü taşır ve site yalnız o hâlâ geçerliyse yazar: panel
+  `expect` gönderir (aşağıda "Çakışma: `expect` ve 409 `stale`"), sitenin
+  formu yüklediği değerleri ("Sitenin formu"). Bağlantıların kısa haritası:
+  `docs/PANEL-SENKRON.md`.
 - Sitede değişen bir kalem panele **ping** ile bildirilir, panel yeni
   değerleri **çeker** (karaoke bağlantısıyla aynı düzen,
   `docs/PANEL-KARAOKE.md`).
@@ -60,12 +66,19 @@ fiyat değiştirilir; değişiklik siteye gider.
   - Panel → site: `active && showOnMenu` sitede `isActive` olur. Ürünü
     panelde "pasif" yapmak da, QR menüden kaldırmak da sitede "Tükendi"dir.
   - Bir site kalemine bağlı iki panel satırı (M ve L) aynı `isActive`'i
-    paylaşır: birini menüden kaldırmak kalemi sitede gizler, sonraki çekmede
-    öbür satır da `showOnMenu = false` olur. Boy boy satış durumu sitede yok.
+    paylaşır: birini menüden kaldırmak kalemi sitede gizler; panel öbür
+    satırı aynı yazımda, sitenin yanıtındaki kalemle `showOnMenu = false`
+    yapar (lafmaliyet `applyPushed`). Boy boy satış durumu sitede yok.
 - **L fiyatı silinirse** (`priceMinorL = 0`) panelde `L` yuvasına bağlı satır
   "bağlantı kopuk" olarak işaretlenir, fiyatına dokunulmaz.
 - **Kalem sitede silinirse** panel o satırların bağlantısını kaldırır ve
   eşitleme durumunda söyler.
+- **Menü kimlikleri yeniden kullanılmaz.** `mnu-NNNN` atomik sayaçtan gelir
+  (`createMenuItem` → `next_seq('mnu')`); silinen kalemin numarası bir daha
+  verilmez. Panelin bağı, satış listesindeki satırlar ve LafPOS'un ürünü
+  kimlikle durur: yeniden kullanılan bir kimlik eski bağı habersizce başka
+  bir içeceğe bağlardı. Kalemi silip aynı adla yeniden açmak yeni kimlik
+  verir; panelde bağ elle yeniden kurulur.
 
 ## Uçlar
 
@@ -109,12 +122,17 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
          "sortOrder": 6,
          "updatedAt": "2026-10-20T08:00:00.000Z"
        }
-     ]
+     ],
+     "writes": { "expect": true }
    }
    ```
 
    Bütün kalemler, satışta olmayanlar da (panel bağlıyı gizlemek için onu da
-   görmeli). `Cache-Control: no-store`. Site veritabanından yalnız yanıtın
+   görmeli). `writes` yazma ucunun ilk sürümden sonra kabul ettiği isteğe
+   bağlı alanların duyurusudur (yetenek bayrağı, 28 Eki 2026): yazma şeması
+   katı olduğundan bilinmeyen alan 400'dür, panel `expect`'i ancak son
+   çekmesinde `writes.expect` gördüyse gönderir. Yeni bir isteğe bağlı alan
+   aynı değişiklikte buraya eklenir; `version` değişmez. `Cache-Control: no-store`. Site veritabanından yalnız yanıtın
    sekiz sütununu okur (`listMenuItemsForPanel`; `categoryLabel` sitenin
    kendi etiketidir), fotoğrafları (`image`, kalem başına 2 MB'a kadar data
    URL) hiç okumaz; yazma ucu da öyle. `now` okumadan **önce** alınır
@@ -137,18 +155,23 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
    (`src/lib/panel/menu-link-core.ts`): fiyatlar kuruş tamsayı, M fiyatı
    0'dan büyük (0 ₺ bedava kahve demek), L `0` ise kalem tek boydur; üst
    sınır katalogunki (`CATALOG_MONEY_MAX_MINOR`). `actor` panel
-   kullanıcısının adıdır (en çok 80 karakter), sitenin olay kaydına
-   "Panel · Selin" diye düşer. Yanıt kalemin yeni hâli (`{"item": {...}}`,
+   kullanıcısının adıdır (en çok 80 karakter), olay kaydına `panel:Selin`
+   diye yazılır ve "Yönetim paneli · Selin" diye görünür (LafPOS'unki
+   `lafpos:Selin`, "LafPOS · Selin"). İsteğe bağlı `expect` için aşağıdaki
+   "Çakışma" bölümüne bak. Yanıt kalemin yeni hâli (`{"item": {...}}`,
    okumadaki biçim). Hatalar:
 
-   | Durum | Gövde                         | Ne zaman                                 |
-   | ----- | ----------------------------- | ---------------------------------------- |
-   | 400   | `{"error":"invalid","field"}` | Alan kurala uymuyor ya da hiçbiri yok    |
-   | 401   | `{"error":"unauthorized"}`    | İmza yok, yanlış ya da 5 dakikadan eski  |
-   | 404   | `{"error":"not_found"}`       | Kalem sitede yok (silinmiş)              |
-   | 409   | `{"error":"single_size"}`     | Kalem tek boy, istek L fiyatı veriyor    |
-   | 413   | `{"error":"too_large"}`       | Gövde 4 KB'tan büyük                     |
-   | 503   | `{"error":"not_configured"}`  | Anahtar yok; ya da veritabanı okunamadı  |
+   | Durum | Gövde                            | Ne zaman                                                                   |
+   | ----- | -------------------------------- | -------------------------------------------------------------------------- |
+   | 400   | `{"error":"invalid","field"}`    | Alan kurala uymuyor ya da hiçbiri yok (`expect` bozuksa `field: "expect"`) |
+   | 401   | `{"error":"unauthorized"}`       | İmza yok, yanlış ya da 5 dakikadan eski                                    |
+   | 403   | `{"error":"forbidden","field"}`  | LafPOS'un anahtarıyla fiyat yazımı (`docs/LAFPOS.md`)                      |
+   | 404   | `{"error":"not_found"}`          | Kalem sitede yok (silinmiş)                                                |
+   | 409   | `{"error":"single_size"}`        | Kalem tek boy, istek L fiyatı veriyor                                      |
+   | 409   | `{"error":"stale","item":{...}}` | `expect` tutmuyor: alan sitede bu arada değişti; `item` güncel             |
+   | 413   | `{"error":"too_large"}`          | Gövde 4 KB'tan büyük                                                       |
+   | 503   | `{"error":"not_configured"}`     | Anahtar yok                                                                |
+   | 503   | `{"error":"unavailable"}`        | Veritabanı okunamadı ya da yazılamadı                                      |
 
    **L boyunu yalnız site açar** (23 Eki 2026). Kalem sitede tek boyken
    (`priceMinorL` 0) `priceMinorL > 0` taşıyan istek 409 `single_size` ile
@@ -160,9 +183,73 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
    ve değişikliği kaydetmez; sonraki çekmede L yuvası "bağlantı kopuk" olur.
 
    Site yazımı yalnız bu üç sütuna yapar (`setMenuItemSaleFields`, tek UPDATE),
-   olay kaydına yazar ve `pub:menu` önbelleğini düşürür: sitenin menüsü,
-   `/masa` QR menüsü ve uygulama (CDN'de en çok 5 dakika) yeni fiyatı gösterir.
-   Yazım ping de üretir; panel çektiğinde değerler zaten aynıdır, döngü olmaz.
+   olay kaydına yazar ve `pub:menu` önbelleğini düşürür: sitenin menüsü ve
+   `/masa` QR menüsü yeni fiyatı hemen gösterir; uygulamanın menü yanıtı
+   CDN'de en çok 10 dakika eski kalır (`s-maxage=300`,
+   `stale-while-revalidate=300`; üstüne uygulamanın kendi önbelleği,
+   `docs/API-MOBILE.md` "Tazelik penceresi"). Yazım ping de üretir; panel
+   çektiğinde değerler zaten aynıdır, döngü olmaz.
+
+### Çakışma: `expect` ve 409 `stale` (28 Eki 2026)
+
+Panelin site kopyası eski olabilir (ping kaçtı, kart çekmeden önce açıldı).
+Eski kopyadan yapılan yazım, işletmecinin sitede az önce yaptığı fiyatı ya da
+Tükendi'yi geri alırdı. Bu yüzden panel, site `writes.expect` duyurduysa
+yazdığı her alanın kopyasındaki değerini `expect` olarak gönderir
+(lafmaliyet `src/lib/site-menu/push.ts` `buildPushBody`):
+
+```
+POST https://laffogato.net/api/panel/menu
+{"id":"mnu-0011","priceMinor":14500,"actor":"Selin","expect":{"priceMinor":14000}}
+```
+
+`expect` `{priceMinor?, priceMinorL?, isActive?}`; değerler kuruş tamsayı
+(0 dahil: kopyada okunan değerdir, yeni fiyat değil) ve boolean. Site sırayla:
+
+1. Gövdeyi ayrıştırır (bozuk `expect` → 400 `field: "expect"`; panel bunu,
+   bayrağı duyurup geri alınmış bir sitenin `field: "body"`'si gibi, bir kez
+   `expect`'siz yeniden dener).
+2. Kalemi okur (yoksa 404 `not_found`).
+3. L boyu açma kuralı (409 `single_size`).
+4. Yalnız **değişen** alanları bulur. Değişen alan yoksa bugünkü gibi 200 ve
+   kalem (eski `updatedAt`) döner, `expect`'e bakılmaz: panelin "zaten
+   tükendi" dalı buna dayanır.
+5. Değişen bir alanın `expect`'i sitedekini tutmuyorsa hiçbir şey yazılmaz:
+   **409** `{"error":"stale","item":{...}}`, `item` kalemin şimdiki hâli
+   (okumadaki biçim). Panel o an menüyü yeniden çeker ve "Bu ürün sitede bu
+   arada değişti" der. Yalnız yazılacak alanların `expect`'i denetlenir;
+   L okumadaki gibi karşılaştırılır (tek boy 0).
+6. Tutuyorsa UPDATE, `expect`'i olan sütunlara koşulludur (okunan değerde
+   kaldıysa). Okuma ile yazım arasına başka bir yazım girdiyse satır
+   etkilenmez ve yanıt yine 409 `stale` (güncel kalemle); kalem bu arada
+   silindiyse 404.
+
+`expect`'siz istek (eski panel, LafPOS) bugünkü gibi koşulsuz yazılır.
+Kurallar `staleSaleFields` ve `saleWriteGuard`'da
+(`src/lib/panel/menu-link-core.ts`), testleri `tests/panel-menu-link.test.ts`
+ve `tests/db-integration-panel-menu.test.ts`.
+
+### Sitenin formu (28 Eki 2026)
+
+`/admin/menu/<id>/duzenle` formu kalemin fiyatlarını ve "Menüde göster"ini
+açıldığı andaki değerleriyle taşır (gizli `loadedPriceMinor`,
+`loadedPriceMinorL`, `loadedIsActive`; `src/lib/admin/menu-sale-guard.ts`).
+Kaydederken (`updateMenuItem`):
+
+- formda **dokunulmayan** satış sütunu UPDATE'e hiç girmez: form açıkken
+  panelden, LafPOS'tan ya da başka bir sekmeden yapılan Tükendi ya da fiyat
+  değişikliği yerinde kalır;
+- **dokunulan** sütun yalnız satır hâlâ yüklenen değeri taşıyorsa yazılır
+  (listedeki tek dokunuş ve toplu Tükendi'nin deseni). Taşımıyorsa kayıt
+  bütünüyle reddedilir: "Bu kalem bu arada değişti (köşkün paneli, kasa ya
+  da başka bir sekme); değişikliklerin kaydedilmedi. Sayfayı yenile."
+- Ad, açıklama, görsel, etiket ve öteki alanlar bugünkü gibi yazılır.
+  "Fiyat değişti" işareti (`menuPricesChangedAt`) yalnız bu kayıt bir fiyatı
+  gerçekten yazdıysa düşer.
+
+Bu değişiklik yayına çıkmadan önce açılmış bir sekme gizli alanları
+göndermez; onun kaydı eskisi gibi bütün satırı yazar. Kurallar `tests/menu-sale-guard.test.ts`,
+gerçek Postgres'e karşı `tests/db-integration-panel-menu.test.ts`.
 
 ## Panel ne zaman çeker
 

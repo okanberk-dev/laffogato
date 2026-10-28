@@ -26,6 +26,11 @@ import {
   menuTagsFromForm,
 } from "@/lib/admin/menu-item-schema";
 import {
+  MENU_ITEM_CHANGED_MEANWHILE,
+  readLoadedSale,
+  touchedSaleFields,
+} from "@/lib/admin/menu-sale-guard";
+import {
   bulkUpdateMenuItems,
   createMenuItem,
   deleteMenuItem,
@@ -305,11 +310,22 @@ export async function updateMenuItemAction(
   const previous = await getMenuItem(id);
   if (!previous) return actionError("Bu kalem silinmiş; listeye dön.");
   const scene = await menuScene(input, formData, previous);
-  await updateMenuItem(id, { ...input, ...scene });
-  const priced =
-    previous.priceMinor !== input.priceMinor ||
+  // The prices and "Menüde göster" as the form loaded them: an untouched one
+  // is not written back over the panel's or another tab's change, a touched
+  // one only if nobody moved it meanwhile (menu-sale-guard.ts).
+  const loaded = readLoadedSale(formData);
+  const saved = await updateMenuItem(id, { ...input, ...scene }, loaded);
+  if (saved === "stale") return actionError(MENU_ITEM_CHANGED_MEANWHILE);
+  if (saved === null) return actionError("Bu kalem silinmiş; listeye dön.");
+  // A price this save wrote, different from the stored one: the price
+  // list's day may be stale (the rule the panel's write follows too).
+  const written = touchedSaleFields(loaded, input);
+  const priceMoved =
+    written.includes("priceMinor") && previous.priceMinor !== input.priceMinor;
+  const largeMoved =
+    written.includes("priceMinorL") &&
     (previous.priceMinorL || 0) !== (input.priceMinorL || 0);
-  if (priced) await markMenuPricesChanged(new Date());
+  if (priceMoved || largeMoved) await markMenuPricesChanged(new Date());
   await logAudit({
     action: "update",
     entity: "menu_item",
@@ -319,10 +335,10 @@ export async function updateMenuItemAction(
       categoryKey: input.categoryKey,
       taxRatePct: input.taxRatePct,
       // A price move is the change the köşk's panel and the price list
-      // care about: in the trail with its new amounts.
-      ...(priced
-        ? { priceMinor: input.priceMinor, priceMinorL: input.priceMinorL }
-        : {}),
+      // care about: in the trail with its new amount, only a price this
+      // save wrote (an untouched one may be the panel's newer value).
+      ...(priceMoved ? { priceMinor: input.priceMinor } : {}),
+      ...(largeMoved ? { priceMinorL: input.priceMinorL } : {}),
       // What the menu says an item contains is worth a trail, when it
       // changed: the form posts it on every save.
       ...(input.allergens === undefined ||

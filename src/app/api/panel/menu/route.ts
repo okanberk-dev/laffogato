@@ -16,10 +16,13 @@ import {
   opensLargeSize,
   PANEL_MENU_MAX_BODY_BYTES,
   PANEL_MENU_VERSION,
+  PANEL_MENU_WRITES,
   panelAuditActor,
   parsePanelMenuChange,
   saleFieldsOf,
+  saleWriteGuard,
   sortForPanelMenu,
+  staleSaleFields,
   toPanelMenuItem,
 } from "@/lib/panel/menu-link-core";
 import {
@@ -33,13 +36,20 @@ import {
  * sale fields (src/lib/panel/menu-link-core.ts, docs/PANEL-MENU.md).
  *
  * - `GET /api/panel/menu`: every item, on the menu or not, in the
- *   whitelisted shape: id, name, category, prices, state, Sıra, updatedAt.
+ *   whitelisted shape: id, name, category, prices, state, Sıra, updatedAt;
+ *   and `writes: {expect: true}`, the optional request fields the write
+ *   takes (menu-link-core `PANEL_MENU_WRITES`).
  * - `POST /api/panel/menu` `{id, priceMinor?, priceMinorL?, isActive?,
- *   actor}`: one item's prices and/or state, by the menu form's rules. Only
- *   the fields that differ are written (one UPDATE of those columns), with
- *   an audit row "panel:<actor>"; the answer is the item as it now is, which
- *   the panel stores. The write expires `pub:menu`: the site, the tables'
- *   QR menu and the app show it, and the panel gets the usual ping.
+ *   actor, expect?}`: one item's prices and/or state, by the menu form's
+ *   rules. In this order: parse, the item, `single_size`, then only the
+ *   fields that differ (none: 200 and the item as it is, `expect` unread).
+ *   A differing field whose `expect` the site no longer holds is not
+ *   written: 409 `{error:"stale", item}` with the item as it is. Otherwise
+ *   one UPDATE of those columns, conditional on the expected ones (a row
+ *   that moved in between: the same 409), with an audit row
+ *   "panel:<actor>"; the answer is the item as it now is, which the panel
+ *   stores. The write expires `pub:menu`: the site, the tables' QR menu and
+ *   the app show it, and the panel gets the usual ping.
  *
  * Server to server, no cookie: signed with the shared `KARAOKE_SYNC_SECRET`
  * like the karaoke route (CLAUDE.md rule 7), or by LafPOS, the café's till,
@@ -92,6 +102,7 @@ export async function GET(request: Request) {
       version: PANEL_MENU_VERSION,
       now: now.toISOString(),
       items: sortForPanelMenu(items.map(shape), MENU_CATEGORY_KEYS),
+      writes: PANEL_MENU_WRITES,
     },
     { headers: NO_STORE },
   );
@@ -139,12 +150,29 @@ export async function POST(request: Request) {
       return deny(409, "single_size");
     }
     const fields = changedSaleFields(current, saleFieldsOf(change));
+    // Nothing to change: the answer is the item as it is, whatever `expect`
+    // says (the panel's "already sold out" rests on this 200).
     if (Object.keys(fields).length === 0) {
       return NextResponse.json({ item: shape(current) }, { headers: NO_STORE });
     }
-    const next = await setMenuItemSaleFields(change.id, fields);
-    // Deleted between the read and the write.
-    if (!next) return deny(404, "not_found");
+    // A field the writer would change moved here after it read it: its
+    // older view does not go over the newer value.
+    if (staleSaleFields(current, fields, change.expect).length > 0) {
+      return deny(409, "stale", { item: shape(current) });
+    }
+    // With `expect`, conditional on the expected columns; a write without
+    // it (an older panel, LafPOS) is today's plain UPDATE.
+    const guard = saleWriteGuard(current, fields, change.expect);
+    const next = guard
+      ? await setMenuItemSaleFields(change.id, fields, guard)
+      : await setMenuItemSaleFields(change.id, fields);
+    if (!next) {
+      // Deleted between the read and the write, or (with `expect`) moved.
+      const now = guard ? await getMenuItemForPanel(change.id) : null;
+      return now
+        ? deny(409, "stale", { item: shape(now) })
+        : deny(404, "not_found");
+    }
     // From here on the write is done: nothing below may turn it into an
     // error, or the panel would keep its old value beside the site's new
     // one. The mark and the audit row never throw.

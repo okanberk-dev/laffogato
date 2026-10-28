@@ -386,6 +386,12 @@ bağlar (`products.siteMenuId` + `siteMenuSlot` M/L, panelde) ve:
 - **haber alır:** `pub:menu`'yu düşüren her yazım panele `menu.changed`
   pingi atar (`menu-ping.ts`).
 
+Eski görüntüden yapılan yazım yenisini ezmez (28 Eki 2026): GET
+`writes: {expect: true}` duyurur, panel yazdığı alanların gördüğü değerini
+`expect` olarak gönderir, tutmazsa 409 `stale` (güncel kalemle); sitenin
+menü formu yalnız dokunulan satış sütununu, yüklendiği değere koşullu yazar
+(`menu-sale-guard.ts`). Üç deponun bağlantı haritası: `docs/PANEL-SENKRON.md`.
+
 Anahtar karaoke'ninki (`KARAOKE_SYNC_SECRET`). Ad, açıklama, kategori, görsel
 ve alerjen eşitlenmez. Kafenin kasası LafPOS menüyü ve fiyatı buradan çeker
 (aşağıda); geçiş bitene dek ModPOS'un fiyatı elle değişir.
