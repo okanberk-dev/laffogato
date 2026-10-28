@@ -247,8 +247,8 @@ Kaydederken (`updateMenuItem`):
   "Fiyat değişti" işareti (`menuPricesChangedAt`) yalnız bu kayıt bir fiyatı
   gerçekten yazdıysa düşer.
 
-Bu kural koddan önce açılmış bir sekme gizli alanları göndermez; o kayıt
-eskisi gibi bütün satırı yazar. Kurallar `tests/menu-sale-guard.test.ts`,
+Bu değişiklik yayına çıkmadan önce açılmış bir sekme gizli alanları
+göndermez; onun kaydı eskisi gibi bütün satırı yazar. Kurallar `tests/menu-sale-guard.test.ts`,
 gerçek Postgres'e karşı `tests/db-integration-panel-menu.test.ts`.
 
 ## Panel ne zaman çeker
