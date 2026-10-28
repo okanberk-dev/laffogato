@@ -55,8 +55,9 @@ Karaoke bağlantısının imzası (`x-laf-timestamp`,
 anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
 Okumanın, pingin, aşama dokunuşunun ve ayın satışının (`docs/PANEL-SALES.md`)
 imza vektörleri sitede `tests/panel-karaoke-sync-core.test.ts`'te sabit
-(aynı deneme anahtarı ve an); panel aynılarını kendi testlerinde sabitler.
-Kural bir tarafta değişirse bu istekler 401 olur.
+(aynı deneme anahtarı ve an); panel aynılarını P2'de kendi testlerinde
+sabitleyecek, o güne dek bu dördünü yalnız site tutar. Kural bir tarafta
+değişirse bu istekler 401 olur.
 
 Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, `GET /api/pos/orders/version` değişince çeker: `docs/LAFPOS.md`.
 
@@ -146,18 +147,27 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
      kalanlardan değil okunan satırlardan sayılır: okuma dolu döndüyse
      (açık ya da teslime hazır siparişlerde 201 satır) `false`.
    - `awaitingPayment` (28 Eki 2026, sonradan eklendi; eski panel ve LafPOS
-     yok sayar, `version` 1 kalır): son 30 dakikada açılmış (`createdAt`,
-     sınır dahil) ve hâlâ ödemesini bekleyen (`pending_payment`), ödenince
-     bu ekrana düşecek kafe siparişlerinin **sayısı**: masa, gel-al ya da
-     kurye. Panelden elle girilen sipariş (kasada ödenir, ödeme pingi
-     gelmez) ve mağaza kolisi sayılmaz. Yalnız sayı gider: siparişin
-     kimliği, satırları, müşterisi ve tutarı gitmez. Alan her yanıtta
-     vardır, bekleyen yoksa `0`. Sayı listeyle aynı istekte okunur;
-     okunamazsa uç 503 `unavailable` döner, `0` denmez. Neden: kart
-     ödemesinin pingi kaybolursa ödenmiş sipariş sakin saatte panelin
-     saatlik çekmesine kalırdı; panel sayı sıfırdan büyükken siparişi
-     kısa bir süre sık çeker (aşağıda "Panel ne zaman çeker"). Site:
-     `countPanelAwaitingPaymentOrders`, `panelAwaitingPaymentSince`.
+     yok sayar, `version` 1 kalır): hâlâ ödemesini bekleyen
+     (`pending_payment`), ödenince bu ekrana düşecek kafe siparişlerinin
+     **sayısı** (masa, gel-al ya da kurye), son ödeme sayfası son 30
+     dakikada açılmış olanlar (sınır dahil). Ödeme sayfası siparişle açılır
+     (`createdAt`); uygulamadaki "Şimdi öde" ya da kaybolan isteğin
+     tekrarı onu, siparişin yaşı ne olursa olsun, yeniden açar ve bu
+     açılış bekleyen bir ödeme satırı bırakır (`recordPendingCheckout`):
+     siparişi 30 dakika daha saydırır ve panele ping atar (ödeme satırı
+     `live:orders`'ı düşürmediği için yazım kancası atmazdı). Panelden elle
+     girilen sipariş (bar ekranına hiç düşmez: `toPanelOrder` elle girilen
+     siparişi göstermez) ve mağaza kolisi sayılmaz. Yalnız sayı gider:
+     siparişin kimliği, satırları, müşterisi ve tutarı gitmez. Alan her
+     yanıtta vardır, bekleyen yoksa `0`. Sayı listeden **önce**, sırayla
+     okunur: sipariş yalnız bekleyenden ödenmişe geçer, iki okuma arasında
+     ödenen sipariş listede çıkar (en kötü ikisinde de), hiçbirinde
+     kalmaz. Sayı okunamazsa uç 503 `unavailable` döner, `0` denmez.
+     Neden: kart ödemesinin pingi kaybolursa ödenmiş sipariş sakin saatte
+     panelin saatlik çekmesine kalırdı; panel sayı sıfırdan büyükken
+     siparişi kısa bir süre sık çeker (aşağıda "Panel ne zaman çeker").
+     Site: `countPanelAwaitingPaymentOrders`, `panelAwaitingPaymentSince`,
+     `isBarScreenOrder`.
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |
@@ -190,9 +200,14 @@ dakikada bir. Cron yok: siparişler anlıktır.
 
 Ödeme bekleyen sipariş (`awaitingPayment` > 0): panel en çok 30 dakika, 3
 dakikada bir çeker; böylece ödeme pingi kaybolsa da ödenmiş sipariş birkaç
-dakika içinde ekrana gelir. Bu, panelin senkron planındaki P2 görevidir
-(lafmaliyet `docs/planlar/senkron.md` §3.2 `siparis-bar-liste`); o yayına
-çıkana dek panel alanı yok sayar ve bugünkü gibi çeker.
+dakika içinde ekrana gelir. Takibin asıl sınırı sitededir: her sipariş son
+ödeme sayfasından 30 dakika sonra sayıdan düşer. Panel kendi 30 dakikasını
+tutarsa onu yalnız 0 → > 0 geçişinde değil, sayı sıfırdan büyükken gelen her
+pingte yeniden başlatır: yeniden açılan ödeme sayfası ping atar ama sipariş
+zaten sayılıyorsa sayıyı artırmaz. Bu, panelin senkron
+planındaki P2 görevidir (lafmaliyet `docs/planlar/senkron.md` §3.2
+`siparis-bar-liste`); o yayına çıkana dek panel alanı yok sayar ve bugünkü
+gibi çeker.
 
 Panel yeni bir `new` siparişi (`id`'sini o cihazın daha önce görmediği)
 çalar; ilk çekmede ve ekran yeni açıldığında 2 dakikadan eski siparişler

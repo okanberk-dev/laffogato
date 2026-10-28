@@ -107,11 +107,16 @@ LafPOS. Kural: **yazan, gördüğünü taşır; site yalnız o hâlâ geçerliys
   `/api/mobile/v1/menu`'de `stale-while-revalidate=300`, panelin üç menü imza
   vektörü sitede de. Panel tarafı (P1) denetim B12'yle hazırdı: bayrağı görünce
   `expect` göndermeye başlar.
-- **S2:** `GET /api/panel/orders`'a isteğe bağlı `awaitingPayment` (son 30
-  dakikada açılmış, ödemesini bekleyen bar ekranı siparişlerinin sayısı;
-  yalnız sayı, `version` 1) ve sipariş okuması, sipariş pingi, aşama dokunuşu
-  ve ayın satışı için imza vektörleri. Panel tarafı (P2) sayı sıfırdan
-  büyükken kısa süre sık çekecek; o gelene dek alan yok sayılır.
+- **S2:** `GET /api/panel/orders`'a isteğe bağlı `awaitingPayment` (ödemesini
+  bekleyen bar ekranı siparişlerinin sayısı, ödeme sayfası son 30 dakikada
+  açılmış ya da yeniden açılmış olanlar; yalnız sayı, `version` 1, listeden
+  önce okunur), yeniden açılan ödeme sayfasında panele ping ve sipariş
+  okuması, sipariş pingi, aşama dokunuşu ve ayın satışı için imza
+  vektörleri. Panel tarafı (P2) sayı sıfırdan büyükken kısa süre sık
+  çekecek; o gelene dek alan yok sayılır. P2 için: panelin 30 dakikalık
+  takibi yalnız 0 → > 0 geçişinde değil, sayı sıfırdan büyükken gelen her
+  pingte yeniden başlar (yeniden açılan sayfa ping atar, ama sipariş zaten
+  sayılıyorsa sayıyı artırmaz).
 - **Sırada (Faz 1):** panelin ödeme takibi (P2), uygulamanın menü ve mağaza
   tazeliği (lafmobil M2). Faz 2:
   panel ayar ucu, 304, ping sınaması, elle kapalı / tarihli kapanış, seçenek

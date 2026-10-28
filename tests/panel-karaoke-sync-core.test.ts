@@ -91,14 +91,15 @@ describe("signature", () => {
     ).toBe("41bf0fb6897f703c2364405b7afac695fa55c5ac736d955683fc42f74470e610");
   });
 
-  it("matches the order and sales vectors the panel pins too", () => {
+  it("matches the order and sales vectors the panel is to pin (senkron plan P2)", () => {
     // The bar screen's read, this site's ping, the one-tap stage and the
     // month's sales sign the same way (docs/PANEL-ORDERS.md,
     // docs/PANEL-SALES.md). Same secret and instant as above; the bodies are
     // the bytes each side builds: `createPanelPing`'s `{event, at}` and the
     // panel's `buildStageBody` order `{id, action, from, actor}`. The panel
-    // pins these four in its own tests (lafmaliyet, senkron plan P2): a
-    // change on either side turns those requests into a 401.
+    // is to pin these four in its own tests (lafmaliyet, senkron plan P2):
+    // until then only this side guards them, and a change on either side
+    // turns those requests into a 401.
     const orders = new URL("https://laffogato.net/api/panel/orders");
     expect(
       sign(SECRET, { timestamp: TS, method: "GET", url: orders, body: "" }),
