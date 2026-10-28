@@ -26,6 +26,11 @@ import {
   menuTagsFromForm,
 } from "@/lib/admin/menu-item-schema";
 import {
+  MENU_ITEM_CHANGED_MEANWHILE,
+  readLoadedSale,
+  touchedSaleFields,
+} from "@/lib/admin/menu-sale-guard";
+import {
   bulkUpdateMenuItems,
   createMenuItem,
   deleteMenuItem,
@@ -305,10 +310,21 @@ export async function updateMenuItemAction(
   const previous = await getMenuItem(id);
   if (!previous) return actionError("Bu kalem silinmiş; listeye dön.");
   const scene = await menuScene(input, formData, previous);
-  await updateMenuItem(id, { ...input, ...scene });
+  // The prices and "Menüde göster" as the form loaded them: an untouched one
+  // is not written back over the panel's or another tab's change, a touched
+  // one only if nobody moved it meanwhile (menu-sale-guard.ts).
+  const loaded = readLoadedSale(formData);
+  const saved = await updateMenuItem(id, { ...input, ...scene }, loaded);
+  if (saved === "stale") return actionError(MENU_ITEM_CHANGED_MEANWHILE);
+  if (saved === null) return actionError("Bu kalem silinmiş; listeye dön.");
+  // A price this save wrote, different from the stored one: the price
+  // list's day may be stale (the rule the panel's write follows too).
+  const written = touchedSaleFields(loaded, input);
   const priced =
-    previous.priceMinor !== input.priceMinor ||
-    (previous.priceMinorL || 0) !== (input.priceMinorL || 0);
+    (written.includes("priceMinor") &&
+      previous.priceMinor !== input.priceMinor) ||
+    (written.includes("priceMinorL") &&
+      (previous.priceMinorL || 0) !== (input.priceMinorL || 0));
   if (priced) await markMenuPricesChanged(new Date());
   await logAudit({
     action: "update",

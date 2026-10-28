@@ -18,6 +18,7 @@ import {
   MENU_TAG_OPTIONS,
   unknownMenuTags,
 } from "@/lib/admin/menu-item-schema";
+import { loadedSaleInputs } from "@/lib/admin/menu-sale-guard";
 import {
   SAVE_AND_NEW_FIELD,
   SAVE_AND_NEW_VALUE,
@@ -170,7 +171,7 @@ export function MenuItemForm({
       <Field
         as="fieldset"
         label="Fotoğraf"
-        hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB, sığmazsa küçültülür). Arka planı saydam (dekupe) bir PNG ya da WebP saydamlığını korur; uygulama onu doğrudan sahnenin üstüne çizer. Kaydettikten sonra sitede hemen, uygulamada en geç 5 dakika içinde görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
+        hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB, sığmazsa küçültülür). Arka planı saydam (dekupe) bir PNG ya da WebP saydamlığını korur; uygulama onu doğrudan sahnenin üstüne çizer. Kaydettikten sonra sitede hemen; uygulamada en geç yaklaşık 15 dakika içinde (eski uygulama sürümlerinde 1 saat) görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
       >
         {/* Bu alan eskiden yalnızca `public/` altındaki bir dosya yolunu
               kabul ediyordu - Vercel'de panelden oraya dosya koymanın yolu yok
@@ -412,7 +413,7 @@ export function MenuItemForm({
             fields: ["isActive"],
             body: (
               <div className="grid gap-5">
-                <WizardAutoSummary note="Fiyat, alerjen ve KDV kaydederken sunucuda yeniden denetlenir. Kaydedince sitede hemen, uygulamada en geç 5 dakika içinde görünür." />
+                <WizardAutoSummary note="Fiyat, alerjen ve KDV kaydederken sunucuda yeniden denetlenir. Kaydedince sitede hemen; uygulamada en geç yaklaşık 15 dakika içinde (eski uygulama sürümlerinde 1 saat) görünür." />
                 {activeField}
               </div>
             ),
@@ -424,6 +425,14 @@ export function MenuItemForm({
 
   return (
     <GuardedActionForm action={action} className="grid gap-6 lg:grid-cols-3">
+      {/* The prices and "Menüde göster" as loaded: the save writes only the
+          ones changed here, and only if nobody (the köşk's panel, another
+          tab) moved them meanwhile (src/lib/admin/menu-sale-guard.ts). */}
+      {item
+        ? loadedSaleInputs(item).map((f) => (
+            <input key={f.name} type="hidden" name={f.name} value={f.value} />
+          ))
+        : null}
       <Card className="grid gap-5 lg:col-span-2">
         {nameField}
         {descField}

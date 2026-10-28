@@ -106,6 +106,11 @@ import { imageVersion } from "./image-bytes";
 import type { MoveOutcome } from "./list-order";
 import { compareMenuRows } from "./menu-panel";
 import {
+  MENU_SALE_KEYS,
+  touchedSaleFields,
+  type MenuSaleValues,
+} from "./menu-sale-guard";
+import {
   heroImagePath,
   menuImagePath,
   productImagePath,
@@ -7283,10 +7288,20 @@ export async function createMenuItem(
   return item;
 }
 
+/**
+ * The menu item form's save. `loaded`: the sale fields as the form loaded
+ * them (src/lib/admin/menu-sale-guard.ts). With it, a sale field the
+ * operator did not touch stays out of the UPDATE (the panel, LafPOS or the
+ * list's "Tükendi" may have moved it since), and a touched one is written
+ * only while the row still holds the loaded value; when it does not, nothing
+ * is written and the answer is "stale". Without it (a tab opened before the
+ * guard), the whole row is written as before. Null: the item is gone.
+ */
 export async function updateMenuItem(
   id: string,
   input: MenuItemInput,
-): Promise<AdminMenuItem | null> {
+  loaded?: MenuSaleValues | null,
+): Promise<AdminMenuItem | null | "stale"> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getMenuItem(id);
@@ -7296,10 +7311,26 @@ export async function updateMenuItem(
     ...input,
     updatedAt: new Date().toISOString(),
   };
-  check(
-    await sb.from(TABLES.menuItems).update(next).eq("id", id),
+  if (!loaded) {
+    check(
+      await sb.from(TABLES.menuItems).update(next).eq("id", id),
+      "updateMenuItem",
+    );
+    return next;
+  }
+  const touched = touchedSaleFields(loaded, input);
+  const write: Partial<AdminMenuItem> = { ...next };
+  for (const key of MENU_SALE_KEYS) {
+    if (!touched.includes(key)) delete write[key];
+  }
+  let update = sb.from(TABLES.menuItems).update(write).eq("id", id);
+  for (const key of touched) update = update.eq(key, loaded[key]);
+  const done = rows<{ id: string }>(
+    await update.select("id"),
     "updateMenuItem",
   );
+  if (done.length === 0) return "stale";
+  // An untouched sale field as it was read: this save did not write it.
   return next;
 }
 
@@ -7313,21 +7344,35 @@ export type MenuItemSaleFields = Partial<
  * menu - in one UPDATE of those columns. The köşk's panel changes them
  * (src/app/api/panel/menu/route.ts) while someone here may be saving the
  * same item's name or photo; reading the whole row and writing it back
- * would put back what the other wrote. Answers the item in the panel's
- * columns, the photo left in the database; null when the item is gone.
+ * would put back what the other wrote. `where`: the write is conditional
+ * on those columns' values (the panel's `expect`). Answers the item in the
+ * panel's columns, the photo left in the database; null when the item is
+ * gone or, with `where`, no longer holds those values.
  */
 export async function setMenuItemSaleFields(
   id: string,
   fields: MenuItemSaleFields,
+  where?: MenuItemSaleFields | null,
 ): Promise<MenuItemPanelView | null> {
   await ensureSeed();
   const sb = getDb();
+  let update = sb
+    .from(TABLES.menuItems)
+    .update({ ...fields, updatedAt: new Date().toISOString() })
+    .eq("id", id);
+  // The write's `expect` (menu-link-core `saleWriteGuard`): only while the
+  // columns still hold what the route read a moment ago.
+  if (where?.priceMinor !== undefined) {
+    update = update.eq("priceMinor", where.priceMinor);
+  }
+  if (where?.priceMinorL !== undefined) {
+    update = update.eq("priceMinorL", where.priceMinorL);
+  }
+  if (where?.isActive !== undefined) {
+    update = update.eq("isActive", where.isActive);
+  }
   const updated = rows<MenuItemPanelView>(
-    await sb
-      .from(TABLES.menuItems)
-      .update({ ...fields, updatedAt: new Date().toISOString() })
-      .eq("id", id)
-      .select(MENU_PANEL_COLUMNS),
+    await update.select(MENU_PANEL_COLUMNS),
     "setMenuItemSaleFields",
   );
   return updated[0] ?? null;

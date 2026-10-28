@@ -60,6 +60,37 @@ describe("signature", () => {
     ).toBe("1d993513ad228ef2b3c43bc4c32c76d792a20aa4563d31001320cc95cfbd9c69");
   });
 
+  it("matches the panel's three menu vectors (lafmaliyet tests/site-menusu.test.ts)", () => {
+    // The menu link signs the same way (docs/PANEL-MENU.md): the panel pins
+    // these for its ping, its read and its write; a change on either side
+    // turns every menu request into a 401.
+    const ping = new URL("https://ladmin.laffogato.net/api/menu/ping");
+    const pingBody = JSON.stringify({
+      event: "menu.changed",
+      at: "2026-10-21T10:00:00.000Z",
+    });
+    expect(
+      sign(SECRET, {
+        timestamp: TS,
+        method: "POST",
+        url: ping,
+        body: pingBody,
+      }),
+    ).toBe("42befa28874811a2862675ebb3a0950867b1542efe400fdea0cf2875b57c234f");
+    const menu = new URL("https://laffogato.net/api/panel/menu");
+    expect(
+      sign(SECRET, { timestamp: TS, method: "GET", url: menu, body: "" }),
+    ).toBe("68f8ceecb77b7f07754d5fa3ee46340cd3e19b3db03e61b0ea97c55479fa7737");
+    const write = JSON.stringify({
+      id: "mnu-0011",
+      priceMinor: 14500,
+      actor: "Selin",
+    });
+    expect(
+      sign(SECRET, { timestamp: TS, method: "POST", url: menu, body: write }),
+    ).toBe("41bf0fb6897f703c2364405b7afac695fa55c5ac736d955683fc42f74470e610");
+  });
+
   it("signs the instant, method, path, sorted query and body hash, not the host", () => {
     expect(
       canonicalString({
