@@ -55,6 +55,58 @@ export const PANEL_ORDER_NOTE_MAX = 300;
 /** A line's barista note at most (the app takes 200). */
 export const PANEL_ORDER_LINE_NOTE_MAX = 200;
 
+/**
+ * How long an unpaid order counts in `awaitingPayment` after its newest
+ * checkout opened: the order's creation, or a later reopen of its payment
+ * page (the app's "Şimdi öde", or the retry of a lost POST, which reopens
+ * a still unpaid order at any age: src/lib/mobile/orders.ts
+ * `replayAppOrder`). A checkout's card form is taken for 30 minutes
+ * (`DIRECT_FORM_MAX_AGE_MS`, src/lib/payment/paynkolay.ts), so a payment
+ * normally lands within this of the checkout it was made on; the panel
+ * follows a count above zero for as long (lafmaliyet
+ * docs/planlar/senkron.md §3.2 `siparis-bar-liste`), from the last time
+ * the count rose.
+ */
+export const PANEL_AWAITING_PAYMENT_WINDOW_MS = 30 * 60_000;
+
+/**
+ * At most this many older unpaid orders are checked for a reopened
+ * checkout (the newest first). Unpaid orders are swept after 45 minutes
+ * (`expireStalePendingOrders`) and each member may hold only a few, so
+ * this is a bound on a fault, not a working limit.
+ */
+export const PANEL_AWAITING_REOPEN_READ_MAX = 100;
+
+/**
+ * The fulfillments of an order the bar screen would show once paid: every
+ * café one but a parcel (`shipping`, which `toPanelOrder` drops).
+ */
+export const PANEL_ORDER_FULFILLMENTS = [
+  "table",
+  "pickup",
+  "delivery",
+] as const;
+
+/**
+ * True for an order the bar screen shows once it is paid: a café order
+ * for a table, for pickup or for a courier, not typed into this site's
+ * panel (paid at the till, it never reaches the screen) and not a parcel.
+ * `toPanelOrder`'s first three checks say the same; the store's
+ * `awaitingPayment` count filters the same in SQL
+ * (`PANEL_ORDER_FULFILLMENTS`).
+ */
+export function isBarScreenOrder(row: {
+  kind?: string;
+  source?: string;
+  fulfillment?: string;
+}): boolean {
+  return (
+    orderKind(row) === "cafe" &&
+    row.source !== "manual" &&
+    orderFulfillment(row) !== "shipping"
+  );
+}
+
 /** The statuses the route reads; `toPanelOrder` decides which stay. */
 export const PANEL_ORDER_READ_STATUSES = [
   "paid",
@@ -151,6 +203,27 @@ export function panelOrdersSince(now: Date): string {
   return new Date(
     now.getTime() - PANEL_ORDERS_LOOKBACK_DAYS * 24 * 60 * 60_000,
   ).toISOString();
+}
+
+/**
+ * The instant `awaitingPayment` counts unpaid orders from (ISO, which
+ * sorts as text; inclusive): an order created at or after it, or one whose
+ * newest checkout (its pending `payment_transactions` row) was opened at
+ * or after it.
+ */
+export function panelAwaitingPaymentSince(now: Date): string {
+  return new Date(
+    now.getTime() - PANEL_AWAITING_PAYMENT_WINDOW_MS,
+  ).toISOString();
+}
+
+/**
+ * `awaitingPayment` as the response carries it: a whole number, never
+ * negative. Only a count leaves: no order, no customer, no amount.
+ */
+export function panelAwaitingPaymentCount(count: unknown): number {
+  const n = Math.trunc(Number(count));
+  return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /**

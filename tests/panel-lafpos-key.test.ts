@@ -31,6 +31,7 @@ const store = vi.hoisted(() => ({
   setMenuItemSaleFields: vi.fn(),
   markMenuPricesChanged: vi.fn(),
   listPanelOpenOrderRows: vi.fn(),
+  countPanelAwaitingPaymentOrders: vi.fn(),
   getOrder: vi.fn(),
   transitionOrder: vi.fn(),
   listPanelSalesOrderRows: vi.fn(),
@@ -210,6 +211,7 @@ beforeEach(() => {
   store.setMenuItemSaleFields.mockResolvedValue(menuItem({ isActive: false }));
   store.markMenuPricesChanged.mockResolvedValue(undefined);
   store.listPanelOpenOrderRows.mockResolvedValue([order()]);
+  store.countPanelAwaitingPaymentOrders.mockResolvedValue(1);
   listReservationsForAdmin.mockResolvedValue([booking()]);
   store.getOrder.mockResolvedValue(order());
   store.transitionOrder.mockResolvedValue({

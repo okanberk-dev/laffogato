@@ -40,6 +40,8 @@ import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
 
 import { orderChannel } from "@/lib/admin/order-channel";
+import { isBarScreenOrder } from "@/lib/panel/orders-feed-core";
+import { pingPanelOrders } from "@/lib/panel/orders-ping";
 import { getOrderStamps } from "./loyalty";
 import { stampsForOrder } from "./loyalty-core";
 import { resolveOrderAddress } from "./order-address";
@@ -406,6 +408,12 @@ async function replayAppOrder(
     // reopened checkout - the retry of a lost POST, "Şimdi öde" from the
     // order - went to the bank's fraud screen with no address at all.
     payment = await createAppPaymentSession(order, customer, await clientIp());
+    // A reopen writes only a payment row, which expires no `live:orders`,
+    // so the write hook sends the köşk panel no ping. Told here, its pull
+    // counts this order in `awaitingPayment` again (by this checkout) and
+    // the bar screen keeps following it, even when the order is older than
+    // the count's half hour (docs/PANEL-ORDERS.md).
+    if (isBarScreenOrder(order)) pingPanelOrders();
   }
   return replayAnswer(order, payment);
 }

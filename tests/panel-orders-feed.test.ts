@@ -10,11 +10,16 @@ import {
   verifySignature,
 } from "@/lib/panel/karaoke-sync-core";
 import {
+  PANEL_AWAITING_PAYMENT_WINDOW_MS,
+  PANEL_ORDER_FULFILLMENTS,
   PANEL_ORDER_LINE_NOTE_MAX,
   PANEL_ORDER_NOTE_MAX,
   PANEL_ORDER_READY_STALE_MS,
   PANEL_ORDER_STALE_MS,
   PANEL_ORDERS_LOOKBACK_DAYS,
+  isBarScreenOrder,
+  panelAwaitingPaymentCount,
+  panelAwaitingPaymentSince,
   panelOrderRowsComplete,
   panelOrdersLiveSince,
   panelOrdersSince,
@@ -31,7 +36,9 @@ import {
  * table or gel-al order, never a courier order's), only paid app and web
  * café orders in an open stage are on the screen, a forgotten one leaves
  * it, the route answers only a signed request, and every order write pings
- * the panel from the write hook.
+ * the panel from the write hook. Beside the list, `awaitingPayment` is a
+ * number and nothing else (which orders it counts against a real Postgres:
+ * tests/db-integration-panel-feeds.test.ts).
  */
 
 const NOW = new Date("2026-10-22T12:00:00.000Z");
@@ -386,10 +393,65 @@ describe("toPanelOrder", () => {
   });
 });
 
+// ─── Waiting for a payment ─────────────────────────────────────────────────
+
+describe("awaitingPayment", () => {
+  it("counts the orders opened in the last 30 minutes, the bound included", () => {
+    expect(PANEL_AWAITING_PAYMENT_WINDOW_MS).toBe(30 * 60_000);
+    expect(panelAwaitingPaymentSince(NOW)).toBe("2026-10-22T11:30:00.000Z");
+  });
+
+  it("counts only what the screen would show once paid: no parcel", () => {
+    expect([...PANEL_ORDER_FULFILLMENTS].sort()).toEqual([
+      "delivery",
+      "pickup",
+      "table",
+    ]);
+    for (const fulfillment of PANEL_ORDER_FULFILLMENTS) {
+      expect(toPanelOrder(row({ fulfillment }), NOW)).not.toBeNull();
+    }
+    expect(toPanelOrder(row({ fulfillment: "shipping" }), NOW)).toBeNull();
+  });
+
+  it("counts by the same rule as the screen: a café order for a table, pickup or courier, not typed into the panel", () => {
+    for (const kind of ["cafe", "shop", undefined]) {
+      for (const source of ["", "manual", "app", undefined]) {
+        for (const fulfillment of [
+          "table",
+          "pickup",
+          "delivery",
+          "shipping",
+          "",
+          undefined,
+        ]) {
+          const r = row({ kind, source, fulfillment });
+          expect(isBarScreenOrder(r)).toBe(toPanelOrder(r, NOW) !== null);
+        }
+      }
+    }
+    expect(isBarScreenOrder({ kind: "cafe", fulfillment: "table" })).toBe(true);
+    expect(
+      isBarScreenOrder({ kind: "cafe", source: "manual", fulfillment: "table" }),
+    ).toBe(false);
+  });
+
+  it("is a whole number, never negative", () => {
+    expect(panelAwaitingPaymentCount(3)).toBe(3);
+    expect(panelAwaitingPaymentCount("2")).toBe(2);
+    expect(panelAwaitingPaymentCount(2.7)).toBe(2);
+    expect(panelAwaitingPaymentCount(0)).toBe(0);
+    expect(panelAwaitingPaymentCount(-1)).toBe(0);
+    expect(panelAwaitingPaymentCount(Number.NaN)).toBe(0);
+    expect(panelAwaitingPaymentCount(null)).toBe(0);
+    expect(panelAwaitingPaymentCount(undefined)).toBe(0);
+  });
+});
+
 // ─── The route ─────────────────────────────────────────────────────────────
 
 const storeMock = vi.hoisted(() => ({
   listPanelOpenOrderRows: vi.fn(),
+  countPanelAwaitingPaymentOrders: vi.fn(),
 }));
 vi.mock("@/lib/admin/store", () => storeMock);
 
@@ -413,6 +475,8 @@ describe("GET /api/panel/orders", () => {
       row(),
       row({ id: "ord-0001", orderNo: 10001, kind: "shop" }),
     ]);
+    storeMock.countPanelAwaitingPaymentOrders.mockReset();
+    storeMock.countPanelAwaitingPaymentOrders.mockResolvedValue(0);
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -429,6 +493,7 @@ describe("GET /api/panel/orders", () => {
     const res = await get(signedGet("/api/panel/orders"));
     expect(res.status).toBe(503);
     expect(storeMock.listPanelOpenOrderRows).not.toHaveBeenCalled();
+    expect(storeMock.countPanelAwaitingPaymentOrders).not.toHaveBeenCalled();
   });
 
   it("answers nothing to an unsigned or wrongly signed request", async () => {
@@ -442,6 +507,7 @@ describe("GET /api/panel/orders", () => {
     expect(wrong.status).toBe(401);
     expect(await wrong.json()).toEqual({ error: "unauthorized" });
     expect(storeMock.listPanelOpenOrderRows).not.toHaveBeenCalled();
+    expect(storeMock.countPanelAwaitingPaymentOrders).not.toHaveBeenCalled();
   });
 
   it("answers the open café orders, uncached", async () => {
@@ -455,6 +521,56 @@ describe("GET /api/panel/orders", () => {
     expect(typeof since).toBe("string");
     expect(limit).toBe(201);
     expect(Object.keys(live).sort()).toEqual(["dueSince", "readySince"]);
+  });
+
+  it("says how many café orders wait for their payment, a number and nothing else", async () => {
+    storeMock.countPanelAwaitingPaymentOrders.mockResolvedValue(2);
+    const res = await get(signedGet("/api/panel/orders"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // Added to v1: the version stays, an older panel strips the new key.
+    expect(Object.keys(body).sort()).toEqual([
+      "awaitingPayment",
+      "complete",
+      "now",
+      "orders",
+      "version",
+    ]);
+    expect(body.version).toBe(1);
+    expect(body.awaitingPayment).toBe(2);
+    expect(storeMock.countPanelAwaitingPaymentOrders).toHaveBeenCalledTimes(1);
+    expect(storeMock.countPanelAwaitingPaymentOrders).toHaveBeenCalledWith(
+      "2026-10-22T11:30:00.000Z",
+    );
+  });
+
+  it("reads the count before the list, so a payment in between is never in neither", async () => {
+    // An order only goes from waiting to paid. Counted first, one paid
+    // between the two reads is in the list; listed first, it was in
+    // neither and the panel read "0 waiting" with no new order.
+    let countDone = false;
+    let listStartedBeforeCount = false;
+    storeMock.countPanelAwaitingPaymentOrders.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      countDone = true;
+      return 1;
+    });
+    storeMock.listPanelOpenOrderRows.mockImplementation(async () => {
+      if (!countDone) listStartedBeforeCount = true;
+      return [row()];
+    });
+    const res = await get(signedGet("/api/panel/orders"));
+    expect(res.status).toBe(200);
+    expect(
+      storeMock.countPanelAwaitingPaymentOrders.mock.invocationCallOrder[0],
+    ).toBeLessThan(storeMock.listPanelOpenOrderRows.mock.invocationCallOrder[0]!);
+    // One after the other, not side by side.
+    expect(listStartedBeforeCount).toBe(false);
+  });
+
+  it("answers 0, not a missing field, when nothing waits", async () => {
+    const body = await (await get(signedGet("/api/panel/orders"))).json();
+    expect(body.awaitingPayment).toBe(0);
   });
 
   it("is not complete when the read came back full, whatever it dropped", async () => {
@@ -481,6 +597,17 @@ describe("GET /api/panel/orders", () => {
     const res = await get(signedGet("/api/panel/orders"));
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: "unavailable" });
+  });
+
+  it("says so too when the count cannot be read, rather than 0 waiting", async () => {
+    storeMock.countPanelAwaitingPaymentOrders.mockRejectedValue(
+      new Error("down"),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await get(signedGet("/api/panel/orders"));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "unavailable" });
+    expect(storeMock.listPanelOpenOrderRows).not.toHaveBeenCalled();
   });
 });
 

@@ -143,6 +143,10 @@ vi.mock("@/lib/db", () => ({
   }),
   TABLES: { paymentTransactions: "payment_transactions" },
 }));
+// A reopened checkout writes only a payment row, which expires no
+// `live:orders`, so it tells the köşk panel itself (docs/PANEL-ORDERS.md).
+const pingPanelOrders = vi.fn();
+vi.mock("@/lib/panel/orders-ping", () => ({ pingPanelOrders }));
 // The consent version reads the panel overrides; none are published here.
 vi.mock("@/lib/legal/store", async () => {
   const { LEGAL_UPDATED } = await import("@/lib/legal/meta");
@@ -194,6 +198,7 @@ beforeEach(() => {
   reserveLoginAttempt.mockResolvedValue(OPEN_GATE);
   checkPendingOrderPaid.mockReset();
   checkPendingOrderPaid.mockResolvedValue("unpaid");
+  pingPanelOrders.mockClear();
 });
 
 describe("POST /orders - clientOrderId", () => {
@@ -507,5 +512,65 @@ describe("reopening asks the POS about the last attempt first", () => {
     const first = await createAppOrder(customer, body("attempt-1"));
     expect(first.ok && first.payment?.redirectUrl).toBeTruthy();
     expect(checkPendingOrderPaid).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Senkron plan S2 (docs/PANEL-ORDERS.md `awaitingPayment`): the bar panel
+ * follows an unpaid café order for 30 minutes from its newest checkout. A
+ * reopen ("Şimdi öde", or the retry of a lost POST) is a new checkout, but
+ * it writes only a payment row, so no write pings the panel. The reopen
+ * pings it itself, and only for an order the bar screen would show.
+ */
+describe("a reopened checkout tells the bar panel", () => {
+  const BLOCKED = { blocked: true, retryAfterSeconds: 540, remaining: 0 };
+
+  it("pings the panel when an unpaid café order's checkout is reopened, by either door", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    // A new order's ping comes from the write hook on its insert.
+    expect(pingPanelOrders).not.toHaveBeenCalled();
+
+    const paid = await payAppOrder(customer, first.order.id);
+    expect(paid.ok).toBe(true);
+    expect(pingPanelOrders).toHaveBeenCalledTimes(1);
+
+    const retry = await createAppOrder(customer, body("attempt-1"));
+    expect(retry.ok && retry.payment?.redirectUrl).toBeTruthy();
+    expect(pingPanelOrders).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves the panel alone for a parcel, which the bar screen never shows", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+    placed[0] = {
+      ...placed[0]!,
+      kind: "shop",
+      fulfillment: "shipping",
+    } as AdminOrder;
+    const paid = await payAppOrder(customer, first.order.id);
+    expect(paid.ok).toBe(true);
+    expect(pingPanelOrders).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when no checkout opens: a spent budget, a POS that cannot be asked, a payment it holds", async () => {
+    const first = await createAppOrder(customer, body("attempt-1"));
+    if (!first.ok) throw new Error("setup");
+
+    reserveLoginAttempt.mockResolvedValueOnce(BLOCKED);
+    expect((await payAppOrder(customer, first.order.id)).ok).toBe(false);
+
+    checkPendingOrderPaid.mockResolvedValueOnce("unknown");
+    expect((await payAppOrder(customer, first.order.id)).ok).toBe(false);
+
+    // Booked by the lookup: that write pings the panel through the hook.
+    checkPendingOrderPaid.mockImplementationOnce(async () => {
+      placed[0] = { ...placed[0]!, status: "paid" } as AdminOrder;
+      return "paid";
+    });
+    expect((await payAppOrder(customer, first.order.id)).ok).toBe(false);
+
+    expect(createCheckoutSession).toHaveBeenCalledTimes(1);
+    expect(pingPanelOrders).not.toHaveBeenCalled();
   });
 });

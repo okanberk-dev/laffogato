@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { listPanelOpenOrderRows } from "@/lib/admin/store";
+import {
+  countPanelAwaitingPaymentOrders,
+  listPanelOpenOrderRows,
+} from "@/lib/admin/store";
 import {
   PANEL_ORDERS_MAX,
   PANEL_ORDERS_VERSION,
+  panelAwaitingPaymentCount,
+  panelAwaitingPaymentSince,
   panelOrderRowsComplete,
   panelOrdersLiveSince,
   panelOrdersSince,
@@ -33,6 +38,13 @@ import {
  * table or gel-al order; never a surname, e-mail, phone, address, courier
  * note or payment reference. Read only: the bar screen's
  * buttons move an order through `POST /api/panel/orders/stage`.
+ *
+ * Beside the list, `awaitingPayment` (added 28 Eki 2026; an older reader
+ * ignores it): how many café orders for the screen still wait for a
+ * payment on a checkout opened in the last 30 minutes (the order's own, or
+ * a reopened one). A number only, no order: the panel polls a little while
+ * it is above zero, so a payment whose ping was lost still reaches the bar
+ * within minutes.
  *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
@@ -65,7 +77,17 @@ export async function GET(request: Request) {
   // One over the cap tells a full screen from a cut one.
   const limit = PANEL_ORDERS_MAX + 1;
   let rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
+  let awaiting: number;
   try {
+    // The count first, then the list, one after the other: an order only
+    // goes from waiting to paid, so one paid in between is in the list (at
+    // worst in both), never in neither. Read the other way round, a payment
+    // landing between the two reads left the order out of both and the
+    // panel saw "0 waiting" with no new order. The pool is one connection,
+    // so this costs no time.
+    awaiting = await countPanelAwaitingPaymentOrders(
+      panelAwaitingPaymentSince(now),
+    );
     rows = await listPanelOpenOrderRows(
       panelOrdersSince(now),
       limit,
@@ -94,6 +116,7 @@ export async function GET(request: Request) {
         panelOrderRowsComplete(rows, limit) &&
         orders.length <= PANEL_ORDERS_MAX,
       orders: orders.slice(0, PANEL_ORDERS_MAX),
+      awaitingPayment: panelAwaitingPaymentCount(awaiting),
     },
     { headers: NO_STORE },
   );

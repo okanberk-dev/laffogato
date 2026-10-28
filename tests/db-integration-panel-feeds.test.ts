@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Executor } from "@/lib/db/client";
 import {
   PANEL_ORDERS_MAX,
+  panelAwaitingPaymentSince,
   panelOrderRowsComplete,
   panelOrdersLiveSince,
   panelOrdersSince,
@@ -28,6 +29,10 @@ import {
  *   orders, never a manual one, a shop parcel or a table order that left
  *   the counter, with the columns `toPanelOrder` reads (the member's note
  *   on a gel-al order, never a courier order's door code);
+ * - `countPanelAwaitingPaymentOrders`: the café orders for the screen
+ *   still waiting for a payment on a checkout opened in the last half hour,
+ *   their own or a reopened one (`awaitingPayment`), never a manual one or
+ *   a shop parcel;
  * - `listPanelSalesOrderRows` / `listPanelSalesBookingRows`: the counted
  *   orders of a period with its margin, and every booking whose money
  *   reached the POS, with the rate it was sold at; the orders' payment rows
@@ -363,6 +368,135 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       ).toBe(true);
     } finally {
       await q("rollback to savepoint forgotten");
+    }
+  });
+
+  it("counts the café orders still waiting for their payment, for the screen only", async () => {
+    // Undone at the end: the sales test below counts the fixture as it was.
+    await q("savepoint awaiting");
+    try {
+      const pending = (
+        id: string,
+        orderNo: number,
+        f: {
+          createdAt: string;
+          kind?: string;
+          source?: string;
+          fulfillment?: string;
+        },
+      ) =>
+        insertOrder(id, orderNo, {
+          status: "pending_payment",
+          paidAt: "",
+          ...f,
+        });
+      // Counted: a table order and a courier one opened within the half
+      // hour (ord-pf-07, a gel-al opened exactly 30 minutes ago, too).
+      await pending("ord-aw-01", 92_001, {
+        createdAt: minutesAgo(2),
+        fulfillment: "table",
+      });
+      await pending("ord-aw-02", 92_002, {
+        createdAt: minutesAgo(29),
+        fulfillment: "delivery",
+      });
+      // Not counted: typed into the panel (it never reaches the screen), a
+      // shop parcel, a café order with no screen fulfillment, one opened 31
+      // minutes ago, and orders past their payment.
+      await pending("ord-aw-03", 92_003, {
+        createdAt: minutesAgo(2),
+        source: "manual",
+      });
+      await pending("ord-aw-04", 92_004, {
+        createdAt: minutesAgo(2),
+        kind: "shop",
+        fulfillment: "shipping",
+      });
+      await pending("ord-aw-05", 92_005, {
+        createdAt: minutesAgo(2),
+        fulfillment: "shipping",
+      });
+      await pending("ord-aw-06", 92_006, { createdAt: minutesAgo(31) });
+      for (const [id, orderNo, status] of [
+        ["ord-aw-07", 92_007, "paid"],
+        ["ord-aw-08", 92_008, "cancelled"],
+      ] as const) {
+        await insertOrder(id, orderNo, { status, createdAt: minutesAgo(2) });
+      }
+      // A checkout leaves a pending payment row (`recordPendingCheckout`):
+      // the first one with the order, a reopen ("Şimdi öde") later.
+      let ref = 0;
+      const checkout = (orderId: string, createdAt: string, status = "pending") =>
+        q(
+          `insert into public.payment_transactions ("orderId", provider,
+             "providerRef", status, "amountMinor", "createdAt")
+           values ($1, 'paynkolay', $2, $3, 0, $4)`,
+          [orderId, `pending:aw-${++ref}`, status, createdAt],
+        );
+      await checkout("ord-aw-01", minutesAgo(2));
+      // Counted by its reopened checkout: a table order opened 50 minutes
+      // ago, its payment page reopened twice (once 5 minutes ago).
+      await pending("ord-aw-09", 92_009, {
+        createdAt: minutesAgo(50),
+        fulfillment: "table",
+      });
+      await checkout("ord-aw-09", minutesAgo(50));
+      await checkout("ord-aw-09", minutesAgo(12));
+      await checkout("ord-aw-09", minutesAgo(5));
+      // Not counted: a reopen 40 minutes ago, a panel order or a parcel
+      // with a fresh payment row, a row that is not a checkout, and a
+      // karaoke booking's checkout (its id is no order's).
+      await pending("ord-aw-10", 92_010, { createdAt: minutesAgo(50) });
+      await checkout("ord-aw-10", minutesAgo(40));
+      await pending("ord-aw-11", 92_011, {
+        createdAt: minutesAgo(50),
+        source: "manual",
+      });
+      await checkout("ord-aw-11", minutesAgo(5));
+      await pending("ord-aw-12", 92_012, {
+        createdAt: minutesAgo(50),
+        kind: "shop",
+        fulfillment: "shipping",
+      });
+      await checkout("ord-aw-12", minutesAgo(5));
+      await pending("ord-aw-13", 92_013, { createdAt: minutesAgo(50) });
+      await checkout("ord-aw-13", minutesAgo(5), "failed");
+      await checkout("krk-pf-3", minutesAgo(5));
+
+      expect(
+        await store.countPanelAwaitingPaymentOrders(
+          panelAwaitingPaymentSince(NOW),
+        ),
+      ).toBe(4);
+      // A minute later ord-pf-07 has left the window; ord-aw-09 stays.
+      expect(
+        await store.countPanelAwaitingPaymentOrders(
+          panelAwaitingPaymentSince(new Date(NOW.getTime() + 60_000)),
+        ),
+      ).toBe(3);
+      // Half an hour after its last reopen (the bound included) it still
+      // counts, beside ord-aw-01; a minute after that it has left.
+      expect(
+        await store.countPanelAwaitingPaymentOrders(
+          panelAwaitingPaymentSince(new Date(NOW.getTime() + 25 * 60_000)),
+        ),
+      ).toBe(2);
+      expect(
+        await store.countPanelAwaitingPaymentOrders(
+          panelAwaitingPaymentSince(new Date(NOW.getTime() + 26 * 60_000)),
+        ),
+      ).toBe(1);
+      // None of them is on the screen until it is paid.
+      const rows = await store.listPanelOpenOrderRows(
+        panelOrdersSince(NOW),
+        PANEL_ORDERS_MAX + 1,
+        panelOrdersLiveSince(NOW),
+      );
+      expect(
+        rows.map((r) => r.id).filter((id) => id.startsWith("ord-aw-")),
+      ).toEqual(["ord-aw-07"]);
+    } finally {
+      await q("rollback to savepoint awaiting");
     }
   });
 
