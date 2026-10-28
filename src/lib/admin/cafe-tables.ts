@@ -3,6 +3,11 @@ import "server-only";
 import { getDb, TABLES, type DbError } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
+import {
+  planPanelTables,
+  type PanelTableInput,
+  type PanelTableUpdateFields,
+} from "@/lib/panel/tables-link-core";
 
 import {
   generateTableCode,
@@ -22,6 +27,11 @@ import {
  * Nothing here deletes. A table taken out of service is deactivated, which
  * keeps the row for the orders and the audit log that name it; a code that
  * leaked is rotated, which kills the old QR at once.
+ *
+ * One exception to "the code is the server's": LafPOS, the café's till,
+ * prints its own cards and sends their codes (`importCafeTables`, the one
+ * caller of which is the signed `PUT /api/panel/tables`;
+ * src/lib/panel/tables-link-core.ts, docs/LAFPOS.md "Masa kodları").
  */
 
 const TABLE = TABLES.cafeTables;
@@ -195,6 +205,107 @@ export async function rotateCafeTableCode(
     return row ? { ok: true, value: toTable(row) } : fail("not_found");
   }
   throw new Error("cafeTables.rotate: no unique code after retries");
+}
+
+export interface ImportCafeTablesResult {
+  /** Tables the list carried. */
+  count: number;
+  /** Rows added, as inserted. */
+  created: CafeTable[];
+  /** Rows brought up to date, as they now are. */
+  updated: CafeTable[];
+  /** Rows already as given: nothing written. */
+  unchanged: number;
+}
+
+/** One table's name and state by its code; null when the code names nothing. */
+async function updateCafeTableByCode(
+  code: string,
+  fields: PanelTableUpdateFields,
+  now: string,
+): Promise<CafeTable | null> {
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .update({ ...fields, updatedAt: now })
+    .eq("code", code)
+    .select("*");
+  checkErr(error, "cafeTables.import.update");
+  const row = ((data as Record<string, unknown>[] | null) ?? [])[0];
+  return row ? toTable(row) : null;
+}
+
+/**
+ * LafPOS's table list (src/lib/panel/tables-link-core.ts): each code the
+ * site does not have becomes a new table with that code, the name and the
+ * state given, and no `rotatedAt`; each code it has gets its name and
+ * state brought up to date, only what differs written. A table of the
+ * site's the list does not name is not touched: only the listed codes are
+ * read. The codes and names are the parsed list's (`parsePanelTablesSync`),
+ * never raw.
+ *
+ * One write per row, no transaction: a list cut short by an error leaves
+ * the rows it did write, and the next list (LafPOS retries) finds them and
+ * writes the rest. A code added meanwhile by someone else (the unique index
+ * says so) is brought up to date instead of refused.
+ */
+export async function importCafeTables(
+  tables: readonly PanelTableInput[],
+): Promise<ImportCafeTablesResult> {
+  const result: ImportCafeTablesResult = {
+    count: tables.length,
+    created: [],
+    updated: [],
+    unchanged: 0,
+  };
+  if (tables.length === 0) return result;
+  const { data, error } = await getDb()
+    .from(TABLE)
+    .select("*")
+    .in(
+      "code",
+      tables.map((t) => t.code),
+    );
+  checkErr(error, "cafeTables.import.read");
+  const existing = ((data as Record<string, unknown>[] | null) ?? []).map(
+    toTable,
+  );
+  const plan = planPanelTables(existing, tables);
+  result.unchanged = plan.unchanged;
+  const now = new Date().toISOString();
+  for (const want of plan.create) {
+    const seq = await nextSeq("tbl");
+    const row = {
+      id: `tbl-${String(seq).padStart(4, "0")}`,
+      code: want.code,
+      name: want.name,
+      sortOrder: seq,
+      isActive: want.active,
+      createdAt: now,
+      updatedAt: now,
+      rotatedAt: "",
+    };
+    const { error: insertError } = await getDb().from(TABLE).insert(row);
+    if (isUniqueViolation(insertError)) {
+      const updated = await updateCafeTableByCode(
+        want.code,
+        { name: want.name, isActive: want.active },
+        now,
+      );
+      if (updated) result.updated.push(updated);
+      continue;
+    }
+    checkErr(insertError, "cafeTables.import.create");
+    result.created.push(toTable(row));
+  }
+  for (const change of plan.update) {
+    const updated = await updateCafeTableByCode(
+      change.code,
+      change.fields,
+      now,
+    );
+    if (updated) result.updated.push(updated);
+  }
+  return result;
 }
 
 /**

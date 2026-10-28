@@ -88,6 +88,7 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
          "stage": "new",
          "fulfillment": "table",
          "label": "Masa 4",
+         "tableCode": "K7Q2M9X4TB",
          "firstName": "Ayşe",
          "scheduledFor": "",
          "note": "Fındık alerjim var",
@@ -112,6 +113,13 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
    - `fulfillment`: `table` | `pickup` | `delivery`; `label` sayacın dili
      ("Masa 4", "Gel-al", "Kurye"), sitenin sipariş zilindekiyle aynı
      (`orderAlertLabel`).
+   - `tableCode` (28 Eki 2026, sonradan eklendi; eski panel yok sayar):
+     masa siparişinde masanın kodu, siparişin anlık görüntüsünden
+     (`orders."tableCode"`; masa sonradan yenilense de siparişinki kalır).
+     Gel-al ve kurye siparişinde hep `""`. Kafenin kasası LafPOS siparişi
+     masa planındaki masaya bu kodla eşler, kendi bastığı kartın kodunu
+     siteye `PUT /api/panel/tables` ile bildirir (`docs/LAFPOS.md` "Masa
+     kodları"). Kod kişisel veri değildir: masanın üstünde basılıdır.
    - `size`: `M` | `L` | `single`. `menuItemId` panelin ürününe menü
      bağlantısıyla eşlenir (`docs/PANEL-MENU.md`): ekran içeceğin reçetesini
      gösterebilir.
@@ -181,11 +189,11 @@ gövde en çok 1 KB, katı JSON:
 { "id": "ord-0042", "action": "ready", "from": "new", "actor": "Selin" }
 ```
 
-| `action`    | İzinli `from`        | Sipariş hareketi           | Düğme                                                         |
-| ----------- | -------------------- | -------------------------- | ------------------------------------------------------------- |
-| `preparing` | `new`                | `paid` → `preparing`       | Hazırlanıyor                                                  |
-| `ready`     | `new`, `preparing`   | → `shipped`                | gel-al "Hazır", masa "Masaya götürüldü", kurye "Kuryeye verildi" |
-| `delivered` | `ready` (yalnız gel-al) | `shipped` → `completed` | Teslim edildi                                                 |
+| `action`    | İzinli `from`           | Sipariş hareketi        | Düğme                                                            |
+| ----------- | ----------------------- | ----------------------- | ---------------------------------------------------------------- |
+| `preparing` | `new`                   | `paid` → `preparing`    | Hazırlanıyor                                                     |
+| `ready`     | `new`, `preparing`      | → `shipped`             | gel-al "Hazır", masa "Masaya götürüldü", kurye "Kuryeye verildi" |
+| `delivered` | `ready` (yalnız gel-al) | `shipped` → `completed` | Teslim edildi                                                    |
 
 - `from`, kartın gösterdiği aşamadır; hareket ona **koşulludur** (siparişin
   durumu hâlâ o aşamanın durumu olmalı). Eski ekrandan gelen dokunuş, ya da
@@ -195,13 +203,13 @@ gövde en çok 1 KB, katı JSON:
   kaydına ve sipariş zaman çizelgesine "Yönetim paneli · Selin" olarak düşer
   (`panel:Selin`).
 
-| Yanıt                                  | Ne zaman                                                                 |
-| -------------------------------------- | ------------------------------------------------------------------------ |
-| 200 `{"order": …}`                     | Hareket yapıldı; `order` ekranın biçiminde (`toPanelOrder`), ekrandan kalktıysa `null` |
-| 409 `{"error":"stale","order": …}`     | Sipariş bu arada değişti ya da dokunuş aşamasına uymuyor; `order` şimdiki hâli |
-| 404 `{"error":"not_found"}`            | Böyle sipariş yok, ya da bar ekranının siparişi değil (mağaza, elle girilen) |
-| 400 `{"error":"invalid","field"}`      | Gövde okunamadı ya da bir alan geçersiz                                   |
-| 401 · 413 · 503                        | Diğer panel uçlarıyla aynı                                               |
+| Yanıt                              | Ne zaman                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------- |
+| 200 `{"order": …}`                 | Hareket yapıldı; `order` ekranın biçiminde (`toPanelOrder`), ekrandan kalktıysa `null` |
+| 409 `{"error":"stale","order": …}` | Sipariş bu arada değişti ya da dokunuş aşamasına uymuyor; `order` şimdiki hâli         |
+| 404 `{"error":"not_found"}`        | Böyle sipariş yok, ya da bar ekranının siparişi değil (mağaza, elle girilen)           |
+| 400 `{"error":"invalid","field"}`  | Gövde okunamadı ya da bir alan geçersiz                                                |
+| 401 · 413 · 503                    | Diğer panel uçlarıyla aynı                                                             |
 
 Panele bu uçtan yeni kişisel veri gitmez: yanıt, okuma ucunun beyaz
 listesidir (yalnız ad). Site: `src/app/api/panel/orders/stage/route.ts`,

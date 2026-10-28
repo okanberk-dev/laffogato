@@ -21,8 +21,9 @@ import {
  * route names the callers it takes: the menu routes, the bar screen's two
  * order routes and the karaoke read take both (LafPOS's room box shows the
  * site's bookings, the panel's whitelist and nothing more, from yesterday
- * to tomorrow only), `/api/pos/orders/version` takes LafPOS only. The sales
- * route does not use this module: it stays the panel's alone.
+ * to tomorrow only), `/api/pos/orders/version` and the table list
+ * (`PUT /api/panel/tables`, the codes LafPOS prints) take LafPOS only. The
+ * sales route does not use this module: it stays the panel's alone.
  *
  * Pure (no `server-only`, no database): the routes and the tests share it.
  */
@@ -86,7 +87,7 @@ export function signedCallerKeys(
 export function signedCaller(
   keys: SignedCallerKeys,
   request: { headers: Headers },
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PUT",
   url: URL,
   body: string,
 ): SignedCaller | null {

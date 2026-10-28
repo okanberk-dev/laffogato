@@ -21,7 +21,8 @@ import {
  * only (a wider window is 403 before anything is read), the panel's
  * requests are answered exactly as before, a route with neither key is
  * shut, the panel's value pasted in as LafPOS's opens nothing to LafPOS,
- * and the sales route stays the panel's alone.
+ * the sales route stays the panel's alone, and the table list
+ * (`PUT /api/panel/tables`, the codes LafPOS prints) is LafPOS's alone.
  */
 
 const store = vi.hoisted(() => ({
@@ -37,12 +38,14 @@ const store = vi.hoisted(() => ({
 }));
 const safeAudit = vi.hoisted(() => vi.fn());
 const listReservationsForAdmin = vi.hoisted(() => vi.fn());
+const cafeTables = vi.hoisted(() => ({ importCafeTables: vi.fn() }));
 vi.mock("@/lib/admin/store", () => ({
   ...store,
   MENU_CATEGORY_KEYS: ["espresso"],
   MENU_CATEGORY_LABELS: { espresso: "Espresso" },
 }));
 vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
+vi.mock("@/lib/admin/cafe-tables", () => cafeTables);
 vi.mock("@/lib/mobile/karaoke", () => ({ listReservationsForAdmin }));
 vi.mock("@/lib/customer/coupons", () => ({ couponSourcesForOrders: vi.fn() }));
 vi.mock("@/lib/invoice/store", () => ({
@@ -54,6 +57,7 @@ const orders = await import("@/app/api/panel/orders/route");
 const stage = await import("@/app/api/panel/orders/stage/route");
 const karaoke = await import("@/app/api/panel/karaoke/route");
 const sales = await import("@/app/api/panel/sales/route");
+const tables = await import("@/app/api/panel/tables/route");
 
 const PANEL = "panel-secret-0123456789-abcdefghijklmnop";
 const LAFPOS = "lafpos-secret-0123456789-abcdefghijklmno";
@@ -65,10 +69,15 @@ const LAFPOS = "lafpos-secret-0123456789-abcdefghijklmno";
  */
 const NOW = new Date("2026-10-26T12:00:00.000Z");
 
-/** A request signed with `secret`: a GET, or a POST of `body`. */
-function signed(path: string, secret: string, body?: string): Request {
+/** A request signed with `secret`: a GET, or a POST (or PUT) of `body`. */
+function signed(
+  path: string,
+  secret: string,
+  body?: string,
+  write: "POST" | "PUT" = "POST",
+): Request {
   const url = new URL(path, "https://laffogato.net");
-  const method = body === undefined ? "GET" : "POST";
+  const method = body === undefined ? "GET" : write;
   return new Request(url, {
     method,
     headers: {
@@ -186,9 +195,16 @@ beforeEach(() => {
     ...Object.values(store),
     safeAudit,
     listReservationsForAdmin,
+    cafeTables.importCafeTables,
   ]) {
     fn.mockReset();
   }
+  cafeTables.importCafeTables.mockResolvedValue({
+    count: 1,
+    created: [],
+    updated: [],
+    unchanged: 1,
+  });
   store.listMenuItemsForPanel.mockResolvedValue([menuItem()]);
   store.getMenuItemForPanel.mockResolvedValue(menuItem());
   store.setMenuItemSaleFields.mockResolvedValue(menuItem({ isActive: false }));
@@ -593,6 +609,37 @@ describe("the route LafPOS does not get", () => {
     expect((await pull(LAFPOS)).status).toBe(401);
     expect(store.listPanelSalesOrderRows).not.toHaveBeenCalled();
     expect(store.listPanelSalesBookingRows).not.toHaveBeenCalled();
+  });
+});
+
+describe("the route the panel does not get: the table list", () => {
+  const TABLES = JSON.stringify({
+    tables: [{ code: "K7Q2M9X4TB", name: "Bahçe 3", active: true }],
+    actor: "LafPOS",
+  });
+  const put = (secret: string) =>
+    tables.PUT(signed("/api/panel/tables", secret, TABLES, "PUT"));
+
+  it("opens to LafPOS's key alone; the panel's is 401, none is 503", async () => {
+    const mine = await put(LAFPOS);
+    expect(mine.status).toBe(200);
+    expect(await mine.json()).toEqual({
+      ok: true,
+      count: 1,
+      created: 0,
+      updated: 0,
+      unchanged: 1,
+    });
+    expect(cafeTables.importCafeTables).toHaveBeenCalledWith([
+      { code: "K7Q2M9X4TB", name: "Bahçe 3", active: true },
+    ]);
+    cafeTables.importCafeTables.mockClear();
+    expect((await put(PANEL)).status).toBe(401);
+    vi.stubEnv("LAFPOS_SYNC_SECRET", "");
+    const shut = await put(LAFPOS);
+    expect(shut.status).toBe(503);
+    expect(await shut.json()).toEqual({ error: "not_configured" });
+    expect(cafeTables.importCafeTables).not.toHaveBeenCalled();
   });
 });
 
