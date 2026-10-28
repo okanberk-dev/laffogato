@@ -12,18 +12,26 @@ export const maxDuration = 15;
  * launch spike off the database and stale-while-revalidate means nobody waits
  * on it for a menu.
  *
- * Five minutes is also the WHOLE staleness budget of a photo now, and this is
- * where that bound comes from. `revalidatePath()` in the admin cannot shorten
- * it: it "invalidates the Next.js server cache, but the CDN will continue
- * serving its cached copy until the `s-maxage` TTL expires"
- * (`docs/01-app/02-guides/cdn-caching.md` in the installed Next 16) - and this
- * route is `force-dynamic`, so it has no server cache entry to invalidate in
- * the first place. Purging would need a CDN purge API call with a deploy-scoped
- * token; that is a secret and a failure mode for five minutes of lag on a menu
- * that changes a few times a month. The image URLs themselves carry a content
- * stamp, so nothing is stale for longer than this window.
+ * The window is the CDN's share of how long a price or a "Tükendi" takes to
+ * reach the app: 300 s fresh, then at most 300 s more of the stale copy while
+ * one request refreshes it, so ten minutes at worst; the app's own staleTime
+ * comes on top (docs/API-MOBILE.md "Tazelik penceresi"). The stale window was
+ * 3600 s until 28 Oct 2026: after a quiet hour the first open of the app
+ * still got an hour-old menu (senkron plan S1). Shortening it costs no
+ * database read the 300 s did not already cost: a refresh happens only when
+ * a request comes, either way.
+ *
+ * `revalidatePath()` in the admin cannot shorten this: it "invalidates the
+ * Next.js server cache, but the CDN will continue serving its cached copy
+ * until the `s-maxage` TTL expires" (`docs/01-app/02-guides/cdn-caching.md`
+ * in the installed Next 16) - and this route is `force-dynamic`, so it has no
+ * server cache entry to invalidate in the first place. Purging would need a
+ * CDN purge API call with a deploy-scoped token; that is a secret and a
+ * failure mode for minutes of lag on a menu that changes a few times a
+ * month. The image URLs themselves carry a content stamp, so a new photo is
+ * fetched as soon as the menu naming it arrives.
  */
-const MENU_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=3600";
+const MENU_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=300";
 
 /**
  * `GET /api/mobile/v1/menu` - the cafe menu with the customisation table
