@@ -243,7 +243,10 @@ Kişisel veri taşımaz: yalnız masa adı ve kod.
   `GET /api/panel/orders`'ı çeker. Böylece uygulamadan gelen sipariş, Neon'u her
   soruda uyandırmadan yarım dakika içinde bar ekranına düşer. Sürüm sorusu
   veritabanına gitmez; sipariş okuması yalnız gerçekten bir şey değişince olur.
-- Ayrıca 5 dakikada bir, ekran açılınca ve elle yenileyince çeker.
+- Sinyal çalışırken de gün açıkken **15 dakikada bir** tam çeker (gece çekmez):
+  sinyali kaçan bir değişiklik ya da süresi dolup listeden sessizce düşen sipariş
+  kalmasın. Sinyal okunamazsa 5 dakikada bir çeker; elle "Yenile" en sık 30
+  saniyede bir (lafpos `docs/03-ENTEGRASYON.md` §2.3).
 - **Karaoke:** aynı yanıttaki `karaoke` değişince, oda kutusu açılınca ve elle
   yenileyince `GET /api/panel/karaoke?from=<gün>&to=<gün>` (bugünün penceresi;
   rezervasyon en geç 24:00'te biter, gece yarısını aşmaz: `closeHour` en çok
