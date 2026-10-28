@@ -43,7 +43,7 @@ export const LOADED_SALE_FIELDS: Readonly<Record<MenuSaleKey, string>> = {
 
 /** The refusal when a touched sale field moved after the form was opened. */
 export const MENU_ITEM_CHANGED_MEANWHILE =
-  "Bu kalem bu arada değişti (panel ya da başka sekme); değişikliklerin kaydedilmedi. Sayfayı yenile.";
+  "Bu kalem bu arada değişti (köşkün paneli, kasa ya da başka bir sekme); değişikliklerin kaydedilmedi. Sayfayı yenile.";
 
 /** The hidden fields' values for an item as the form loads it. */
 export function loadedSaleInputs(

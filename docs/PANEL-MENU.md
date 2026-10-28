@@ -241,8 +241,8 @@ Kaydederken (`updateMenuItem`):
   değişikliği yerinde kalır;
 - **dokunulan** sütun yalnız satır hâlâ yüklenen değeri taşıyorsa yazılır
   (listedeki tek dokunuş ve toplu Tükendi'nin deseni). Taşımıyorsa kayıt
-  bütünüyle reddedilir: "Bu kalem bu arada değişti (panel ya da başka
-  sekme); değişikliklerin kaydedilmedi. Sayfayı yenile."
+  bütünüyle reddedilir: "Bu kalem bu arada değişti (köşkün paneli, kasa ya
+  da başka bir sekme); değişikliklerin kaydedilmedi. Sayfayı yenile."
 - Ad, açıklama, görsel, etiket ve öteki alanlar bugünkü gibi yazılır.
   "Fiyat değişti" işareti (`menuPricesChangedAt`) yalnız bu kayıt bir fiyatı
   gerçekten yazdıysa düşer.

@@ -255,8 +255,48 @@ describe("updateMenuItemAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(h.store.markMenuPricesChanged).toHaveBeenCalledTimes(1);
     expect(h.logAudit.mock.calls[0]?.[0]).toMatchObject({
-      payload: { priceMinor: 26_000, priceMinorL: 0 },
+      payload: { priceMinor: 26_000 },
     });
+    expect(h.logAudit.mock.calls[0]?.[0]).toMatchObject({
+      payload: expect.not.objectContaining({ priceMinorL: expect.anything() }),
+    });
+  });
+
+  it("keeps out of the trail the other size's price it did not write", async () => {
+    // The form opened on M 140 ₺ / L 160 ₺; meanwhile the köşk's panel set
+    // L to 170 ₺. The form touched only M: the store kept the panel's L,
+    // so the owner's trail must not say this save put L back to 160 ₺.
+    const twoSizes = { ...ITEM, priceMinor: 14_000, priceMinorL: 16_000 };
+    h.store.getMenuItem.mockResolvedValue({ ...twoSizes, priceMinorL: 17_000 });
+    h.store.updateMenuItem.mockResolvedValue({
+      ...twoSizes,
+      priceMinor: 14_500,
+      priceMinorL: 17_000,
+    });
+    await expect(
+      menu.updateMenuItemAction(
+        ITEM.id,
+        null,
+        form(
+          { price: "145", priceL: "160" },
+          {
+            loadedPriceMinor: "14000",
+            loadedPriceMinorL: "16000",
+            loadedIsActive: "true",
+          },
+        ),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.store.updateMenuItem.mock.calls[0]?.[2]).toEqual({
+      priceMinor: 14_000,
+      priceMinorL: 16_000,
+      isActive: true,
+    });
+    expect(h.store.markMenuPricesChanged).toHaveBeenCalledTimes(1);
+    const payload = (h.logAudit.mock.calls[0]?.[0] as { payload: object })
+      .payload;
+    expect(payload).toMatchObject({ priceMinor: 14_500 });
+    expect(payload).not.toHaveProperty("priceMinorL");
   });
 
   it("keeps the old rule for a tab opened before the guard", async () => {

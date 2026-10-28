@@ -496,8 +496,8 @@ olmayan teklif reklam edilmez). `campaignCards.subscription` sözleşmede kalır
 hiçbir kartı açıp kapatmaz; sunucu göndermeye devam edebilir.
 
 > **Uygulama notu.** `GET /shop` Cache-Control `public, s-maxage=60,
-stale-while-revalidate=300` (stok bayrağı taşır); `GET /bootstrap` menü ile aynı
-> (`300 / 3600`). `grinds` anahtarı yalnız `category === "beans"` ürünlerde **vardır**,
+stale-while-revalidate=300` (stok bayrağı taşır); `GET /bootstrap` `300 / 3600`
+> (menü 28 Eki 2026'dan beri `300 / 300`, §1). `grinds` anahtarı yalnız `category === "beans"` ürünlerde **vardır**,
 > diğerlerinde hiç yoktur (uygulama tipi `grinds?: string[]`). Menü/shop/bootstrap DB
 > ulaşılamazsa paket verisine düşmez, **503** `unavailable` döner (fiyat taşıdıkları için).
 

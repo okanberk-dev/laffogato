@@ -320,12 +320,12 @@ export async function updateMenuItemAction(
   // A price this save wrote, different from the stored one: the price
   // list's day may be stale (the rule the panel's write follows too).
   const written = touchedSaleFields(loaded, input);
-  const priced =
-    (written.includes("priceMinor") &&
-      previous.priceMinor !== input.priceMinor) ||
-    (written.includes("priceMinorL") &&
-      (previous.priceMinorL || 0) !== (input.priceMinorL || 0));
-  if (priced) await markMenuPricesChanged(new Date());
+  const priceMoved =
+    written.includes("priceMinor") && previous.priceMinor !== input.priceMinor;
+  const largeMoved =
+    written.includes("priceMinorL") &&
+    (previous.priceMinorL || 0) !== (input.priceMinorL || 0);
+  if (priceMoved || largeMoved) await markMenuPricesChanged(new Date());
   await logAudit({
     action: "update",
     entity: "menu_item",
@@ -335,10 +335,10 @@ export async function updateMenuItemAction(
       categoryKey: input.categoryKey,
       taxRatePct: input.taxRatePct,
       // A price move is the change the köşk's panel and the price list
-      // care about: in the trail with its new amounts.
-      ...(priced
-        ? { priceMinor: input.priceMinor, priceMinorL: input.priceMinorL }
-        : {}),
+      // care about: in the trail with its new amount, only a price this
+      // save wrote (an untouched one may be the panel's newer value).
+      ...(priceMoved ? { priceMinor: input.priceMinor } : {}),
+      ...(largeMoved ? { priceMinorL: input.priceMinorL } : {}),
       // What the menu says an item contains is worth a trail, when it
       // changed: the form posts it on every save.
       ...(input.allergens === undefined ||
