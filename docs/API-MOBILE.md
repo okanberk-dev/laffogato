@@ -138,7 +138,8 @@ zaten varsa o satır kullanılır (**tek üyelik**).
 }
 ```
 
-Cache: `public, s-maxage=300, stale-while-revalidate=3600`.
+Cache: `public, s-maxage=300, stale-while-revalidate=300` (28 Eki 2026'ya kadar
+`stale-while-revalidate=3600`; pencere aşağıda "Tazelik penceresi").
 Uygulama boyları **veriden** çizer: `priceLargeMinor === null` → tek boy; değilse M/L.
 (Tasarımdaki S/M/L üçlüsü katalogda yok — karar kaydı 6.)
 
@@ -183,22 +184,27 @@ tam sha256'sıdır (`"<64 hex>"`), `v` onun ilk 12 hanesi.
 > uygulama sürümleri de bu yanıttan damgalı URL alır, güncelleme gerekmez.
 > Damgasız `/gorsel/menu/<id>` çalışmaya devam eder (5 dk önbellek).
 
-### Tazelik penceresi — fotoğraf ne kadar sürede görünür?
+### Tazelik penceresi — fiyat, Tükendi ve fotoğraf ne kadar sürede görünür?
 
 | Adım | Gecikme |
 | --- | --- |
 | Panel kaydeder → site | anında (`revalidatePath`) |
-| Panel kaydeder → `/menu` yanıtı CDN'de | **300 sn** (`s-maxage`); arada istek gelmediyse süresi dolmuş kopya bir kez daha servis edilir: en çok 3900 sn (`stale-while-revalidate=3600`) |
+| Panel kaydeder → `/menu` yanıtı CDN'de | **300 sn** (`s-maxage`); ardından süresi dolmuş kopya, yenilemeyi başlatan istekte bir kez daha servis edilebilir: en çok **600 sn** (`stale-while-revalidate=300`; 28 Eki 2026'ya kadar 3600, yani en çok 3900 sn) |
 | Yeni `image` URL'si → uygulama fotoğrafı çizer | anında (yeni URL = önbellek ıskası) |
+
+Fiyat ve satış durumu (Tükendi kalem yanıttan çıkar) aynı yanıtla gelir, aynı
+pencereye tabidir. Sipariş anındaki karar her zaman günceldir: sunucu pasif
+kalemi ve eski fiyatı sipariş anında veritabanından denetler (§3).
 
 300 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
 düşürür, CDN kendi kopyasını `s-maxage` dolana kadar servis etmeye devam eder
 (Next 16 `docs/01-app/02-guides/cdn-caching.md`), üstelik bu rota
 `force-dynamic` olduğu için düşürülecek bir sunucu kaydı da yok. CDN purge API'si
-dağıtım kapsamlı bir sır ister; ayda birkaç kez değişen bir menü için 5 dakikalık
-gecikme buna değmez. **Uygulamanın kendi `staleTime`'ı bu pencerenin üstüne
-eklenir** — fotoğrafın 5 dakikada görünmesi isteniyorsa menü sorgusunun
-`staleTime`'ı da o mertebede olmalı.
+dağıtım kapsamlı bir sır ister; ayda birkaç kez değişen bir menü için birkaç
+dakikalık gecikme buna değmez. **Uygulamanın kendi `staleTime`'ı bu pencerenin
+üstüne eklenir** — menünün 15 dakikada görünmesi isteniyorsa menü sorgusunun
+`staleTime`'ı 5 dakika mertebesinde olmalı (600 sn + 5 dk); 1 saatlik
+`staleTime`'la en kötü durum yaklaşık 70 dakikadır.
 
 `GET /menu` artık `ETag` gönderir (yanıt gövdesinin sha256'sı) ve
 `If-None-Match` ile gövdesiz **304** döner. Uygulama daha sık sorabilir:
@@ -278,9 +284,9 @@ değiştirmez, yalnız fiyatın ne kadarının KDV olduğunu söyler.
 - §1 ve §2'de alan **her zaman vardır** ve o anki oranı söyler. Panel bir oranı
   değiştirince gövde değişir (§1'de `ETag` de; §2 `ETag` göndermez). Yeni
   gövde CDN'den şu pencerelerle çıkar: `/menu` `s-maxage=300,
-  stale-while-revalidate=3600`, yani 300 sn'den sonraki ilk istek eski kopyayı
+  stale-while-revalidate=300`, yani 300 sn'den sonraki ilk istek eski kopyayı
   bir kez daha alıp yenilemeyi başlatır; arada istek gelmezse eski kopya en
-  çok **3900 sn** sonra bir kez daha servis edilebilir. `/shop` `s-maxage=60,
+  çok **600 sn** sonra bir kez daha servis edilebilir. `/shop` `s-maxage=60,
   stale-while-revalidate=300`: aynı kuralla en çok **360 sn**. Uygulamanın
   kendi `staleTime`'ı bu pencerelerin üstüne eklenir.
 - Karaoke müsaitliği (§7) CDN'de tutulmaz (`Cache-Control` yok, Vercel
