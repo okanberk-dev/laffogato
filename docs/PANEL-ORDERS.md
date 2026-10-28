@@ -53,6 +53,10 @@ gizleyemez.
 Karaoke bağlantısının imzası (`x-laf-timestamp`,
 `x-laf-signature: v1=<hex>`, `src/lib/panel/karaoke-sync-core.ts`) ve ortak
 anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
+Okumanın, pingin, aşama dokunuşunun ve ayın satışının (`docs/PANEL-SALES.md`)
+imza vektörleri sitede `tests/panel-karaoke-sync-core.test.ts`'te sabit
+(aynı deneme anahtarı ve an); panel aynılarını kendi testlerinde sabitler.
+Kural bir tarafta değişirse bu istekler 401 olur.
 
 Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, `GET /api/pos/orders/version` değişince çeker: `docs/LAFPOS.md`.
 
@@ -106,7 +110,8 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
          "totalMinor": 24000,
          "path": "/admin/siparisler/ord-0042"
        }
-     ]
+     ],
+     "awaitingPayment": 0
    }
    ```
 
@@ -140,6 +145,19 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
    - En çok 200 sipariş; fazlası varsa `complete: false`. `complete`, ekrana
      kalanlardan değil okunan satırlardan sayılır: okuma dolu döndüyse
      (açık ya da teslime hazır siparişlerde 201 satır) `false`.
+   - `awaitingPayment` (28 Eki 2026, sonradan eklendi; eski panel ve LafPOS
+     yok sayar, `version` 1 kalır): son 30 dakikada açılmış (`createdAt`,
+     sınır dahil) ve hâlâ ödemesini bekleyen (`pending_payment`), ödenince
+     bu ekrana düşecek kafe siparişlerinin **sayısı**: masa, gel-al ya da
+     kurye. Panelden elle girilen sipariş (kasada ödenir, ödeme pingi
+     gelmez) ve mağaza kolisi sayılmaz. Yalnız sayı gider: siparişin
+     kimliği, satırları, müşterisi ve tutarı gitmez. Alan her yanıtta
+     vardır, bekleyen yoksa `0`. Sayı listeyle aynı istekte okunur;
+     okunamazsa uç 503 `unavailable` döner, `0` denmez. Neden: kart
+     ödemesinin pingi kaybolursa ödenmiş sipariş sakin saatte panelin
+     saatlik çekmesine kalırdı; panel sayı sıfırdan büyükken siparişi
+     kısa bir süre sık çeker (aşağıda "Panel ne zaman çeker"). Site:
+     `countPanelAwaitingPaymentOrders`, `panelAwaitingPaymentSince`.
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |
@@ -158,8 +176,9 @@ siparişinde üyenin notu (alerji, "şurupsuz"; personel e-postası da yalnız
 bunu taşır). Soyad, e-posta, telefon, adres, kurye notu (kapı kodu: kurye
 siparişinin notu hiç gitmez), ödeme referansı **asla** gitmez: alanlar
 beyaz listeyle tek tek kurulur (`toPanelOrder`), tabloya sonradan eklenen
-bir sütun kendiliğinden sızamaz. `tests/panel-orders-feed.test.ts` ve
-`tests/db-integration-panel-feeds.test.ts` tutar.
+bir sütun kendiliğinden sızamaz. `awaitingPayment` yalnız bir sayıdır:
+ödeme bekleyen siparişin hiçbir alanı gitmez. `tests/panel-orders-feed.test.ts`
+ve `tests/db-integration-panel-feeds.test.ts` tutar.
 
 ## Panel ne zaman çeker
 
@@ -168,6 +187,12 @@ da görünür olunca (son çekmeden 1 dakika geçtiyse), "Yenile" düğmesinde (
 sık 10 saniyede bir) ve ekran görünürken arka planda (ping kaçarsa diye):
 sipariş varken 3 dakikada, sakinken saatte bir, son çekme hatalıysa
 dakikada bir. Cron yok: siparişler anlıktır.
+
+Ödeme bekleyen sipariş (`awaitingPayment` > 0): panel en çok 30 dakika, 3
+dakikada bir çeker; böylece ödeme pingi kaybolsa da ödenmiş sipariş birkaç
+dakika içinde ekrana gelir. Bu, panelin senkron planındaki P2 görevidir
+(lafmaliyet `docs/planlar/senkron.md` §3.2 `siparis-bar-liste`); o yayına
+çıkana dek panel alanı yok sayar ve bugünkü gibi çeker.
 
 Panel yeni bir `new` siparişi (`id`'sini o cihazın daha önce görmediği)
 çalar; ilk çekmede ve ekran yeni açıldığında 2 dakikadan eski siparişler

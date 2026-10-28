@@ -22,7 +22,7 @@ bir bağlantıdır, kendi anahtarıyla: `docs/LAFPOS.md`.
 | --- | --- | --- | --- | --- | --- |
 | Menü fiyatı (M / L), Satışta / Tükendi | site (`menu_items`) | `pub:menu`'yu düşüren her yazımda ping (`/api/menu/ping`) → imzalı `GET /api/panel/menu` | Önce site: imzalı `POST /api/panel/menu`, `expect` ile (aşağıda); panel 2xx'ten sonra kendi kopyasını yazar | `GET /api/mobile/v1/menu` (CDN en çok 10 dk + uygulamanın önbelleği) | [PANEL-MENU.md](PANEL-MENU.md) |
 | Karaoke rezervasyonları | site | Ping (`/api/karaoke/ping`) → `GET /api/panel/karaoke` | Yazmaz | Karaoke uçları | [PANEL-KARAOKE.md](PANEL-KARAOKE.md) |
-| Kafe siparişleri (bar ekranı) | site | Ping (`/api/orders/ping`) → `GET /api/panel/orders` | Aşama: `POST /api/panel/orders/stage` (karta koşullu; eski dokunuş 409) | Sipariş uçları | [PANEL-ORDERS.md](PANEL-ORDERS.md) |
+| Kafe siparişleri (bar ekranı) | site | Ping (`/api/orders/ping`) → `GET /api/panel/orders`; yanında ödeme bekleyen sayısı (`awaitingPayment`), kaçan ödeme pingi için | Aşama: `POST /api/panel/orders/stage` (karta koşullu; eski dokunuş 409) | Sipariş uçları | [PANEL-ORDERS.md](PANEL-ORDERS.md) |
 | Online satış (kâr-zarar, kasa raporu) | site | `GET /api/panel/sales` (panel çeker) | Yazmaz | - | [PANEL-SALES.md](PANEL-SALES.md) |
 | Ad, açıklama, kategori, görsel, alerjen, yeni kalem | site | Yalnız ad ve kategori etiketi listede | Yazmaz (bağ ve kalem açma elle) | Menü yanıtı | [PANEL-MENU.md](PANEL-MENU.md) |
 
@@ -63,9 +63,10 @@ Saatler, kapanışlar, ayarlar ve tarihli kapanış henüz panele gitmiyor
   parite testi `LAFMOBIL_DIR=<lafmobil worktree'si>` ile koşulur
   (`tests/api-contract-parity.test.ts`).
 - **İmza vektörleri.** İki taraf aynı vektörleri sabitler (aynı deneme
-  anahtarı ve an): sitede karaoke ve menü `tests/panel-karaoke-sync-core.test.ts`,
-  panelde menününkiler `tests/site-menusu.test.ts`. Kural değişirse iki taraf
-  aynı gün.
+  anahtarı ve an): sitede karaoke, menü, sipariş (okuma, ping, aşama) ve
+  ayın satışı `tests/panel-karaoke-sync-core.test.ts`, panelde menününkiler
+  `tests/site-menusu.test.ts` (sipariş ve satışınkileri panel P2'de
+  sabitler). Kural değişirse iki taraf aynı gün.
 - **Gecikme hedefi.** Site → panel 10 saniye içinde (ping). Site → uygulama:
   menü 15 dakika içinde (CDN en çok 10 dk + uygulamanın `staleTime`'ı 5 dk,
   lafmobil M2; bugünkü sürümlerin `staleTime`'ı 1 saat). Sipariş anındaki
@@ -106,7 +107,12 @@ LafPOS. Kural: **yazan, gördüğünü taşır; site yalnız o hâlâ geçerliys
   `/api/mobile/v1/menu`'de `stale-while-revalidate=300`, panelin üç menü imza
   vektörü sitede de. Panel tarafı (P1) denetim B12'yle hazırdı: bayrağı görünce
   `expect` göndermeye başlar.
-- **Sırada (Faz 1):** bar ekranı için ödeme bekleyen sayısı ve sipariş imza
-  vektörleri (S2), uygulamanın menü ve mağaza tazeliği (lafmobil M2). Faz 2:
+- **S2:** `GET /api/panel/orders`'a isteğe bağlı `awaitingPayment` (son 30
+  dakikada açılmış, ödemesini bekleyen bar ekranı siparişlerinin sayısı;
+  yalnız sayı, `version` 1) ve sipariş okuması, sipariş pingi, aşama dokunuşu
+  ve ayın satışı için imza vektörleri. Panel tarafı (P2) sayı sıfırdan
+  büyükken kısa süre sık çekecek; o gelene dek alan yok sayılır.
+- **Sırada (Faz 1):** panelin ödeme takibi (P2), uygulamanın menü ve mağaza
+  tazeliği (lafmobil M2). Faz 2:
   panel ayar ucu, 304, ping sınaması, elle kapalı / tarihli kapanış, seçenek
   fiyatı. Hepsi planın §4'ünde.
