@@ -46,6 +46,7 @@ import {
   karaokeCancellationRules,
   karaokeCancelPolicyOf,
   karaokeDeadlineFor,
+  karaokeMovedDeadline,
   karaokeRulesOf,
   karaokeStartInstant,
   karaokeVenueCancelUntil,
@@ -532,7 +533,7 @@ export async function createReservation(
     taxRatePct: karaokeTaxRate(settings.taxRates),
     freeCancelHours: policy.freeCancelHours,
     lateRefundPercent: policy.lateRefundPercent,
-    cancelDeadline: karaokeDeadlineFor(policy, req).toISOString(),
+    cancelDeadline: karaokeDeadlineFor(policy, req, now).toISOString(),
     cancellationRules: [...karaokeCancellationRules(policy).rules],
     refundMinor: null,
   };
@@ -1157,20 +1158,16 @@ export async function rescheduleReservation(
   }
 
   const payment = paymentStatusOf(existing);
-  // The policy's deadline is counted from the start, so it follows it. A row
-  // from before the snapshot has none stored and already counts from its
-  // own date and hour (`karaokeCancelDeadline`).
+  // The booking keeps its own window (its making plus its policy's hours),
+  // never past the new start (`karaokeMovedDeadline`). A row from before the
+  // snapshot has none stored and keeps counting back from its own date and
+  // hour (`karaokeCancelDeadline`).
   const patch: Pick<KaraokeReservation, "date" | "startHour"> &
     Partial<Pick<KaraokeReservation, "cancelDeadline">> = {
     date: slot.date,
     startHour: slot.startHour,
     ...(existing.cancelDeadline
-      ? {
-          cancelDeadline: karaokeDeadlineFor(
-            karaokeCancelPolicyOf(existing),
-            slot,
-          ).toISOString(),
-        }
+      ? { cancelDeadline: karaokeMovedDeadline(existing, slot).toISOString() }
       : {}),
   };
   const res = await getDb()
@@ -1460,10 +1457,10 @@ export async function notifyReservationRescheduled(
 
 /**
  * The late request's middle sentence when it came once the evening had
- * begun: the booking's own late sentence is about cancels "rezervasyon
- * saatine H saatten az kala" and, for a share over 0, would promise a refund
- * the started evening no longer gives (karaoke terms §7: the late share is
- * for cancels before the start).
+ * begun: the booking's own late sentence is about cancels after its free
+ * window and, for a share over 0, would promise a refund the started evening
+ * no longer gives (karaoke terms §7: the late share is for cancels before
+ * the start).
  */
 export const KARAOKE_STARTED_REQUEST_RULE =
   "Rezervasyon saatin gelmişti; saati gelmiş bir rezervasyonda ücret iadesi yapılmaz.";

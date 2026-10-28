@@ -1212,12 +1212,8 @@ export function KaraokeBooking({
                             {terms.rules[1]}
                             {terms.freeUntil ? (
                               <span className="kw-terms-line">
-                                Ücretsiz iptal için son an: {terms.freeUntil}.
-                              </span>
-                            ) : terms.freePassed ? (
-                              <span className="kw-terms-line">
-                                Seçtiğin saat için ücretsiz iptal süresi geçti;
-                                yapacağın her iptal geç iptal sayılır.
+                                Şimdi rezervasyon yaparsan ücretsiz iptal için
+                                son an: {terms.freeUntil}.
                               </span>
                             ) : null}
                             {terms.lateShareMinor !== null ? (

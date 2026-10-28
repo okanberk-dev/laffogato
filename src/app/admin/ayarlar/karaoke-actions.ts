@@ -11,6 +11,7 @@ import { getLegalDocOverride } from "@/lib/legal/store";
 import {
   DEFAULT_KARAOKE_CANCEL_POLICY,
   KARAOKE_FREE_CANCEL_HOURS_MAX,
+  KARAOKE_FREE_CANCEL_HOURS_MIN,
   karaokeCancelPolicyRefusal,
   karaokePolicyLockReason,
   samePolicy,
@@ -35,20 +36,22 @@ import type { SettingsState } from "./settings-core";
  * only, in range, with the panel's own words. Fairness limits and the app
  * lock come after (`karaokeCancelPolicyRefusal`, `karaokePolicyLockReason`).
  */
-const wholeField = (max: number, message: string) =>
+const wholeField = (min: number, max: number, message: string) =>
   z
     .string({ error: message })
     .trim()
     .regex(/^\d{1,3}$/, message)
     .transform(Number)
-    .pipe(z.number().int(message).min(0, message).max(max, message));
+    .pipe(z.number().int(message).min(min, message).max(max, message));
 
 const CancelPolicySchema = z.object({
   karaokeFreeCancelHours: wholeField(
+    KARAOKE_FREE_CANCEL_HOURS_MIN,
     KARAOKE_FREE_CANCEL_HOURS_MAX,
-    `Ücretsiz iptal süresi 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} saat arasında tam sayı olmalı.`,
+    `Ücretsiz iptal süresi ${KARAOKE_FREE_CANCEL_HOURS_MIN} ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} saat arasında tam sayı olmalı.`,
   ),
   karaokeLateRefundPercent: wholeField(
+    0,
     100,
     "Geç iptalde iade oranı 0 ile 100 arasında tam sayı olmalı.",
   ),

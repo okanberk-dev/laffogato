@@ -1237,10 +1237,10 @@ export interface KaraokeEmailData {
 }
 
 /** The default rule's pay-at-the-venue window, worded for the sentence. */
-const DEFAULT_VENUE_UNTIL = "rezervasyon saatine 2 saatten fazla varken";
+const DEFAULT_VENUE_UNTIL = "rezervasyonu yaptıktan sonraki 2 saat içinde";
 
 /** The default rule's last free moment, when no instant was given. */
-const DEFAULT_FREE_UNTIL = "rezervasyon saatinden 2 saat önce";
+const DEFAULT_FREE_UNTIL = "rezervasyonu yaptıktan 2 saat sonra";
 
 function karaokeVars(k: KaraokeEmailData) {
   const amount =

@@ -6,8 +6,7 @@
  */
 
 import {
-  karaokeCancellationRules,
-  karaokeCancelPolicyOf,
+  karaokeTooLateMessageOf,
   KARAOKE_TOO_LATE_MESSAGE,
 } from "./karaoke-time";
 
@@ -117,18 +116,16 @@ export function cancelResultCode(result: {
 
 /**
  * The notice for a code, about one booking: a late-cancel refusal speaks the
- * booking's own rule (its snapshot), every other code is the fixed sentence.
+ * booking's own rule (its stored sentences; the legacy pair on a row from
+ * before the snapshot), every other code is the fixed sentence.
  */
 export function karaokeNoticeFor(
   code: string,
-  r: Parameters<typeof karaokeCancelPolicyOf>[0] | null,
+  r: Parameters<typeof karaokeTooLateMessageOf>[0] | null,
 ): { tone: KaraokeNoticeTone; text: string } | undefined {
   const fixed = KARAOKE_RESULT_NOTICES[code];
   if (code !== "gec-iptal" || !fixed || !r) return fixed;
-  return {
-    tone: fixed.tone,
-    text: karaokeCancellationRules(karaokeCancelPolicyOf(r)).tooLateMessage,
-  };
+  return { tone: fixed.tone, text: karaokeTooLateMessageOf(r) };
 }
 
 /** Reopen failure reason → the code the page reads. */

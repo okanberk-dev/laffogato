@@ -3,7 +3,6 @@ import {
   KARAOKE_FREE_CANCEL_HOURS_MAX,
   istanbulTimeLabel,
   karaokeDeadlineFor,
-  karaokeFreeCancelEnd,
   karaokeLateRefundMinor,
   type KaraokeCancelPolicy,
 } from "@/lib/mobile/karaoke-time";
@@ -47,22 +46,18 @@ export interface KaraokeBookingTerms {
   /** The two numbers the sentences were made from: echoed with the booking. */
   policy: KaraokeCancelPolicy;
   /**
-   * Until when a cancel refunds the whole payment ("30 Ekim 2026, 18:00"; at
-   * 0 hours the start itself); null before an hour is picked, or once that
-   * moment has passed (`freePassed`).
+   * Until when a booking made NOW could be cancelled for the whole payment
+   * ("30 Ekim 2026, 18:00"): this moment plus the window, never past the
+   * start (`karaokeDeadlineFor`). Null before an hour is picked, or without
+   * the server's clock. The booking's own deadline is fixed when it is
+   * written, moments later; the confirmation and the booking's page print
+   * that one.
    */
   freeUntil: string | null;
   /**
-   * The picked hour is already inside the window when the page was drawn
-   * (tonight at 21:00 with two free hours, at 19:30): there is no free
-   * cancel left to name, every cancel after booking is late.
-   */
-  freePassed: boolean;
-  /**
    * What a cancel after that refunds of this total, in kuruş, when it is a
-   * part of it (a late share of 1..99 % behind a free window); null
-   * otherwise (the sentences already say "tamamı" or "iade yapılmaz", and
-   * at 0 hours there is no late cancel).
+   * part of it (a late share of 1..99 %); null otherwise (the sentences
+   * already say "tamamı" or "iade yapılmaz").
    */
   lateShareMinor: number | null;
 }
@@ -99,33 +94,25 @@ export function karaokeBookingTerms(
     freeCancelHours: h,
     lateRefundPercent: p,
   };
-  // The start minus the window; 0 hours is the start itself (free until
-  // then, ASK-OTH-3-CFG).
+  // The window a booking made now gets: from this moment for the policy's
+  // hours, never past the start (28 Eki 2026). Without the server's clock
+  // there is no moment to count from, and the sentences stand alone.
   const deadline =
-    pick.startHour !== null
-      ? karaokeDeadlineFor(policy, {
-          date: pick.date,
-          startHour: pick.startHour,
-        })
+    pick.startHour !== null && pick.now
+      ? karaokeDeadlineFor(
+          policy,
+          { date: pick.date, startHour: pick.startHour },
+          pick.now,
+        )
       : null;
-  // A deadline already behind the clock is not a moment to cancel before:
-  // the booking's own snapshot would be late from the start
-  // (`withinFreeCancel` counts the named minute itself: the page printed
-  // at 18:00:30 still names 18:00, and a cancel then refunds in full).
-  const nowMs = pick.now?.getTime();
-  const freePassed =
-    deadline !== null &&
-    nowMs !== undefined &&
-    Number.isFinite(nowMs) &&
-    nowMs >= karaokeFreeCancelEnd(deadline);
   return {
     rules: [cancellationRules[0], cancellationRules[1]],
     policy,
-    freeUntil: deadline && !freePassed ? karaokeInstantLabel(deadline) : null,
-    freePassed,
-    lateShareMinor:
-      h > 0 && p > 0 && p < 100
-        ? karaokeLateRefundMinor(pick.totalMinor, p)
+    freeUntil:
+      deadline && Number.isFinite(deadline.getTime())
+        ? karaokeInstantLabel(deadline)
         : null,
+    lateShareMinor:
+      p > 0 && p < 100 ? karaokeLateRefundMinor(pick.totalMinor, p) : null,
   };
 }

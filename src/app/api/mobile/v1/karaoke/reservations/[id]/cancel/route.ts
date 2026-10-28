@@ -16,14 +16,15 @@ export const maxDuration = 15;
 
 /**
  * `POST /api/mobile/v1/karaoke/reservations/{id}/cancel` - the member
- * cancels their own booking (§7, additive). Allowed while MORE than the
- * booking's own window remains before the start (its snapshot: two hours on
- * every older row; Europe/Istanbul); a paid booking is refunded in full
- * through the POS first. Inside the window: 409 `too_late`, nothing
- * refunded - unless the booking's policy gives a late share (§7.1), when the
- * booking is cancelled until the start and the share is refunded (in full
- * through the POS at 100 %, by the köşk by hand below it: 200 with
- * `refunded: false` and `reservation.refundMinor`).
+ * cancels their own booking (§7, additive). Allowed inside the booking's own
+ * free window (its snapshot: two hours from its making, never past the
+ * start, since 28 Eki 2026; two hours before the start on older rows;
+ * Europe/Istanbul); a paid booking is refunded in full through the POS
+ * first. After the window: 409 `too_late`, nothing refunded - unless the
+ * booking's policy gives a late share (§7.1), when the booking is cancelled
+ * until the start and the share is refunded (in full through the POS at
+ * 100 %, by the köşk by hand below it: 200 with `refunded: false` and
+ * `reservation.refundMinor`).
  *
  * 200 `{ reservation, refunded }`. A stranger's id is 404. An unpaid hold
  * whose payment the POS could not be asked about is 503 `payment_unknown`
