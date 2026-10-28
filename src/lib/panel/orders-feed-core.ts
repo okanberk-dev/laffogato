@@ -17,8 +17,9 @@ import { firstNameOf } from "./karaoke-sync-core";
  *
  * What leaves: what the barista needs to make and hand over the order - the
  * lines with their options and notes, where it goes ("Masa 4", "Gel-al",
- * "Kurye"), the planned time, the customer's first name, and the member's
- * note on a table or gel-al order. Never a surname, e-mail, phone, address,
+ * "Kurye"; on a table order the table's code too, for LafPOS's table plan),
+ * the planned time, the customer's first name, and the member's note on a
+ * table or gel-al order. Never a surname, e-mail, phone, address,
  * courier note (a door code) or payment reference, and no manual order
  * (typed into this panel at the counter, rung on the till).
  *
@@ -92,6 +93,14 @@ export interface PanelOrder {
   fulfillment: PanelOrderFulfillment;
   /** "Masa 4", "Gel-al", "Kurye": where it goes, in the counter's words. */
   label: string;
+  /**
+   * On a table order, the code of the table it was placed at, as the
+   * order's snapshot keeps it (`orders."tableCode"`): LafPOS finds the table
+   * by the code it printed on the card (docs/LAFPOS.md "Masa kodları").
+   * "" on a pickup or courier order. Added 28 Eki 2026; an older reader
+   * ignores it.
+   */
+  tableCode: string;
   /** The customer's first name, to call a pickup; "" when unknown. */
   firstName: string;
   /** The planned time (ISO); "" = as soon as possible. */
@@ -263,6 +272,8 @@ export function toPanelOrder(
     stage,
     fulfillment,
     label: orderAlertLabel({ ...row, items: undefined }),
+    tableCode:
+      fulfillment === "table" ? String(row.tableCode ?? "").trim() : "",
     firstName: firstNameOf(row.customerName),
     scheduledFor:
       timeOf(row.scheduledFor) === null ? "" : String(row.scheduledFor),

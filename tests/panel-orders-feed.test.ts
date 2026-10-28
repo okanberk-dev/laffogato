@@ -98,6 +98,7 @@ describe("toPanelOrder", () => {
       stage: "new",
       fulfillment: "pickup",
       label: "Gel-al",
+      tableCode: "",
       firstName: "Ayşe",
       scheduledFor: "",
       note: "Fındık alerjim var",
@@ -195,6 +196,29 @@ describe("toPanelOrder", () => {
       NOW,
     );
     expect(order).toMatchObject({ fulfillment: "table", label: "Masa 4" });
+    // LafPOS matches the order to its table plan by the code it printed
+    // (docs/LAFPOS.md "Masa kodları"): the order's snapshot, as stored.
+    expect(order?.tableCode).toBe("K7Q2M9X4TB");
+    expect(
+      toPanelOrder(
+        row({
+          fulfillment: "table",
+          tableCode: " K7Q2M9X4TB ",
+          tableName: "4",
+        }),
+        NOW,
+      )?.tableCode,
+    ).toBe("K7Q2M9X4TB");
+    // Only a table order carries one; a stray value on another kind stays.
+    expect(
+      toPanelOrder(
+        row({ fulfillment: "delivery", tableCode: "K7Q2M9X4TB" }),
+        NOW,
+      )?.tableCode,
+    ).toBe("");
+    expect(toPanelOrder(row({ tableCode: undefined }), NOW)?.tableCode).toBe(
+      "",
+    );
     expect(
       toPanelOrder(
         row({

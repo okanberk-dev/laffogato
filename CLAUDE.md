@@ -341,6 +341,10 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   AASA `/masa/*` **talep etmez** ve `/masa` sayfası "uygulamadan sipariş ver"
   demez: masa ekranı olan lafmobil sürümü yayınlanınca ikisi birlikte açılır.
   Kod yenilenince eski kart hemen masadan kaldırılmalı.
+- **LafPOS'un bastığı kart** (28 Eki 2026): kasa masa kodunu kendisi üretir ve
+  imzalı `PUT /api/panel/tables` ile buraya yazar (`importCafeTables`: yeni
+  kod eklenir, var olanın adı ve etkinliği güncellenir, listede olmayan masaya
+  dokunulmaz; `docs/LAFPOS.md` "Masa kodları").
 - **Personel e-postası:** `applyPaymentSucceeded` siparişi gerçekten `paid`'e
   taşıdığında `after()` ile, sipariş başına **bir kez** (`order_notice_emails`,
   kind `staff-new`), tek batch isteğinde, 429/5xx'te kısa yeniden denemeyle
@@ -398,7 +402,7 @@ eklenir ve değişir (ad, fiyat, boy, KDV, görsel); LafPOS menüyü herkese aç
 ucundan (ETag) çeker, kasaya özgü alanları (istasyon, kısa ad, porsiyon) ve yalnız
 kafede satılan hizmetleri (karaoke odası saatlik ücreti) kendisi tutar. Panelin imzalı
 uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/karaoke`,
-`/api/pos/orders/version`) **kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
+`/api/pos/orders/version`, `/api/panel/tables`) **kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
 (`src/lib/panel/signed-callers.ts`; `KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır;
 lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un imzalı her
 isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı); açılışta sitenin adımı

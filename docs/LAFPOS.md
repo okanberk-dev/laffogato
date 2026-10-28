@@ -4,7 +4,8 @@ LafPOS (`RiosenBeq/lafpos`) kafenin içinde çalışan yerel kasa sunucusudur.
 Menüyü siteden alır, ürünü kasada Tükendi / Satışta yapar, uygulamadan ve
 web'den gelen online siparişleri (masa, gel-al, kurye) bar ekranında ve masa
 planında gösterir, aşamasını geri yazar; karaoke odasının sitedeki
-rezervasyonlarını okur. Bunun için köşkün panelinin imzalı uçlarını kullanır
+rezervasyonlarını okur; masa kartlarını kendisi basar ve kodlarını siteye
+bildirir (aşağıda "Masa kodları"). Bunun için köşkün panelinin imzalı uçlarını kullanır
 (`docs/PANEL-MENU.md`, `docs/PANEL-ORDERS.md`, `docs/PANEL-KARAOKE.md`), ama
 **kendi anahtarıyla**: operatör panelin anahtarının (`KARAOKE_SYNC_SECRET`)
 kafedeki makinede durmasını istemedi. İki anahtar ayrı ayrı döndürülür.
@@ -97,6 +98,7 @@ uygulama ve web siparişleri bar ekranına düşmez, kasada işaretlenen Tükend
 | `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş ve karaoke sürüm sinyali (aşağıda)                                                                                                                                                      |
 | `GET /api/panel/karaoke`       | açar             | açar               | Karaoke odası: sitedeki rezervasyonlar (saat, kişi, ad, not, ödeme durumu), `karaoke` değişince. LafPOS'un anahtarıyla yalnız dünden yarına (İstanbul); daha genişi 403 `forbidden`             |
 | `GET /api/panel/sales`         | açar             | açmaz              | LafPOS'un işi değil                                                                                                                                                                             |
+| `PUT /api/panel/tables`        | açmaz (401)      | açar               | Masa QR kodları: LafPOS'un bastığı kartların kodunu `cafe_tables`'a ekler ya da adını / etkinliğini günceller (aşağıda "Masa kodları")                                                          |
 
 - Panel uçlarının yanıt biçimi, `version`'ı, gövde sınırı, beyaz listesi ve
   hata kodları kim imzalarsa imzalasın aynıdır: `docs/PANEL-MENU.md`,
@@ -104,6 +106,9 @@ uygulama ve web siparişleri bar ekranına düşmez, kasada işaretlenen Tükend
   anahtarındadır, ikisi de hiçbir şey okunmadan 403 `forbidden`: menüde fiyat
   yazımı, karaokede dünden yarına dışında kalan pencere (çalınan kafe makinesi
   fiyat değiştiremesin, geçmişin adlarını ve notlarını okuyamasın).
+  `GET /api/panel/orders` masa siparişinde masanın kodunu da verir
+  (`tableCode`, 28 Eki 2026; `docs/PANEL-ORDERS.md`): LafPOS siparişi masa
+  planındaki masaya bastığı kodla eşler.
 - Panel uçlarından biri, iki anahtardan en az biri tanımlıysa açıktır; ikisi
   de yoksa 503 `not_configured`. `LAFPOS_SYNC_SECRET` yoksa her şey bu
   değişiklikten önceki gibidir: uçlar yalnız panelin anahtarını tanır.
@@ -156,6 +161,81 @@ x-laf-signature: v1=<hex>
 | 200   | `{"version":"…","karaoke":"…"}` |                                                               |
 | 401   | `{"error":"unauthorized"}`      | İmza yok, yanlış (panelin anahtarı da) ya da 5 dakikadan eski |
 | 503   | `{"error":"not_configured"}`    | `LAFPOS_SYNC_SECRET` yok ya da 32 karakterden kısa            |
+
+## Masa kodları: `PUT /api/panel/tables` (28 Ekim 2026)
+
+LafPOS masa kartlarını kendisi basar (lafpos `docs/03-ENTEGRASYON.md` §2.3
+"Masa QR'ı LafPOS üretir"): masa başına 10 simgelik Crockford kod, sitenin
+kuralıyla aynı (`src/lib/admin/cafe-tables-core.ts`), QR içeriği yine
+`https://laffogato.net/masa/<kod>`. Kodun sitede ve uygulamada masayı
+bulması için (`/masa/[kod]`, `GET /api/mobile/v1/tables/{code}`, masaya
+sipariş yolu) LafPOS kod üretince, yenileyince ve QR'lı masanın adı ya da
+etkinliği değişince **tam listeyi** gönderir (giden kutusundan, tek kayıt,
+son liste geçerli):
+
+```
+PUT https://laffogato.net/api/panel/tables
+x-laf-timestamp: <unix saniye>
+x-laf-signature: v1=<hex>
+```
+
+```json
+{
+  "tables": [
+    { "code": "K7Q2M9X4TB", "name": "Bahçe 3", "active": true },
+    { "code": "ABCDEFGH23", "name": "Eski kart", "active": false }
+  ],
+  "actor": "LafPOS"
+}
+```
+
+- Yalnız `LAFPOS_SYNC_SECRET` ile imzalı istek; panelin anahtarı 401 alır
+  (panel kart basmaz). Anahtar yoksa 503 `not_configured` (yukarıda
+  "Varsayılan kapalı"). Gövde en çok 64 KB (413 `too_large`), liste en çok
+  200 masa. İmza yöntemi `PUT`'tur: kanonik metnin ikinci satırı `PUT`.
+- `code` sitenin kod kuralıyla okunur (`normalizeTableCode`: büyük harf, boşluk
+  ve tire düşer, O → 0, I ve L → 1; tam 10 simge). `name` masa formunun
+  kuralıyla (1-40 karakter, iç boşluklar tek boşluk). `active` boolean.
+  `actor` LafPOS kullanıcısının adı (1-60 karakter). Kurala uymayan alan
+  hiçbir şey yazılmadan 400 `{"error":"invalid","field":"tables[2].code"}`
+  (`tables[2].name`, `tables[2].active`, `tables` fazla uzunsa, `actor`,
+  `body`); aynı kod listede iki kez geçerse de `tables[i].code`.
+- **Ne yapar** (`importCafeTables`, `src/lib/admin/cafe-tables.ts`;
+  plan `src/lib/panel/tables-link-core.ts`): sitede olmayan kod verilen
+  kodla, adla ve etkinlikle **yeni masa** olur (`rotatedAt` boş, `tbl-`
+  kimliği ve Sıra'sı sayaçtan); sitede olan kodun adı ve etkinliği
+  **değiştiyse** güncellenir (yalnız değişen sütun yazılır); listede olmayan
+  sitedeki masaya **dokunulmaz**. LafPOS'un yenilediği eski kod listede
+  `active: false` gelir: sitede de kapanır, eski kart `/masa`'da "siparişe
+  kapalı" olur. Boş liste geçerlidir: hiçbir şey yazılmaz.
+- Masa araması önbelleksizdir (`cafe_tables` hiçbir önbellek etiketini
+  taşımaz, `src/lib/cache/tags.ts`; `/masa/[kod]` ve uygulamanın ucu her
+  seferinde veritabanına gider): yeni kod yanıt döner dönmez çözülür. Panele
+  ping gitmez (panel masa listesi tutmaz).
+- **Olay kaydı:** eklenen ve değişen her masa için bir satır, `cafe_table`
+  / `create` ya da `update`, aktör `lafpos:<ad>`, yükte ad, kod, etkinlik ve
+  `via: lafpos`; panelin kendi Masalar işlemleriyle aynı biçim. Değişmeyen
+  masa kayıt düşürmez. Kayıt yazılamazsa yanıt yine 200'dür (yazım bitmiştir).
+- Yazımlar satır satır, tek işlem değil: arada kesilen liste yazdığı
+  satırları bırakır, LafPOS'un yeniden gönderdiği liste kalanını yazar
+  (aynı liste iki kez gelirse ikincisi `unchanged` sayar). Bu arada başka
+  yoldan eklenen aynı kod (tekil indeks) reddedilmez, güncellenir.
+
+| Durum | Gövde                                                         | Ne zaman                                                            |
+| ----- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 200   | `{"ok":true,"count":2,"created":1,"updated":1,"unchanged":0}` | `count` listedeki masa; üçü yazılan ve yazılmayan satırlar          |
+| 400   | `{"error":"invalid","field":"…"}`                             | Gövde okunamadı ya da bir alan kurala uymuyor; hiçbir şey yazılmadı |
+| 401   | `{"error":"unauthorized"}`                                    | İmza yok, yanlış (panelin anahtarı da), eski ya da gövde değişmiş   |
+| 413   | `{"error":"too_large"}`                                       | Gövde 64 KB'tan büyük                                               |
+| 503   | `{"error":"not_configured"}`                                  | `LAFPOS_SYNC_SECRET` yok ya da 32 karakterden kısa                  |
+| 503   | `{"error":"unavailable"}`                                     | Veritabanı yazılamadı; LafPOS artan beklemeyle yeniden dener        |
+
+LafPOS 404 / 405 / 501'i "site henüz almıyor" sayar ve 6 saatte bir yeniden
+dener; 400 / 403 / 409 / 413 / 422'de listeyi park eder (Yönetim ›
+Entegrasyon'da görünür, "Şimdi yeniden gönder" ile denenir). Kodu LafPOS
+ürettiği için bu paneldeki "Kodu yenile" LafPOS'un bastığı kartı da
+öldürür: LafPOS'lu masanın kodu LafPOS'ta yenilenir, panelde değil.
+Kişisel veri taşımaz: yalnız masa adı ve kod.
 
 ## LafPOS ne zaman çeker
 
@@ -275,8 +355,13 @@ Sorgu boş olduğu için yolun ardından boş bir satır gelir.
 
 Site: `src/lib/panel/signed-callers.ts` (hangi anahtar kimin),
 `src/app/api/pos/orders/version/route.ts`, `src/app/api/panel/karaoke/route.ts`,
-`src/lib/admin/change-marker.ts`. Testler: `tests/panel-lafpos-key.test.ts`
-(beş uç, karaoke beyaz listesi ve dünden yarına penceresi, olay kaydı, kapalı
-uçlar), `tests/panel-karaoke-sync-core.test.ts` (`withinLafposKaraokeReach`),
-`tests/api-pos-orders-version-route.test.ts` (sürüm ucu ve karaoke işareti,
-veritabanısız).
+`src/app/api/panel/tables/route.ts` ve `src/lib/panel/tables-link-core.ts`
+(masa kodları), `src/lib/admin/change-marker.ts`. Testler:
+`tests/panel-lafpos-key.test.ts` (beş uç, karaoke beyaz listesi ve dünden
+yarına penceresi, olay kaydı, kapalı uçlar, masa listesinin yalnız LafPOS'a
+açık olması), `tests/panel-karaoke-sync-core.test.ts`
+(`withinLafposKaraokeReach`), `tests/api-pos-orders-version-route.test.ts`
+(sürüm ucu ve karaoke işareti, veritabanısız), `tests/panel-tables-link.test.ts`
+(liste kuralları, plan, uç; veritabanısız) ve
+`tests/db-integration-panel-tables.test.ts` (`importCafeTables`, gerçek
+Postgres; `TEST_DATABASE_URL` yoksa atlanır).
