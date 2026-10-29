@@ -371,6 +371,19 @@ sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
 testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
 `docs/PANEL-KARAOKE.md`.
 
+## Karaoke iptal ve iade penceresi (28 Eki 2026)
+
+Operatör: _"karaoke için 2 saat içinde iptal etmezse iade olamaz; e-ticaret
+için de manuel işlem olsun, iade otomatik işlemesin"_. Üyenin ücretsiz iptal
+penceresi **rezervasyonun yapıldığı andan** itibaren `freeCancelHours` (2) saat,
+rezervasyon saatini geçmez (`karaokeDeadlineFor`: `min(yapıldığı an + 2 saat,
+başlangıç)`, son dakika dahil); dışında iade yok, rezervasyon durur. Her satır
+son anını ve iki cümlesini saklar; 28 Eki'den önce yapılanlar eski kuralı
+(başlangıçtan 2 saat önce) korur. Köşkün kendi iptali yine tam iade, "Yine de
+tamamını iade et" durur; panelde 1-72 saat. Sipariş iadesi **elle**: "İptal et"
+para iade etmez; yalnız "İade başlat" ya da PayNkolay'da iade edip kaydeden
+düğmeler. Ayrıntı: `docs/API-MOBILE.md` §7.1, `docs/LEGAL-REDLINES-2026-09.md` §37.
+
 ## Köşkün paneli: menü bağlantısı (22 Eki 2026)
 
 Operatör: _"bir yerden pasif yapınca veya fiyat değişince diğer yerlerden de

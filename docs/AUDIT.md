@@ -1710,3 +1710,16 @@ Açık (operatörün):
 | 🟡 | Vercel'de `DATABASE_URL`'in Preview ortamında da tanımlı olduğu buradan doğrulanamadı | Ortam değişkenleri okunamıyor; derleme denetimi yalnız Production'ı zorlar |
 | 🟢 | Supabase projesi Singapur, fonksiyonlar fra1, Neon us-east-2 | Bölge taşıması ayrı karar; Supabase'in JWT imzası asimetrik değilse `getClaims()` yine `getUser()`'a düşer |
 | 🟢 | İki projenin `PARASUT_COMPANY_ID`'si aynı mı | Değerler okunamıyor (`docs/EARSIV.md` §9) |
+
+### Karaoke: ücretsiz iptal penceresi rezervasyondan sonra; sipariş iadesi yalnız elle (28 Eki 2026)
+
+Operatör: "iadeyi karaoke için 2 saat içinde iptal etmezse iade olamaz olarak
+düzelt; kullanıcı en sonda 5 saat sonra iade istemiş ve gerçekleşmiş, bunun
+önüne geçmek istiyorum; ama e-ticaret için de manuel işlem olsun, iade
+otomatik işlemesin." Hukuk notu LEGAL-REDLINES §37; sözleşme
+`docs/API-MOBILE.md` §7.1 (alanlar ve kodlar değişmedi).
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Ücretsiz iptal penceresi rezervasyon saatinden geriye sayılıyordu: günler sonrası bir akşam için rezervasyondan 5 saat sonra yapılan iptal tam iade alıyordu | Pencere rezervasyonun yapıldığı andan itibaren `freeCancelHours` saat ve rezervasyon saatini hiç geçmez (`karaokeDeadlineFor`: `min(yapıldığı an + h, başlangıç)`; son dakika dahil); her yeni satır `cancelDeadline` yazar, 28 Eki'den önce yapılanlar sakladıkları anı (NULL: başlangıçtan 2 saat önce) ve gördükleri cümleleri korur; saat değişince `min(yapıldığı an + h, yeni başlangıç)`; panelde 1-72 saat (0 ve 24 saat / %50 bağı kalktı); köşkün kendi iptali yine tam iade, "Yine de tamamını iade et" durur; iki cümle, red, e-postalar, Ödeme Koşulları §21 ve Hesap Silme §6, §8 yeni kuralı yazar (iki belge 28 Ekim 2026) | `karaoke-cancel-policy`, `karaoke-late-cancel` |
+| 🟠 | Sipariş "İptal et" penceresi aynı adımda POS'tan iade de yapabiliyordu ("Tutarın tamamını şimdi iade et"); iade bir kişinin ayrıca başlattığı adım değildi | `cancelOrder` para iade etmez: ödenmiş sipariş iptal edilir ve `refund_due` ("iade bekliyor") işaretiyle "para henüz iade edilmedi, 'İade başlat' ile iade et" der; `CancelRequest`'ten `refund`, `refundToken`, `expectedDestination` kalktı, `cancelOrderAction` onları okumaz, pencerenin kutusu ve hedef notu yok; iade yalnız "İade başlat" (`refundOrder`) ya da PayNkolay panelinde yapılıp "PayNkolay'da iade ettim" / "PayNkolay'dan iadeyi bul" ile kaydedilince; ödenmiş siparişin iptali yine `refunds` yetkisi ister; karaoke'nin başıboş ödeme iadesi (`refundStrayPayment`) karaoke içindir ve kalır | `admin-order-actions` |

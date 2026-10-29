@@ -5,8 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * confirmation prints the two sentences the booking was shown, and the
  * cancellation says the amount that actually goes back - the whole payment,
  * or a late cancel's share, owed (refunded by hand, no date promised) or
- * refunded. A booking made under the default reads exactly as before
- * (tests/karaoke-prepay-admin-mail.test.ts).
+ * refunded. Since 28 Eki 2026 (operator: "karaoke için 2 saat içinde iptal
+ * etmezse iade olamaz") the window is counted from the booking: the
+ * default's venue window and last free moment read so, and a booking paid
+ * at the venue always names a window (`karaokeVenueCancelUntil` is never
+ * null for a policy in range). A booking made under the default reads as
+ * tests/karaoke-prepay-admin-mail.test.ts holds.
  */
 
 const h = vi.hoisted(() => ({
@@ -70,6 +74,40 @@ describe("the confirmation prints the booking's own rule", () => {
     }
   });
 
+  it("a booking paid online under the default: the 28 Eki pair and its last free moment", async () => {
+    await send.sendKaraokeConfirmationEmail({
+      ...BASE,
+      payment: { kind: "online", paidMinor: 200_000 },
+      cancellation: {
+        rules: [time.KARAOKE_REFUND_RULE, time.KARAOKE_NO_REFUND_RULE],
+        venueUntil: time.karaokeVenueCancelUntil(
+          time.DEFAULT_KARAOKE_CANCEL_POLICY,
+        ),
+        freeUntil: "28 Ekim 2026, 16:30",
+      },
+    });
+    const m = h.sent[0]!;
+    expect(m.text).toContain(time.KARAOKE_REFUND_RULE);
+    expect(m.text).toContain(time.KARAOKE_NO_REFUND_RULE);
+    expect(m.text).toContain("Son ücretsiz iptal: 28 Ekim 2026, 16:30.");
+    for (const part of [m.html, m.text]) {
+      expect(part).not.toContain("saatten fazla varken");
+      expect(part).not.toContain("saatten az kala");
+    }
+  });
+
+  it("no instant given: the default's last free moment is two hours after the booking", async () => {
+    await send.sendKaraokeConfirmationEmail({
+      ...BASE,
+      payment: { kind: "online", paidMinor: 200_000 },
+    });
+    const m = h.sent[0]!;
+    expect(m.text).toContain(
+      "Son ücretsiz iptal: rezervasyonu yaptıktan 2 saat sonra.",
+    );
+    expect(m.text).not.toContain("rezervasyon saatinden 2 saat önce");
+  });
+
   it("a venue-paid booking says until when it can be cancelled", async () => {
     await send.sendKaraokeConfirmationEmail({
       ...BASE,
@@ -84,30 +122,81 @@ describe("the confirmation prints the booking's own rule", () => {
     );
   });
 
-  it("the default reads as it always did", async () => {
+  it("the default names the window counted from the booking", async () => {
     await send.sendKaraokeConfirmationEmail({
       ...BASE,
       payment: { kind: "venue" },
     });
-    expect(h.sent[0]!.text).toContain(
-      "Planın değişirse rezervasyon saatine 2 saatten fazla varken",
+    const m = h.sent[0]!;
+    expect(m.text).toContain(
+      "Planın değişirse rezervasyonu yaptıktan sonraki 2 saat içinde",
     );
+    expect(m.text).not.toContain("rezervasyon saatine 2 saatten fazla varken");
+    expect(m.text).not.toContain("Planın değişirse bizi ara");
+    // The same words the rule's helper gives a booking under the default.
+    expect(
+      time.karaokeVenueCancelUntil(time.DEFAULT_KARAOKE_CANCEL_POLICY),
+    ).toBe("rezervasyonu yaptıktan sonraki 2 saat içinde");
   });
 
-  it("a rule no member can cancel under says to call", async () => {
-    // No policy is such a rule since 0 hours means free until the start
-    // (ASK-OTH-3-CFG); the mail keeps the branch for a null `venueUntil`.
-    const none = { freeCancelHours: 0, lateRefundPercent: 0 };
-    expect(time.karaokeVenueCancelUntil(none)).toBe(
-      "rezervasyon saatinden önce",
-    );
+  it("a venue-paid booking always names a window now: venueUntil is never null", async () => {
+    // Every window is at least an hour (KARAOKE_FREE_CANCEL_HOURS_MIN), so
+    // no policy in range leaves the member with only the phone.
+    for (const policy of [
+      { freeCancelHours: 1, lateRefundPercent: 0 },
+      { freeCancelHours: 72, lateRefundPercent: 0 },
+      { freeCancelHours: 2, lateRefundPercent: 100 },
+    ]) {
+      const venueUntil = time.karaokeVenueCancelUntil(policy);
+      expect(venueUntil).not.toBeNull();
+      const cancellation = {
+        rules: time.karaokeCancellationRules(policy).rules,
+        venueUntil,
+      };
+      expect(
+        send.karaokeConfirmationFlags({
+          payment: { kind: "venue" },
+          cancellation,
+        }),
+      ).toMatchObject({
+        KARAOKE_ODEME_MEKANDA: true,
+        KARAOKE_MEKAN_ARA: false,
+      });
+      h.sent.length = 0;
+      await send.sendKaraokeConfirmationEmail({
+        ...BASE,
+        payment: { kind: "venue" },
+        cancellation,
+      });
+      const m = h.sent[0]!;
+      expect(m.text).toContain(`Planın değişirse ${venueUntil}`);
+      expect(m.text).not.toContain("Planın değişirse bizi ara");
+    }
+    expect(
+      time.karaokeVenueCancelUntil({ freeCancelHours: 1, lateRefundPercent: 0 }),
+    ).toBe("rezervasyonu yaptıktan sonraki 1 saat içinde");
+  });
+
+  it("a null venueUntil still says to call: the mail keeps the branch for the caller", async () => {
+    // No policy in range gives one (above); `karaokeConfirmationFlags`
+    // still reads it from the caller, so the branch is held here.
+    const cancellation = {
+      rules: [time.KARAOKE_REFUND_RULE, time.KARAOKE_NO_REFUND_RULE] as const,
+      venueUntil: null,
+    };
+    expect(
+      send.karaokeConfirmationFlags({
+        payment: { kind: "venue" },
+        cancellation,
+      }),
+    ).toMatchObject({
+      KARAOKE_ODEME_MEKANDA: false,
+      KARAOKE_MEKAN_ARA: true,
+    });
     await send.sendKaraokeConfirmationEmail({
       ...BASE,
       payment: { kind: "venue" },
-      cancellation: {
-        rules: time.karaokeCancellationRules(none).rules,
-        venueUntil: null,
-      },
+      cancellation,
     });
     const m = h.sent[0]!;
     expect(m.text).toContain("Planın değişirse bizi ara");

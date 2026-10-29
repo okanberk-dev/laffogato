@@ -768,11 +768,14 @@ aranmaz, çıkış bağlantısı konmaz.
 
 Rezervasyon ödenince kendiliğinden `confirmed` olur ve `karaoke-rezervasyon`
 **makbuz** olarak gider (`KARAOKE_ODENDI`): ödenen tutar, operatörün iki
-cümlesi ("Rezervasyon saatine 2 saatten fazla varken iptal edersen…" / "…2
-saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi
-yapılmaz."), cayma hakkı yokluğu (MSY m.15/1-g), rezervasyonun imzalı sayfası
-(`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir rezervasyonu yalnız bununla
-yönetilir) ve koşulların tamamına bağlantı. İşletme iptalinde tam iade ve
+cümlesi (28 Eki 2026'dan beri "Rezervasyonu yaptığın andan itibaren 2 saat
+içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı
+kartına iade edilir." / "Bu 2 saat geçtikten sonra yapılan iptallerde ve
+rezervasyona gelinmediğinde ücret iadesi yapılmaz."; pencere rezervasyondan
+sonra sayılır, `KARAOKE_REFUND_RULE` / `KARAOKE_NO_REFUND_RULE`,
+LEGAL-REDLINES §37), cayma hakkı yokluğu (MSY m.15/1-g), rezervasyonun
+imzalı sayfası (`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir rezervasyonu
+yalnız bununla yönetilir) ve koşulların tamamına bağlantı. İşletme iptalinde tam iade ve
 tahsilatın ayrıntısı (PayNkolay, tek çekim) mailde yok, bağlantılı belgede
 (17 Eki 2026, metin kısaltma). Köşkte ödenen eski akışta
 `KARAOKE_ODEME_MEKANDA` bölümü gider. İptalde `karaoke-iptal` iade tutarını
@@ -790,8 +793,10 @@ tutar uyuşmazlığı; `karaoke-<id>-<olay>`).
 ayarlanır (Ayarlar → Karaoke) ve her rezervasyon kendi kuralını saklar; mail
 şablonu iki cümleyi artık sabit yazmaz, rezervasyonun kaydından alır:
 `[KARAOKE_IADE_KURALI]` ve `[KARAOKE_GEC_KURALI]` (varsayılan 2 saat / %0
-kuralında yukarıdaki iki cümlenin aynısı). Köşkte ödenecek rezervasyonda
-`[KARAOKE_MEKAN_SURE]` sayfadan ne zamana kadar iptal edilebileceğini söyler;
+kuralında yukarıdaki iki cümlenin aynısı; 28 Eki 2026'dan önce yapılan
+rezervasyon kendi sakladığı eski çifti yazar). Köşkte ödenecek rezervasyonda
+`[KARAOKE_MEKAN_SURE]` sayfadan ne zamana kadar iptal edilebileceğini söyler
+(varsayılan kuralda "rezervasyonu yaptıktan sonraki 2 saat içinde");
 hiçbir üye iptalinin kabul edilmediği kuralda bunun yerine `KARAOKE_MEKAN_ARA`
 ("bizi ara") gider. İptal maili iade edilen gerçek tutarı yazar: tamamı
 (`KARAOKE_IADE`), geç iptal payı iade edildi (`KARAOKE_KISMI_IADE_EDILDI`) ya

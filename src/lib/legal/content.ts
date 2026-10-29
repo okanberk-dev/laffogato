@@ -12,7 +12,10 @@
  */
 
 import { KARAOKE_ROOM_DOC } from "./content-karaoke";
-import { COMMERCIAL_CONSENT_UPDATED } from "./meta";
+import {
+  COMMERCIAL_CONSENT_UPDATED,
+  KARAOKE_WINDOW_LEGAL_UPDATED,
+} from "./meta";
 
 export interface LegalDocSource {
   slug: string;
@@ -3844,6 +3847,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odeme-kosullari",
     title: "Ödeme Koşulları ve Sanal POS",
     shortTitle: "Ödeme Koşulları",
+    // 28 Ekim 2026: §21 counts the karaoke free-cancel window from the
+    // booking, not back from the start (LEGAL-REDLINES §37).
+    updatedAt: KARAOKE_WINDOW_LEGAL_UPDATED,
     // 27 Ekim 2026: Kahve Modu instead of fA'L (App Review 4.3(b)), LEGAL-REDLINES §36.
     // 21 Ekim 2026: §14 banka hesabına transferin üçüncü hâli, karaoke
     // telafisinin ödenmesi (LEGAL-REDLINES §26).
@@ -4172,7 +4178,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kart ile yapılan ödemelerin iadesi, PayNkolay'ın iptal ve iade hizmeti üzerinden, ilgili işlem referansına bağlanarak ödemenin yapıldığı karta yapılır. Ödemeyle aynı gün yapılan iadeler işlemin iptali, sonraki günlerde yapılanlar iade işlemi olarak bankaya iletilir. Kısmi iadeler 22. maddeye tabidir. Siparişte ücretsiz içecek kuponu veya promosyon kodu kullanılmışsa, kuponla karşılanan kısım için nakit ödeme yapılmaz; iade, fiilen ödediğiniz tutar üzerinden yapılır.",
           "Cayma hakkını kullandığınızı bildirdikten sonra malı, Mesafeli Sözleşmeler Yönetmeliği'nde öngörülen süre içinde Satıcıya geri göndermeniz gerekir. Cayma hâlinde iade kodu iade talebiniz alındığında e-postayla bildirilir; iade için taşıma bedeli hiçbir hâlde sizden talep edilmez.",
           "İade işlemi Satıcı tarafından başlatıldığında iade talimatı PayNkolay'a hemen iletilir. Tutarın kart hesabınıza yansıması ise kartı çıkaran bankanın süreçlerine bağlıdır; kredi kartlarında iade, ekstre dönemine göre bir sonraki hesap özetinizde görünebilir. Bu süre bankadan kaynaklandığı için Satıcının denetiminde değildir; ancak iade talimatının iletildiğine dair kaydı talebiniz üzerine sizinle paylaşırız.",
-          "Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Karaoke iadeleri ödenen tutarın tamamı olarak, PayNkolay üzerinden ödemenin yapıldığı karta yapılır; kısmi iade yapılmaz ve 22. madde bu iadelere uygulanmaz. Rezervasyonu işletme karşılayamazsa ödenen tutarın tamamı iade edilir.",
+          "Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Rezervasyonu yaptığınız andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Bu süre geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Karaoke iadeleri ödenen tutarın tamamı olarak, PayNkolay üzerinden ödemenin yapıldığı karta yapılır; kısmi iade yapılmaz ve 22. madde bu iadelere uygulanmaz. Rezervasyonu işletme karşılayamazsa ödenen tutarın tamamı iade edilir.",
           "Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü (m.15) gereği; çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünlerinde, tesliminden sonra ambalajı açılmış olup iadesi sağlık ve hijyen açısından uygun olmayan ürünlerde ve tüketicinin istekleri doğrultusunda kişiselleştirilerek hazırlanan ürünlerde cayma hakkı kullanılamaz. Bu istisna, ayıplı mal hükümlerinden doğan haklarınızı ortadan kaldırmaz.",
         ],
       },
@@ -11050,6 +11056,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "hesap-silme",
     title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
     shortTitle: "Hesap Silme",
+    // 28 Ekim 2026: §6 and §8 count the karaoke free-cancel window from the
+    // booking, not back from the start (LEGAL-REDLINES §37).
+    updatedAt: KARAOKE_WINDOW_LEGAL_UPDATED,
     // 27 Ekim 2026: §4 an unpaid checkout is cancelled at deletion instead of
     // holding it (App Review 5.1.1(v)), unless its payment is still at the
     // bank or the POS cannot be asked: then the deletion waits, at most 24
@@ -11138,7 +11147,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Sipariş kayıtları: e-posta adresiniz yer tutucuya çevrilir; satır ve tutar bilgisi muhasebe için durur. Siparişteki ad, telefon numarası, teslimat adresi, teslimat notu ve mesafeli satış onay kaydı (IP adresi ve tarayıcı veya uygulama bilgisi dâhil) 7. maddede belirtilen süre boyunca sınırlı erişimle tutulur.",
           "Sadakat damgası hareketleri: bakiye hesabınızdan koparılır.",
           "Kuponlar: kullanıma kapatılır ve sahibi yer tutucuya çevrilir.",
-          "Karaoke rezervasyonları: gelecek tarihli olanlar iptal edilir; rezervasyon saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir, 2 saatten az kalanlarda ise iade yapılmaz ve rezervasyon olduğu gibi kalır. Kayıttaki üyelik e-posta adresiniz yer tutucuya çevrilir ve adınız silinir. Siteden yapılan rezervasyonlarda formda bildirdiğiniz iletişim e-posta adresi, telefon numarası, Aydınlatma Metni'nin okunduğunu belirttiğiniz an, rezervasyon notu ile ödeme ve onay kaydı kayıtta kalır. Üye olmadan yaptığınız rezervasyonlar hesabın kapatılmasından etkilenmez.",
+          "Karaoke rezervasyonları: gelecek tarihli olanlar iptal edilir; ücretsiz iptal süresi (rezervasyonun yapıldığı andan itibaren 2 saat; rezervasyon saati gelmeden) içinde olan ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir; süresi geçmiş olanlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Kayıttaki üyelik e-posta adresiniz yer tutucuya çevrilir ve adınız silinir. Siteden yapılan rezervasyonlarda formda bildirdiğiniz iletişim e-posta adresi, telefon numarası, Aydınlatma Metni'nin okunduğunu belirttiğiniz an, rezervasyon notu ile ödeme ve onay kaydı kayıtta kalır. Üye olmadan yaptığınız rezervasyonlar hesabın kapatılmasından etkilenmez.",
           "Davet kayıtları: davet eden ve davet edilen adresleri yer tutucuya çevrilir.",
           "Stok hareketi kayıtlarında işlemi başlatan olarak görünen e-posta adresi yer tutucuya çevrilir.",
           "Ödeme kayıtları: PayNkolay işlem doğrulama servisinden alınan kayıt ve ödeme sayfasından dönüşte iletilen bilgiler (maskelenmiş kart numarası, kartı veren banka, 3D Secure bilgisi ve onay kodu dâhil) silinir; mutabakat için yalnızca ödeme hizmeti sağlayıcısının adı, işlem referansı, tutar, para birimi, işlem tarihi ve işlem durumu kalır. Kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada kaydedilmez.",
@@ -11194,7 +11203,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında bedel ödenmez.",
           "Kullanılmamış kuponlar geçersiz hâle gelir.",
-          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise hesabınızın silindiği ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır.",
+          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; ücretsiz iptal süresi (rezervasyonun yapıldığı andan itibaren 2 saat; rezervasyon saati gelmeden) içinde olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Süresi geçmiş ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise hesabınızın silindiği ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır.",
           "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında ve Site'deki hesap silme sayfasında uyarı gösterilir.",
         ],
       },

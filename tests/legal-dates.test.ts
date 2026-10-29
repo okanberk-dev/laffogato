@@ -9,6 +9,7 @@ import {
   COMMERCIAL_CONSENT_UPDATED,
   KARAOKE_CONSENT_DOCS,
   KARAOKE_LEGAL_UPDATED,
+  KARAOKE_WINDOW_LEGAL_UPDATED,
   LEGAL_UPDATED,
   META_PIXEL_LEGAL_UPDATED,
 } from "@/lib/legal/meta";
@@ -87,11 +88,18 @@ describe("legal document dates", () => {
       // instead of fA'L (LEGAL-REDLINES §36). (22 Ekim 2026: the İYS sync,
       // §31.)
       "ticari-elektronik-ileti": COMMERCIAL_CONSENT_UPDATED,
+      // 28 Ekim 2026: the karaoke free-cancel window is counted from the
+      // booking (LEGAL-REDLINES §37). Only these two quote the default rule
+      // in their own words, and neither is a checkout document, so the set
+      // (and the version a checkout consent records) did not move.
+      "odeme-kosullari": KARAOKE_WINDOW_LEGAL_UPDATED,
+      "hesap-silme": KARAOKE_WINDOW_LEGAL_UPDATED,
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
     }
     expect(COMMERCIAL_CONSENT_UPDATED).toBe("27 Ekim 2026");
+    expect(KARAOKE_WINDOW_LEGAL_UPDATED).toBe("28 Ekim 2026");
     // 25 Ekim 2026 (the Meta Pixel, §35) is before the revision now, so no
     // document carries it of its own any more.
     expect(META_PIXEL_LEGAL_UPDATED).toBe("25 Ekim 2026");

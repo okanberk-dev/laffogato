@@ -57,6 +57,9 @@ describe("the karaoke rules live in the karaoke terms only (ASK-Y3-2)", () => {
     for (const slug of pointing) {
       const all = JSON.stringify(doc(slug));
       expect(all, slug).not.toMatch(/(?<!\d)2 saatten (fazla|az)/);
+      // The rule counted from the booking (28 Ekim 2026) is not repeated
+      // here either.
+      expect(all, slug).not.toMatch(/andan itibaren \d+ saat/);
       expect(all, slug).not.toContain("kısmi iade yapılmaz");
       expect(all, slug).toContain(KARAOKE_TERMS);
     }

@@ -137,6 +137,21 @@ export const META_PIXEL_IN_LEGAL_TEXTS = true;
 export const META_PIXEL_LEGAL_UPDATED = "25 Ekim 2026";
 
 /**
+ * The day the karaoke free-cancel window started to be counted from the
+ * booking instead of back from the start (operator, 28 Ekim 2026: "karaoke
+ * için 2 saat içinde iptal etmezse iade olamaz"; `karaokeDeadlineFor`,
+ * src/lib/mobile/karaoke-time.ts; LEGAL-REDLINES §37). The two documents
+ * that quote the default rule in their own words, Ödeme Koşulları (§21) and
+ * Hesap Silme (§6, §8), carry it as their own `updatedAt`. Neither is a
+ * checkout document, so the set's revision (`LEGAL_UPDATED`), the version a
+ * checkout consent records, stays where it is, and with it
+ * `COMMERCIAL_CONSENT_UPDATED`. The karaoke terms name no hours (they point
+ * at the booking's own summary since 19 Ekim 2026), so `KARAOKE_LEGAL_UPDATED`
+ * stays too. Add the two documents to tests/legal-dates.test.ts with this day.
+ */
+export const KARAOKE_WINDOW_LEGAL_UPDATED = "28 Ekim 2026";
+
+/**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
  * sona eklenir, böylece yeni kategori eklemek burayı güncellemeyi zorunlu
  * kılmaz.
