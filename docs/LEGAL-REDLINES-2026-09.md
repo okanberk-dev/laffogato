@@ -4800,30 +4800,44 @@ eski satır kendi anını korur), iki cümleyi ve reddi tutar;
 belgelerin listesini. Uygulama kilidi açılmadan önce bu iki belge karaoke
 belgesine yönlendirilmelidir (§17'den beri açık).
 
-### 37.7 Yayın anı (operatöre)
+### 37.7 Yayın anı (29 Ekim 2026: kodda kapandı)
 
-- **Yayın sırasında yapılan rezervasyonlar.** Rezervasyon isteğindeki
-  `expectedCancelPolicy` yalnız iki sayıyı karşılaştırır (`freeCancelHours`,
-  `lateRefundPercent`). Yayından önce çizilmiş bir sayfa ya da uygulama
-  ekranı eski çifti ("Rezervasyon saatine 2 saatten fazla varken iptal
-  edersen ödediğin tutarın tamamı kartına iade edilir." / "Rezervasyon
-  saatine 2 saatten az kala yapılan iptallerde ve rezervasyona
-  gelinmediğinde ücret iadesi yapılmaz.") göstermiş olsa da 2 / 0 gönderir;
-  yeni sunucu bunu aynı kural sayar ve rezervasyonu yeni kuralla
-  (rezervasyondan sonraki 2 saat) yazar. Misafir ödemeden önce eski cümleyi
-  görmüş olur (TKHK m.4/2); onay e-postası yeni çifti ve son anı yazar. Bu
-  yüzden: (1) yayını rezervasyonların geldiği saatlerin dışında yap (köşk
-  kapalıyken, ör. gece); (2) yayından hemen önceki ve sonraki dakikalarda
-  yapılan rezervasyonlara panelde bak; açık kalmış bir sayfa ya da uygulama
-  ekranı isteği daha geç gönderebileceği için yayından sonraki ilk saati de
-  tara. Böyle bir rezervasyonun misafiri yeni pencere geçtikten sonra ama
-  gördüğü son andan (rezervasyon saatinden 2 saat önce) önce iptal isterse
-  kendi iptali `too_late` ile reddedilir; panelde "Misafir iptal istedi" ve
-  "Yine de tamamını iade et" (iade yetkisi) ile tam iade verilir.
-- **Uygulama sürümü.** Yayından önce panelde Mobil uygulama ayarlarındaki
-  "En düşük desteklenen sürüm"e bak (`docs/API-MOBILE.md` §7.1 "Uygulama
-  kilidi"): 1.1.0'ın altındaysa bir 1.0.x kurulumu bu kuralla yapılmış
-  rezervasyonda eski kuralı yazar.
+- **Neden vardı.** Rezervasyon isteğindeki `expectedCancelPolicy` yalnız iki
+  sayıyı karşılaştırır (`freeCancelHours`, `lateRefundPercent`) ve 28 Ekim'de
+  kural sayılarını (2 saat / %0) koruyup anlamını değiştirdi. Yayından önce
+  çizilmiş bir sayfa eski çifti ("Rezervasyon saatine 2 saatten fazla varken
+  iptal edersen ödediğin tutarın tamamı kartına iade edilir." / "Rezervasyon
+  saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde
+  ücret iadesi yapılmaz.") gösterip yayından sonra 2 / 0 gönderebilirdi;
+  sunucu onu aynı kural sayıp yeni pencereyle yazardı (TKHK m.4/2: misafir
+  ödemeden önce başka cümle okumuş olurdu). Server Action kimlikleri derleme
+  önbelleğiyle 14 güne kadar aynı kalabildiği için (Next.js, "Data
+  Security" kılavuzu) eski sayfa yeni sürüme gönderebilir; buna "yayın
+  sonrası yeni kimlik" diye güvenilmez.
+- **Web (kapandı).** Form, bastığı iki cümlenin kısa damgasını da gönderir
+  (`expectedCancelRules`, `karaokeRulesStamp`: cümlelerin FNV-1a özeti, 8
+  onaltılık hane). `createReservation` sayıları ve damgayı birlikte
+  karşılaştırır: damga yoksa (yayından önce çizilmiş sayfa) ya da şimdi
+  yapılan bir rezervasyonun alacağı cümlelerin damgası değilse rezervasyon
+  hiçbir şey tutulmadan `policy_changed` ile reddedilir ve form "İptal ve
+  iade kuralı sen bu sayfayı açtıktan sonra değişti. Sayfayı yenile, yeni
+  kuralı oku ve yeniden dene." der. Yenilenen sayfa yeni çifti ve son anı
+  basar. Yani kimse görmediği cümleyle rezervasyon yapamaz; yayın günün
+  herhangi bir saatinde yapılabilir. İleride cümleler sayılar değişmeden
+  yeniden yazılırsa aynı kapı kendiliğinden çalışır.
+  (`tests/karaoke-late-cancel.test.ts`, `tests/karaoke-web-action.test.ts`.)
+- **Uygulama.** `/api/mobile/v1` isteği damga taşımaz ve v1 yalnız eklemeli
+  değiştiği için zorunlu kılınamaz; uygulama yolu sayılarla karşılaştırılmaya
+  devam eder. 29 Ekim 2026'da mağazadan kurulmuş bir uygulama yoktur: 1.0.0
+  27 Ekim'de reddedildi ve hiç yayımlanmadı, 1.1.0 (4) incelemededir ve
+  cümleleri her açılışta sunucudan okur. Yayın anında açık kalmış bir
+  inceleme ya da TestFlight ekranı müşteri değildir. Yine de böyle bir
+  rezervasyon görülürse misafirin iptali panelde "Misafir iptal istedi" ve
+  "Yine de tamamını iade et" (iade yetkisi) ile tam iadeyle yapılır.
+- **En düşük desteklenen sürüm.** 1.1.0'ın altında yayımlanmış bir derleme
+  olmadığı için yükseltilecek bir şey yoktur (operatörün 28 Ekim'deki
+  "yayından önce bak" adımı bu yüzden kapandı). Uygulama kilidinin
+  (`KARAOKE_POLICY_APP_VERSION`) durumu `docs/API-MOBILE.md` §7.1'de.
 
 ## Ek A - Cümle cümle düzeltme listesi
 
