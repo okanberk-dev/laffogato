@@ -581,12 +581,20 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   bitmiş, ödemesi beklenen ya da iadesi süren rezervasyon taşınmaz
   (`karaokeRescheduleBlock`). Yeni saat bir rezervasyon gibi denetlenir
   (açılış saatleri, rezervasyon penceresi, geçmiş saat yok) ve günün diğer
-  rezervasyonlarıyla çakışamaz (`karaoke_reservations_no_overlap`). İptal
-  kuralının son anı yeni başlangıca göre yeniden hesaplanır; `updatedAt`
-  değişmez (son durum kararının anıdır). Onaylı rezervasyon, geç iptal
-  edilmiş bir saate taşınırsa saat yeniden satılmış sayılır (onaydaki gibi
-  `chargeResale`). Müşteriye `karaoke-saat-degisikligi` e-postası gider
-  (yeni ve eski saat, yeni imzalı bağlantı); taşıma Geçmiş'e "Tarih / saat
+  rezervasyonlarıyla çakışamaz (`karaoke_reservations_no_overlap`). Ücretsiz
+  iptalin son anı rezervasyonun kendi kuralıyla yeniden hesaplanır
+  (`karaokeMovedDeadline`): 28 Ekim 2026'dan beri yapılan rezervasyonda
+  rezervasyondan sayılır ve yeni saate göre uzamaz (yapıldığı an + süre, en
+  geç yeni başlangıçtan bir dakika önce), daha önce yapılanda yeni
+  başlangıçtan 2 saat öncedir. Pencerenin açıklaması bunu söyler: "...
+  ücretsiz iptalin son anı rezervasyonun kendi kuralıyla yeniden hesaplanır
+  (28 Ekim'den sonra yapılanda rezervasyondan sayılır ve yeni saate göre
+  uzamaz) ve e-postada yazar." `updatedAt` değişmez (son durum kararının
+  anıdır). Onaylı rezervasyon, geç iptal edilmiş bir saate taşınırsa saat
+  yeniden satılmış sayılır (onaydaki gibi `chargeResale`). Müşteriye
+  `karaoke-saat-degisikligi` e-postası gider (yeni ve eski saat, yeni imzalı
+  bağlantı; ödenmiş rezervasyonda "İptal kuralın değişmedi:", iki cümle ve
+  "Son ücretsiz iptal: [KARAOKE_SON_IPTAL]."); taşıma Geçmiş'e "Tarih / saat
   değiştirildi" olarak düşer, köşkün paneline ve LafPOS'a yazım pingi gider.
 - **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
   ("Genel bakış · Kasa · damga · Siparişler +3"); "Roller neyi açar" artık

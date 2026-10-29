@@ -666,7 +666,9 @@ maybe("karaoke prepayment (real Postgres)", () => {
       const start = karaoke
         .karaokeStartInstant(r!.date, r!.startHour)
         .getTime();
-      const deadline = Math.min(made + 2 * 3600_000, start);
+      // Two hours from its making, ending at the latest the minute before
+      // the start (the start minute itself is refused).
+      const deadline = Math.min(made + 2 * 3600_000, start - 60_000);
       expect(r!.cancelDeadline).toBe(new Date(deadline).toISOString());
       // The deadline and the whole minute it names are still in time
       // (ASK-Y3-4, karaokeFreeCancelEnd): the first refused moment is the
@@ -686,6 +688,53 @@ maybe("karaoke prepayment (real Postgres)", () => {
       }
       expect(pos.refunds).toHaveLength(0);
       expect((await row(id)).paymentStatus).toBe("paid");
+    });
+
+    it("made 90 minutes before its start: the window ends the minute before the start, which is still free", async () => {
+      // Two hours from the making would run past the start; the window ends
+      // at 19:59 for a 20:00 evening, the minute the pages print and the
+      // terms count "bu an dâhil". The start minute itself is refused.
+      const c = member();
+      const date = dayAhead(3);
+      const start = karaoke.karaokeStartInstant(date, 20).getTime();
+      const madeAt = new Date(start - 90 * 60_000);
+      const res = await pay.bookKaraoke(
+        c,
+        { date, startHour: 20, hours: 2, guests: 4, note: "" },
+        {
+          channel: "web",
+          prepay: true,
+          contact: contactOf(c),
+          legalConsent: CONSENT,
+          buyerIp: "10.9.8.7",
+          now: madeAt,
+        },
+      );
+      if (!res.ok) throw new Error(`booking refused: ${res.message}`);
+      const id = res.reservation.id;
+      await pay.applyKaraokePaymentSucceeded({
+        reservationId: id,
+        provider: "fakepos",
+        providerRef: id,
+        amountMinor: 200_000,
+        currency: "TRY",
+      });
+      expect((await row(id)).cancelDeadline).toBe(
+        new Date(start - 60_000).toISOString(),
+      );
+
+      const atStart = await pay.cancelKaraokeReservation(id, asMember(c), {
+        now: new Date(start),
+      });
+      expect(atStart).toMatchObject({ ok: false, reason: "too_late" });
+      expect(pos.refunds).toHaveLength(0);
+
+      // 19:59:59.999: inside the named minute, a full refund.
+      const lastMoment = await pay.cancelKaraokeReservation(id, asMember(c), {
+        now: new Date(start - 1),
+      });
+      expect(lastMoment).toMatchObject({ ok: true, refunded: true });
+      expect(pos.refunds).toEqual([{ ref: id, amountMinor: 200_000 }]);
     });
 
     it("a refund the POS declined puts the booking back as paid", async () => {
@@ -1584,10 +1633,11 @@ maybe("karaoke prepayment (real Postgres)", () => {
         String(r.date),
         Number(r.startHour),
       );
-      // Two hours from its making, never past the start (28 Eki 2026).
+      // Two hours from its making (28 Eki 2026), ending at the latest the
+      // minute before the start.
       const deadline = Math.min(
         Date.parse(String(r.createdAt)) + 2 * 3600_000,
-        start.getTime(),
+        start.getTime() - 60_000,
       );
       expect(r).toMatchObject({
         freeCancelHours: 2,

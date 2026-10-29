@@ -324,6 +324,30 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       expect(makeGoodStateOf(original as never)).toBe("hour");
     });
 
+    it("the free hour's window runs from when it was given, and its confirmation says so (2 h / 0 %)", async () => {
+      const { hour, start } = await freeHour(10);
+      const stored = await row(hour.id);
+      // Two hours from its giving, ending at the latest the minute before
+      // its start (days away here, so the two hours).
+      expect(stored.cancelDeadline).toBe(
+        new Date(
+          Math.min(
+            Date.parse(String(stored.createdAt)) + 2 * 3_600_000,
+            start.getTime() - 60_000,
+          ),
+        ).toISOString(),
+      );
+      // The guest did not book it: "bu saat ayrıldıktan sonra", never
+      // "rezervasyonu yaptıktan sonra".
+      expect(mail.confirmations).toHaveLength(1);
+      const k = mail.confirmations[0]! as {
+        cancellation?: { venueUntil: string | null };
+      };
+      expect(k.cancellation?.venueUntil).toBe(
+        "bu saat ayrıldıktan sonraki 2 saat içinde, rezervasyon saati gelmeden",
+      );
+    });
+
     it("characterisation (control): 10 minutes before the start the guest's OWN cancel of the free hour is too_late", async () => {
       const { hour, now } = await freeHour(10);
       const stored = (await getReservation(hour.id))!;

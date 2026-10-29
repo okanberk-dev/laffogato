@@ -89,9 +89,9 @@ export function karaokeEndInstant(r: {
 export interface KaraokeCancelPolicy {
   /**
    * For how many hours AFTER the booking is made a member's own cancel
-   * refunds in full, 1..72 (operator, 28 Eki 2026). The window never reaches
-   * past the start: a booking made closer to its start than this is free to
-   * cancel until the start itself.
+   * refunds in full, 2..72 (operator, 28 Eki 2026). The window ends at the
+   * latest the minute before the start: a booking made closer to its start
+   * than this is free to cancel until then.
    */
   freeCancelHours: number;
   /**
@@ -235,12 +235,13 @@ export function karaokeCountsBackFromStart(
 /**
  * The deadline of a booking the panel moves to another day or hour, under
  * the rule it was booked under. Counted from the booking: its making plus
- * its policy's hours, never past the new start (moved later, a booking made
- * close to its start gets the rest of its window back; moved earlier, the
- * window ends at the new start). Counted back from the start (made before
- * 28 Eki 2026): the new start minus its hours, as it was promised; moving
- * it must not take the member's window away. A row whose making cannot be
- * read keeps its deadline, capped at the new start.
+ * its policy's hours, ending at the latest the minute before the new start
+ * (moved later, a booking made close to its start gets the rest of its
+ * window back; moved earlier, the window ends just before the new start).
+ * Counted back from the start (made before 28 Eki 2026): the new start minus
+ * its hours, as it was promised; moving it must not take the member's window
+ * away. A row whose making cannot be read keeps its deadline, capped at the
+ * minute before the new start.
  */
 export function karaokeMovedDeadline(
   r: Parameters<typeof karaokeCancelDeadline>[0],
@@ -453,7 +454,8 @@ export function karaokeCancellationRules(
  * page, worded to follow "Planın değişirse": no money moves, so a late share
  * above 0 lets it go until the start. Null when no member cancel is ever
  * accepted: the confirmation then says to call. No policy is such a rule
- * (every window is at least an hour); the null stays for the caller's sake.
+ * (every window is at least two hours); the null stays for the caller's
+ * sake.
  */
 export function karaokeVenueCancelUntil(
   policy: KaraokeCancelPolicy,
@@ -594,10 +596,12 @@ export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
 
 /**
  * The first lafmobil version that prints the booking's own rule on EVERY
- * karaoke screen (spec §7: the reservation page and its cancel step still
- * print the fixed "2 saat, iade yok" pair in today's builds, and app requests
- * carry no version the server could tell them apart by). Until one is
- * released and set here, and the panel's minimum app version reaches it,
+ * karaoke screen (spec §7). Builds before 1.1.0 print their own fixed pair
+ * on the reservation page and its cancel step, and app requests carry no
+ * version the server could tell them apart by; 1.1.0 (in App Review on
+ * 29 Eki 2026, no build released in a store yet) prints the server's
+ * `cancellationRules`. Until a version is set here, and the panel's minimum
+ * app version reaches it,
  * only the default policy can be saved or take effect: an old build would
  * otherwise show a member a rule different from the one they booked under.
  * null: no such build yet. Opening it also needs the other legal documents
@@ -631,7 +635,7 @@ export function karaokePolicyLockReason(
   appVersion: string | null = KARAOKE_POLICY_APP_VERSION,
 ): string | null {
   if (appVersion === null) {
-    return 'Şimdilik yalnız 2 saat ve %0 kaydedilebilir: uygulamanın yayındaki sürümleri rezervasyon ayrıntısında hâlâ kendi "2 saat, iade yok" kuralını yazıyor. Kuralı sunucudan okuyan uygulama sürümü yayınlanınca diğer değerler açılır.';
+    return 'Şimdilik yalnız 2 saat ve %0 kaydedilebilir: uygulamanın 1.1.0\'dan eski derlemeleri rezervasyon ayrıntısında kendi sabit "2 saat" kuralını yazıyor. Kuralı sunucudan okuyan uygulama sürümü kodda tanımlanıp en düşük desteklenen sürüm ona çıkınca diğer değerler açılır.';
   }
   if (!versionAtLeast(minSupportedAppVersion, appVersion)) {
     return `Şimdilik yalnız 2 saat ve %0 kaydedilebilir: kuralı sunucudan okuyan uygulama ${appVersion} sürümünden başlıyor. Mobil uygulama ayarlarında en düşük desteklenen sürüm ${appVersion} olunca diğer değerler açılır.`;

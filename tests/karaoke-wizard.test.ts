@@ -493,7 +493,8 @@ describe("the cancellation terms, from the server", () => {
     );
     expect(t?.freeUntil).toBe("21 Ekim 2026, 12:00");
     expect(t?.lateShareMinor).toBe(50_000);
-    // A window longer than the time left ends at the start.
+    // A window longer than the time left ends the minute before the start:
+    // the named minute is free to its end, the start never is.
     const close = terms.karaokeBookingTerms(
       { freeCancelHours: 24, lateRefundPercent: 50, cancellationRules: HALF },
       {
@@ -503,7 +504,7 @@ describe("the cancellation terms, from the server", () => {
         now: new Date("2026-10-30T14:00:00.000Z"), // 17:00 Tuzla
       },
     );
-    expect(close?.freeUntil).toBe("30 Ekim 2026, 20:00");
+    expect(close?.freeUntil).toBe("30 Ekim 2026, 19:59");
   });
 
   it("prints nothing it cannot read", () => {
@@ -517,16 +518,17 @@ describe("the cancellation terms, from the server", () => {
     ).toBeNull();
   });
 
-  it("tonight, booked inside the last two hours: free until the start", () => {
+  it("tonight, booked inside the last two hours: free until the minute before the start", () => {
     // Counted from the booking, a window never lies behind the clock: drawn
-    // at 19:30 Tuzla for 20:00, it ends at the start, not at 21:30.
+    // at 19:30 Tuzla for 20:00, it ends at 19:59, not at 21:30, and never
+    // names the start minute itself (it is refused).
     const pick = { date: "2026-10-30", startHour: 20, totalMinor: 100_000 };
     expect(
       terms.karaokeBookingTerms(src, {
         ...pick,
         now: new Date("2026-10-30T16:30:00.000Z"),
       })?.freeUntil,
-    ).toBe("30 Ekim 2026, 20:00");
+    ).toBe("30 Ekim 2026, 19:59");
     // At 15:00 Tuzla: two hours, 17:00.
     expect(
       terms.karaokeBookingTerms(src, {
@@ -641,12 +643,13 @@ describe("the booking page as the server renders it", () => {
     expect(html).toMatch(/name="expectedLateRefundPercent" value="50"/);
   });
 
-  it("tonight, booked inside the last two hours: free until the start", () => {
+  it("tonight, booked inside the last two hours: free until the minute before the start", () => {
     // 19:30 Tuzla, 20:00 picked, two free hours counted from the booking:
-    // the window ends at the start (28 Eki 2026), never behind the clock.
+    // the window ends the minute before the start (28 Eki 2026), never
+    // behind the clock.
     const html = booking({ now: "2026-10-30T16:30:00.000Z" });
     expect(html).toContain(
-      "Şimdi rezervasyon yaparsan ücretsiz iptal için son an: 30 Ekim 2026, 20:00.",
+      "Şimdi rezervasyon yaparsan ücretsiz iptal için son an: 30 Ekim 2026, 19:59.",
     );
     expect(html).not.toContain("ücretsiz iptal süresi geçti");
     // Earlier in the day: two hours from the moment the page was drawn.
@@ -658,6 +661,42 @@ describe("the booking page as the server renders it", () => {
     expect(read("src/app/karaoke/page.tsx")).toContain(
       "now={now.toISOString()}",
     );
+  });
+
+  it("counts the moment from a moving clock that starts at the draw, never this machine's own time", () => {
+    // The first render (on the server and at hydration) is the draw itself,
+    // whatever the machine's clock reads: here it reads the next morning.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-28T07:00:00.000Z"));
+      expect(booking({ now: "2026-10-27T17:00:00.000Z" })).toContain(
+        "son an: 27 Ekim 2026, 22:00.",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+    // In the browser the box's "now" is the draw plus the tab's elapsed
+    // time, moving every half minute, so a tab left open does not name a
+    // moment from when it was drawn (useServerClock in karaoke-booking.tsx).
+    const src = read("src/components/laffogato/karaoke-booking.tsx");
+    expect(src).toContain("const CLOCK_TICK_MS = 30_000;");
+    expect(src).toContain(
+      "function useServerClock(serverIso: string | undefined): number | undefined {",
+    );
+    expect(src).toContain("const [elapsed, setElapsed] = useState(0);");
+    expect(src).toMatch(
+      /const mountedAt = Date\.now\(\);\s+const timer = setInterval\(\s+\(\) => setElapsed\(Math\.max\(0, Date\.now\(\) - mountedAt\)\),\s+CLOCK_TICK_MS,\s+\);\s+return \(\) => clearInterval\(timer\);/,
+    );
+    expect(src).toContain(
+      "return Number.isFinite(drawn) ? drawn + elapsed : undefined;",
+    );
+    // The terms read that clock, and only it.
+    expect(src).toContain("const clockMs = useServerClock(now);");
+    expect(src).toContain(
+      "now: clockMs === undefined ? undefined : new Date(clockMs),",
+    );
+    expect(src).not.toContain("now: now ? new Date(now) : undefined");
+    expect(src.match(/karaokeBookingTerms\(/g)).toHaveLength(1);
   });
 
   it("a late share follows the named moment, and stands alone without one", () => {

@@ -26,11 +26,13 @@ const { KaraokeBooking } =
   await import("@/components/laffogato/karaoke-booking");
 const { KARAOKE_RESULT_NOTICES } = await import("@/lib/mobile/karaoke-notices");
 
-// The operator's rule of 28 Eki 2026, counted from the booking.
+// The operator's rule of 28 Eki 2026, counted from the booking. The late
+// sentence stands on its own: the API's too_late answer and the app's cancel
+// step print it without the one before it.
 const REFUND =
   "Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir.";
 const NO_REFUND =
-  "Bu 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
+  "Rezervasyonu yaptığın andan 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
 // The 16 Eki 2026 pair, counted back from the start: what every booking
 // made before the snapshot (18 Eki 2026) still prints.
 const LEGACY_REFUND =
@@ -79,6 +81,25 @@ describe("the operator's exact wording (28 Eki 2026)", () => {
     expect(time.KARAOKE_NO_REFUND_RULE).toBe(NO_REFUND);
     expect(time.KARAOKE_TOO_LATE_MESSAGE).toContain(NO_REFUND);
     expect(KARAOKE_RESULT_NOTICES["gec-iptal"]!.text).toContain(NO_REFUND);
+  });
+
+  it("the refusal reads whole on its own, with no 'Bu 2 saat' pointing at a sentence it lacks", () => {
+    // The API's too_late answer and the app's cancel step print only this.
+    expect(time.KARAOKE_TOO_LATE_MESSAGE).toBe(
+      `Artık buradan iptal edemezsin. ${NO_REFUND}`,
+    );
+    expect(time.KARAOKE_NO_REFUND_RULE).not.toMatch(/^Bu\b/);
+    expect(time.KARAOKE_TOO_LATE_MESSAGE).not.toContain("Bu 2 saat");
+    // Every policy's late sentence opens the same way, share or not.
+    for (const p of [0, 50, 100]) {
+      const late = time.karaokeCancellationRules({
+        freeCancelHours: 24,
+        lateRefundPercent: p,
+      }).lateRule;
+      expect(late, `%${p}`).toMatch(
+        /^Rezervasyonu yaptığın andan 24 saat geçtikten sonra/,
+      );
+    }
   });
 
   it("is in both halves of the confirmation e-mail, verbatim", () => {
@@ -138,8 +159,9 @@ describe("the operator's exact wording (28 Eki 2026)", () => {
       "src/components/laffogato/kdv-note.ts",
       "src/app/rezervasyon/page.tsx",
       "src/app/api/mobile/v1/karaoke/reservations/[id]/cancel/route.ts",
+      "tests/karaoke-prepay-rules.test.ts",
     ]) {
-      expect(read(file), file).not.toMatch(/[–—]/);
+      expect(read(file), file).not.toMatch(/[\u2013\u2014]/);
     }
   });
 });
@@ -260,9 +282,40 @@ describe("the reservation page (profile and signed link)", () => {
     );
     expect(inside).not.toContain(LEGACY_REFUND);
     // Five hours after booking, the evening still a day away: no refund.
+    // The step prints the late sentence alone, and it reads whole.
     const after = render(own, new Date("2026-10-29T15:00:00.000Z"), true);
-    expect(after).toContain(NO_REFUND);
+    expect(after).toContain(`<p class="karaoke-mine-outcome">${NO_REFUND}</p>`);
     expect(after).not.toContain("Evet, iptal et");
+  });
+
+  it("made inside its last two hours: free through the minute before the start, and that minute is named", () => {
+    // Made at 18:30 Tuzla for 20:00: two hours would run past the start, so
+    // the window ends at 19:59 (`karaokeDeadlineFor`), the minute the page
+    // prints and the terms count "bu an dâhil".
+    const close = {
+      createdAt: "2026-10-30T15:30:00.000Z",
+      cancelDeadline: "2026-10-30T16:59:00.000Z",
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancellationRules: [REFUND, NO_REFUND],
+    } as Partial<typeof BASE>;
+    expect(
+      time
+        .karaokeDeadlineFor(
+          { freeCancelHours: 2, lateRefundPercent: 0 },
+          { date: "2026-10-30", startHour: 20 },
+          new Date("2026-10-30T15:30:00.000Z"),
+        )
+        .toISOString(),
+    ).toBe("2026-10-30T16:59:00.000Z");
+    // 19:59:59 Tuzla: still the named minute, in full.
+    const named = render(close, new Date("2026-10-30T16:59:59.000Z"), true);
+    expect(named).toContain("Ücretsiz iptal için son an: 30 Ekim 2026, 19:59.");
+    expect(named).toContain("Evet, iptal et");
+    // 20:00: the start itself is never in the window.
+    const atStart = render(close, new Date("2026-10-30T17:00:00.000Z"), true);
+    expect(atStart).not.toContain("Ücretsiz iptal için son an");
+    expect(atStart).not.toContain("Evet, iptal et");
   });
 
   it("a cancelled booking has nothing to cancel; an unpaid hold can still be paid", () => {

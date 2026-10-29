@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -410,6 +412,8 @@ describe("the member's mail", () => {
     KARAOKE_LINK: "https://laffogato.net/rezervasyon?t=abc",
     KARAOKE_IADE_KURALI: "Tam iade kuralı.",
     KARAOKE_GEC_KURALI: "Geç iptal kuralı.",
+    // The last free moment as the move recounted it (`karaokeMovedDeadline`).
+    KARAOKE_SON_IPTAL: "16 Ekim 2026, 15:00",
     KARAOKE_TELAFI_KOD: "KRK-00041",
     KARAOKE_ESKI_TARIH: "17 Ekim 2026",
     KARAOKE_ESKI_SAAT: "20:00 - 22:00",
@@ -470,6 +474,8 @@ describe("the member's mail", () => {
     expect(paid.html).toContain(
       'href="https://laffogato.net/rezervasyon?t=abc"',
     );
+    expect(paid.html).not.toContain("[KARAOKE_");
+    expect(paid.text).not.toContain("[KARAOKE_");
     // Transactional: never a way out of a list.
     expect(paid.html).not.toMatch(/abonelik|cikis\?token/i);
 
@@ -481,5 +487,48 @@ describe("the member's mail", () => {
       expect(part).not.toContain("2.000,00 ₺");
       expect(part).not.toContain("telafi");
     }
+  });
+
+  it("names the recounted last free moment, and never says the window follows the new hour", () => {
+    // Since 28 Eki 2026 the window runs from the booking: moving the evening
+    // does not carry it along with the start, so the mail names the moment.
+    const paid = render(
+      karaokeRescheduleFlags({ payment: { kind: "online", paidMinor: 1 } }),
+    );
+    expect(paid.html).toContain(
+      "İptal kuralın değişmedi: Tam iade kuralı. Geç iptal kuralı. Son ücretsiz iptal: 16 Ekim 2026, 15:00.",
+    );
+    expect(paid.text).toContain(
+      "İptal kuralın değişmedi:\nTam iade kuralı.\nGeç iptal kuralı.\nSon ücretsiz iptal: 16 Ekim 2026, 15:00.",
+    );
+    for (const part of [paid.html, paid.text]) {
+      expect(part).not.toContain("yeni saate göre");
+    }
+    // Paid at the köşk, or a free hour: no refund rule, so no moment.
+    for (const flags of [
+      karaokeRescheduleFlags({ payment: { kind: "venue" } }),
+      karaokeRescheduleFlags({
+        payment: { kind: "venue" },
+        makeGoodHourFor: "krk-00041",
+      }),
+    ]) {
+      const other = render(flags);
+      for (const part of [other.html, other.text]) {
+        expect(part).not.toContain("Son ücretsiz iptal");
+        expect(part).not.toContain("İptal kuralın değişmedi");
+      }
+    }
+  });
+
+  it("the panel's dialog says the moment is recounted by the booking's own rule and printed in the mail", () => {
+    const src = readFileSync(
+      "src/components/admin/karaoke-reschedule-dialog.tsx",
+      "utf8",
+    );
+    expect(src).toContain(
+      "ücretsiz iptalin son anı rezervasyonun yapıldığı kuralla yeniden hesaplanır",
+    );
+    expect(src).toContain("ve e-postada yazar.");
+    expect(src).not.toContain("iptal süreleri yeni saate göre işler");
   });
 });

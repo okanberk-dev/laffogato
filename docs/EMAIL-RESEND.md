@@ -770,10 +770,12 @@ Rezervasyon ödenince kendiliğinden `confirmed` olur ve `karaoke-rezervasyon`
 **makbuz** olarak gider (`KARAOKE_ODENDI`): ödenen tutar, operatörün iki
 cümlesi (28 Eki 2026'dan beri "Rezervasyonu yaptığın andan itibaren 2 saat
 içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı
-kartına iade edilir." / "Bu 2 saat geçtikten sonra yapılan iptallerde ve
-rezervasyona gelinmediğinde ücret iadesi yapılmaz."; pencere rezervasyondan
-sonra sayılır, `KARAOKE_REFUND_RULE` / `KARAOKE_NO_REFUND_RULE`,
-LEGAL-REDLINES §37), cayma hakkı yokluğu (MSY m.15/1-g), rezervasyonun
+kartına iade edilir." / "Rezervasyonu yaptığın andan 2 saat geçtikten sonra
+yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
+pencere rezervasyondan sonra sayılır ve en geç rezervasyon saatinden bir
+dakika önce biter, `KARAOKE_REFUND_RULE` / `KARAOKE_NO_REFUND_RULE`,
+LEGAL-REDLINES §37), son ücretsiz iptal anı ("Son ücretsiz iptal:
+[KARAOKE_SON_IPTAL]."), cayma hakkı yokluğu (MSY m.15/1-g), rezervasyonun
 imzalı sayfası (`[KARAOKE_LINK]`, `/rezervasyon?t=…`; misafir rezervasyonu
 yalnız bununla yönetilir) ve koşulların tamamına bağlantı. İşletme iptalinde tam iade ve
 tahsilatın ayrıntısı (PayNkolay, tek çekim) mailde yok, bağlantılı belgede
@@ -795,8 +797,13 @@ ayarlanır (Ayarlar → Karaoke) ve her rezervasyon kendi kuralını saklar; mai
 `[KARAOKE_IADE_KURALI]` ve `[KARAOKE_GEC_KURALI]` (varsayılan 2 saat / %0
 kuralında yukarıdaki iki cümlenin aynısı; 28 Eki 2026'dan önce yapılan
 rezervasyon kendi sakladığı eski çifti yazar). Köşkte ödenecek rezervasyonda
-`[KARAOKE_MEKAN_SURE]` sayfadan ne zamana kadar iptal edilebileceğini söyler
-(varsayılan kuralda "rezervasyonu yaptıktan sonraki 2 saat içinde");
+`[KARAOKE_MEKAN_SURE]` sayfadan ne zamana kadar iptal edilebileceğini,
+rezervasyonun yapıldığı kuralın sözleriyle söyler (`karaokeVenueCancelUntilOf`):
+varsayılan kuralda "rezervasyonu yaptıktan sonraki 2 saat içinde, rezervasyon
+saati gelmeden", geç iptal payı olan kuralda "rezervasyon saatinden önce", 28
+Eki 2026'dan önce yapılmış rezervasyonda "rezervasyon saatine 2 saatten fazla
+varken", köşkün verdiği ücretsiz telafi saatinde (`KARAOKE_TELAFI_SAATI`) "bu
+saat ayrıldıktan sonraki 2 saat içinde, rezervasyon saati gelmeden";
 hiçbir üye iptalinin kabul edilmediği kuralda bunun yerine `KARAOKE_MEKAN_ARA`
 ("bizi ara") gider. İptal maili iade edilen gerçek tutarı yazar: tamamı
 (`KARAOKE_IADE`), geç iptal payı iade edildi (`KARAOKE_KISMI_IADE_EDILDI`) ya
@@ -828,8 +835,14 @@ Personel rezervasyonu başka bir gün ya da saate taşıyınca (27 Ekim 2026,
 operatör: "saati değiştirebilir yap, değişince de kişiye mail gitsin")
 `karaoke-saat-degisikligi` gider: yeni tarih ve saat, üstü çizili eski saat
 ve imzalı yeni bağlantı. Süre, kişi, ücret, ödeme ve rezervasyonun iptal
-kuralı aynı kalır; ödenmiş rezervasyonda kural cümleleri yeniden yazılır
-(süreler yeni saate göre işler). Tek bir ödeme satırı: `KARAOKE_ODENDI`,
+kuralı aynı kalır. Ödenmiş rezervasyonda mail "İptal kuralın değişmedi:"
+der, rezervasyonun iki cümlesini ve yeniden hesaplanan son anı yazar ("Son
+ücretsiz iptal: [KARAOKE_SON_IPTAL]."): son an rezervasyonun kendi kuralıyla
+yeniden hesaplanır (`karaokeMovedDeadline`); 28 Eki 2026'dan beri yapılanda
+rezervasyondan sayılır ve yeni saate göre uzamaz (en geç yeni başlangıçtan 1
+dakika önce), daha önce yapılanda yeni başlangıçtan 2 saat öncedir. Mail bu
+yüzden eskisi gibi "süreler yeni saate göre işler" demez. Tek bir ödeme
+satırı: `KARAOKE_ODENDI`,
 `KARAOKE_ODEME_MEKANDA` ya da `KARAOKE_TELAFI_SAATI`
 (`karaokeRescheduleFlags`). Ayrıntı `docs/ADMIN.md` "Karaoke: saati değiştir".
 

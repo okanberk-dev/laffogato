@@ -11,8 +11,10 @@ import {
   type KaraokeCancelCause,
 } from "@/lib/mobile/karaoke-cancel-cause";
 import {
+  DEFAULT_KARAOKE_CANCEL_POLICY,
   KARAOKE_NO_REFUND_RULE,
   KARAOKE_REFUND_RULE,
+  karaokeVenueCancelUntil,
 } from "@/lib/mobile/karaoke-time";
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
@@ -1237,10 +1239,12 @@ export interface KaraokeEmailData {
 }
 
 /** The default rule's pay-at-the-venue window, worded for the sentence. */
-const DEFAULT_VENUE_UNTIL = "rezervasyonu yaptıktan sonraki 2 saat içinde";
+const DEFAULT_VENUE_UNTIL =
+  karaokeVenueCancelUntil(DEFAULT_KARAOKE_CANCEL_POLICY) ?? "";
 
 /** The default rule's last free moment, when no instant was given. */
-const DEFAULT_FREE_UNTIL = "rezervasyonu yaptıktan 2 saat sonra";
+const DEFAULT_FREE_UNTIL =
+  "rezervasyonu yaptıktan 2 saat sonra (en geç rezervasyon saatinden bir dakika önce)";
 
 function karaokeVars(k: KaraokeEmailData) {
   const amount =

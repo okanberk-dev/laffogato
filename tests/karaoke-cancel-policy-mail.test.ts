@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { KaraokeReservation } from "@/lib/mobile/karaoke-core";
+
 /**
  * The karaoke mails under a booking's own cancellation rule (P2a): the
  * confirmation prints the two sentences the booking was shown, and the
  * cancellation says the amount that actually goes back - the whole payment,
  * or a late cancel's share, owed (refunded by hand, no date promised) or
  * refunded. Since 28 Eki 2026 (operator: "karaoke için 2 saat içinde iptal
- * etmezse iade olamaz") the window is counted from the booking: the
- * default's venue window and last free moment read so, and a booking paid
- * at the venue always names a window (`karaokeVenueCancelUntil` is never
- * null for a policy in range). A booking made under the default reads as
+ * etmezse iade olamaz") the window is counted from the booking and ends at
+ * the latest before the start: the default's venue window and last free
+ * moment read so, and a booking paid at the venue always names a window
+ * (`karaokeVenueCancelUntil` is never null for a policy in range). The
+ * mail a booking actually gets (`notifyReservationStatus`) words that window
+ * in the rule it was made under: back from the start for a booking made
+ * before 28 Eki 2026, from the booking after, from the giving for a free
+ * make-good hour. A booking made under the default reads as
  * tests/karaoke-prepay-admin-mail.test.ts holds.
  */
 
@@ -26,8 +32,12 @@ vi.mock("@/lib/admin/store", () => ({
   }),
 }));
 
+// The booking's own signed page link in the mails it is sent.
+process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
+
 const send = await import("@/lib/email/send");
 const time = await import("@/lib/mobile/karaoke-time");
+const { notifyReservationStatus } = await import("@/lib/mobile/karaoke");
 
 const BASE = {
   to: "eda@example.com",
@@ -103,7 +113,7 @@ describe("the confirmation prints the booking's own rule", () => {
     });
     const m = h.sent[0]!;
     expect(m.text).toContain(
-      "Son ücretsiz iptal: rezervasyonu yaptıktan 2 saat sonra.",
+      "Son ücretsiz iptal: rezervasyonu yaptıktan 2 saat sonra (en geç rezervasyon saatinden bir dakika önce).",
     );
     expect(m.text).not.toContain("rezervasyon saatinden 2 saat önce");
   });
@@ -133,17 +143,39 @@ describe("the confirmation prints the booking's own rule", () => {
     );
     expect(m.text).not.toContain("rezervasyon saatine 2 saatten fazla varken");
     expect(m.text).not.toContain("Planın değişirse bizi ara");
-    // The same words the rule's helper gives a booking under the default.
+    // The rule's helper under the default: the window, never past the start.
     expect(
       time.karaokeVenueCancelUntil(time.DEFAULT_KARAOKE_CANCEL_POLICY),
-    ).toBe("rezervasyonu yaptıktan sonraki 2 saat içinde");
+    ).toBe(
+      "rezervasyonu yaptıktan sonraki 2 saat içinde, rezervasyon saati gelmeden",
+    );
+  });
+
+  it("with no rule given, the venue window is the default rule's own words (the helper's)", async () => {
+    // `KaraokeEmailData.cancellation` absent means "the default rule, 2
+    // hours" (send.ts): the fallback must say what
+    // `karaokeVenueCancelUntil(DEFAULT)` says, start cap included.
+    await send.sendKaraokeConfirmationEmail({
+      ...BASE,
+      payment: { kind: "venue" },
+    });
+    const m = h.sent[0]!;
+    const words = time.karaokeVenueCancelUntil(
+      time.DEFAULT_KARAOKE_CANCEL_POLICY,
+    );
+    expect(m.text).toContain(`Planın değişirse ${words}`);
+    expect(m.html).toContain(`Planın değişirse ${words}`);
   });
 
   it("a venue-paid booking always names a window now: venueUntil is never null", async () => {
-    // Every window is at least an hour (KARAOKE_FREE_CANCEL_HOURS_MIN), so
+    // Every window is at least two hours (KARAOKE_FREE_CANCEL_HOURS_MIN), so
     // no policy in range leaves the member with only the phone.
     for (const policy of [
-      { freeCancelHours: 1, lateRefundPercent: 0 },
+      {
+        freeCancelHours: time.KARAOKE_FREE_CANCEL_HOURS_MIN,
+        lateRefundPercent: 0,
+      },
+      { freeCancelHours: 3, lateRefundPercent: 0 },
       { freeCancelHours: 72, lateRefundPercent: 0 },
       { freeCancelHours: 2, lateRefundPercent: 100 },
     ]) {
@@ -173,8 +205,13 @@ describe("the confirmation prints the booking's own rule", () => {
       expect(m.text).not.toContain("Planın değişirse bizi ara");
     }
     expect(
-      time.karaokeVenueCancelUntil({ freeCancelHours: 1, lateRefundPercent: 0 }),
-    ).toBe("rezervasyonu yaptıktan sonraki 1 saat içinde");
+      time.karaokeVenueCancelUntil({
+        freeCancelHours: 3,
+        lateRefundPercent: 0,
+      }),
+    ).toBe(
+      "rezervasyonu yaptıktan sonraki 3 saat içinde, rezervasyon saati gelmeden",
+    );
   });
 
   it("a null venueUntil still says to call: the mail keeps the branch for the caller", async () => {
@@ -202,6 +239,120 @@ describe("the confirmation prints the booking's own rule", () => {
     expect(m.text).toContain("Planın değişirse bizi ara");
     expect(m.text).not.toContain("iptal edebilirsin");
     expect(m.html).toContain("Planın değişirse bizi ara");
+  });
+});
+
+describe("the mail a booking gets words its venue window in the rule it was made under", () => {
+  // A 0 % policy: under a late share above 0 every rule says "rezervasyon
+  // saatinden önce" and the wordings cannot be told apart.
+  const MADE = "2026-10-28T09:00:00.000Z";
+  const TWO_HOURS_LATER = new Date(
+    Date.parse(MADE) + 2 * 3600_000,
+  ).toISOString();
+
+  /** A booking paid at the köşk, confirmed, under 2 hours / 0 %. */
+  function venueBooking(
+    patch: Partial<KaraokeReservation> = {},
+  ): KaraokeReservation {
+    return {
+      id: "krk-00042",
+      customerEmail: "eda@example.com",
+      customerName: "Eda",
+      date: "2026-10-30",
+      startHour: 20,
+      hours: 2,
+      guests: 4,
+      status: "confirmed",
+      priceMinor: 200_000,
+      discountMinor: 0,
+      totalMinor: 200_000,
+      note: "",
+      createdAt: MADE,
+      updatedAt: MADE,
+      paymentStatus: "none",
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      ...patch,
+    };
+  }
+
+  async function confirmationOf(r: KaraokeReservation) {
+    h.sent.length = 0;
+    expect(await notifyReservationStatus(r)).toBe(true);
+    expect(h.sent).toHaveLength(1);
+    return h.sent[0]!;
+  }
+
+  const OLD_RULE = "rezervasyon saatine 2 saatten fazla varken";
+  const NEW_RULE =
+    "rezervasyonu yaptıktan sonraki 2 saat içinde, rezervasyon saati gelmeden";
+  const GIVEN_HOUR =
+    "bu saat ayrıldıktan sonraki 2 saat içinde, rezervasyon saati gelmeden";
+
+  it("made under the rule counted back from the start (no stored deadline): that rule's words", async () => {
+    const m = await confirmationOf(venueBooking());
+    for (const part of [m.text, m.html]) {
+      expect(part).toContain(`Planın değişirse ${OLD_RULE}`);
+      expect(part).not.toContain("rezervasyonu yaptıktan");
+      expect(part).not.toContain("bu saat ayrıldıktan");
+      expect(part).not.toContain("Planın değişirse bizi ara");
+    }
+  });
+
+  it("made under the 28 Eki rule (deadline two hours after the booking): the window from the booking", async () => {
+    const m = await confirmationOf(
+      venueBooking({
+        cancelDeadline: TWO_HOURS_LATER,
+        cancellationRules: [
+          time.KARAOKE_REFUND_RULE,
+          time.KARAOKE_NO_REFUND_RULE,
+        ],
+      }),
+    );
+    for (const part of [m.text, m.html]) {
+      expect(part).toContain(`Planın değişirse ${NEW_RULE}`);
+      expect(part).not.toContain(OLD_RULE);
+      expect(part).not.toContain("bu saat ayrıldıktan");
+    }
+  });
+
+  it("a free make-good hour: the window from when the köşk gave it", async () => {
+    const m = await confirmationOf(
+      venueBooking({
+        id: "krk-00043",
+        priceMinor: 0,
+        totalMinor: 0,
+        note: "Telafi: KRK-00041",
+        channel: "staff",
+        cancelDeadline: TWO_HOURS_LATER,
+        cancellationRules: [
+          time.KARAOKE_REFUND_RULE,
+          time.KARAOKE_NO_REFUND_RULE,
+        ],
+        makeGoodFor: "krk-00041",
+      }),
+    );
+    expect(m.text).toContain(
+      "Bu saat, KRK-00041 rezervasyonun için verdiğimiz telafidir.",
+    );
+    for (const part of [m.text, m.html]) {
+      expect(part).toContain(`Planın değişirse ${GIVEN_HOUR}`);
+      expect(part).not.toContain("rezervasyonu yaptıktan");
+      expect(part).not.toContain(OLD_RULE);
+    }
+  });
+
+  it("a late share above 0: every rule lets it go until the start", async () => {
+    for (const patch of [
+      {},
+      { cancelDeadline: TWO_HOURS_LATER },
+      { cancelDeadline: TWO_HOURS_LATER, makeGoodFor: "krk-00041" },
+    ]) {
+      const m = await confirmationOf(
+        venueBooking({ ...patch, lateRefundPercent: 50 }),
+      );
+      expect(m.text).toContain("Planın değişirse rezervasyon saatinden önce");
+    }
   });
 });
 

@@ -840,19 +840,98 @@ describe("the operator's case (28 Eki 2026): the window counts from the booking"
     });
   });
 
-  it("booked 90 minutes before the start: free until the start, refused at it", async () => {
+  it("booked 90 minutes before the start: free through the 19:59 minute, refused at the start", async () => {
+    // 18:30 Tuzla for 20:00: two hours would run to 20:30, so the window
+    // ends the minute before the start, the minute every page and mail
+    // names and the terms count "bu an dâhil".
     const made = new Date(START - 90 * 60_000);
     const id = await bookPaid(made);
-    expect(row().cancelDeadline).toBe(new Date(START).toISOString());
+    const total = Number(row().totalMinor);
+    expect(row().cancelDeadline).toBe(new Date(START - 60_000).toISOString());
     const atStart = await payment.cancelKaraokeReservation(id, MEMBER, {
       now: new Date(START),
     });
     expect(atStart).toMatchObject({ ok: false, reason: "too_late" });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
     expect(h.refunds).toEqual([]);
-    const early = await payment.cancelKaraokeReservation(id, MEMBER, {
-      now: new Date(made.getTime() + 30 * 60_000),
+    // 19:59:59.999 Tuzla: the last instant of the named minute, in full.
+    const named = await payment.cancelKaraokeReservation(id, MEMBER, {
+      now: new Date(START - 1),
     });
-    expect(early).toMatchObject({ ok: true, refunded: true });
+    expect(named).toMatchObject({ ok: true, refunded: true });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: total }]);
+  });
+
+  it("'Misafir iptal istedi' one hour after booking: everything back, judged at the request", async () => {
+    // The staff record the call two hours later, past the window: the
+    // request's instant decides (ASK-Y3-4 (c)), the refund is now.
+    const id = await bookPaid(threeDaysBefore);
+    const total = Number(row().totalMinor);
+    const requestedAt = new Date(threeDaysBefore.getTime() + 1 * HOUR);
+    const res = await payment.cancelKaraokeReservation(
+      id,
+      {
+        kind: "staff",
+        actor: "yonetici@kosk",
+        canRefund: true,
+        reason: "Misafir aradı",
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt,
+      },
+      { now: new Date(requestedAt.getTime() + 2 * HOUR) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(res).not.toHaveProperty("kept");
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: total }]);
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+    });
+    expect(h.lateRequests).toEqual([]);
+    expect(h.cancellations[0]).toMatchObject({ cancelCause: "misafir" });
+  });
+
+  it("'Misafir iptal istedi' five hours after booking: kept, not cancelled, the guest told it stands", async () => {
+    const id = await bookPaid(threeDaysBefore);
+    const requestedAt = new Date(threeDaysBefore.getTime() + 5 * HOUR);
+    const res = await payment.cancelKaraokeReservation(
+      id,
+      {
+        kind: "staff",
+        actor: "yonetici@kosk",
+        canRefund: true,
+        reason: "Misafir aradı",
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt,
+      },
+      { now: new Date(requestedAt.getTime() + 10 * 60_000) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: false, kept: true });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    expect(h.refunds).toEqual([]);
+    expect(h.cancellations).toEqual([]);
+    // The guest is told the booking stands, in the pair it was booked
+    // under, with the last free moment it had (22:00 on 27 Ekim, Tuzla).
+    expect(h.lateRequests).toHaveLength(1);
+    expect(h.lateRequests[0]).toMatchObject({
+      code: id,
+      cancellation: {
+        rules: [time.KARAOKE_REFUND_RULE, time.KARAOKE_NO_REFUND_RULE],
+        freeUntil: "27 Ekim 2026, 22:00",
+      },
+    });
+    expect(JSON.stringify(h.lateRequests[0])).not.toContain("Misafir aradı");
+    expect(h.audits.at(-1)).toMatchObject({
+      action: "transition",
+      payload: {
+        event: "late_guest_request",
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt: requestedAt.toISOString(),
+      },
+    });
   });
 
   it("the köşk's own cancel still refunds everything, however late", async () => {

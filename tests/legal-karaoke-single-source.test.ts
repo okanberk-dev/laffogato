@@ -189,3 +189,72 @@ describe("the access notice (ASK-Y3-6)", () => {
     );
   });
 });
+
+/**
+ * The two documents that still quote the default rule in their own words
+ * (tests/karaoke-cancel-policy-doc.test.ts, "opening the app lock"): Ödeme
+ * Koşulları §21 and Hesap Silme §6 and §8. Since 28 Ekim 2026 the window is
+ * counted from the booking; a booking made under the earlier rule keeps the
+ * last free moment its summary shows, which is the only place the old
+ * timing ("rezervasyon saatinden 2 saat önce") may stand, in its
+ * parentheses.
+ */
+describe("the default rule quoted in Ödeme Koşulları §21 and Hesap Silme §6, §8 (28 Ekim 2026)", () => {
+  const LEGACY_CLAUSE = "(rezervasyon saatinden 2 saat önce)";
+  const WINDOW =
+    "ücretsiz iptal süresi (rezervasyonun yapıldığı andan itibaren 2 saat; rezervasyon saati gelmeden)";
+
+  /** The one karaoke passage of a section. */
+  function karaokePassage(slug: string, n: string): string {
+    const s = section(doc(slug), n);
+    const found = [...(s.paragraphs ?? []), ...(s.bullets ?? [])].filter(
+      (t) => /karaoke/i.test(t) && t.includes("iptal"),
+    );
+    expect(found, `${slug} §${n}`).toHaveLength(1);
+    return found[0]!;
+  }
+
+  const passages = () =>
+    [
+      ["odeme-kosullari §21", karaokePassage("odeme-kosullari", "21")],
+      ["hesap-silme §6", karaokePassage("hesap-silme", "6")],
+      ["hesap-silme §8", karaokePassage("hesap-silme", "8")],
+    ] as const;
+
+  it("Ödeme Koşulları §21 states the karaoke rule word for word", () => {
+    expect(karaokePassage("odeme-kosullari", "21")).toBe(
+      "Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Rezervasyonu yaptığınız andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Bu süre geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Daha önceki kurala göre yapılmış rezervasyonlarda rezervasyon özetinde gösterilen son ücretsiz iptal anı (rezervasyon saatinden 2 saat önce) geçerlidir. Karaoke iadeleri ödenen tutarın tamamı olarak, PayNkolay üzerinden ödemenin yapıldığı karta yapılır; kısmi iade yapılmaz ve 22. madde bu iadelere uygulanmaz. Rezervasyonu işletme karşılayamazsa ödenen tutarın tamamı iade edilir.",
+    );
+  });
+
+  it("Hesap Silme §6 and §8 count the window from the booking and name the earlier rule's last moment", () => {
+    const six = karaokePassage("hesap-silme", "6");
+    const eight = karaokePassage("hesap-silme", "8");
+    for (const [where, text] of [
+      ["§6", six],
+      ["§8", eight],
+    ] as const) {
+      expect(text, where).toContain(WINDOW);
+      expect(text, where).toContain(
+        "önceki kurala göre yapılmış rezervasyonlarda rezervasyon özetinde gösterilen son ücretsiz iptal anı (rezervasyon saatinden 2 saat önce) geçerlidir.",
+      );
+    }
+    // §6 carries it after a semicolon, §8 as its own sentence.
+    expect(six).toContain(
+      "; daha önceki kurala göre yapılmış rezervasyonlarda",
+    );
+    expect(eight).toContain(
+      ". Daha önceki kurala göre yapılmış rezervasyonlarda",
+    );
+  });
+
+  it("none of the three counts back from the start outside the earlier rule's parentheses", () => {
+    for (const [where, text] of passages()) {
+      expect(text.split(LEGACY_CLAUSE), where).toHaveLength(2);
+      const rest = text.replace(LEGACY_CLAUSE, "");
+      expect(rest, where).not.toContain("saatine 2 saatten fazla");
+      expect(rest, where).not.toMatch(/(?<!\d)2 saatten (fazla|az)/);
+      expect(rest, where).not.toContain("saatinden 2 saat önce");
+    }
+  });
+});

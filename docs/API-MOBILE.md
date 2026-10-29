@@ -1033,7 +1033,7 @@ dalı yalnız eski bir sunucuya karşı anlamlıdır.
   "privacyDoc": "kvkk-aydinlatma-metni",
   "cancellationRules": [
     "Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
-    "Bu 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz."
+    "Rezervasyonu yaptığın andan 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz."
   ]
 }
 ```
@@ -1043,7 +1043,8 @@ dalı yalnız eski bir sunucuya karşı anlamlıdır.
 **olduğu gibi** yazılır. `freeCancelHours` rezervasyonun **yapıldığı andan
 sonraki** saat sayısıdır (28 Eki 2026; o güne kadar rezervasyon saatinden
 geriye sayılırdı): üye, rezervasyonu yaptıktan sonra bu kadar saat içinde ve
-her durumda rezervasyon saati gelmeden tam iadeyle iptal edebilir. İki cümle
+her durumda rezervasyon saati gelmeden tam iadeyle iptal edebilir (son an en
+geç rezervasyon saatinden bir dakika öncedir). İki cümle
 28 Eki 2026'dan beri yukarıdaki çifttir; alan adları, tipleri ve sayısı
 değişmedi (aşağıda "Pencere rezervasyondan sonra sayılır").
 
@@ -1099,7 +1100,7 @@ değişmedi (aşağıda "Pencere rezervasyondan sonra sayılır").
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `paymentStatus`    | `none` (köşkte ödeme; eski kayıtlar) · `pending` (ödeme bekliyor, saat tutuluyor) · `paid` · `refunding` (iade sonucu bekleniyor) · `refunded` · `expired` (ödenmedi, düştü) |
 | `paymentDueAt`     | `pending` iken ödeme sayfasının kapandığı an (ISO), yoksa `""`                                                                                                               |
-| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an, ISO, bu an ve dakikası dahil (rezervasyonun kendi kuralı: 28 Eki 2026'dan beri yapılan rezervasyonda yapıldığı an + `freeCancelHours` saat, en geç rezervasyon saati; daha eski satırda sakladığı an, o da yoksa başlangıçtan 2 saat önce; aşağıda "İptal ve iade kuralı panelden") |
+| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an, ISO, bu an ve dakikası dahil (rezervasyonun kendi kuralı: 28 Eki 2026'dan beri yapılan rezervasyonda yapıldığı an + `freeCancelHours` saat, en geç rezervasyon saatinden bir dakika önce; daha eski satırda sakladığı an, o da yoksa başlangıçtan 2 saat önce; aşağıda "İptal ve iade kuralı panelden") |
 
 `status` üç değerini korur: `pending` rezervasyon `requested`'dır (saati tutar,
 2 açık rezervasyon sınırına sayılır), `refunded` ve `expired` her zaman
@@ -1121,8 +1122,9 @@ doğrulayamıyoruz. Birkaç dakika sonra tekrar dene."): sayfa açılmaz, hiçbi
 **`POST /karaoke/reservations/{id}/cancel`** (kimlik): üye kendi rezervasyonunu
 iptal eder. Rezervasyonun **kendi ücretsiz iptal penceresinde** olur (28 Eki
 2026): pencere rezervasyonun yapıldığı andan itibaren `freeCancelHours` saat
-sürer ve rezervasyon saatini hiç geçmez (`cancellableUntil`; son dakikanın
-tamamı pencerenin içindedir, başlangıç anı hiçbir zaman değildir). 28 Eki
+sürer ve en geç rezervasyon saatinden bir dakika önce biter
+(`cancellableUntil`; son dakikanın tamamı pencerenin içindedir, başlangıç
+dakikası hiçbir zaman değildir). 28 Eki
 2026'ya kadar pencere başlangıçtan geriye 2 saatti; o günden önce yapılan
 rezervasyon kendi `cancellableUntil`'ini korur. Ödenmişse tutarın tamamı önce
 POS'tan karta iade edilir. **200**
@@ -1132,7 +1134,7 @@ POS'tan karta iade edilir. **200**
 | Durum | `error`           | Anlamı                                                                                                                                      |
 | ----- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | 404   | `not_found`       | Başkasının ya da olmayan rezervasyon                                                                                                        |
-| 409   | `too_late`        | Pencere geçti ya da rezervasyon saati geldi; mesaj rezervasyonun kendi kuralından, varsayılanda "Artık buradan iptal edemezsin. Bu 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz." (28 Eki 2026'dan önce yapılan rezervasyonda sakladığı eski cümle) |
+| 409   | `too_late`        | Pencere geçti ya da rezervasyon saati geldi; mesaj rezervasyonun kendi kuralından, varsayılanda "Artık buradan iptal edemezsin. Rezervasyonu yaptığın andan 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz." (28 Eki 2026'dan önce yapılan rezervasyonda sakladığı eski cümle) |
 | 409   | `not_cancellable` | Zaten iptal ya da iadesi sürüyor                                                                                                            |
 | 409   | `refund_pending`  | İade gönderildi, POS yanıt vermedi; ekip sonuçlandırır, üyeye e-posta gider                                                                 |
 | 502   | `refund_failed`   | POS iadeyi reddetti; rezervasyon olduğu gibi duruyor                                                                                        |
@@ -1166,7 +1168,7 @@ iptal edilir, ekibe gider. Yanıt ve hata kodları aynı (18 Eki 2026).
 
 **İptal ve iade kuralı panelden (18 Eki 2026, yalnız ekleme).** Operatör: "para
 tutarı iade edilir kısmını da panelden ayarla". Kural iki sayıdır (Ayarlar →
-Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (1..72 saat,
+Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (2..72 saat,
 varsayılan 2; 28 Eki 2026'dan beri rezervasyonun yapıldığı andan sonraki
 saat, aşağıda; o güne kadar 0..72 ve başlangıçtan geriye, 0 = rezervasyon
 saati gelene kadar ücretsiz iptal, ilk sürümde "her iptal geç" demekti) ve
@@ -1188,11 +1190,20 @@ o günün varsayılan iki cümlesi) ve her süre, cümle ve iade o kayıttan oku
 **Pencere rezervasyondan sonra sayılır (28 Eki 2026; alan adları, tipler,
 durum ve hata kodları değişmedi).** Operatör: "karaoke için 2 saat içinde
 iptal etmezse iade olamaz". `freeCancelHours` artık rezervasyonun yapıldığı
-andan sonraki saat sayısıdır ve pencere rezervasyon saatini hiç geçmez:
-`cancellableUntil = min(yapıldığı an + freeCancelHours saat, başlangıç)`
-(başlangıcına bu süreden az kalmış bir rezervasyon başlangıca kadar ücretsiz
-iptal edilir). Panelde 1..72; 0 artık kabul edilmez, kayıtlı bir 0 ya da
-aralık dışı değer 2 okunur. Uzun süreyi geç iptal payına bağlayan haksız
+andan sonraki saat sayısıdır ve pencere en geç rezervasyon saatinden bir
+dakika önce biter:
+`cancellableUntil = min(yapıldığı an + freeCancelHours saat, başlangıçtan 1 dakika önce)`.
+Başlangıcına bu süreden az kalmış bir rezervasyon başlangıçtan önceki son
+dakikanın sonuna kadar ücretsiz iptal edilir (20:00'deki rezervasyonda son an
+19:59): sayfalar ve e-postalar son anı dakikasıyla yazar ve o dakika dahildir,
+başlangıç dakikası ise hiçbir zaman pencerede değildir. Yapıldığı an
+okunamayan bir satırda son an başlangıçtan 1 dakika öncedir. Panelde 2..72;
+0 ve 1 kabul edilmez, kayıtlı bir 0 ya da aralık dışı değer 2 okunur. Alt
+sınır 2 saattir, çünkü ön ödemeli rezervasyon yapıldıktan sonra 75 dakikaya
+kadar ödenebilir (ödeme sayfası rezervasyondan sonraki 30 dakika içinde
+yeniden açılabilir, her sayfa 30 dakika açık kalır, bankanın 3-D Secure
+adımına 15 dakika daha tanınır): daha kısa bir pencerede rezervasyon kendi
+son anından sonra ödenebilirdi. Uzun süreyi geç iptal payına bağlayan haksız
 şart sınırı (%0 iken en çok 24 saat; 24 saatten uzunsa en az %50) kalktı:
 rezervasyondan sonra sayılan daha uzun süre tüketici lehinedir; tutarın
 tamamının tutulması avukata sorulmuştur (LEGAL-REDLINES §37). 28 Eki
@@ -1201,15 +1212,19 @@ tamamının tutulması avukata sorulmuştur (LEGAL-REDLINES §37). 28 Eki
 başlangıçtan 2 saat önce) ve sakladığı eski iki cümleyi yazar (cümlesi
 saklanmamış satır o günkü kuralın kendi sayılarıyla yazılmış eski cümlesini).
 Panel bir rezervasyonun gününü ya da saatini değiştirince son an rezervasyonun
-kendi kuralıyla yeniden hesaplanır: 28 Eki 2026'dan sonra yapılanda
-`min(yapıldığı an + freeCancelHours saat, yeni başlangıç)`, daha önce
-yapılanda (son anı başlangıçtan `freeCancelHours` saat önce olan) yeni
-başlangıçtan `freeCancelHours` saat önce; taşımak üyenin penceresini
-değiştirmez. Varsayılan kuralın iki cümlesi
-yukarıdaki çifttir; `too_late` mesajı "Artık buradan iptal edemezsin. Bu 2
-saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret
-iadesi yapılmaz." Uygulama kodu değişmeden izler: `cancellableUntil`'i ve
-`cancellationRules`'u sunucudan okur; yalnız yedek cümle çifti yeni çifttir
+kendi kuralıyla yeniden hesaplanır: 28 Eki 2026'dan beri yapılanda
+`min(yapıldığı an + freeCancelHours saat, yeni başlangıçtan 1 dakika önce)`
+(pencere yeni saate göre uzamaz; yapıldığı an okunamayan satırda sakladığı
+son an, en geç yeni başlangıçtan 1 dakika önce), daha önce yapılanda (son anı
+başlangıçtan `freeCancelHours` saat önce olan) yeni başlangıçtan
+`freeCancelHours` saat önce; taşımak üyenin penceresini değiştirmez.
+Varsayılan kuralın iki cümlesi yukarıdaki çifttir. İkinci cümle tek başına da
+okunur (`too_late` mesajı ve uygulamanın iptal adımı onu birinci cümle
+olmadan yazar), bu yüzden "Rezervasyonu yaptığın andan" diye başlar;
+`too_late` mesajı "Artık buradan iptal edemezsin. Rezervasyonu yaptığın andan
+2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde
+ücret iadesi yapılmaz." Uygulama kodu değişmeden izler: `cancellableUntil`'i
+ve `cancellationRules`'u sunucudan okur; yalnız yedek cümle çifti değişir
 (aşağıda "Uygulama kilidi").
 
 - `GET /karaoke/availability`: `freeCancelHours` ve `cancellationRules` artık
@@ -1226,9 +1241,9 @@ iadesi yapılmaz." Uygulama kodu değişmeden izler: `cancellableUntil`'i ve
   bastığı kuralı aynı biçimde gönderir.
 - Rezervasyon nesnesi: `cancellableUntil` rezervasyonun kendi son tam iade
   anıdır, bu an dahil (28 Eki 2026'dan beri yapılan rezervasyonda yapıldığı
-  an + `freeCancelHours` saat, en geç başlangıç; daha eski satırda sakladığı
-  an, 18 Eki 2026 öncesi satırda başlangıçtan 2 saat önce; 0 saatlik kural
-  artık yok). Yeni alanlar:
+  an + `freeCancelHours` saat, en geç başlangıçtan 1 dakika önce; daha eski
+  satırda sakladığı an, 18 Eki 2026 öncesi satırda başlangıçtan 2 saat önce;
+  0 saatlik kural artık yok). Yeni alanlar:
   `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
   anında gösterilen iki cümle) ve `refundMinor` (geç iptalde iade edilecek ya
   da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`). 21 Eki 2026'dan
@@ -1253,23 +1268,38 @@ iadesi yapılmaz." Uygulama kodu değişmeden izler: `cancellableUntil`'i ve
   `refunded: true`). Başlangıçtan sonra her üye iptali `too_late`'tir. `too_late`
   mesajı rezervasyonun kendi kuralından gelir; varsayılan kuralda aynı cümle.
   Hata kodları ve durum kodları değişmedi.
-- **Uygulama kilidi.** Yayındaki uygulama sürümleri rezervasyon ayrıntısında
-  ve iptal adımında kendi sabit "2 saat, iade yok" cümlelerini yazıyor,
-  `cancellableUntil` geçince iptal düğmesi sunmuyor (`cancelOutcome` `late`) ve
-  `freeCancelHours`'u 1..168 dışında 2 okuyor; istekleri de sunucunun
-  ayırabileceği bir sürüm bilgisi taşımıyor. Bu yüzden sitedeki
-  `KARAOKE_POLICY_APP_VERSION` (`src/lib/mobile/karaoke-time.ts`) `null`
-  kaldıkça panel yalnız 2 saat / %0 kaydeder ve her rezervasyon 2 / 0 ile
-  yapılır: hiçbir istemci rezervasyonun kuralından farklı bir kural göstermez.
-  Kilit, rezervasyonun kendi `cancellationRules`'unu her karaoke ekranında
-  basan, geç iptal payını gösteren ve rezervasyonda `expectedCancelPolicy`
-  gönderen sürüm yayınlanıp bu sabite yazılınca ve `minSupportedAppVersion` o
-  sürüme çıkınca açılır. Uygulamanın sunucu cümlesi gelmeyince bastığı yedek
-  çift (lafmobil `src/i18n/screens/karaoke.ts` `REFUND_RULE` /
-  `NO_REFUND_RULE`) 28 Eki 2026'dan beri yukarıdaki yeni çifttir; sunucudan
-  gelen `cancellableUntil` ve `cancellationRules` zaten rezervasyonun kendi
-  kuralıdır, pencerenin rezervasyondan sonra sayılması uygulama güncellemesi
+- **Uygulama kilidi.** Sitedeki `KARAOKE_POLICY_APP_VERSION`
+  (`src/lib/mobile/karaoke-time.ts`) `null` kaldıkça panel yalnız 2 saat / %0
+  kaydeder ve her rezervasyon 2 / 0 ile yapılır. Uygulama sürümlerinin durumu
+  (29 Eki 2026; lafmobil kodundan ve `docs/STORE-RELEASE.md`'den): hiçbir
+  mağazada yayında bir sürüm yok. 1.0.0 (2) App Store'da 27 Eki 2026'da
+  reddedildi; 1.1.0 (4) (lafmobil `3971a77`) aynı gün yeniden gönderildi,
+  "Waiting for Review" ve onaydan sonra kendiliğinden yayınlanacak; Google
+  Play hesabı henüz açılmadı. 1.1.0 (lafmobil #18, 19 Eki 2026) rezervasyon
+  ekranında, rezervasyon ayrıntısında ve iptal adımında sunucunun
+  `cancellationRules`'unu yazar (`cancelRulesOf`), iptalin sonucunu
+  `cancellableUntil`'den ve `lateRefundPercent`'ten çıkarır (`cancelOutcome`,
+  geç iptal payı dahil) ve rezervasyonda `expectedCancelPolicy` gönderir
+  (`policy_changed`'i karşılar). Kendi sabit cümle çifti (lafmobil
+  `src/i18n/screens/karaoke.ts` `REFUND_RULE` / `NO_REFUND_RULE`) yalnız
+  sunucu cümle göndermezse yedektir; bu sunucu her müsaitlik yanıtında ve her
+  rezervasyonda iki cümle gönderir. 1.1.0 (4)'ün yedek çifti eski,
+  başlangıçtan geriye sayan çifttir; lafmobil'in bir sonraki derlemesinde
+  yukarıdaki yeni çifttir. 1.1.0'dan önceki yapılar (1.0.x) rezervasyon
+  ayrıntısında ve iptal adımında kendi sabit, başlangıçtan geriye sayan
+  "2 saat" cümlelerini yazar ve rezervasyonun kuralını okumaz; istekleri
+  sunucunun ayırabileceği bir sürüm bilgisi taşımaz, onları yalnız
+  `minSupportedAppVersion` (§10) durdurur. Kilit, 1.1.0 yayınlanıp bu sabite
+  yazılınca ve `minSupportedAppVersion` 1.1.0'a çıkınca açılabilir.
+  Pencerenin rezervasyondan sonra sayılması 1.1.0'da uygulama güncellemesi
   istemez ve kilidi değiştirmez (panel yine yalnız 2 / 0 kaydeder).
+  **Yayından önce (operatör):** panelde Mobil uygulama ayarlarındaki "En
+  düşük desteklenen sürüm"e (`minSupportedAppVersion`) bak; 27 Eki 2026'da
+  1.0.0'dı. 1.1.0'ın altında kaldıkça bir 1.0.x kurulumu (TestFlight ya da
+  geliştirme derlemesi) karaoke ekranlarını açar ve bu kuralla yapılmış bir
+  rezervasyonda eski kuralı yazar. Böyle bir kurulum kullanılıyorsa en düşük
+  sürüm 1.1.0'a çıkarılır; mağazada 1.1.0'dan eski bir sürüm hiç yayınlanmadığı
+  için bu, mağazadan indiren hiçbir üyeyi durdurmaz.
 - Hesap silinince (`DELETE /me`) yukarıdaki kural rezervasyonun kendi
   kuralıyla uygulanır: pencere içinde tam iade, pencere geçtikten sonra ve
   başlangıçtan önce geç iptal payı (`lateRefundPercent` 0 ise iade yok,
@@ -1286,7 +1316,12 @@ iadesi yapılmaz." Uygulama kodu değişmeden izler: `cancellableUntil`'i ve
   `status: "confirmed"`, `paymentStatus: "none"`, `totalMinor` 0; üye
   onu `POST /karaoke/reservations/{id}/cancel` ile kuralına göre iptal
   edebilir (ödeme yok, iade yok; saat başlamadan iptal edilirse telafi
-  misafir için yeniden açılır). Açık rezervasyon tavanına
+  misafir için yeniden açılır). 28 Eki 2026'dan beri bu saatin penceresi
+  saatin verildiği andan sayılır (`cancellableUntil` = verildiği an +
+  `freeCancelHours` saat, en geç başlangıçtan 1 dakika önce): misafir onu bu
+  süre içinde bırakabilir ve telafi geri açılır; sonra üyenin iptali **409**
+  `too_late` alır, saat durur ve telafi kullanılmış kalır (köşk iade
+  yetkisiyle bırakabilir). Açık rezervasyon tavanına
   (`too_many_reservations`) sayılmaz. Uygulama `none` için ödeme satırı
   basmaz, 0 tutarı göstermez (lafmobil `karaoke-rezervasyon/[id].tsx`).
 
