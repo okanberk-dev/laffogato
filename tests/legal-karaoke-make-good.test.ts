@@ -23,7 +23,7 @@ vi.mock("@/lib/admin/store", () => ({
 
 const { findLegalDoc } = await import("@/lib/legal/documents");
 const { KARAOKE_ROOM_DOC } = await import("@/lib/legal/content-karaoke");
-const { KARAOKE_LEGAL_UPDATED, KARAOKE_WINDOW_LEGAL_UPDATED, LEGAL_UPDATED } =
+const { KARAOKE_LEGAL_UPDATED, KARAOKE_WINDOW_LEGAL_UPDATED } =
   await import("@/lib/legal/meta");
 const send = await import("@/lib/email/send");
 const time = await import("@/lib/mobile/karaoke-time");

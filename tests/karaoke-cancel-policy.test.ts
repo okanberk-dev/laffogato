@@ -221,13 +221,22 @@ describe("the snapshot read back", () => {
         cancellationRules: shown,
       }),
     ).toEqual(shown);
-    // A pair that is not two non-empty sentences is no snapshot.
+    // A pair that is not two non-empty sentences is no snapshot: the row
+    // reads as one from before it, in its own policy's legacy words.
     expect(
       time.karaokeRulesOf({
         freeCancelHours: 24,
         lateRefundPercent: 50,
         cancellationRules: ["", "İkinci cümle."],
       }),
+    ).toEqual(
+      time.legacyKaraokeCancellationRules({
+        freeCancelHours: 24,
+        lateRefundPercent: 50,
+      }),
+    );
+    expect(
+      time.karaokeRulesOf({ cancellationRules: ["", "İkinci cümle."] }),
     ).toEqual([LEGACY_REFUND, LEGACY_NO_REFUND]);
   });
 });
@@ -257,13 +266,10 @@ describe("the deadline and a member's own cancel (28 Eki 2026: the window counts
     // No deadline and no sentences (made before the 18 Eki snapshot): never
     // the booking-based window, whatever its making says (TKHK m.4/2).
     const legacy = { ...booking, createdAt: "2026-10-20T09:00:00.000Z" };
-    expect(time.karaokeCancelDeadline(legacy).getTime()).toBe(
-      START - 2 * HOUR,
+    expect(time.karaokeCancelDeadline(legacy).getTime()).toBe(START - 2 * HOUR);
+    expect(time.karaokeRulesOf({ ...legacy, cancellationRules: null })).toEqual(
+      [LEGACY_REFUND, LEGACY_NO_REFUND],
     );
-    expect(time.karaokeRulesOf(legacy)).toEqual([
-      LEGACY_REFUND,
-      LEGACY_NO_REFUND,
-    ]);
     // Its own hours, still back from the start; a stored 0 reads as 2.
     expect(
       time.karaokeCancelDeadline({ ...legacy, freeCancelHours: 5 }).getTime(),
@@ -276,9 +282,9 @@ describe("the deadline and a member's own cancel (28 Eki 2026: the window counts
   it("a new booking's deadline: the booking instant plus the window", () => {
     const policy = { freeCancelHours: 24, lateRefundPercent: 50 };
     const bookedAt = new Date(START - 72 * HOUR);
-    expect(
-      time.karaokeDeadlineFor(policy, booking, bookedAt).getTime(),
-    ).toBe(START - 48 * HOUR);
+    expect(time.karaokeDeadlineFor(policy, booking, bookedAt).getTime()).toBe(
+      START - 48 * HOUR,
+    );
     // Not the start minus the window any more (the rule until 28 Eki 2026).
     expect(
       time.karaokeDeadlineFor(policy, booking, bookedAt).getTime(),
@@ -451,7 +457,9 @@ describe("the deadline and a member's own cancel (28 Eki 2026: the window counts
           .getTime(),
       ).toBe(START - 9 * HOUR);
       expect(
-        time.karaokeMovedDeadline({ ...r, createdAt: undefined }, later).getTime(),
+        time
+          .karaokeMovedDeadline({ ...r, createdAt: undefined }, later)
+          .getTime(),
       ).toBe(START - 8 * HOUR);
     });
   });
@@ -592,8 +600,7 @@ describe("the panel's limits: the two ranges, no fairness coupling (28 Eki 2026)
     // counted from the booking.
     expect(refuse(0, 0)).toEqual({
       field: "karaokeFreeCancelHours",
-      message:
-        "Ücretsiz iptal süresi 1 ile 72 saat arasında tam sayı olmalı.",
+      message: "Ücretsiz iptal süresi 1 ile 72 saat arasında tam sayı olmalı.",
     });
     expect(refuse(0, 100)).toMatchObject({ field: "karaokeFreeCancelHours" });
     expect(refuse(0, 10)).toMatchObject({ field: "karaokeFreeCancelHours" });
@@ -964,7 +971,9 @@ describe("the pages' notices", () => {
       cancellationRules: [...five.rules],
     });
     expect(notice?.tone).toBe("error");
-    expect(notice?.text).toBe(`Artık buradan iptal edemezsin. ${five.lateRule}`);
+    expect(notice?.text).toBe(
+      `Artık buradan iptal edemezsin. ${five.lateRule}`,
+    );
     expect(notice?.text).toContain("Bu 5 saat geçtikten sonra");
     // A row from before the snapshot: the legacy sentence.
     expect(karaokeNoticeFor("gec-iptal", {})?.text).toBe(
@@ -980,9 +989,7 @@ describe("the pages' notices", () => {
     expect(karaokeNoticeFor("iptal", null)).toEqual(
       KARAOKE_RESULT_NOTICES.iptal,
     );
-    expect(karaokeNoticeFor("iptal", {})).toEqual(
-      KARAOKE_RESULT_NOTICES.iptal,
-    );
+    expect(karaokeNoticeFor("iptal", {})).toEqual(KARAOKE_RESULT_NOTICES.iptal);
   });
 
   it("a venue-paid booking may be cancelled until when: always a window now", () => {
@@ -1027,5 +1034,115 @@ describe("the pages' notices", () => {
         ).not.toBeNull();
       }
     }
+  });
+});
+
+describe("a booking made under the rule counted back from the start (before 28 Eki 2026)", () => {
+  const made = "2026-10-20T09:00:00.000Z";
+  const legacyStored = {
+    ...booking,
+    createdAt: made,
+    freeCancelHours: 2,
+    lateRefundPercent: 0,
+    cancelDeadline: new Date(START - 2 * HOUR).toISOString(),
+  };
+  const ownStored = {
+    ...booking,
+    createdAt: made,
+    freeCancelHours: 2,
+    lateRefundPercent: 0,
+    cancelDeadline: new Date(Date.parse(made) + 2 * HOUR).toISOString(),
+  };
+
+  it("is told apart by its deadline: none stored, or the start minus its hours", () => {
+    expect(time.karaokeCountsBackFromStart({ ...booking })).toBe(true);
+    expect(time.karaokeCountsBackFromStart(legacyStored)).toBe(true);
+    expect(time.karaokeCountsBackFromStart(ownStored)).toBe(false);
+    // Booked closer to the start than its window: the start itself.
+    expect(
+      time.karaokeCountsBackFromStart({
+        ...ownStored,
+        cancelDeadline: new Date(START).toISOString(),
+      }),
+    ).toBe(false);
+  });
+
+  it("moved by the panel, keeps counting back from its new start", () => {
+    const slot = { date: "2026-11-02", startHour: 21 };
+    const newStart = time.karaokeStartInstant(slot.date, slot.startHour);
+    expect(time.karaokeMovedDeadline(legacyStored, slot).getTime()).toBe(
+      newStart.getTime() - 2 * HOUR,
+    );
+    // The same move of a booking under the 28 Eki rule: its making plus two.
+    expect(time.karaokeMovedDeadline(ownStored, slot).toISOString()).toBe(
+      ownStored.cancelDeadline,
+    );
+  });
+
+  it("prints the sentences of its own policy in that rule's words", () => {
+    expect(
+      time.legacyKaraokeCancellationRules({
+        freeCancelHours: 5,
+        lateRefundPercent: 0,
+      }),
+    ).toEqual([
+      "Rezervasyon saatine 5 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+      "Rezervasyon saatine 5 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+    ]);
+    expect(
+      time.legacyKaraokeCancellationRules({
+        freeCancelHours: 3,
+        lateRefundPercent: 100,
+      })[1],
+    ).toBe(
+      "Rezervasyon saatine 3 saatten az kala yapılan iptallerde de ödediğin tutarın tamamı kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+    );
+    expect(
+      time.legacyKaraokeCancellationRules({
+        freeCancelHours: 24,
+        lateRefundPercent: 50,
+      })[1],
+    ).toContain(
+      "Rezervasyon saatine 24 saatten az kala yapılan iptallerde ödediğin tutarın %50'si en geç 14 gün içinde",
+    );
+    // A row with no stored pair reads its own policy, not a fixed 2 hours.
+    expect(
+      time.karaokeRulesOf({ freeCancelHours: 5, lateRefundPercent: 0 })[1],
+    ).toContain("5 saatten az kala");
+    expect(
+      time.karaokeTooLateMessageOf({
+        freeCancelHours: 5,
+        lateRefundPercent: 0,
+      }),
+    ).toBe(
+      "Artık buradan iptal edemezsin. Rezervasyon saatine 5 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+    );
+    for (const pair of [
+      time.legacyKaraokeCancellationRules({
+        freeCancelHours: 24,
+        lateRefundPercent: 50,
+      }),
+      time.LEGACY_KARAOKE_RULES,
+    ]) {
+      for (const line of pair) expect(line).not.toMatch(/[–—]/);
+    }
+  });
+
+  it("a venue-paid booking is told until when in the words it was booked with", () => {
+    expect(time.karaokeVenueCancelUntilOf({ ...booking })).toBe(
+      "rezervasyon saatine 2 saatten fazla varken",
+    );
+    expect(time.karaokeVenueCancelUntilOf(legacyStored)).toBe(
+      "rezervasyon saatine 2 saatten fazla varken",
+    );
+    expect(time.karaokeVenueCancelUntilOf(ownStored)).toBe(
+      "rezervasyonu yaptıktan sonraki 2 saat içinde",
+    );
+    expect(
+      time.karaokeVenueCancelUntilOf({
+        ...legacyStored,
+        lateRefundPercent: 50,
+      }),
+    ).toBe("rezervasyon saatinden önce");
   });
 });

@@ -642,7 +642,7 @@ maybe("karaoke prepayment (real Postgres)", () => {
       emailVerified: true,
     });
 
-    it("more than two hours before: refunds in full, then cancels and mails", async () => {
+    it("within two hours of booking: refunds in full, then cancels and mails", async () => {
       const { c, id } = await paidBooking();
       const out = await pay.cancelKaraokeReservation(id, asMember(c));
       expect(out).toMatchObject({ ok: true, refunded: true });
@@ -656,25 +656,32 @@ maybe("karaoke prepayment (real Postgres)", () => {
       });
     });
 
-    it("inside the last two hours: refused with the no-refund rule, nothing moves", async () => {
+    it("two hours after booking: refused with the no-refund rule, nothing moves", async () => {
+      // 28 Eki 2026 (operator: "2 saat içinde iptal etmezse iade olamaz"):
+      // the window counts from the booking, so a cancel five hours later is
+      // refused even with days to go before the evening.
       const { c, id } = await paidBooking();
       const r = await karaoke.getReservation(id);
+      const made = Date.parse(r!.createdAt);
       const start = karaoke
         .karaokeStartInstant(r!.date, r!.startHour)
         .getTime();
+      const deadline = Math.min(made + 2 * 3600_000, start);
+      expect(r!.cancelDeadline).toBe(new Date(deadline).toISOString());
       // The deadline and the whole minute it names are still in time
       // (ASK-Y3-4, karaokeFreeCancelEnd): the first refused moment is the
       // next minute.
+      const refusedFrom = Math.floor(deadline / 60_000) * 60_000 + 60_000;
       for (const now of [
-        new Date(start - 2 * 3600_000 + 60_000),
-        new Date(start - 3600_000),
+        new Date(refusedFrom),
+        new Date(made + 5 * 3600_000),
       ]) {
         const out = await pay.cancelKaraokeReservation(id, asMember(c), {
           now,
         });
         expect(out).toMatchObject({ ok: false, reason: "too_late" });
-        expect(out.ok ? "" : out.message).toContain(
-          "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+        expect(out.ok ? "" : out.message).toBe(
+          `Artık buradan iptal edemezsin. ${karaoke.KARAOKE_NO_REFUND_RULE}`,
         );
       }
       expect(pos.refunds).toHaveLength(0);
@@ -1577,10 +1584,15 @@ maybe("karaoke prepayment (real Postgres)", () => {
         String(r.date),
         Number(r.startHour),
       );
+      // Two hours from its making, never past the start (28 Eki 2026).
+      const deadline = Math.min(
+        Date.parse(String(r.createdAt)) + 2 * 3600_000,
+        start.getTime(),
+      );
       expect(r).toMatchObject({
         freeCancelHours: 2,
         lateRefundPercent: 0,
-        cancelDeadline: new Date(start.getTime() - 2 * 3600_000).toISOString(),
+        cancelDeadline: new Date(deadline).toISOString(),
         cancellationRules: [
           karaoke.KARAOKE_REFUND_RULE,
           karaoke.KARAOKE_NO_REFUND_RULE,

@@ -4644,7 +4644,12 @@ sayımın rezervasyonun yapıldığı andan ileriye olduğunu söyledi.
   önceki satırlar (`NULL`) da eski kuralla okunur. Yeni satırların hepsi
   yeni son anı yazar.
 - **Saat değişince:** panel rezervasyonun gününü ya da saatini değiştirince
-  son an `min(yapıldığı an + 2 saat, yeni başlangıç)` olur.
+  son an rezervasyonun yapıldığı kuralla yeniden hesaplanır: yeni kuralla
+  yapılanda `min(yapıldığı an + 2 saat, yeni başlangıç)`, eski kuralla
+  yapılanda yeni başlangıçtan 2 saat önce (`karaokeMovedDeadline`,
+  `karaokeCountsBackFromStart`); taşımak üyeye söz verilen pencereyi
+  değiştirmez. Köşkte ödenecek rezervasyonun e-postası da pencereyi
+  rezervasyonun yapıldığı kuralın sözleriyle yazar.
 - **Panel:** ücretsiz iptal süresi 1..72 saat (0 artık kabul edilmez;
   kayıtlı bir 0 ya da aralık dışı değer 2 okunur). Uzun süreyi geç iptal
   payına bağlayan haksız şart sınırı (`docs/AUDIT.md` paket 3b: %0 iken en

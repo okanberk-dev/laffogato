@@ -200,6 +200,65 @@ maybe("moving a karaoke booking (real Postgres)", () => {
     for (const list of Object.values(mail)) list.length = 0;
   });
 
+  it("a booking made before 28 Eki 2026 keeps counting back from its new start", async () => {
+    // The row above: its deadline is its start minus 24 hours, the rule it
+    // was booked under (counted back from the start). Moving it must not
+    // take that window away by counting it from the booking instead.
+    await insert(paid());
+    expect(
+      karaoke.karaokeCountsBackFromStart(
+        (await row("krk-91001")) as Parameters<
+          typeof karaoke.karaokeCountsBackFromStart
+        >[0],
+      ),
+    ).toBe(true);
+  });
+
+  it("a booking made under the 28 Eki rule keeps two hours from its making, never past the new start", async () => {
+    // Made 90 minutes before a 20:00 start (the window ran to the start),
+    // moved to the same hour two days later: the window is its making plus
+    // two hours, long before the new start.
+    const date = dayAhead(3);
+    const start = Date.parse(`${date}T20:00:00+03:00`);
+    const made = start - 90 * 60_000;
+    await insert(
+      paid({
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        createdAt: new Date(made).toISOString(),
+        cancelDeadline: new Date(start).toISOString(),
+      }),
+    );
+    const res = await karaoke.rescheduleReservation("krk-91001", {
+      date: dayAhead(5),
+      startHour: 20,
+    });
+    expect(res.ok).toBe(true);
+    expect((await row("krk-91001")).cancelDeadline).toBe(
+      new Date(made + 2 * 3_600_000).toISOString(),
+    );
+    // Moved earlier than its window's end: the window ends at the new start.
+    await pool!.query(`delete from public.karaoke_reservations`);
+    const earlyMade = Date.parse(`${dayAhead(4)}T12:00:00+03:00`);
+    await insert(
+      paid({
+        date: dayAhead(4),
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        createdAt: new Date(earlyMade).toISOString(),
+        cancelDeadline: new Date(earlyMade + 2 * 3_600_000).toISOString(),
+      }),
+    );
+    const moved = await karaoke.rescheduleReservation("krk-91001", {
+      date: dayAhead(4),
+      startHour: 13,
+    });
+    expect(moved.ok).toBe(true);
+    expect((await row("krk-91001")).cancelDeadline).toBe(
+      new Date(Date.parse(`${dayAhead(4)}T13:00:00+03:00`)).toISOString(),
+    );
+  });
+
   it("moves the evening, its deadline with it, and mails the member once", async () => {
     await insert(paid());
     const to = { date: dayAhead(4), startHour: 21 };

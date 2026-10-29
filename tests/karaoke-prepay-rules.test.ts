@@ -26,14 +26,21 @@ const { KaraokeBooking } =
   await import("@/components/laffogato/karaoke-booking");
 const { KARAOKE_RESULT_NOTICES } = await import("@/lib/mobile/karaoke-notices");
 
+// The operator's rule of 28 Eki 2026, counted from the booking.
 const REFUND =
-  "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.";
+  "Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir.";
 const NO_REFUND =
+  "Bu 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
+// The 16 Eki 2026 pair, counted back from the start: what every booking
+// made before the snapshot (18 Eki 2026) still prints.
+const LEGACY_REFUND =
+  "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.";
+const LEGACY_NO_REFUND =
   "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
 
 const read = (p: string) => readFileSync(p, "utf8");
 
-describe("the two-hour rule, on the köşk's clock", () => {
+describe("the two-hour rule of a booking from before the snapshot, on the köşk's clock", () => {
   const r = { date: "2026-10-30", startHour: 20, hours: 2 };
   const start = Date.parse("2026-10-30T17:00:00.000Z"); // 20:00 in Tuzla
 
@@ -66,7 +73,7 @@ describe("the two-hour rule, on the köşk's clock", () => {
   });
 });
 
-describe("the operator's exact wording (16 Eki 2026)", () => {
+describe("the operator's exact wording (28 Eki 2026)", () => {
   it("is the constant every surface prints", () => {
     expect(time.KARAOKE_REFUND_RULE).toBe(REFUND);
     expect(time.KARAOKE_NO_REFUND_RULE).toBe(NO_REFUND);
@@ -85,7 +92,12 @@ describe("the operator's exact wording (16 Eki 2026)", () => {
       expect(src, file).toContain("[KARAOKE_IADE_KURALI]");
       expect(src, file).toContain("[KARAOKE_GEC_KURALI]");
     }
-    expect(time.karaokeRulesOf({})).toEqual([REFUND, NO_REFUND]);
+    // A booking from before the snapshot keeps the pair it was shown.
+    expect(time.karaokeRulesOf({})).toEqual([LEGACY_REFUND, LEGACY_NO_REFUND]);
+    expect([...time.LEGACY_KARAOKE_RULES]).toEqual([
+      LEGACY_REFUND,
+      LEGACY_NO_REFUND,
+    ]);
   });
 
   it("reaches the booking form and the reservation page from the server, not typed in", () => {
@@ -203,9 +215,10 @@ describe("the reservation page (profile and signed link)", () => {
     );
 
   it("shows the rule and only a quiet text link at the bottom - no cancel button", () => {
+    // BASE is a booking from before the snapshot: the pair it was shown.
     const html = render();
-    expect(html).toContain(REFUND);
-    expect(html).toContain(NO_REFUND);
+    expect(html).toContain(LEGACY_REFUND);
+    expect(html).toContain(LEGACY_NO_REFUND);
     expect(html).toMatch(
       /<a[^>]*class="karaoke-mine-cancel"[^>]*>Rezervasyonu iptal et<\/a>/,
     );
@@ -225,8 +238,31 @@ describe("the reservation page (profile and signed link)", () => {
 
   it("inside two hours the step says no refund and offers no confirm", () => {
     const html = render({}, late, true);
-    expect(html).toContain(NO_REFUND);
+    expect(html).toContain(LEGACY_NO_REFUND);
     expect(html).not.toContain("Evet, iptal et");
+  });
+
+  it("a booking under the 28 Eki rule: its own pair and last moment, two hours from its making", () => {
+    // Made at 13:00 Tuzla the day before; the window ends at 15:00 that day,
+    // more than a day before the evening.
+    const own = {
+      createdAt: "2026-10-29T10:00:00.000Z",
+      cancelDeadline: "2026-10-29T12:00:00.000Z",
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancellationRules: [REFUND, NO_REFUND],
+    } as Partial<typeof BASE>;
+    const inside = render(own, new Date("2026-10-29T11:00:00.000Z"));
+    expect(inside).toContain(REFUND);
+    expect(inside).toContain(NO_REFUND);
+    expect(inside).toContain(
+      "Ücretsiz iptal için son an: 29 Ekim 2026, 15:00.",
+    );
+    expect(inside).not.toContain(LEGACY_REFUND);
+    // Five hours after booking, the evening still a day away: no refund.
+    const after = render(own, new Date("2026-10-29T15:00:00.000Z"), true);
+    expect(after).toContain(NO_REFUND);
+    expect(after).not.toContain("Evet, iptal et");
   });
 
   it("a cancelled booking has nothing to cancel; an unpaid hold can still be paid", () => {

@@ -44,12 +44,11 @@ import {
   karaokeCancelDeadline,
   karaokeFreeCancelEnd,
   karaokeCancellationRules,
-  karaokeCancelPolicyOf,
   karaokeDeadlineFor,
   karaokeMovedDeadline,
   karaokeRulesOf,
   karaokeStartInstant,
-  karaokeVenueCancelUntil,
+  karaokeVenueCancelUntilOf,
   KARAOKE_OPEN_CAP,
   paymentDueFrom,
   paymentStatusOf,
@@ -1310,7 +1309,8 @@ function karaokeMailPayload(
     // The booking's own rule, never the panel's current one.
     cancellation: {
       rules: karaokeRulesOf(r),
-      venueUntil: karaokeVenueCancelUntil(karaokeCancelPolicyOf(r)),
+      // In the words of the rule it was booked under.
+      venueUntil: karaokeVenueCancelUntilOf(r),
       freeUntil: freeUntilLabel(r),
     },
     // Why the köşk cancelled (the panel's code), never the note it typed.

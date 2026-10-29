@@ -192,21 +192,48 @@ export function karaokeCancelDeadline(r: {
 }
 
 /**
- * The deadline of a booking the panel moves to another day or hour: its own
- * window (its making plus its policy's hours), never past the new start -
- * moved later, a booking made close to its start gets the rest of its window
- * back; moved earlier, the window ends at the new start. A row whose making
- * cannot be read keeps its deadline, capped at the new start.
+ * Was the booking made under the rule counted BACK from the start (every
+ * booking before 28 Eki 2026)? A row with no stored deadline (before the
+ * 18 Eki snapshot) always was; a stored deadline that is exactly the start
+ * minus its policy's hours was written by that rule. A deadline counted from
+ * the booking lands there only if the booking was made exactly twice the
+ * window before the start, to the millisecond.
+ */
+export function karaokeCountsBackFromStart(
+  r: Parameters<typeof karaokeCancelDeadline>[0],
+): boolean {
+  const stored = Date.parse(r.cancelDeadline ?? "");
+  if (!Number.isFinite(stored)) return true;
+  return (
+    stored ===
+    karaokeStartInstant(r.date, r.startHour).getTime() -
+      karaokeCancelPolicyOf(r).freeCancelHours * HOUR_MS
+  );
+}
+
+/**
+ * The deadline of a booking the panel moves to another day or hour, under
+ * the rule it was booked under. Counted from the booking: its making plus
+ * its policy's hours, never past the new start (moved later, a booking made
+ * close to its start gets the rest of its window back; moved earlier, the
+ * window ends at the new start). Counted back from the start (made before
+ * 28 Eki 2026): the new start minus its hours, as it was promised; moving
+ * it must not take the member's window away. A row whose making cannot be
+ * read keeps its deadline, capped at the new start.
  */
 export function karaokeMovedDeadline(
   r: Parameters<typeof karaokeCancelDeadline>[0],
   slot: { date: string; startHour: number },
 ): Date {
+  const policy = karaokeCancelPolicyOf(r);
+  const start = karaokeStartInstant(slot.date, slot.startHour).getTime();
+  if (karaokeCountsBackFromStart(r)) {
+    return new Date(start - policy.freeCancelHours * HOUR_MS);
+  }
   const made = Date.parse(r.createdAt ?? "");
   if (Number.isFinite(made)) {
-    return karaokeDeadlineFor(karaokeCancelPolicyOf(r), slot, new Date(made));
+    return karaokeDeadlineFor(policy, slot, new Date(made));
   }
-  const start = karaokeStartInstant(slot.date, slot.startHour).getTime();
   return new Date(Math.min(karaokeCancelDeadline(r).getTime(), start));
 }
 
@@ -411,20 +438,55 @@ export function karaokeVenueCancelUntil(
 }
 
 /**
- * The pair every booking made before the snapshot (18 Eki 2026) was shown,
- * verbatim: the window counted back from the start. Such rows store no
- * sentences and no deadline, and they keep that rule
- * (`karaokeCancelDeadline`), so they print this pair, never the one of
- * 28 Eki 2026.
+ * `karaokeVenueCancelUntil` for one booking, in the words of the rule it was
+ * made under: a booking counted back from the start
+ * (`karaokeCountsBackFromStart`) is told the sentence it was booked with.
  */
-export const LEGACY_KARAOKE_RULES: readonly [string, string] = [
-  "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
-  "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
-];
+export function karaokeVenueCancelUntilOf(
+  r: Parameters<typeof karaokeCancelDeadline>[0],
+): string | null {
+  const policy = karaokeCancelPolicyOf(r);
+  if (!karaokeCountsBackFromStart(r)) return karaokeVenueCancelUntil(policy);
+  if (policy.lateRefundPercent > 0) return "rezervasyon saatinden önce";
+  return `rezervasyon saatine ${policy.freeCancelHours} saatten fazla varken`;
+}
+
+/**
+ * The two sentences of a policy as they were written while the window was
+ * counted back from the start (16 Eki to 28 Eki 2026), verbatim. Every row
+ * made then stored its own pair (`cancellationRules`, since 18 Eki 2026);
+ * a row from before that stores none and prints this, for its own policy
+ * (2 hours / 0 % for every such row, the lock having held it there).
+ */
+export function legacyKaraokeCancellationRules(
+  policy: KaraokeCancelPolicy,
+): [string, string] {
+  const { freeCancelHours: h, lateRefundPercent: p } = policy;
+  const refundRule = `Rezervasyon saatine ${h} saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.`;
+  const late = `Rezervasyon saatine ${h} saatten az kala yapılan iptallerde`;
+  const lateRule =
+    p === 0
+      ? `${late} ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
+      : p === 100
+        ? `${late} de ödediğin tutarın tamamı kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
+        : `${late} ödediğin tutarın ${percentPossessive(p)} en geç 14 gün içinde kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir.`;
+  return [refundRule, lateRule];
+}
+
+/**
+ * The default policy's pair under the rule counted back from the start: the
+ * operator's wording of 16 Eki 2026, which every booking made before the
+ * snapshot (18 Eki 2026) was shown. Such rows store no sentences and no
+ * deadline, and they keep that rule (`karaokeCancelDeadline`), so they
+ * print this pair, never the one of 28 Eki 2026.
+ */
+export const LEGACY_KARAOKE_RULES: readonly [string, string] =
+  legacyKaraokeCancellationRules(DEFAULT_KARAOKE_CANCEL_POLICY);
 
 /**
  * The sentences a booking was shown: its stored snapshot, else (a row from
- * before the snapshot) the legacy pair, which is the rule such a row keeps.
+ * before the snapshot) the sentences its policy had then, counted back from
+ * the start (`legacyKaraokeCancellationRules`), the rule such a row keeps.
  */
 export function karaokeRulesOf(r: {
   freeCancelHours?: number | null;
@@ -439,7 +501,7 @@ export function karaokeRulesOf(r: {
   ) {
     return [stored[0], stored[1]];
   }
-  return [LEGACY_KARAOKE_RULES[0], LEGACY_KARAOKE_RULES[1]];
+  return legacyKaraokeCancellationRules(karaokeCancelPolicyOf(r));
 }
 
 /**

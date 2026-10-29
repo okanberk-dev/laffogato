@@ -1198,9 +1198,14 @@ rezervasyondan sonra sayılan daha uzun süre tüketici lehinedir; tutarın
 tamamının tutulması avukata sorulmuştur (LEGAL-REDLINES §37). 28 Eki
 2026'dan önce yapılan rezervasyon sakladığı `cancellableUntil`'i korur
 (başlangıçtan `freeCancelHours` saat önce; 18 Eki 2026'dan önceki satırlarda
-başlangıçtan 2 saat önce) ve sakladığı eski iki cümleyi yazar. Panel bir
-rezervasyonun gününü ya da saatini değiştirince son an `min(yapıldığı an +
-freeCancelHours saat, yeni başlangıç)` olur. Varsayılan kuralın iki cümlesi
+başlangıçtan 2 saat önce) ve sakladığı eski iki cümleyi yazar (cümlesi
+saklanmamış satır o günkü kuralın kendi sayılarıyla yazılmış eski cümlesini).
+Panel bir rezervasyonun gününü ya da saatini değiştirince son an rezervasyonun
+kendi kuralıyla yeniden hesaplanır: 28 Eki 2026'dan sonra yapılanda
+`min(yapıldığı an + freeCancelHours saat, yeni başlangıç)`, daha önce
+yapılanda (son anı başlangıçtan `freeCancelHours` saat önce olan) yeni
+başlangıçtan `freeCancelHours` saat önce; taşımak üyenin penceresini
+değiştirmez. Varsayılan kuralın iki cümlesi
 yukarıdaki çifttir; `too_late` mesajı "Artık buradan iptal edemezsin. Bu 2
 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret
 iadesi yapılmaz." Uygulama kodu değişmeden izler: `cancellableUntil`'i ve

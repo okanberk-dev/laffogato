@@ -489,7 +489,7 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
         String(a.title).includes("telafi saati"),
       ) as { title: string; summary: string; rows: Array<{ value: string }> };
       expect(alert.title).toBe(
-        "Kapanan hesabın 2 saatten az kalan telafi saati",
+        "Kapanan hesabın ücretsiz iptal süresi geçmiş telafi saati",
       );
       expect(alert.summary).toContain("KRK-90010 için");
       expect(alert.summary).not.toMatch(/ödenmiş/);

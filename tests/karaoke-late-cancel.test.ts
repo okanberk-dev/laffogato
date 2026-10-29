@@ -401,7 +401,9 @@ describe("the snapshot at booking", () => {
     expect(stored).toMatchObject({
       freeCancelHours: 24,
       lateRefundPercent: 50,
-      cancelDeadline: new Date(START - 24 * HOUR).toISOString(),
+      // Counted from the booking (28 Eki 2026): its making plus 24 hours,
+      // well before the start ten days later.
+      cancelDeadline: new Date(now.getTime() + 24 * HOUR).toISOString(),
       cancellationRules: [...time.karaokeCancellationRules(HALF).rules],
       refundMinor: null,
     });
@@ -536,7 +538,9 @@ describe("the snapshot at booking", () => {
 
 describe("a member cancels", () => {
   it("a legacy row (no snapshot) is 2 hours / 0 %: refused late, in full early", async () => {
-    // The panel says 24 h / 50 % now; the booking was made before either.
+    // The panel says 24 h / 50 % now; the booking was made before either,
+    // under the window counted back from the start, and keeps it: two hours
+    // before the start, refused with the sentence it was shown.
     h.appVersion = "1.1.0";
     h.settings = settingsWith({ hours: 24, percent: 50 });
     seedPaid();
@@ -546,7 +550,7 @@ describe("a member cancels", () => {
     expect(late).toMatchObject({
       ok: false,
       reason: "too_late",
-      message: time.KARAOKE_TOO_LATE_MESSAGE,
+      message: `Artık buradan iptal edemezsin. ${time.LEGACY_KARAOKE_RULES[1]}`,
     });
     expect(row().status).toBe("confirmed");
 
@@ -557,7 +561,9 @@ describe("a member cancels", () => {
     expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
   });
 
-  it("inside the window at 0 %: refused, nothing moves", async () => {
+  it("after the window at 0 %: refused in its own words, nothing moves", async () => {
+    // No stored deadline or sentences: counted back from the start, five
+    // hours, and refused with the sentence of that rule.
     seedPaid({ freeCancelHours: 5, lateRefundPercent: 0 });
     const res = await payment.cancelKaraokeReservation("krk-00042", MEMBER, {
       now: at(4),
@@ -741,6 +747,135 @@ describe("a member cancels", () => {
   });
 });
 
+describe("the operator's case (28 Eki 2026): the window counts from the booking", () => {
+  // "kullanıcı en sonda 5 saat sonra iade istemiş ve gerçekleşmiş": a booking
+  // made days before its evening, cancelled five hours later, was refunded
+  // in full because the window was counted back from the start.
+  const input = {
+    date: "2026-10-30",
+    startHour: 20,
+    hours: 2,
+    guests: 4,
+    note: "",
+  };
+  const consent = {
+    acceptedAt: "2026-10-27T17:00:00.000Z",
+    documents: ["karaoke-odasi-rezervasyon"],
+    version: "21 Ekim 2026",
+  };
+
+  /** Book through the real path at `made`, then mark it paid as a payment would. */
+  async function bookPaid(made: Date): Promise<string> {
+    const res = await karaoke.createReservation(
+      { email: "eda@example.com", name: "Eda Yılmaz" },
+      input,
+      made,
+      undefined,
+      { channel: "app", prepay: true, legalConsent: consent },
+    );
+    expect(res.ok).toBe(true);
+    const r = row();
+    Object.assign(r, {
+      status: "confirmed",
+      paymentStatus: "paid",
+      paidAt: made.toISOString(),
+      paidMinor: r.totalMinor,
+      paymentRef: "PNK-1",
+    });
+    h.tables.set("payment_transactions", [
+      {
+        orderId: r.id,
+        provider: "fakepos",
+        providerRef: "PNK-1",
+        status: "succeeded",
+        amountMinor: r.totalMinor,
+        trxDate: "2026-10-27",
+      },
+    ]);
+    return String(r.id);
+  }
+
+  const threeDaysBefore = new Date(START - 72 * HOUR);
+
+  it("stores the booking's window: two hours from its making", async () => {
+    await bookPaid(threeDaysBefore);
+    expect(row()).toMatchObject({
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancelDeadline: new Date(
+        threeDaysBefore.getTime() + 2 * HOUR,
+      ).toISOString(),
+      cancellationRules: [
+        time.KARAOKE_REFUND_RULE,
+        time.KARAOKE_NO_REFUND_RULE,
+      ],
+    });
+  });
+
+  it("five hours after booking, days before the evening: refused, nothing refunded", async () => {
+    const id = await bookPaid(threeDaysBefore);
+    const res = await payment.cancelKaraokeReservation(id, MEMBER, {
+      now: new Date(threeDaysBefore.getTime() + 5 * HOUR),
+    });
+    expect(res).toMatchObject({
+      ok: false,
+      reason: "too_late",
+      message: time.KARAOKE_TOO_LATE_MESSAGE,
+    });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    expect(h.refunds).toEqual([]);
+  });
+
+  it("one hour after booking: the whole payment back through the POS", async () => {
+    const id = await bookPaid(threeDaysBefore);
+    const total = Number(row().totalMinor);
+    const res = await payment.cancelKaraokeReservation(id, MEMBER, {
+      now: new Date(threeDaysBefore.getTime() + 1 * HOUR),
+    });
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: total }]);
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+    });
+  });
+
+  it("booked 90 minutes before the start: free until the start, refused at it", async () => {
+    const made = new Date(START - 90 * 60_000);
+    const id = await bookPaid(made);
+    expect(row().cancelDeadline).toBe(new Date(START).toISOString());
+    const atStart = await payment.cancelKaraokeReservation(id, MEMBER, {
+      now: new Date(START),
+    });
+    expect(atStart).toMatchObject({ ok: false, reason: "too_late" });
+    expect(h.refunds).toEqual([]);
+    const early = await payment.cancelKaraokeReservation(id, MEMBER, {
+      now: new Date(made.getTime() + 30 * 60_000),
+    });
+    expect(early).toMatchObject({ ok: true, refunded: true });
+  });
+
+  it("the köşk's own cancel still refunds everything, however late", async () => {
+    const id = await bookPaid(threeDaysBefore);
+    const res = await payment.cancelKaraokeReservation(
+      id,
+      {
+        kind: "staff",
+        actor: "yonetici@kosk",
+        canRefund: true,
+        reason: "Projektör yanmış",
+        cause: "ariza",
+      },
+      { now: new Date(threeDaysBefore.getTime() + 5 * HOUR) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+    });
+  });
+});
+
 describe("the exact last moment (`cancellableUntil`)", () => {
   // The contract's "son an" and the terms' "bu an dahil" (ASK-Y3-4): the
   // deadline itself, and the minute the pages name it by, still refund in
@@ -750,7 +885,7 @@ describe("the exact last moment (`cancellableUntil`)", () => {
   const DEADLINE = START - 2 * HOUR;
   const ms = (d: number) => ({ now: new Date(DEADLINE + d) });
 
-  it("the member, under the default rule: in full up to and at it, too_late a minute after", async () => {
+  it("the member, on a legacy row: in full up to and at it, too_late a minute after", async () => {
     for (const d of [-1, 0]) {
       seedPaid();
       h.refunds.length = 0;
@@ -779,7 +914,7 @@ describe("the exact last moment (`cancellableUntil`)", () => {
     expect(after).toMatchObject({
       ok: false,
       reason: "too_late",
-      message: time.KARAOKE_TOO_LATE_MESSAGE,
+      message: `Artık buradan iptal edemezsin. ${time.LEGACY_KARAOKE_RULES[1]}`,
     });
     expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
     expect(h.refunds).toEqual([]);
@@ -1020,9 +1155,8 @@ describe("the köşk cancels a paid booking, with its reason (ASK-OTH-3 (c), ASK
     expect(h.lateRequests).toHaveLength(1);
     expect(h.lateRequests[0]).toMatchObject({
       code: "krk-00042",
-      cancellation: {
-        rules: [time.KARAOKE_REFUND_RULE, time.KARAOKE_NO_REFUND_RULE],
-      },
+      // A row from before the snapshot: the pair it was booked under.
+      cancellation: { rules: [...time.LEGACY_KARAOKE_RULES] },
     });
     expect(JSON.stringify(h.lateRequests[0])).not.toContain("Projektör");
     expect(h.audits.at(-1)).toMatchObject({
