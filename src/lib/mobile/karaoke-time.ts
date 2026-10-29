@@ -263,9 +263,16 @@ export function karaokeCountsBackFromStart(
  * minute before the new start.
  */
 export function karaokeMovedDeadline(
-  r: Parameters<typeof karaokeCancelDeadline>[0],
+  r: Parameters<typeof karaokeCancelDeadline>[0] & {
+    makeGoodFor?: string | null;
+  },
   slot: { date: string; startHour: number },
 ): Date {
+  // A free make-good hour keeps its own rule, recounted for the new start
+  // from when it was given (an unreadable instant: the start counted back).
+  if (r.makeGoodFor) {
+    return karaokeMakeGoodDeadline(slot, new Date(Date.parse(r.createdAt ?? "")));
+  }
   const policy = karaokeCancelPolicyOf(r);
   const start = karaokeStartInstant(slot.date, slot.startHour).getTime();
   if (karaokeCountsBackFromStart(r)) {
@@ -278,6 +285,70 @@ export function karaokeMovedDeadline(
   return new Date(
     Math.min(karaokeCancelDeadline(r).getTime(), start - MINUTE_MS),
   );
+}
+
+/**
+ * The rule a free make-good hour is written under (karaoke terms §8, 29 Eki
+ * 2026), whatever the panel's policy: nothing was paid for it, so there is
+ * no late share, and its hours are the window the guest releases it in.
+ */
+export const KARAOKE_MAKE_GOOD_POLICY: Readonly<KaraokeCancelPolicy> =
+  Object.freeze({
+    freeCancelHours: KARAOKE_FREE_CANCEL_HOURS,
+    lateRefundPercent: 0,
+  });
+
+/**
+ * Until when the guest may release a free make-good hour and have its
+ * make-good open again (karaoke terms §8, 29 Eki 2026): while more than two
+ * hours remain to its start, the rule every booking had before 28 Eki 2026.
+ * An hour given less than four hours before its start keeps two hours from
+ * when it was given, ending at the latest the minute before the start. The
+ * make-good is the köşk's answer to its own late cancel; a release window
+ * counted from the call that booked the hour would use it up on the clock
+ * of that call (docs/LEGAL-REDLINES-2026-09.md §37.5, question 3). An
+ * unreadable `givenAt` places no window of its own: the start counted back.
+ */
+export function karaokeMakeGoodDeadline(
+  r: { date: string; startHour: number },
+  givenAt: Date,
+): Date {
+  const back =
+    karaokeStartInstant(r.date, r.startHour).getTime() -
+    KARAOKE_MAKE_GOOD_POLICY.freeCancelHours * HOUR_MS;
+  if (!Number.isFinite(givenAt.getTime())) return new Date(back);
+  return new Date(
+    Math.max(
+      back,
+      karaokeDeadlineFor(KARAOKE_MAKE_GOOD_POLICY, r, givenAt).getTime(),
+    ),
+  );
+}
+
+/**
+ * The two sentences a free make-good hour stores and prints in place of a
+ * paid booking's ("ödediğin tutar" is not true of an hour nobody paid for):
+ * counted back from the start, or, for an hour given close to it, from when
+ * it was given (`karaokeMakeGoodDeadline`). Each reads alone: a refusal
+ * prints the second without the first.
+ */
+export function karaokeMakeGoodRules(
+  r: { date: string; startHour: number },
+  deadline: Date,
+): [string, string] {
+  const h = KARAOKE_MAKE_GOOD_POLICY.freeCancelHours;
+  const back =
+    karaokeStartInstant(r.date, r.startHour).getTime() - h * HOUR_MS;
+  if (deadline.getTime() <= back) {
+    return [
+      `Bu ücretsiz telafi saatini rezervasyon saatine ${h} saatten fazla varken bırakabilirsin; telafin o zaman yeniden açılır.`,
+      `Rezervasyon saatine ${h} saatten az kala bırakılan ya da gelinmeyen ücretsiz telafi saatinde telafi kullanılmış sayılır.`,
+    ];
+  }
+  return [
+    `Bu ücretsiz telafi saatini sana ayrıldığı andan itibaren ${h} saat içinde, rezervasyon saati gelmeden bırakabilirsin; telafin o zaman yeniden açılır.`,
+    `Ayrıldığı andan ${h} saat geçtikten sonra bırakılan ya da gelinmeyen ücretsiz telafi saatinde telafi kullanılmış sayılır.`,
+  ];
 }
 
 /**
@@ -389,6 +460,31 @@ export function isPartialRefund(r: {
 }): boolean {
   if (typeof r.refundMinor !== "number") return false;
   return r.refundMinor < (r.paidMinor ?? 0) || (r.resaleRefundMinor ?? 0) > 0;
+}
+
+/**
+ * A late cancel that kept the whole payment and put the hours back on sale:
+ * a guest's late request under a late share of 0, taken before the start
+ * (29 Eki 2026, `releaseLateBooking`). Cancelled, nothing went back and
+ * nothing is owed: `refundMinor` 0 on a `refunded` row, so the payment is
+ * the share kept (`keptShareOfCancelled`) and an hour of it sold again
+ * refunds what was kept for it, by hand. Once one is, the row carries a
+ * resale part and reads as any resale refund.
+ */
+export function keptWholeOnLateCancel(r: {
+  status: string;
+  paymentStatus?: string;
+  paidMinor?: number;
+  refundMinor?: number | null;
+  resaleRefundMinor?: number | null;
+}): boolean {
+  return (
+    r.status === "cancelled" &&
+    r.paymentStatus === "refunded" &&
+    r.refundMinor === 0 &&
+    (r.resaleRefundMinor ?? 0) === 0 &&
+    (r.paidMinor ?? 0) > 0
+  );
 }
 
 /** The late share of a payment, in kuruş: round(paid × P / 100). */

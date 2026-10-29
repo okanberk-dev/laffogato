@@ -1787,3 +1787,160 @@ describe("review: who may let the free hour go, and what its mail says", () => {
     });
   });
 });
+
+describe("29 Eki 2026: the free hour's own rule and the late request that releases the hours", () => {
+  const H = 3_600_000;
+  const slot = { date: "2026-11-05", startHour: 20 };
+  const start = time.karaokeStartInstant(slot.date, slot.startHour).getTime();
+
+  it("a free hour given days ahead is released until two hours before its start", () => {
+    const given = new Date(start - 5 * 24 * H);
+    expect(time.karaokeMakeGoodDeadline(slot, given).getTime()).toBe(
+      start - 2 * H,
+    );
+    expect(
+      time.karaokeMakeGoodRules(slot, new Date(start - 2 * H)),
+    ).toEqual([
+      "Bu ücretsiz telafi saatini rezervasyon saatine 2 saatten fazla varken bırakabilirsin; telafin o zaman yeniden açılır.",
+      "Rezervasyon saatine 2 saatten az kala bırakılan ya da gelinmeyen ücretsiz telafi saatinde telafi kullanılmış sayılır.",
+    ]);
+  });
+
+  it("given less than four hours ahead, two hours from its giving, at the latest the minute before the start", () => {
+    expect(
+      time.karaokeMakeGoodDeadline(slot, new Date(start - 3 * H)).getTime(),
+    ).toBe(start - H);
+    expect(
+      time.karaokeMakeGoodDeadline(slot, new Date(start - H)).getTime(),
+    ).toBe(start - 60_000);
+    expect(time.karaokeMakeGoodRules(slot, new Date(start - H))[0]).toBe(
+      "Bu ücretsiz telafi saatini sana ayrıldığı andan itibaren 2 saat içinde, rezervasyon saati gelmeden bırakabilirsin; telafin o zaman yeniden açılır.",
+    );
+    // An instant that cannot be read: the start counted back.
+    expect(
+      time.karaokeMakeGoodDeadline(slot, new Date(Number.NaN)).getTime(),
+    ).toBe(start - 2 * H);
+  });
+
+  it("a free hour moved keeps its own rule, recounted for the new start from its giving", () => {
+    const hour = {
+      date: "2026-11-05",
+      startHour: 20,
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancelDeadline: new Date(start - 2 * H).toISOString(),
+      createdAt: new Date(start - 5 * 24 * H).toISOString(),
+      makeGoodFor: "krk-00042",
+    };
+    const later = { date: "2026-11-07", startHour: 21 };
+    const laterStart = time
+      .karaokeStartInstant(later.date, later.startHour)
+      .getTime();
+    expect(time.karaokeMovedDeadline(hour, later).getTime()).toBe(
+      laterStart - 2 * H,
+    );
+    // Moved to an hour soon after it was given: two hours from its giving.
+    const soon = { date: "2026-10-31", startHour: 21 };
+    const given = time.karaokeStartInstant(soon.date, soon.startHour).getTime() - 3 * H;
+    expect(
+      time
+        .karaokeMovedDeadline(
+          { ...hour, createdAt: new Date(given).toISOString() },
+          soon,
+        )
+        .getTime(),
+    ).toBe(given + 2 * H);
+  });
+
+  const released = {
+    id: "krk-00042",
+    date: "2026-10-30",
+    startHour: 20,
+    hours: 2,
+    status: "cancelled",
+    paymentStatus: "refunded",
+    paidMinor: 200_000,
+    totalMinor: 200_000,
+    refundMinor: 0,
+    updatedAt: "2026-10-28T10:00:00.000Z",
+  } as const;
+
+  it("keptWholeOnLateCancel: only a cancelled, refunded row that gave nothing back and sold nothing again", () => {
+    expect(time.keptWholeOnLateCancel(released)).toBe(true);
+    expect(time.keptWholeOnLateCancel({ ...released, refundMinor: null })).toBe(
+      false,
+    );
+    expect(
+      time.keptWholeOnLateCancel({ ...released, refundMinor: 100_000 }),
+    ).toBe(false);
+    expect(
+      time.keptWholeOnLateCancel({
+        ...released,
+        refundMinor: 100_000,
+        resaleRefundMinor: 100_000,
+      }),
+    ).toBe(false);
+    expect(
+      time.keptWholeOnLateCancel({ ...released, status: "confirmed" }),
+    ).toBe(false);
+    expect(
+      time.keptWholeOnLateCancel({ ...released, paymentStatus: "refunding" }),
+    ).toBe(false);
+  });
+
+  it("the whole payment is the share kept, so a resold hour counts to it", () => {
+    expect(core.keptShareOfCancelled(released as never)).toBe(200_000);
+    expect(
+      core.resaleAllocation(
+        {
+          id: "krk-00050",
+          date: "2026-10-30",
+          startHour: 21,
+          hours: 1,
+          totalMinor: 100_000,
+        },
+        [released as never],
+      ),
+    ).toEqual([{ id: "krk-00042", hours: [21] }]);
+    expect(core.resaleRefundTotal(200_000, 2, 1)).toBe(100_000);
+  });
+
+  it("the panel, the reports and the invoice count it as kept, and say no refund was made", async () => {
+    expect(panel.paymentLabel(released)).toBe("İade yok · saat satışta");
+    expect(
+      panel.paymentLabel({
+        ...released,
+        paymentStatus: "refunding",
+        refundMinor: 100_000,
+        resaleRefundMinor: 100_000,
+      }),
+    ).toBe("Kısmi iade bekliyor");
+    const after = new Date("2026-10-31T00:00:00Z");
+    expect(panel.karaokeBillableMinor(released, after)).toBe(200_000);
+    expect(
+      panel.karaokeBillableMinor(
+        { ...released, refundMinor: 100_000, resaleRefundMinor: 100_000 } as never,
+        after,
+      ),
+    ).toBe(100_000);
+    const { karaokeMoneyOf } = await import("@/lib/admin/karaoke-money");
+    expect(karaokeMoneyOf(released as never)).toEqual({
+      paidMinor: 200_000,
+      keptMinor: 200_000,
+      refundPendingMinor: 0,
+    });
+  });
+
+  it("the member's page never says it was refunded", async () => {
+    const { karaokeStatusLine } = await import(
+      "@/components/uye/karaoke-reservation-view"
+    );
+    expect(karaokeStatusLine(released)).toEqual({
+      label: "İptal edildi, saat satışa açıldı",
+      tone: "cancelled",
+    });
+    expect(
+      karaokeStatusLine({ ...released, refundMinor: null }).label,
+    ).toBe("İptal edildi, iade edildi");
+  });
+});

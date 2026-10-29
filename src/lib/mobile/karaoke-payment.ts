@@ -36,13 +36,13 @@ import {
 } from "./karaoke";
 import {
   closureJudgedAt,
-  effectiveKaraokeCancelPolicy,
   isCalendarDate,
   isPartialRefund,
-  karaokeCancellationRules,
+  KARAOKE_MAKE_GOOD_POLICY,
   karaokeCancelPolicyOf,
-  karaokeDeadlineFor,
   karaokeLateRefundMinor,
+  karaokeMakeGoodDeadline,
+  karaokeMakeGoodRules,
   karaokeSelfCancelTerms,
   karaokeStartInstant,
   karaokeTooLateMessageOf,
@@ -1465,10 +1465,18 @@ export type CancelKaraokeResult =
       refundOwedMinor?: number;
       /**
        * NOT cancelled: a guest's late request the booking's rule refunds
-       * nothing for (`cause: "misafir"`). It was recorded and the guest
-       * told that the booking stands in their name.
+       * nothing for, taken once the start had come (`cause: "misafir"`). It
+       * was recorded and the guest told that the booking stood in their
+       * name.
        */
       kept?: true;
+      /**
+       * A guest's late request the booking's rule refunds nothing for,
+       * taken before the start: cancelled with nothing refunded now and its
+       * hours back on sale; an hour sold again refunds what was kept for it
+       * (`releaseLateBooking`, karaoke terms §7).
+       */
+      released?: true;
       /**
        * The köşk cancelled late for its own reason: the make-good the
        * guest was offered (karaoke-make-good-core.ts).
@@ -1573,7 +1581,13 @@ export async function cancelKaraokeReservation(
   if (lateMatters) {
     const terms = karaokeSelfCancelTerms(r, judgedAt);
     if (terms.kind === "refused" && guestRequest) {
-      return keepLateGuestRequest(r, by, judgedAt, now);
+      // Asked and taken before the start: the hours can still be sold, so
+      // they go back on sale (karaoke terms §7, 29 Eki 2026). Once the
+      // evening has begun there is nothing left to sell: it stands.
+      const start = karaokeStartInstant(r.date, r.startHour).getTime();
+      return judgedAt.getTime() < start && now.getTime() < start
+        ? releaseLateBooking(r, by, judgedAt, now)
+        : keepLateGuestRequest(r, by, judgedAt, now);
     }
     if (terms.kind === "refused") {
       return {
@@ -1954,10 +1968,70 @@ function staffWhy(
 }
 
 /**
+ * A guest asked, by phone or e-mail, to cancel after their free moment and
+ * before the start, and the booking's rule refunds nothing then (a late
+ * share of 0): the booking is cancelled with nothing refunded now and its
+ * hours go back on sale, online too (karaoke terms §7, 29 Eki 2026). The
+ * whole payment is the share kept (`refundMinor` 0 on a `refunded` row:
+ * nothing is owed, `keptWholeOnLateCancel`), so an hour another guest then
+ * books and pays for refunds what was kept for it, by hand, exactly as for
+ * a late share (`resaleAllocation`, karaoke_charge_resold_hours). The
+ * evening is invoiced as kept (`karaokeBillableMinor`), less any resale
+ * refund.
+ *
+ * Until 29 Eki 2026 such a request left the booking standing in the
+ * guest's name and its hours blocked online, so the resale refund the
+ * terms promise could never happen under the 0 % rule, and a guest who
+ * cancelled days ahead kept nothing back even when the hour sold again
+ * (docs/LEGAL-REDLINES-2026-09.md §37.5, question 1). A guest who would
+ * rather keep the evening hands the code on instead, and asks nothing.
+ */
+async function releaseLateBooking(
+  r: KaraokeReservation,
+  by: Extract<KaraokeCanceller, { kind: "staff" }>,
+  judgedAt: Date,
+  now: Date,
+): Promise<CancelKaraokeResult> {
+  const iso = now.toISOString();
+  const released = {
+    status: "cancelled",
+    paymentStatus: "refunded",
+    refundMinor: 0,
+    updatedAt: iso,
+    // A guest's own late cancel makes nothing good.
+    ...NO_MAKE_GOOD,
+  } as const;
+  const moved = await moveRow(
+    r.id,
+    released,
+    { paymentStatus: "paid", status: "confirmed" },
+    "karaoke.releaseLateBooking",
+  );
+  if (!moved) return { ok: false, reason: "raced", reservation: r };
+  const cancelled: KaraokeReservation = { ...r, ...released };
+  const notified = await notifyReservationStatus(cancelled, {
+    cause: "misafir",
+  });
+  await auditStaff(cancelled, by.actor, "transition", {
+    event: "late_guest_release",
+    status: "cancelled",
+    paymentStatus: "refunded",
+    refundMinor: 0,
+    paidMinor: r.paidMinor ?? 0,
+    by: "staff",
+    ...staffWhy(by),
+    requestedAt: judgedAt.toISOString(),
+  });
+  return { ok: true, reservation: cancelled, refunded: false, notified, released: true };
+}
+
+/**
  * A guest asked to cancel after their free moment, by phone or e-mail, and
- * the booking's rule refunds nothing then (a late share of 0, or the start
- * had come): nothing changes on the booking - it stands in their name and
- * they may hand the code on (karaoke terms §7). The request is recorded
+ * the booking's rule refunds nothing then, but the request or its record
+ * came once the evening had begun (a request before the start under a late
+ * share of 0 releases the hours instead: `releaseLateBooking`): nothing
+ * changes on the booking - it stands in their name and they may hand the
+ * code on (karaoke terms §7). The request is recorded
  * (`late_guest_request`, with the channel and the instant) and the guest is
  * told. No money moves; a person with the refund right can still refund
  * everything ("Yine de tamamını iade et", `fullRefund`).
@@ -2418,13 +2492,17 @@ export async function giveKaraokeMakeGoodHour(
     return { ok: false, reason: "slot_taken" };
   }
 
-  const policy = effectiveKaraokeCancelPolicy(settings);
+  // The free hour's own rule (karaoke terms §8, 29 Eki 2026), never the
+  // panel's policy for paid bookings: released while more than two hours
+  // remain to its start, or two hours from now when given close to it.
+  const policy = KARAOKE_MAKE_GOOD_POLICY;
   const seq = await nextSeq("krk");
   const hourId = `krk-${String(seq).padStart(5, "0")}`;
   const iso = now.toISOString();
   const taxRatePct = karaokeTaxRate(settings.taxRates);
-  const cancelDeadline = karaokeDeadlineFor(policy, req, now).toISOString();
-  const cancellationRules = [...karaokeCancellationRules(policy).rules];
+  const deadline = karaokeMakeGoodDeadline(req, now);
+  const cancelDeadline = deadline.toISOString();
+  const cancellationRules = karaokeMakeGoodRules(req, deadline);
   const res = await getDb().rpc("karaoke_give_make_good_hour", {
     p_for: r.id,
     p_id: hourId,

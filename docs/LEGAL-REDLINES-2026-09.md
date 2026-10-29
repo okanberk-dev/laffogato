@@ -4604,11 +4604,16 @@ Koşulları'nın eski cümlelerini taşır; §2'nin 5. adımıyla
 
 ## 37. Y22 - Karaoke ücretsiz iptal penceresi rezervasyondan sonra sayılır (28 Ekim 2026)
 
-> **Durum: metin kodda değişti, avukat okuması bekliyor.** Operatör kararı
-> aynı gün koda ve iki belgeye işlendi; avukat metni sonradan okur. Ödeme
-> Koşulları ve Hesap Silme kendi günlerini (**28 Ekim 2026**) taşır;
-> `LEGAL_UPDATED`, `COMMERCIAL_CONSENT_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
-> değişmedi (37.4).
+> **Durum (29 Ekim 2026): kararlar verildi ve uygulandı.** Operatör avukat
+> okumasını beklemek yerine kararları Claude'a bıraktı (29 Ekim 2026: "Avukat
+> yerine her şeyi sen yap ve main'e pushla"). 37.5'teki üç soru, birbirinden
+> bağımsız dört incelemeyle (tüketici hukuku, borçlar hukuku, uygulama ve
+> chargeback, karşı görüş) karara bağlandı ve uygulandı (37.8). Bu bir avukat
+> görüşü değildir: mevzuat.gov.tr bu ortamdan erişilemediği için atıflar
+> resmî metinden okunamadı; ikincil kaynaklarla ve bu belgenin §26'sıyla
+> tutarlıdır. Ödeme Koşulları ve Hesap Silme kendi günlerini (**29 Ekim
+> 2026**), karaoke koşulları yeni sürümünü (**29 Ekim 2026**) taşır;
+> `LEGAL_UPDATED` ve `COMMERCIAL_CONSENT_UPDATED` değişmedi (37.4, 37.8).
 
 ### 37.1 Operatör kararı ve neden
 
@@ -4750,7 +4755,13 @@ zaten olduğu gibi basar.
   yazmaz ve değişmedi. Rezervasyonun onay kaydı gösterilen metnin hash'ini
   taşıdığı için (§25) hangi cümleyle yapıldığı kayıttan okunur.
 
-### 37.5 Avukata sorular (karar avukatındır)
+### 37.5 Sorular (29 Ekim 2026'da karara bağlandı, 37.8)
+
+Soruların 28 Ekim 2026'daki metni aşağıda kayıt olarak duruyor. Kararlar:
+1. kural kalır, %0'da yeniden satış iadesi gerçekten işler; 2. telafi
+kalır; 3. telafi saati kendi kuralını taşır (37.8). Birinci sorudaki ek bent
+harfleri 29 Ekim'de düzeltildi: karşılıklılık EK-1 (ç), ölçüsüz yüksek bedel
+EK-1 (d) (§26.5 ile aynı); 28 Ekim'deki metin ikisini ters yazmıştı.
 
 1. **Rezervasyona günler varken tutarın tamamının tutulması.** Yeni kuralda,
    rezervasyonu yaptıktan 2 saat sonra iptal eden tüketici, akşamına günler
@@ -4758,8 +4769,9 @@ zaten olduğu gibi basar.
    yoktur (MSY m.15/1-g) ve kural ödemeden önce iki cümleyle gösterilip
    onaylanır; ama saatin yeniden satılabileceği bir dönemde bedelin
    tamamının tutulması Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında
-   Yönetmelik m.5 ve EK (ç) (ifa etmeyen tüketiciden ölçüsüz yüksek bedel)
-   ile EK (d) (sözleşmeden dönüşte verilenin iade edilmemesi) açısından ve
+   Yönetmelik m.5 ve EK-1 (d) (ifa etmeyen tüketiciden ölçüsüz yüksek bedel)
+   ile EK-1 (ç) (köşk dönünce eşdeğer tazminat öngörmeden tüketicinin
+   ödediğini tutmak) açısından ve
    TBK m.182/3 (aşırı cezai şartın indirilmesi) ölçüsü yönünden
    sorgulanabilir. Eski kuralda uzun pencere geç iptal payıyla bağlıydı (24
    saatten uzunsa en az %50); yeni sayımda bu bağ anlamını yitirdiği için
@@ -4838,6 +4850,149 @@ belgesine yönlendirilmelidir (§17'den beri açık).
   olmadığı için yükseltilecek bir şey yoktur (operatörün 28 Ekim'deki
   "yayından önce bak" adımı bu yüzden kapandı). Uygulama kilidinin
   (`KARAOKE_POLICY_APP_VERSION`) durumu `docs/API-MOBILE.md` §7.1'de.
+
+### 37.8 Kararlar (29 Ekim 2026)
+
+Dört inceleme birbirini görmeden yazıldı ve her soruda aynı yere vardı:
+birinci ve üçüncü soruda değişiklik, ikincide olduğu gibi kalma. Hiçbiri
+operatörün talimatıyla ("2 saat içinde iptal etmezse iade olamaz")
+çelişmiyor: para yalnız saat başka bir misafire satılınca, o saat için geri
+gider.
+
+**1. Rezervasyona günler varken tutarın tamamının tutulması: kural kalır,
+yeniden satış iadesi %0'da da işler.**
+
+- *Neden kural kalabilir.* Cayma hakkı yoktur (MSY m.15/1-g). Kural ödemeden
+  önce iki cümle ve son anın kendisiyle gösterilir, ayrı kutuyla onaylanır,
+  onay e-postasında ve rezervasyon sayfasında tekrar yazar (TKHK m.5: açık
+  ve anlaşılır). Karşılıklıdır (Haksız Şartlar Yön. EK-1 (ç)): köşk ücretsiz
+  iptal süresinden sonra kendi sebebiyle iptal ederse tam iade ve aynı
+  tutarda telafi verir (koşullar §8). Kullanılmayan bir karaoke saati köşke
+  hemen hiç tasarruf sağlamaz, yani satılmayan saatin bedeli gerçek kayba
+  denktir.
+- *Neden tek başına yetmezdi.* Ölçülülük (EK-1 (d); TBK m.182/3) bu
+  belgenin §26.5'inde yeniden satış mahsubuna dayanır: kiralananı başka
+  biçimde kullanmakla elde edilen yarar bedelden düşülür (TBK m.325,
+  kıyasen); koşullar §7 bunu söz verir. Ama %0 kuralında bu mahsup hiç
+  çalışmıyordu: üyenin geç iptali reddedilir (`too_late`), panelde "Misafir
+  iptal istedi" de rezervasyonu olduğu gibi bırakırdı
+  (`keepLateGuestRequest`); saat sitede ve uygulamada kapalı kalır,
+  `keptShareOfCancelled` onu hiç görmezdi. Pencere rezervasyondan sonra
+  sayılınca günler kala gelen iptallerde tutarın tamamı tutulup saat de
+  satışa kapalı kalacaktı. Danışman incelemesi, bir düğün salonunun "aynı
+  gün satılmazsa ücret tam alınır" şartının 30 gün kala iptalde haksız şart
+  sayıldığı bir Yargıtay kararını (3. HD, 2021/6310 E., 2021/11809 K.;
+  resmî metninden doğrulanmadı) emsal olarak aktardı.
+- *Değişiklik (kod).* `lateRefundPercent` 0 iken misafirin pencere
+  geçtikten sonra ama rezervasyon saatinden önce köşke bildirdiği iptal
+  (panelde "Misafir iptal istedi", istek ve kaydı başlangıçtan önce)
+  rezervasyonu iade yapmadan iptal eder ve saatlerini yeniden satışa açar
+  (`releaseLateBooking`, `karaoke-payment.ts`): `status: cancelled`,
+  `paymentStatus: refunded`, `refundMinor: 0` (`keptWholeOnLateCancel`).
+  Ödenen tutarın tamamı geç iptalde kalan paydır; saatlerinden biri başka
+  bir ödeyen misafire satılınca mevcut yeniden satış yolu
+  (`resaleAllocation`, `karaoke_charge_resold_hours`) o saatin tutarını
+  borçlanır, ekip PayNkolay'dan iade edip "Elle iade edildi" ile kaydeder.
+  Para hareketi yoktur, iade yetkisi istenmez. İstek ya da kaydı başlangıçtan
+  sonraysa satılacak bir şey kalmadığı için rezervasyon eskisi gibi durur.
+  Rapor ve fatura onu tutulan olarak sayar (`karaokeMoneyOf`,
+  `karaokeBillableMinor`); bar ekranından düşer.
+- *Değişiklik (metin).* Koşullar §7, 4. madde: "Rezervasyon saati gelmeden
+  gelemeyeceğinizi bize bildirirseniz rezervasyonunuzu iptal eder ve
+  saatlerini yeniden satışa açarız; bu durumda da ücret iadesi yapılmaz,
+  ancak bu saatlerden biri başka bir misafire satılırsa o saat için
+  ödediğiniz tutar en geç 14 gün içinde kartınıza iade edilir." ("rezervasyon
+  sizin adınıza durur" ve takdire bağlı "verebiliriz" kalktı). Ödeme
+  Koşulları §21: aynı yeniden satış iadesi eklendi; koşullar §9 ile
+  çelişen "kısmi iade yapılmaz" kalktı ("yeniden satılan bir saatin tutarı
+  gibi kısmi iadeler en geç 14 gün içinde yapılır"). E-posta: misafire
+  "İsteğin üzerine ... iptal ettik" ve "Ücretsiz iptal süren geçtiği için
+  ... ücret iadesi yapılmadı. Saatlerini yeniden satışa açtık: ..."
+  (`KARAOKE_SATISA_ACILDI`); satılan saatin iadesinde "Geç iptal ettiğin
+  saat başka bir misafire satıldığı için o saat için ödediğin X kartına iade
+  edildi" (`KARAOKE_SATIS_IADE_EDILDI`; "geç iptal kuralına göre" sözü bu
+  rezervasyonda doğru olmazdı). Üye sayfası "İptal edildi, saat satışa
+  açıldı" ve "Ödendi, iade yapılmadı" der, panel "İade yok · saat satışta".
+- *Reddedilenler.* (a) Üyenin kendi geç iptalini (site, uygulama) de kabul
+  etmek: uygulama ucunda `too_late`'in yerine başarı dönmek v1'in
+  davranışını değiştirir; üye köşke bildirerek aynı sonuca ulaşır, ileride
+  ek bir uçla açılabilir. (b) Geç iptal payı (%1-99): her pay elle iade
+  ister ve son dakika iptallerinde de para geri verir; talimatla çelişir.
+  (c) Pencereyi ödemenin onayından saymak: ödeme sayfası rezervasyondan en
+  çok 75 dakika sonraya kadar açıktır ve kutu ödemeden önce son anın
+  kendisini yazar, onay e-postası da; yazılı an tartışmaya yer bırakmaz.
+- *Kalan risk.* Hiç satılmayan bir saat için tutarın tamamı tutulur; bir
+  hakem heyeti yukarıdaki emsale dayanarak iade verebilir. Bunu tamamen
+  kapatmak (ör. 7 gün kala tam iade) talimatla çelişir; yapılmadı.
+
+**2. Telafi her işletme iptalinde doğuyor: kalır.** Telafi, misafirin geç
+iptalde kaybettiğinin karşılığıdır (EK-1 (ç), §26.5). "Rezervasyon saatine
+24 saatten az kala" gibi bir eşik, misafiri rezervasyondan 2 saat sonra
+bağlarken köşkün günler öncesine kadar bedelsiz iptal etmesine izin verirdi:
+ek listenin tarif ettiği dengesizlik. Kod ve metin değişmedi; maliyeti köşkün
+kendi iptal sebebine bağlıdır (mücbir sebep dışarıda).
+
+**3. Ücretsiz telafi saati: kendi kuralı.** Misafir ücretsiz saati
+başlangıcına 2 saatten fazla varken bırakabilir ve telafisi yeniden açılır
+(28 Ekim'den önceki sayım); saat başlangıca 4 saatten az kala verildiyse
+verildiği andan itibaren 2 saat içinde, en geç başlangıçtan 1 dakika önce.
+Sonrasında bırakılan ya da gelinmeyen saatte telafi kullanılmış sayılır.
+Telafi köşkün kendi geç iptalinin karşılığıdır; bırakma süresini saati
+ayırtan telefon görüşmesinden saymak onu o görüşmenin saatiyle tüketirdi ve
+misafir bu süreyi kabul ettiği metinde hiç görmemişti. Kod:
+`KARAOKE_MAKE_GOOD_POLICY` (2 saat / %0, panelin kuralından bağımsız;
+panelde %1-99 açılsa da ücretsiz saate geç iptal payı uygulanmaz),
+`karaokeMakeGoodDeadline`, `karaokeMakeGoodRules` (saatin kendi iki cümlesi:
+"Bu ücretsiz telafi saatini rezervasyon saatine 2 saatten fazla varken
+bırakabilirsin; telafin o zaman yeniden açılır." / "Rezervasyon saatine 2
+saatten az kala bırakılan ya da gelinmeyen ücretsiz telafi saatinde telafi
+kullanılmış sayılır."; ödenmiş rezervasyonun "ödediğin tutar" cümleleri bu
+saatte artık yazılmaz), `giveKaraokeMakeGoodHour`, saat taşınınca
+`karaokeMovedDeadline` ve iki cümle yeniden. Metin: koşullar §8, 2.
+paragrafın sonuna "Ayırttığınız ücretsiz saati, rezervasyon saatine 2
+saatten fazla varken (saat, rezervasyon saatine 4 saatten az kala
+ayrıldıysa ayrıldığı andan itibaren 2 saat içinde ve rezervasyon saati
+gelmeden) rezervasyon sayfanızdan, bizi arayarak veya {{EMAIL}} adresine
+yazarak bırakabilirsiniz; bu durumda telafiniz yeniden açılır. Bu süreden
+sonra bırakılan ya da gelinmeyen ücretsiz saatte telafi kullanılmış
+sayılır." Onay e-postası "Planın değişirse rezervasyon saatine 2 saatten
+fazla varken rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri
+gelir." der.
+
+**Tarihler.** `KARAOKE_LEGAL_UPDATED` = **29 Ekim 2026** (koşullar §7, §8;
+rezervasyonun onay kaydı sürümü ve metnin hash'i bununla yeni metne geçer).
+`KARAOKE_WINDOW_LEGAL_UPDATED` = **29 Ekim 2026** (Ödeme Koşulları §21 aynı
+gün değişti; Hesap Silme aynı sabiti taşır). `LEGAL_UPDATED` (27 Ekim 2026)
+ve `COMMERCIAL_CONSENT_UPDATED` değişmedi: ikisi de ödeme adımının belgesi
+değil.
+
+**Testler.** `tests/karaoke-late-cancel.test.ts` (operatörün olayı: beş saat
+sonra gelen istek iade olmadan iptal ve satışta; başlangıçtan sonraki istek
+durur), `tests/db-integration-karaoke-make-good.test.ts` (gerçek Postgres:
+serbest bırakma, saatin satılması, elle iade ve doğru e-posta satırı),
+`tests/db-integration-karaoke-make-good-access.test.ts` (telafi saatinin
+son anı, cümleleri, üç gün kala bırakma, geç verilen saat, panelde %50 açık
+olsa da 2 / 0), `tests/karaoke-make-good.test.ts` (saf kurallar, rapor,
+fatura, panel ve üye sayfası), `tests/legal-karaoke-make-good.test.ts` ve
+`tests/karaoke-cancel-cause.test.ts` (e-posta satırları, tek açılış ve en
+çok bir para satırı), `tests/legal-karaoke-single-source.test.ts`,
+`tests/karaoke-cancel-policy.test.ts`, `tests/legal-dates.test.ts`.
+
+**Operatöre.**
+
+1. Panelde Hukuk metinlerinde "Karaoke Odası Ön Bilgilendirme Formu ve
+   Mesafeli Hizmet Sözleşmesi", "Ödeme Koşulları" ya da "Hesap Silme" için
+   yayımlanmış bir geçersiz kılma varsa sitede kodun metni değil o görünür
+   (`getPublishedLegalOverride`): kaldır ya da bu metne güncelle. Kod
+   tarafından bakılamadı (canlı veritabanına erişim yok).
+2. Pencere geçtikten sonra arayıp gelemeyeceğini söyleyen misafir için
+   panelde "Misafir iptal istedi"yi seç: rezervasyon iade olmadan iptal
+   edilir, saat satışa açılır, misafire e-posta gider. Saat satılınca panel
+   "Geç iptal edilen saat yeniden satıldı" diye haber verir: o tutarı
+   PayNkolay panelinden karta iade et ve "Elle iade edildi" ile kaydet (en
+   geç 14 gün).
+3. Telefonla ücretsiz telafi saati ayırırken bırakma kuralını söyle
+   (başlangıcına 2 saatten fazla varken).
 
 ## Ek A - Cümle cümle düzeltme listesi
 

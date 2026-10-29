@@ -51,7 +51,7 @@ function outcome(cause: KaraokeCancelCause | "", p: KaraokeRefundCancelProps) {
     return `Rezervasyon onaylanmadığı için ${p.amount} tamamı karta iade edilir; misafire "isteğin üzerine iptal ettik" e-postası gider.`;
   }
   if (cause === "misafir") {
-    return `İstek anı son ücretsiz iptal anından (${p.freeUntil}) önceyse ya da tam o andaysa ${p.amount} karta iade edilir. Sonraysa rezervasyonun kuralı uygulanır: geç iptalde iade vermiyorsa rezervasyon iptal edilmez, misafire kodunu başkasına verebileceğini söyleyen e-posta gider.`;
+    return `İstek anı son ücretsiz iptal anından (${p.freeUntil}) önceyse ya da tam o andaysa ${p.amount} karta iade edilir. Sonraysa rezervasyonun kuralı uygulanır: geç iptalde iade vermiyorsa rezervasyon iade yapılmadan iptal edilir ve saat yeniden satışa açılır (saat başka bir misafire satılırsa o saatin tutarı elle iade edilir); istek ya da kaydı rezervasyon saatinden sonraysa rezervasyon iptal edilmez. Misafire ne olduğunu yazan e-posta gider.`;
   }
   if (cause === "yeniden") {
     return `Saat başka bir misafire verildiği için ${p.amount} tamamı karta iade edilir ve misafire bunu söyleyen e-posta gider.`;

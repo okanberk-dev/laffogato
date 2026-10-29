@@ -1030,6 +1030,13 @@ describe("the karaoke document: one text for every policy (ASK-OTH-3-CFG)", () =
     expect(seven).toContain(
       "gelmediğiniz ya da iptal edemediğiniz bir saati başka bir misafire verirsek ödediğiniz tutarın tamamını iade ederiz",
     );
+    // 29 Eki 2026: a guest who tells us before the start is cancelled and
+    // their hours go back on sale, a resold one refunding what was paid for
+    // it (LEGAL-REDLINES §37.8, question 1).
+    expect(seven).toContain(
+      "Rezervasyon saati gelmeden gelemeyeceğinizi bize bildirirseniz rezervasyonunuzu iptal eder ve saatlerini yeniden satışa açarız; bu durumda da ücret iadesi yapılmaz, ancak bu saatlerden biri başka bir misafire satılırsa o saat için ödediğiniz tutar en geç 14 gün içinde kartınıza iade edilir.",
+    );
+    expect(seven).not.toContain("rezervasyon sizin adınıza durur");
     expect(JSON.stringify(KARAOKE_ROOM_DOC)).not.toMatch(
       /götürü|cezai şart değildir/,
     );
@@ -1037,10 +1044,12 @@ describe("the karaoke document: one text for every policy (ASK-OTH-3-CFG)", () =
       "Rezervasyonunuzu yalnızca haklı bir sebeple (oda veya ekipman arızası, köşkün geçici olarak kapanması, mücbir sebep veya benzeri haklı bir sebep) iptal ederiz. Bu durumda size durumu öğrenir öğrenmez ve en geç 3 gün içinde e-postayla bildiririz; durumu rezervasyon saatinden önce öğrenmişsek bildirimi rezervasyon saatinden önce yapar, rezervasyonunuza 24 saatten az kalmışsa ve telefon numaranız kayıtlıysa ayrıca sizi ararız. Ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz; iade, iptalle birlikte PayNkolay üzerinden hemen başlatılır. Bu süreler Mesafeli Sözleşmeler Yönetmeliği m.16/4'teki en uzun sürelerdir ve iptalin her nedeninde uygulanır. Kanundan doğan tazminat haklarınız saklıdır.",
       // OP-KARAOKE-GOODWILL (19 Eki 2026): the late köşk cancel made good.
       // "ücretsiz iptal süresinin bittiği andan sonra" follows the window,
-      // which since 28 Eki 2026 ends two hours after the booking (the
-      // make-good then opens on nearly every business cancel; LEGAL-
-      // REDLINES §37 asks the lawyer).
-      "İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep (mücbir sebep) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde {{PHONE}} numarasını arayarak veya {{EMAIL}} adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi {{EMAIL}} adresine yazmanızdan itibaren en geç 14 gün içinde yaparız.",
+      // which since 28 Eki 2026 ends two hours after the booking, so the
+      // make-good opens on nearly every business cancel: the counterweight
+      // of the guest's late loss, kept (LEGAL-REDLINES §37.8, question 2).
+      // Since 29 Eki 2026 it says until when the free hour can be let go
+      // (question 3).
+      "İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep (mücbir sebep) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde {{PHONE}} numarasını arayarak veya {{EMAIL}} adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi {{EMAIL}} adresine yazmanızdan itibaren en geç 14 gün içinde yaparız. Ayırttığınız ücretsiz saati, rezervasyon saatine 2 saatten fazla varken (saat, rezervasyon saatine 4 saatten az kala ayrıldıysa ayrıldığı andan itibaren 2 saat içinde ve rezervasyon saati gelmeden) rezervasyon sayfanızdan, bizi arayarak veya {{EMAIL}} adresine yazarak bırakabilirsiniz; bu durumda telafiniz yeniden açılır. Bu süreden sonra bırakılan ya da gelinmeyen ücretsiz saatte telafi kullanılmış sayılır.",
     ]);
   });
 

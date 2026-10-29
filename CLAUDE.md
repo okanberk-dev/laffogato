@@ -371,7 +371,7 @@ sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
 testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
 `docs/PANEL-KARAOKE.md`.
 
-## Karaoke iptal ve iade penceresi (28 Eki 2026)
+## Karaoke iptal ve iade penceresi (28-29 Eki 2026)
 
 Operatör: _"karaoke için 2 saat içinde iptal etmezse iade olamaz; e-ticaret
 için de manuel işlem olsun, iade otomatik işlemesin"_. Üyenin ücretsiz iptal
@@ -387,10 +387,26 @@ tek başına yazılır). Her satır son anını ve iki cümlesini saklar; 28 Eki
 önce yapılanlar eski kuralı (başlangıçtan 2 saat önce) korur, saat
 değiştirilince de (`karaokeMovedDeadline`). Köşkün kendi iptali yine tam iade,
 "Yine de tamamını iade et" durur; panelde 2-72 saat (ön ödeme rezervasyondan
-75 dakika sonrasına kadar gelebilir). Yayın notu: LEGAL-REDLINES §37.7.
+75 dakika sonrasına kadar gelebilir). Web formu bastığı iki cümlenin
+damgasını gönderir (`karaokeRulesStamp`): sayıları aynı, cümleleri farklı bir
+sayfa `policy_changed` alır (yayın anı, LEGAL-REDLINES §37.7).
 Sipariş iadesi **elle**: "İptal et" para iade etmez; yalnız "İade başlat" ya
-da PayNkolay'da iade edip kaydeden düğmeler. Ayrıntı: `docs/API-MOBILE.md`
-§7.1, `docs/LEGAL-REDLINES-2026-09.md` §37.
+da PayNkolay'da iade edip kaydeden düğmeler.
+
+**Kararlar (29 Eki 2026, avukat yerine operatörün talimatıyla; LEGAL-REDLINES
+§37.8).** %0 kuralında misafir pencereden sonra ama rezervasyon saatinden
+önce köşke gelemeyeceğini bildirirse ("Misafir iptal istedi") rezervasyon
+iade olmadan iptal edilir ve saati satışa açılır (`releaseLateBooking`;
+`refunded` + `refundMinor` 0, `keptWholeOnLateCancel`); saat başka bir
+misafire satılırsa o saatin tutarı yeniden satış yoluyla elle iade edilir.
+Üyenin kendi geç iptali (site, uygulama) yine `too_late`. Köşkün geç
+iptalindeki telafi her işletme iptalinde doğar ve öyle kalır. Ücretsiz
+telafi saati kendi kuralını taşır (`KARAOKE_MAKE_GOOD_POLICY` 2 / 0,
+panelden bağımsız): başlangıcına 2 saatten fazla varken bırakılır, geç
+verilmişse verildikten sonra 2 saat (`karaokeMakeGoodDeadline`), kendi iki
+cümlesiyle (`karaokeMakeGoodRules`); koşullar §7, §8 ve Ödeme Koşulları §21
+bunu yazar (29 Ekim 2026). Ayrıntı: `docs/API-MOBILE.md` §7.1,
+`docs/LEGAL-REDLINES-2026-09.md` §37.
 
 ## Köşkün paneli: menü bağlantısı (22 Eki 2026)
 

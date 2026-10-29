@@ -381,6 +381,92 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
       expect(Number(total.rows[0].owed)).toBe(100_000);
     });
 
+    it("a late request at 0 % released the hours: an hour sold again owes back what was paid for it, and the guest is told it in those words (29 Eki 2026)", async () => {
+      // A paid 2 h / 0 % booking three days ahead, booked a day ago: its
+      // free window long over, the guest calls to say they will not come.
+      await insert(
+        lateCancelled({
+          status: "confirmed",
+          paymentStatus: "paid",
+          refundMinor: null,
+          freeCancelHours: 2,
+          lateRefundPercent: 0,
+          cancelDeadline: new Date(Date.now() - 22 * 3_600_000).toISOString(),
+        }),
+      );
+      const res = await pay.cancelKaraokeReservation("krk-90001", {
+        kind: "staff",
+        actor: "personel@kosk",
+        // No money moves: the refund right is not asked for.
+        canRefund: false,
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt: new Date(),
+      });
+      expect(res).toMatchObject({ ok: true, released: true, refunded: false });
+      expect(await row("krk-90001")).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "refunded",
+        refundMinor: 0,
+      });
+      expect(mail.cancellations.at(-1)).toMatchObject({
+        cancelCause: "misafir",
+        releasedForResale: true,
+      });
+      expect(mail.cancellations.at(-1)).not.toHaveProperty("refundedMinor");
+
+      // The hour is free online: another guest books and pays for the
+      // first of its two hours.
+      await insert(hold("krk-90002", 20, 1));
+      expect(await paymentOf("krk-90002", "PNK-X", 100_000)).toMatchObject({
+        ok: true,
+        outcome: "paid",
+      });
+      const owed = await row("krk-90001");
+      expect(owed).toMatchObject({
+        paymentStatus: "refunding",
+        resaleRefundMinor: 100_000,
+        refundMinor: 100_000,
+      });
+      expect(sorted(owed.resoldHours)).toEqual([20]);
+      expect(
+        mail.alerts.filter(
+          (m) => m.title === "Geç iptal edilen saat yeniden satıldı",
+        ),
+      ).toHaveLength(1);
+
+      // A person refunds it in PayNkolay and records it: the guest reads
+      // that a resold hour went back, never a late share they did not get.
+      const settled = await pay.settleKaraokeRefundByHand(
+        "krk-90001",
+        "yonetici@kosk",
+        undefined,
+        { shownRefundMinor: 100_000 },
+      );
+      expect(settled.ok).toBe(true);
+      expect(await row("krk-90001")).toMatchObject({
+        paymentStatus: "refunded",
+        refundMinor: 100_000,
+      });
+      const last = mail.cancellations.at(-1)!;
+      expect(last).toMatchObject({
+        refundedMinor: 100_000,
+        refundIsShare: true,
+        refundIsResaleOnly: true,
+      });
+      expect(last).not.toHaveProperty("refundIncludesResale");
+      const real =
+        await vi.importActual<typeof import("@/lib/email/send")>(
+          "@/lib/email/send",
+        );
+      expect(real.karaokeCancellationFlags(last as never)).toMatchObject({
+        KARAOKE_SATIS_IADE_EDILDI: true,
+        KARAOKE_KISMI_SATIS_IADE_EDILDI: false,
+        KARAOKE_KISMI_IADE_EDILDI: false,
+        KARAOKE_SATISA_ACILDI: false,
+      });
+    });
+
     it("the same payment reported twice at once charges its hour once", async () => {
       await insert(lateCancelled());
       await insert(hold("krk-90002", 20, 1));

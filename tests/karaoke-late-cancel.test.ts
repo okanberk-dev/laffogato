@@ -972,7 +972,7 @@ describe("the operator's case (28 Eki 2026): the window counts from the booking"
     expect(h.cancellations[0]).toMatchObject({ cancelCause: "misafir" });
   });
 
-  it("'Misafir iptal istedi' five hours after booking: kept, not cancelled, the guest told it stands", async () => {
+  it("'Misafir iptal istedi' five hours after booking: cancelled with nothing refunded, the hours back on sale (karaoke terms §7, 29 Eki 2026)", async () => {
     const id = await bookPaid(threeDaysBefore);
     const requestedAt = new Date(threeDaysBefore.getTime() + 5 * HOUR);
     const res = await payment.cancelKaraokeReservation(
@@ -988,25 +988,35 @@ describe("the operator's case (28 Eki 2026): the window counts from the booking"
       },
       { now: new Date(requestedAt.getTime() + 10 * 60_000) },
     );
-    expect(res).toMatchObject({ ok: true, refunded: false, kept: true });
-    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
-    expect(h.refunds).toEqual([]);
-    expect(h.cancellations).toEqual([]);
-    // The guest is told the booking stands, in the pair it was booked
-    // under, with the last free moment it had (22:00 on 27 Ekim, Tuzla).
-    expect(h.lateRequests).toHaveLength(1);
-    expect(h.lateRequests[0]).toMatchObject({
-      code: id,
-      cancellation: {
-        rules: [time.KARAOKE_REFUND_RULE, time.KARAOKE_NO_REFUND_RULE],
-        freeUntil: "27 Ekim 2026, 22:00",
-      },
+    expect(res).toMatchObject({ ok: true, refunded: false, released: true });
+    expect(res).not.toHaveProperty("kept");
+    // The whole payment is the share kept: refundMinor 0 on a refunded row,
+    // nothing owed, the hour free for another guest.
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+      refundMinor: 0,
     });
-    expect(JSON.stringify(h.lateRequests[0])).not.toContain("Misafir aradı");
+    expect(time.keptWholeOnLateCancel(row() as never)).toBe(true);
+    expect(h.refunds).toEqual([]);
+    expect(h.lateRequests).toEqual([]);
+    // The guest is told it was cancelled at their request, that nothing
+    // went back, and what a resold hour gives back.
+    expect(h.cancellations).toHaveLength(1);
+    expect(h.cancellations[0]).toMatchObject({
+      code: id,
+      cancelCause: "misafir",
+      releasedForResale: true,
+    });
+    expect(h.cancellations[0]).not.toHaveProperty("refundedMinor");
+    expect(JSON.stringify(h.cancellations[0])).not.toContain("Misafir aradı");
     expect(h.audits.at(-1)).toMatchObject({
       action: "transition",
       payload: {
-        event: "late_guest_request",
+        event: "late_guest_release",
+        status: "cancelled",
+        paymentStatus: "refunded",
+        refundMinor: 0,
         cause: "misafir",
         channel: "telefon",
         requestedAt: requestedAt.toISOString(),
@@ -1300,14 +1310,48 @@ describe("the köşk cancels a paid booking, with its reason (ASK-OTH-3 (c), ASK
     expect(res).toMatchObject({ ok: true, refunded: true });
   });
 
-  it("a late request at 0 %: not cancelled, recorded with channel and instant, the guest told it stands", async () => {
+  it("a late request at 0 % before the start: cancelled with nothing refunded and the hour on sale, recorded with channel and instant", async () => {
     seedPaid();
     const res = await payment.cancelKaraokeReservation(
       "krk-00042",
       staff({ cause: "misafir", channel: "e-posta", requestedAt: at(1.5) }),
       { now: at(1) },
     );
+    expect(res).toMatchObject({ ok: true, refunded: false, released: true });
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+      refundMinor: 0,
+    });
+    expect(h.refunds).toEqual([]);
+    expect(h.lateRequests).toEqual([]);
+    expect(h.cancellations[0]).toMatchObject({
+      code: "krk-00042",
+      cancelCause: "misafir",
+      releasedForResale: true,
+    });
+    expect(JSON.stringify(h.cancellations[0])).not.toContain("Projektör");
+    expect(h.audits.at(-1)).toMatchObject({
+      action: "transition",
+      payload: {
+        event: "late_guest_release",
+        cause: "misafir",
+        channel: "e-posta",
+        requestedAt: at(1.5).toISOString(),
+      },
+    });
+  });
+
+  it("a late request recorded once the evening has begun: nothing left to sell, the booking stands and the guest is told so", async () => {
+    // Asked before the start (by e-mail at 18:30), recorded at 20:30.
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "e-posta", requestedAt: at(1.5) }),
+      { now: at(-0.5) },
+    );
     expect(res).toMatchObject({ ok: true, refunded: false, kept: true });
+    expect(res).not.toHaveProperty("released");
     expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
     expect(h.refunds).toEqual([]);
     expect(h.cancellations).toEqual([]);
@@ -1317,16 +1361,21 @@ describe("the köşk cancels a paid booking, with its reason (ASK-OTH-3 (c), ASK
       // A row from before the snapshot: the pair it was booked under.
       cancellation: { rules: [...time.LEGACY_KARAOKE_RULES] },
     });
-    expect(JSON.stringify(h.lateRequests[0])).not.toContain("Projektör");
     expect(h.audits.at(-1)).toMatchObject({
       action: "transition",
-      payload: {
-        event: "late_guest_request",
-        cause: "misafir",
-        channel: "e-posta",
-        requestedAt: at(1.5).toISOString(),
-      },
+      payload: { event: "late_guest_request", cause: "misafir" },
     });
+  });
+
+  it("a request made at the start or after it: the booking stands", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "telefon", requestedAt: at(0) }),
+      { now: at(0) },
+    );
+    expect(res).toMatchObject({ ok: true, kept: true });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
   });
 
   it("a late request on a paid booking the köşk never confirmed: everything back, never kept", async () => {

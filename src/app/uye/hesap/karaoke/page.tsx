@@ -101,6 +101,8 @@ function ReservationList({
           const state = karaokeStatusLine({
             status: r.status,
             paymentStatus: paymentStatusOf(r),
+            paidMinor: r.paidMinor,
+            refundMinor: r.refundMinor,
           });
           return (
             <li key={r.id}>

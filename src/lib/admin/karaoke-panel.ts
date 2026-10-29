@@ -336,6 +336,16 @@ export function paymentLabel(
         ? "Kısmi iade bekliyor"
         : "İade sonucu bekleniyor";
     case "refunded":
+      // A guest's late request under a late share of 0: cancelled, the hours
+      // on sale, nothing refunded unless one sells again (29 Eki 2026).
+      if (
+        typeof r.refundMinor === "number" &&
+        r.refundMinor === 0 &&
+        (r.resaleRefundMinor ?? 0) === 0 &&
+        (r.paidMinor ?? 0) > 0
+      ) {
+        return "İade yok · saat satışta";
+      }
       return isPartialRefund(r) ? "Kısmen iade edildi" : "İade edildi";
     case "expired":
       if (unverified) return "Ödeme doğrulanamadı";

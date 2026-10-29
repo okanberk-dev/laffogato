@@ -58,11 +58,13 @@ describe("legal document dates", () => {
     // 2026: the KDV rule, §16.4; 18 Ekim 2026: the distance-sales rules of
     // 2026.)
     expect(LEGAL_UPDATED).toBe("27 Ekim 2026");
-    // The karaoke terms carry their own label: 21 Ekim 2026, §8 makes good
-    // a late köşk cancel and §9 refunds a share within 14 days
-    // (LEGAL-REDLINES §26). (20 Ekim 2026: §12 says how the advance is
+    // The karaoke terms carry their own label: 29 Ekim 2026, §7 releases the
+    // hours of a guest who tells us they will not come and §8 says until
+    // when a free make-good hour can be let go (LEGAL-REDLINES §37.8).
+    // (21 Ekim 2026: §8 makes good a late köşk cancel and §9 refunds a share
+    // within 14 days, §26; 20 Ekim 2026: §12 says how the advance is
     // invoiced, ASK-KAR-KDV.)
-    expect(KARAOKE_LEGAL_UPDATED).toBe("21 Ekim 2026");
+    expect(KARAOKE_LEGAL_UPDATED).toBe("29 Ekim 2026");
   });
 
   it("a document that changes after the revision carries its own day", () => {
@@ -89,9 +91,11 @@ describe("legal document dates", () => {
       // §31.)
       "ticari-elektronik-ileti": COMMERCIAL_CONSENT_UPDATED,
       // 28 Ekim 2026: the karaoke free-cancel window is counted from the
-      // booking (LEGAL-REDLINES §37). Only these two quote the default rule
-      // in their own words, and neither is a checkout document, so the set
-      // (and the version a checkout consent records) did not move.
+      // booking (LEGAL-REDLINES §37); 29 Ekim 2026: §21 says a resold hour
+      // of a late-cancelled booking goes back (§37.8). Only these two quote
+      // the default rule in their own words, and neither is a checkout
+      // document, so the set (and the version a checkout consent records)
+      // did not move.
       "odeme-kosullari": KARAOKE_WINDOW_LEGAL_UPDATED,
       "hesap-silme": KARAOKE_WINDOW_LEGAL_UPDATED,
     };
@@ -99,7 +103,7 @@ describe("legal document dates", () => {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
     }
     expect(COMMERCIAL_CONSENT_UPDATED).toBe("27 Ekim 2026");
-    expect(KARAOKE_WINDOW_LEGAL_UPDATED).toBe("28 Ekim 2026");
+    expect(KARAOKE_WINDOW_LEGAL_UPDATED).toBe("29 Ekim 2026");
     // 25 Ekim 2026 (the Meta Pixel, §35) is before the revision now, so no
     // document carries it of its own any more.
     expect(META_PIXEL_LEGAL_UPDATED).toBe("25 Ekim 2026");

@@ -405,8 +405,10 @@ ${SIGNATURE}`,
   // KARAOKE_TAM_IADE; a late cancel's share went back, or is owed and will:
   // KARAOKE_KISMI_IADE_EDILDI / KARAOKE_KISMI_IADE; the hour cancelled late
   // was sold again and what was kept for it went back: KARAOKE_SATIS_IADE,
-  // or with the share in one refund: KARAOKE_KISMI_SATIS_IADE_EDILDI;
-  // none was taken: KARAOKE_ODEMESIZ), the make-good of a late köşk cancel
+  // or with the share in one refund: KARAOKE_KISMI_SATIS_IADE_EDILDI, or
+  // after a late cancel that kept everything: KARAOKE_SATIS_IADE_EDILDI;
+  // such a cancel itself, nothing refunded and the hours on sale:
+  // KARAOKE_SATISA_ACILDI; none was taken: KARAOKE_ODEMESIZ), the make-good of a late köşk cancel
   // (KARAOKE_TELAFI, karaoke terms §8) and how to get another evening -
   // nothing to confirm, nothing to click. send.ts sets one opening and at
   // most one money line.
@@ -458,14 +460,29 @@ günü sürebilir.
 Son durum, rezervasyon sayfanda:
 [KARAOKE_LINK]
 
-<!--/IF:KARAOKE_SATIS_IADE--><!--IF:KARAOKE_KISMI_IADE-->Rezervasyonundaki geç iptal kuralına göre [KARAOKE_TUTAR] kartına iade edilir.
+<!--/IF:KARAOKE_SATIS_IADE--><!--IF:KARAOKE_SATIS_IADE_EDILDI-->Geç iptal ettiğin saat başka bir misafire satıldığı için o saat için ödediğin
+[KARAOKE_TUTAR] kartına iade edildi; yansıması bankana göre birkaç iş günü
+sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_SATIS_IADE_EDILDI--><!--IF:KARAOKE_KISMI_IADE-->Rezervasyonundaki geç iptal kuralına göre [KARAOKE_TUTAR] kartına iade edilir.
 İade yapılınca sana ayrıca haber veririz; yansıması bankana göre birkaç iş
 günü sürebilir.
 
 Son durum, rezervasyon sayfanda:
 [KARAOKE_LINK]
 
-<!--/IF:KARAOKE_KISMI_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
+<!--/IF:KARAOKE_KISMI_IADE--><!--IF:KARAOKE_SATISA_ACILDI-->Ücretsiz iptal süren geçtiği için rezervasyonundaki kurala göre ücret iadesi
+yapılmadı. Saatlerini yeniden satışa açtık: saatlerinden biri başka bir
+misafire satılırsa o saat için ödediğin tutarı en geç 14 gün içinde kartına
+iade eder, sana ayrıca haber veririz.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_SATISA_ACILDI--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
 
 <!--/IF:KARAOKE_ODEMESIZ--><!--IF:KARAOKE_TELAFI-->Ayrıca sana [KARAOKE_TELAFI_TUTAR] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([KARAOKE_TELAFI_SON] tarihine kadar bizi arayarak ya da bu e-postayı yanıtlayarak boş bir saat için ayırtabilirsin), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (bu e-postayı yanıtlayıp IBAN'ını yaz, 14 gün içinde öderiz).
 

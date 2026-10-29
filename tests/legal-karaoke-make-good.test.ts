@@ -83,7 +83,7 @@ describe("the karaoke terms (OP-KARAOKE-GOODWILL, ASK-OTH-3-CFG)", () => {
     const eight = section(doc(KARAOKE_ROOM_DOC.slug), "8").paragraphs ?? [];
     expect(eight).toHaveLength(2);
     expect(eight[1]).toMatch(
-      /^İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep \(mücbir sebep\) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi\. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde \S.+ numarasını arayarak veya \S+@\S+ adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi \S+@\S+ adresine yazmanızdan itibaren en geç 14 gün içinde yaparız\.$/,
+      /^İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep \(mücbir sebep\) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi\. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde \S.+ numarasını arayarak veya \S+@\S+ adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi \S+@\S+ adresine yazmanızdan itibaren en geç 14 gün içinde yaparız\. Ayırttığınız ücretsiz saati, rezervasyon saatine 2 saatten fazla varken \(saat, rezervasyon saatine 4 saatten az kala ayrıldıysa ayrıldığı andan itibaren 2 saat içinde ve rezervasyon saati gelmeden\) rezervasyon sayfanızdan, bizi arayarak veya \S+@\S+ adresine yazarak bırakabilirsiniz; bu durumda telafiniz yeniden açılır\. Bu süreden sonra bırakılan ya da gelinmeyen ücretsiz saatte telafi kullanılmış sayılır\.$/,
     );
     expect(eight[1]).not.toContain("{{");
   });
@@ -217,6 +217,79 @@ describe("the mails print the actual amounts", () => {
       "KARAOKE_ODEMESIZ",
     ].filter((k) => flags[k]);
     expect(money).toEqual(["KARAOKE_SATIS_IADE"]);
+  });
+});
+
+describe("a late request at 0 % released the hours (karaoke terms §7, 29 Eki 2026)", () => {
+  const MONEY = [
+    "KARAOKE_IADE",
+    "KARAOKE_TAM_IADE",
+    "KARAOKE_KISMI_IADE_EDILDI",
+    "KARAOKE_KISMI_SATIS_IADE_EDILDI",
+    "KARAOKE_SATIS_IADE",
+    "KARAOKE_SATIS_IADE_EDILDI",
+    "KARAOKE_KISMI_IADE",
+    "KARAOKE_SATISA_ACILDI",
+    "KARAOKE_ODEMESIZ",
+  ];
+
+  it("the cancel itself: at their request, nothing refunded, the hours on sale and what a resold one gives back", async () => {
+    await send.sendKaraokeCancellationEmail({
+      ...BASE,
+      cancelCause: "misafir",
+      releasedForResale: true,
+    });
+    for (const part of both(h.sent[0]!)) {
+      expect(part).toContain("İsteğin üzerine karaoke rezervasyonunu iptal ettik.");
+      expect(part).toContain(
+        "Ücretsiz iptal süren geçtiği için rezervasyonundaki kurala göre ücret iadesi yapılmadı. Saatlerini yeniden satışa açtık: saatlerinden biri başka bir misafire satılırsa o saat için ödediğin tutarı en geç 14 gün içinde kartına iade eder, sana ayrıca haber veririz.",
+      );
+      expect(part).not.toContain("kartına iade edildi");
+      expect(part).not.toContain("senden ödeme alınmadı");
+      expect(part).not.toMatch(/\[KARAOKE_/);
+    }
+    const flags = send.karaokeCancellationFlags({
+      cancelCause: "misafir",
+      releasedForResale: true,
+      payment: { kind: "online", paidMinor: 200_000 },
+    });
+    expect(MONEY.filter((k) => flags[k])).toEqual(["KARAOKE_SATISA_ACILDI"]);
+  });
+
+  it("its first resold hour refunded: what was paid for that hour, never a late share", async () => {
+    await send.sendKaraokeCancellationEmail({
+      ...BASE,
+      refundedMinor: 100_000,
+      refundIsShare: true,
+      refundIsResaleOnly: true,
+    });
+    for (const part of both(h.sent[0]!)) {
+      expect(part).toContain(
+        "Geç iptal ettiğin saat başka bir misafire satıldığı için o saat için ödediğin ₺1.000,00 kartına iade edildi",
+      );
+      expect(part).not.toContain("geç iptal kuralına göre");
+      expect(part).not.toContain("daha kartına");
+    }
+    const flags = send.karaokeCancellationFlags({
+      refundedMinor: 100_000,
+      refundIsShare: true,
+      refundIsResaleOnly: true,
+      payment: { kind: "online", paidMinor: 200_000 },
+    });
+    expect(MONEY.filter((k) => flags[k])).toEqual([
+      "KARAOKE_SATIS_IADE_EDILDI",
+    ]);
+  });
+
+  it("a later resold hour of the same booking reads as the top-up it is", () => {
+    const flags = send.karaokeCancellationFlags({
+      refundedMinor: 100_000,
+      refundIsShare: true,
+      refundIsResaleTopUp: true,
+      refundIsResaleOnly: true,
+      payment: { kind: "online", paidMinor: 200_000 },
+    });
+    expect(MONEY.filter((k) => flags[k])).toEqual(["KARAOKE_SATIS_IADE"]);
   });
 });
 

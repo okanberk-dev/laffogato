@@ -45,7 +45,9 @@ import {
   karaokeFreeCancelEnd,
   karaokeCancellationRules,
   karaokeDeadlineFor,
+  karaokeMakeGoodRules,
   karaokeMovedDeadline,
+  keptWholeOnLateCancel,
   karaokeRulesOf,
   karaokeRulesStamp,
   karaokeStartInstant,
@@ -1177,12 +1179,22 @@ export async function rescheduleReservation(
   // never past the new start (`karaokeMovedDeadline`). A row from before the
   // snapshot has none stored and keeps counting back from its own date and
   // hour (`karaokeCancelDeadline`).
+  // A free make-good hour is recounted under its own rule and gets the
+  // sentences of the new count (`karaokeMakeGoodRules`): moved close to its
+  // start, it is released from when it was given, no longer by the start.
+  const deadline =
+    existing.cancelDeadline || existing.makeGoodFor
+      ? karaokeMovedDeadline(existing, slot)
+      : null;
   const patch: Pick<KaraokeReservation, "date" | "startHour"> &
-    Partial<Pick<KaraokeReservation, "cancelDeadline">> = {
+    Partial<
+      Pick<KaraokeReservation, "cancelDeadline" | "cancellationRules">
+    > = {
     date: slot.date,
     startHour: slot.startHour,
-    ...(existing.cancelDeadline
-      ? { cancelDeadline: karaokeMovedDeadline(existing, slot).toISOString() }
+    ...(deadline ? { cancelDeadline: deadline.toISOString() } : {}),
+    ...(deadline && existing.makeGoodFor
+      ? { cancellationRules: karaokeMakeGoodRules(slot, deadline) }
       : {}),
   };
   const res = await getDb()
@@ -1334,17 +1346,24 @@ function karaokeMailPayload(
     // What actually went back: the whole payment, or a late cancel's share
     // (with what an hour sold again gave back). A refund that only adds the
     // resale part says that part.
-    ...(r.status === "cancelled" && money === "refunded"
-      ? {
-          refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
-          refundIsShare: isPartialRefund(r),
-          ...(note.resaleTopUp
-            ? { refundIsResaleTopUp: true }
-            : (r.resaleRefundMinor ?? 0) > 0
-              ? { refundIncludesResale: true }
-              : {}),
-        }
-      : {}),
+    // A late cancel that kept everything and put the hours on sale (a late
+    // share of 0): nothing went back, and the mail says what may still.
+    ...(keptWholeOnLateCancel(r)
+      ? { releasedForResale: true }
+      : r.status === "cancelled" && money === "refunded"
+        ? {
+            refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
+            refundIsShare: isPartialRefund(r),
+            ...(note.resaleTopUp
+              ? { refundIsResaleTopUp: true }
+              : (r.resaleRefundMinor ?? 0) > 0
+                ? // All of it a resale part: no late share was refunded.
+                  (r.refundMinor ?? 0) <= (r.resaleRefundMinor ?? 0)
+                  ? { refundIsResaleOnly: true }
+                  : { refundIncludesResale: true }
+                : {}),
+          }
+        : {}),
     // A late cancel's share the köşk still owes (refunded by hand).
     ...(r.status === "cancelled" && money === "refunding" && isPartialRefund(r)
       ? { refundOwedMinor: refundAmountOf(r), refundIsShare: true }

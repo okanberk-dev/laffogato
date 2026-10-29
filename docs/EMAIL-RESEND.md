@@ -260,7 +260,7 @@ Yirmi sekiz şablon - her satırda **tetikleyici · izin sınıfı · idempotenc
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
 | `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı + onaylanan karaoke sözleşmesinin doldurulmuş metni ek olarak |
 | `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı; personel iptalinde nedenle açılır |
-| `karaoke-iptal-istegi`                 | işlemsel          | misafirin telefonla ya da e-postayla geç iptal isteği, kural iade vermiyor: rezervasyon iptal edilmez (`notifyLateCancelRequest`) · kilit yok, her panel kaydı bir istek |
+| `karaoke-iptal-istegi`                 | işlemsel          | misafirin telefonla ya da e-postayla geç iptal isteği, kural iade vermiyor ve rezervasyon saati gelmiş: rezervasyon iptal edilmez (`notifyLateCancelRequest`; saatinden önceki istek `karaoke-iptal` ile iptal edilir, saat satışa açılır) · kilit yok, her panel kaydı bir istek |
 | `karaoke-saat-degisikligi`             | işlemsel          | personel rezervasyonun tarihini / saatini değiştirdi (`rescheduleReservation`, panelde "Saati değiştir") · eski akşamla korumalı UPDATE: bir taşıma, bir mail; yeni ve eski saat, tek ödeme satırı (`karaokeRescheduleFlags`), yeni imzalı bağlantı |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
 | `hesap-silme-talebi`                   | işlemsel          | üye `/uye/hesap/sil`'den silme talebi gönderdi (`requestAccountDeletionAction`) · yalnız talep **açıldığında**, `account-deletion-<üye>-<talep anı>-member` |
@@ -802,15 +802,24 @@ rezervasyonun yapıldığı kuralın sözleriyle söyler (`karaokeVenueCancelUnt
 varsayılan kuralda "rezervasyonu yaptıktan sonraki 2 saat içinde, rezervasyon
 saati gelmeden", geç iptal payı olan kuralda "rezervasyon saatinden önce", 28
 Eki 2026'dan önce yapılmış rezervasyonda "rezervasyon saatine 2 saatten fazla
-varken", köşkün verdiği ücretsiz telafi saatinde (`KARAOKE_TELAFI_SAATI`) "bu
-saat ayrıldıktan sonraki 2 saat içinde, rezervasyon saati gelmeden";
+varken", köşkün verdiği ücretsiz telafi saatinde (`KARAOKE_TELAFI_SAATI`,
+29 Eki 2026'dan beri saatin kendi kuralı) "rezervasyon saatine 2 saatten
+fazla varken", başlangıca 4 saatten az kala verilen saatte "bu saat
+ayrıldıktan sonraki 2 saat içinde, rezervasyon saati gelmeden";
 hiçbir üye iptalinin kabul edilmediği kuralda bunun yerine `KARAOKE_MEKAN_ARA`
 ("bizi ara") gider. İptal maili iade edilen gerçek tutarı yazar: tamamı
 (`KARAOKE_IADE`), geç iptal payı iade edildi (`KARAOKE_KISMI_IADE_EDILDI`) ya
 da pay borçlu ve ekip elle iade edecek (`KARAOKE_KISMI_IADE`: tutar, "kartına
 iade edilir", tarih sözü yok; ekip "Elle iade edildi" deyince ikinci mail
 gider). Payı borçlu iptalde ekibe `sendKaraokeMoneyAlertEmail` ile "Geç iptal:
-kısmi iade bekliyor" gider (`late-share-<ref>`).
+kısmi iade bekliyor" gider (`late-share-<ref>`). %0 kuralında geç misafir
+isteğiyle iade olmadan iptal edilip saati satışa açılan rezervasyon (29 Eki
+2026, LEGAL-REDLINES §37.8) `KARAOKE_SATISA_ACILDI` yazar ("ücret iadesi
+yapılmadı. Saatlerini yeniden satışa açtık: ..."); saatlerinden biri satılıp
+ekip o tutarı elle iade edince `KARAOKE_SATIS_IADE_EDILDI` ("o saat için
+ödediğin X kartına iade edildi"; "geç iptal kuralına göre" demez, bu
+rezervasyonda kural hiçbir şey vermedi), sonraki saatler
+`KARAOKE_SATIS_IADE` ("... X daha").
 
 **Personel iptalinin nedeni (19 Eki 2026, ASK-OTH-3 (c), ASK-Y3-4 (c)).**
 Ödenmiş rezervasyonu panelden iptal eden kişi nedeni sabit listeden seçer
@@ -825,10 +834,12 @@ anında çıkar. Misafirin telefonla ya da e-postayla ilettiği istek
 verilmesi (`yeniden`) `KARAOKE_YENIDEN`. Üyenin kendi iptali bugünkü
 sözleriyle kalır (`KARAOKE_IPTAL_GENEL`). Bir açılış ve en çok bir para
 satırı (`karaokeCancellationFlags`). Misafirin geç isteğine kural iade
-vermiyorsa rezervasyon iptal edilmez ve `karaoke-iptal-istegi` gider:
-rezervasyon onun adına durur, kodunu devredebilir, saat başkasına verilirse
-tamamı iade edilir. Akşam bittikten sonra kaydedilen istek yalnız denetim
-kaydına girer, mail gitmez (karar D7). Onay maili son ücretsiz iptal anını yazar
+vermiyorsa: istek ve kaydı rezervasyon saatinden önceyse rezervasyon iade
+olmadan iptal edilir, saati satışa açılır ve `karaoke-iptal` gider
+(`KARAOKE_ISTEK` + `KARAOKE_SATISA_ACILDI`, 29 Eki 2026); rezervasyon saati
+geldiyse rezervasyon iptal edilmez ve `karaoke-iptal-istegi` gider:
+rezervasyon onun adına durur. Akşam bittikten sonra kaydedilen istek yalnız
+denetim kaydına girer, mail gitmez (karar D7). Onay maili son ücretsiz iptal anını yazar
 (`[KARAOKE_SON_IPTAL]`, karaoke koşulları §7).
 
 Personel rezervasyonu başka bir gün ya da saate taşıyınca (27 Ekim 2026,
