@@ -28,8 +28,14 @@ const ISTANBUL_OFFSET_MS = 3 * HOUR_MS;
  * shown: its window ends 2 hours BEFORE its start (`karaokeCancelDeadline`).
  */
 export const KARAOKE_FREE_CANCEL_HOURS = 2;
-/** The panel's floor for the window: every booking has some free moment. */
-export const KARAOKE_FREE_CANCEL_HOURS_MIN = 1;
+/**
+ * The panel's floor for the window. The window runs from the booking, and a
+ * prepaid booking may be paid up to 75 minutes after it is made (a payment
+ * page reopened at minute 30 lives 30 more, and the bank's step has its 15
+ * minutes of grace; see below): under two hours a booking could be paid
+ * after its own free moment had passed (tests/karaoke-cancel-policy.test.ts).
+ */
+export const KARAOKE_FREE_CANCEL_HOURS_MIN = 2;
 
 /**
  * How long one payment page takes the card: the site's card form refuses a
@@ -151,21 +157,36 @@ export function samePolicy(
 
 /**
  * The deadline a NEW booking's snapshot stores (`"cancelDeadline"`): the
- * booking instant plus the free window, and never past the start (a booking
- * made closer to its start than the window is free to cancel until the start
- * itself). Until 28 Eki 2026 it was the start minus the window, which
- * refunded a cancel made hours after booking for an evening days away. A
- * `bookedAt` that cannot be read places no window: the start.
+ * booking instant plus the free window, ending at the latest the minute
+ * before the start (a booking made closer to its start than the window is
+ * free to cancel until then; `karaokeLastMinuteBefore`). Until 28 Eki 2026 it
+ * was the start minus the window, which refunded a cancel made hours after
+ * booking for an evening days away. A `bookedAt` that cannot be read places
+ * no window of its own: the minute before the start.
  */
 export function karaokeDeadlineFor(
   policy: KaraokeCancelPolicy,
   r: { date: string; startHour: number },
   bookedAt: Date,
 ): Date {
-  const start = karaokeStartInstant(r.date, r.startHour).getTime();
+  const last = karaokeLastMinuteBefore(r);
   const made = bookedAt.getTime();
-  if (!Number.isFinite(made)) return new Date(start);
-  return new Date(Math.min(made + policy.freeCancelHours * HOUR_MS, start));
+  if (!Number.isFinite(made)) return new Date(last);
+  return new Date(Math.min(made + policy.freeCancelHours * HOUR_MS, last));
+}
+
+/**
+ * The cap of a window counted from the booking: the minute before the
+ * start. Every page and mail prints the deadline to the minute and the terms
+ * count "bu an dâhil" (`karaokeFreeCancelEnd`), so a deadline AT the start
+ * would name a minute that is refused (the start is never in the window).
+ * Ending at 19:59 for a 20:00 evening, the named minute is free to its end.
+ */
+function karaokeLastMinuteBefore(r: {
+  date: string;
+  startHour: number;
+}): number {
+  return karaokeStartInstant(r.date, r.startHour).getTime() - MINUTE_MS;
 }
 
 /**
@@ -234,7 +255,9 @@ export function karaokeMovedDeadline(
   if (Number.isFinite(made)) {
     return karaokeDeadlineFor(policy, slot, new Date(made));
   }
-  return new Date(Math.min(karaokeCancelDeadline(r).getTime(), start));
+  return new Date(
+    Math.min(karaokeCancelDeadline(r).getTime(), start - MINUTE_MS),
+  );
 }
 
 /**
@@ -399,7 +422,9 @@ export function karaokeCancellationRules(
 ): KaraokeCancellationText {
   const { freeCancelHours: h, lateRefundPercent: p } = policy;
   const refundRule = `Rezervasyonu yaptığın andan itibaren ${h} saat içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir.`;
-  const after = `Bu ${h} saat geçtikten sonra`;
+  // The late sentence stands on its own: the API's too_late answer and the
+  // app's cancel step print it without the one before it.
+  const after = `Rezervasyonu yaptığın andan ${h} saat geçtikten sonra`;
   const lateRule =
     p === 0
       ? `${after} yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
@@ -434,7 +459,7 @@ export function karaokeVenueCancelUntil(
   policy: KaraokeCancelPolicy,
 ): string | null {
   if (policy.lateRefundPercent > 0) return "rezervasyon saatinden önce";
-  return `rezervasyonu yaptıktan sonraki ${policy.freeCancelHours} saat içinde`;
+  return `rezervasyonu yaptıktan sonraki ${policy.freeCancelHours} saat içinde, rezervasyon saati gelmeden`;
 }
 
 /**
@@ -443,12 +468,21 @@ export function karaokeVenueCancelUntil(
  * (`karaokeCountsBackFromStart`) is told the sentence it was booked with.
  */
 export function karaokeVenueCancelUntilOf(
-  r: Parameters<typeof karaokeCancelDeadline>[0],
+  r: Parameters<typeof karaokeCancelDeadline>[0] & {
+    makeGoodFor?: string | null;
+  },
 ): string | null {
   const policy = karaokeCancelPolicyOf(r);
-  if (!karaokeCountsBackFromStart(r)) return karaokeVenueCancelUntil(policy);
   if (policy.lateRefundPercent > 0) return "rezervasyon saatinden önce";
-  return `rezervasyon saatine ${policy.freeCancelHours} saatten fazla varken`;
+  if (karaokeCountsBackFromStart(r)) {
+    return `rezervasyon saatine ${policy.freeCancelHours} saatten fazla varken`;
+  }
+  // A free hour the köşk gave was not booked by the guest: its window runs
+  // from when it was given.
+  if (r.makeGoodFor) {
+    return `bu saat ayrıldıktan sonraki ${policy.freeCancelHours} saat içinde, rezervasyon saati gelmeden`;
+  }
+  return karaokeVenueCancelUntil(policy);
 }
 
 /**

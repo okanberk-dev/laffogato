@@ -47,11 +47,13 @@ export interface KaraokeBookingTerms {
   policy: KaraokeCancelPolicy;
   /**
    * Until when a booking made NOW could be cancelled for the whole payment
-   * ("30 Ekim 2026, 18:00"): this moment plus the window, never past the
-   * start (`karaokeDeadlineFor`). Null before an hour is picked, or without
-   * the server's clock. The booking's own deadline is fixed when it is
-   * written, moments later; the confirmation and the booking's page print
-   * that one.
+   * ("30 Ekim 2026, 18:00"): this moment plus the window, ending at the
+   * latest the minute before the start (`karaokeDeadlineFor`). `now` is the
+   * form's moving clock (the server's at the draw plus the tab's elapsed
+   * time), so it is never a moment already gone by. Null before an hour is
+   * picked, or without the server's clock. The booking's own deadline is
+   * fixed when it is written, moments later; the confirmation and the
+   * booking's page print that one.
    */
   freeUntil: string | null;
   /**
@@ -95,7 +97,7 @@ export function karaokeBookingTerms(
     lateRefundPercent: p,
   };
   // The window a booking made now gets: from this moment for the policy's
-  // hours, never past the start (28 Eki 2026). Without the server's clock
+  // hours, ending before the start (28 Eki 2026). Without the server's clock
   // there is no moment to count from, and the sentences stand alone.
   const deadline =
     pick.startHour !== null && pick.now

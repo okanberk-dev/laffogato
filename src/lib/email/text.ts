@@ -497,7 +497,10 @@ ${SIGNATURE}`,
   // The staff moved the booking to another day or hour (operator, 27 Eki
   // 2026): the new evening, the old one, and exactly one payment line, as
   // send.ts `karaokeRescheduleFlags` sets it. A paid booking quotes its own
-  // rule, whose clock now runs from the new start.
+  // rule and its last free moment as the move recounted it
+  // (`karaokeMovedDeadline`): from the booking, not from the new start,
+  // since 28 Eki 2026, so the mail names the moment instead of saying the
+  // clock follows the new hour.
   "karaoke-saat-degisikligi": `Merhaba,
 
 Karaoke rezervasyonunu [KARAOKE_ESKI_TARIH] · [KARAOKE_ESKI_SAAT] yerine
@@ -511,9 +514,10 @@ Kişi: [KARAOKE_KISI]
 Önceki saat: [KARAOKE_ESKI_TARIH] · [KARAOKE_ESKI_SAAT]
 
 <!--IF:KARAOKE_ODENDI-->Ödediğin [KARAOKE_TUTAR] yeni saat için geçerli; senden ayrıca ödeme istenmez.
-İptal kuralın değişmedi, süreler yeni saate göre işler:
+İptal kuralın değişmedi:
 [KARAOKE_IADE_KURALI]
 [KARAOKE_GEC_KURALI]
+Son ücretsiz iptal: [KARAOKE_SON_IPTAL].
 
 <!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi eskisi gibi köşkte yaparsın; tutar değişmedi.
 

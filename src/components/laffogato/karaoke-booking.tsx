@@ -8,6 +8,7 @@ import {
   useEffectEvent,
   useReducer,
   useRef,
+  useState,
 } from "react";
 
 import {
@@ -124,11 +125,37 @@ export interface KaraokeBookingProps {
   /** The signed-in member's details, to prefill the contact block. */
   contact?: { name: string; email: string; phone: string };
   /**
-   * The server's clock when the page was drawn (ISO), so the box does not
-   * name a free-cancel moment that has already gone by. Without it the
-   * moment is always named.
+   * The server's clock when the page was drawn (ISO). The box names the last
+   * free moment of a booking made NOW (two hours from the booking since
+   * 28 Eki 2026), so it counts from this plus the time the tab has been
+   * open (`useServerClock`). Without it no moment is named, only the rule.
    */
   now?: string;
+}
+
+/** How often the box's "now" moves on (the moment is printed to the minute). */
+const CLOCK_TICK_MS = 30_000;
+
+/**
+ * The server's clock at the draw plus what this tab has counted since, as
+ * epoch ms, moving every half minute: a tab left open does not name a free
+ * moment from when it was drawn, and a wrong clock on this machine does not
+ * move it (only its elapsed time is used, as `karaokeRequestDefault` does).
+ * The first render, on the server and at hydration, is the draw itself.
+ */
+function useServerClock(serverIso: string | undefined): number | undefined {
+  const drawn = serverIso ? Date.parse(serverIso) : Number.NaN;
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!Number.isFinite(drawn)) return;
+    const mountedAt = Date.now();
+    const timer = setInterval(
+      () => setElapsed(Math.max(0, Date.now() - mountedAt)),
+      CLOCK_TICK_MS,
+    );
+    return () => clearInterval(timer);
+  }, [drawn]);
+  return Number.isFinite(drawn) ? drawn + elapsed : undefined;
 }
 
 /** How many step entries this page pushed above the one it opened on. */
@@ -238,12 +265,14 @@ export function KaraokeBooking({
   const quote = quoteKaraoke(hours, hourly, tier, oroPct);
   // The karaoke rate from Ayarlar > Vergi; the total already includes it.
   const kdv = kdvIncludedParts(quote.totalMinor, availability?.taxRatePct);
-  // The rule a booking made now gets, in the server's words.
+  // The rule a booking made now gets, in the server's words, and its last
+  // free moment counted from the moving clock.
+  const clockMs = useServerClock(now);
   const terms = karaokeBookingTerms(availability, {
     date,
     startHour,
     totalMinor: quote.totalMinor,
-    now: now ? new Date(now) : undefined,
+    now: clockMs === undefined ? undefined : new Date(clockMs),
   });
 
   const rules: KaraokeStepRules = {
