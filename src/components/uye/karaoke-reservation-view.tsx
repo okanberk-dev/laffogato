@@ -12,6 +12,7 @@ import {
   karaokeLateRefundMinor,
   karaokeRulesOf,
   karaokeSelfCancelTerms,
+  karaokeStartInstant,
   keptWholeOnLateCancel,
   mayReopenPayment,
   refundAmountOf,
@@ -263,10 +264,10 @@ export function KaraokeReservationView({
                 refunds what was paid for it. */}
             <dt>İade</dt>
             <dd>
-              Ücretsiz iptal süren geçtiği için ücret iadesi yapılmadı. Saatlerin
-              yeniden satışa açıldı; biri başka bir misafire satılırsa o saat
-              için ödediğin tutar en geç 14 gün içinde kartına iade edilir ve
-              sana e-postayla haber veririz.
+              Ücretsiz iptal süren geçtiği için ücret iadesi yapılmadı.
+              Saatlerin yeniden satışa açıldı; biri başka bir misafire satılırsa
+              o saat için ödediğin tutar en geç 14 gün içinde kartına iade
+              edilir ve sana e-postayla haber veririz.
             </dd>
           </div>
         ) : r.status === "cancelled" && isPartialRefund(r) ? (
@@ -355,6 +356,20 @@ export function KaraokeReservationView({
                 Gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin;
                 odayı o kullanır.
               </p>
+              {/* Karaoke terms §7 (29 Eki 2026): told before the start, the
+                  köşk cancels and puts the hours back on sale. A free make-
+                  good hour has its own rule and no money to give back. */}
+              {!r.makeGoodFor &&
+              now.getTime() <
+                karaokeStartInstant(r.date, r.startHour).getTime() ? (
+                <p>
+                  Ya da rezervasyon saatinden önce bizi arayıp ya da yazıp
+                  gelemeyeceğini söyle: rezervasyonunu iptal eder, saatlerini
+                  yeniden satışa açarız. Ücret iadesi yapılmaz, ama saatlerinden
+                  biri başka bir misafire satılırsa o saat için ödediğin tutar
+                  kartına iade edilir.
+                </p>
+              ) : null}
               <Link href={backHref} className="btn btn-primary btn-sm">
                 Geri dön
               </Link>

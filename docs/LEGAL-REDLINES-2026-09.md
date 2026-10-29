@@ -4747,12 +4747,14 @@ zaten olduğu gibi basar.
 ### 37.4 Tarihler
 
 - Ödeme Koşulları ve Hesap Silme kendi günlerini taşır:
-  `KARAOKE_WINDOW_LEGAL_UPDATED` = **28 Ekim 2026** (`meta.ts`). İkisi de
+  `KARAOKE_WINDOW_LEGAL_UPDATED` = **28 Ekim 2026** (`meta.ts`; 29 Ekim
+  2026'da §21 yeniden değişti ve gün **29 Ekim 2026** oldu, 37.8). İkisi de
   ödeme adımında onaylanan belge değil; `LEGAL_UPDATED` (27 Ekim 2026) ve
   siparişin onay kaydının sürümü değişmedi, `COMMERCIAL_CONSENT_UPDATED` de
   (`tests/legal-dates.test.ts`'in tablosuna iki belge eklenir).
-- `KARAOKE_LEGAL_UPDATED` (21 Ekim 2026) değişmedi: karaoke belgesi sayı
-  yazmaz ve değişmedi. Rezervasyonun onay kaydı gösterilen metnin hash'ini
+- `KARAOKE_LEGAL_UPDATED` (21 Ekim 2026) 28 Ekim'de değişmedi: karaoke
+  belgesi sayı yazmaz ve değişmedi. 29 Ekim 2026'da §7 ve §8 değişti ve
+  belge **29 Ekim 2026** tarihini aldı (37.8). Rezervasyonun onay kaydı gösterilen metnin hash'ini
   taşıdığı için (§25) hangi cümleyle yapıldığı kayıttan okunur.
 
 ### 37.5 Sorular (29 Ekim 2026'da karara bağlandı, 37.8)
@@ -4885,7 +4887,8 @@ yeniden satış iadesi %0'da da işler.**
   resmî metninden doğrulanmadı) emsal olarak aktardı.
 - *Değişiklik (kod).* `lateRefundPercent` 0 iken misafirin pencere
   geçtikten sonra ama rezervasyon saatinden önce köşke bildirdiği iptal
-  (panelde "Misafir iptal istedi", istek ve kaydı başlangıçtan önce)
+  (panelde "Misafir iptal istedi"; isteğin anı sayılır, ekip onu sonra
+  kaydetse de)
   rezervasyonu iade yapmadan iptal eder ve saatlerini yeniden satışa açar
   (`releaseLateBooking`, `karaoke-payment.ts`): `status: cancelled`,
   `paymentStatus: refunded`, `refundMinor: 0` (`keptWholeOnLateCancel`).
@@ -4893,8 +4896,9 @@ yeniden satış iadesi %0'da da işler.**
   bir ödeyen misafire satılınca mevcut yeniden satış yolu
   (`resaleAllocation`, `karaoke_charge_resold_hours`) o saatin tutarını
   borçlanır, ekip PayNkolay'dan iade edip "Elle iade edildi" ile kaydeder.
-  Para hareketi yoktur, iade yetkisi istenmez. İstek ya da kaydı başlangıçtan
-  sonraysa satılacak bir şey kalmadığı için rezervasyon eskisi gibi durur.
+  Para hareketi yoktur, iade yetkisi istenmez. Akşam bittikten sonra
+  kaydedilen istek e-postasız yazılır (karar D7). İstek başlangıçtan sonra
+  geldiyse satılacak bir şey kalmadığı için rezervasyon eskisi gibi durur.
   Rapor ve fatura onu tutulan olarak sayar (`karaokeMoneyOf`,
   `karaokeBillableMinor`); bar ekranından düşer.
 - *Değişiklik (metin).* Koşullar §7, 4. madde: "Rezervasyon saati gelmeden
@@ -4977,6 +4981,43 @@ fatura, panel ve üye sayfası), `tests/legal-karaoke-make-good.test.ts` ve
 `tests/karaoke-cancel-cause.test.ts` (e-posta satırları, tek açılış ve en
 çok bir para satırı), `tests/legal-karaoke-single-source.test.ts`,
 `tests/karaoke-cancel-policy.test.ts`, `tests/legal-dates.test.ts`.
+
+**İnceleme düzeltmeleri (29 Ekim 2026).** Kararların uygulaması ayrıca
+karşıt incelemeden geçti; düzeltilenler:
+
+- *Yeniden satış alıcının penceresi kapanınca sayılır.* Satış onay anında
+  sayılıyordu; alıcı o anda kendi ücretsiz penceresinde iptal edip tam iade
+  alabilir. Saati satışa açılan rezervasyonun saatini alıp 2 saat içinde
+  iptal eden herhangi bir misafir, ilk misafire köşkün hiç tutmadığı bir
+  parayı iade ettirirdi; geç iptal eden kişi kendi saatini başka kartla
+  yeniden alıp iptal ederek ödediğinin tamamını geri alabilirdi. Artık satış
+  yalnız alıcı onu bedelsiz geri alamaz olunca sayılır: onay anında
+  alıcının penceresi açıksa sayılmaz, günlük çalışma (`chargeSettledResales`,
+  `/api/cron/daily` adımı `karaoke-resale`) penceresi kapanmış satışları
+  sayar; veritabanı her saati bir kez sayar. %1-99 kuralı için de geçerli.
+- *İsteğin anı sayılır.* Saatten önce gelip saatten sonra kaydedilen istek de
+  iptal edilir (§7 "rezervasyon saati gelmeden ... bildirirseniz" der; ekibin
+  gecikmesi misafirin aleyhine olmaz).
+- *Telafinin son günü.* Son günden sonraki bir güne ayrılmış ücretsiz saat
+  zamanında bırakılırsa telafi o saatin gününe kadar açılır; e-posta geçmiş
+  bir güne "kadar ayırtabilirsin" demez.
+- Panelde rezervasyon geçmişi "Misafir geç iptal istedi; iade yapılmadan
+  iptal edildi, saat satışa açıldı" der, rezervasyon sayfasının rakamı
+  "Tutuldu, iade yapılmadı"; üye sayfasındaki geç iptal reddi §7'nin yolunu
+  söyler (saatten önce bize bildir, satışa açalım).
+
+Bilerek bırakılanlar: (1) iade yetkisi olmayan Personel, süresi geçmiş bir
+ücretsiz saati panelden bırakamaz (21 Ekim'den beri, review A2); misafir
+zamanında aradıysa iade yetkisi olan biri bırakır ve telafi yeniden açılır.
+(2) Satışa açılan rezervasyona panelden sonradan tam iade yapılamaz: tam iade
+gerekiyorsa aynı pencerede "Yine de tamamını iade et" işaretlenir. (3)
+Köşkün panelindeki (lafmaliyet) bar ekranı böyle bir rezervasyonu "İptal ·
+iade edildi" diye gösterebilir; panel akışı alanları değişmedi. (4) 29
+Ekim'den önce verilmiş ücretsiz saatler ödenmiş rezervasyonun eski
+cümlelerini taşır; son anları (başlangıçtan 2 saat önce) yeni kuralla
+aynıdır. (5) İncelemedeki uygulama derlemesi 1.1.0 (4) böyle bir
+rezervasyona "İade edildi" der (`docs/API-MOBILE.md` §7.1); misafire giden
+e-posta doğrusunu söyler, sonraki derleme düzeltir.
 
 **Operatöre.**
 

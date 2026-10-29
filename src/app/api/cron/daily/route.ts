@@ -6,6 +6,7 @@ import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { reconcileIys } from "@/lib/iys/store";
 import { runInvoices } from "@/lib/invoice/run";
 import { recordShownLegalVersions } from "@/lib/legal/store";
+import { chargeSettledResales } from "@/lib/mobile/karaoke";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
 import { checkPushReceipts } from "@/lib/push/order-push";
 import {
@@ -101,6 +102,13 @@ export async function GET(request: Request) {
   const karaoke = await step("karaoke-holds", async () => ({
     expired: await expireUnpaidReservations(),
   }));
+  // An hour a late-cancelled booking left, sold again: counted for its
+  // refund once the buyer's own free window has closed (a sale its buyer
+  // can still take back for nothing refunds nobody, 29 Eki 2026). Before
+  // the e-Arşiv step, which then waits for the refund.
+  const karaokeResale = await step("karaoke-resale", () =>
+    chargeSettledResales(),
+  );
   // Orders nobody paid for within their window (45 minutes): the same rule
   // as the karaoke holds - each asked about at the POS first, a payment
   // found is booked, only "no payment" (or a day of not being able to ask)
@@ -182,6 +190,7 @@ export async function GET(request: Request) {
       birthday,
       iys,
       karaoke,
+      karaokeResale,
       orders,
       pushReceipts,
       legalVersions,

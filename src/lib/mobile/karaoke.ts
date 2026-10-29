@@ -28,7 +28,11 @@ import { karaokeTaxRate } from "@/lib/utils/kdv";
 
 import type { KaraokeCancelCause } from "./karaoke-cancel-cause";
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
-import { makeGoodStateOf, resaleAllocation } from "./karaoke-make-good-core";
+import {
+  keptShareOfCancelled,
+  makeGoodStateOf,
+  resaleAllocation,
+} from "./karaoke-make-good-core";
 import { karaokeLinkUrl } from "./karaoke-link";
 import {
   karaokeRescheduleBlock,
@@ -53,6 +57,7 @@ import {
   karaokeStartInstant,
   karaokeVenueCancelUntilOf,
   KARAOKE_OPEN_CAP,
+  withinFreeCancel,
   paymentDueFrom,
   paymentStatusOf,
   quoteReservation,
@@ -1052,24 +1057,35 @@ export async function setReservationStatus(
   // it (ASK-OTH-3-CFG). Right after the write that sold it, before the mail
   // (a slow mail must not stand between the sale and what it owes); never
   // fails the confirmation.
-  if (status === "confirmed") await chargeResale(reservation, sameDay);
+  if (status === "confirmed") await chargeResale(reservation, sameDay, now);
   const notified =
     opts.notify === false ? true : await notifyReservationStatus(reservation);
   return { ok: true, reservation, notified };
 }
 
 /**
- * The resale refund of an hour just sold, best effort: what each
- * late-cancelled booking of the day is owed is worked out here
- * (`resaleAllocation`, pure), and only when one is owed something does the
- * money side load (karaoke-payment.ts imports this module, hence the
- * dynamic import, as for the sweep above).
+ * The resale refund of an hour sold, best effort: what each late-cancelled
+ * booking of the day is owed is worked out here (`resaleAllocation`, pure),
+ * and only when one is owed something does the money side load
+ * (karaoke-payment.ts imports this module, hence the dynamic import, as for
+ * the sweep above).
+ *
+ * A sale counts only once its buyer can no longer take it back for nothing
+ * (29 Eki 2026): inside the buyer's own free window a cancel refunds them in
+ * full, and the late canceller would have been refunded for an hour the
+ * köşk never kept the money for. Anyone booking a freed hour and cancelling
+ * within two hours did exactly that, and a late canceller could rebook
+ * their own hours on another card to get their payment back. A sale still
+ * inside that window is counted by the daily run once it closes
+ * (`chargeSettledResales`); the database counts each hour once.
  */
 async function chargeResale(
   sold: KaraokeReservation,
   sameDay: readonly KaraokeReservation[],
+  now: Date = new Date(),
 ): Promise<void> {
   try {
+    if (withinFreeCancel(sold, now)) return;
     const allocation = resaleAllocation(sold, sameDay);
     if (allocation.length === 0) return;
     const { chargeResoldHours } = await import("./karaoke-payment");
@@ -1077,6 +1093,50 @@ async function chargeResale(
   } catch (err) {
     console.error(`[karaoke] resale refund not worked out ${sold.id}`, err);
   }
+}
+
+/**
+ * The daily run's half of the resale refund (29 Eki 2026): every sold hour
+ * whose buyer's free window has closed since, on a day that still has a
+ * late-cancelled booking with something kept and an hour not yet counted.
+ * Days from yesterday on (Istanbul): a sale is final at the latest the
+ * minute before its start, and the run is daily. Idempotent: the database
+ * counts each hour of a late booking once (karaoke_charge_resold_hours).
+ * Returns how many days were looked at.
+ */
+export async function chargeSettledResales(
+  now: Date = new Date(),
+): Promise<{ days: number }> {
+  const today = istanbulClock(now).date;
+  const [y, m, d] = today.split("-").map(Number);
+  const yesterday = new Date(Date.UTC(y!, m! - 1, d! - 1))
+    .toISOString()
+    .slice(0, 10);
+  const res = await getDb()
+    .from(TABLES.karaokeReservations)
+    .select(
+      "id, date, status, paymentStatus, paidMinor, totalMinor, refundMinor, resaleRefundMinor, resoldHours, hours, makeGoodFor",
+    )
+    .eq("status", "cancelled")
+    .gte("date", yesterday);
+  const late = rows<KaraokeReservation>(
+    res,
+    "karaoke.chargeSettledResales",
+  ).filter(
+    (r) =>
+      !r.makeGoodFor &&
+      keptShareOfCancelled(r) > 0 &&
+      (r.resoldHours ?? []).length < r.hours,
+  );
+  const days = [...new Set(late.map((r) => r.date))].sort();
+  for (const date of days) {
+    const sameDay = await listByDate(date);
+    for (const sold of sameDay) {
+      if (sold.status !== "confirmed") continue;
+      await chargeResale(sold, sameDay, now);
+    }
+  }
+  return { days: days.length };
 }
 
 // ─── Moving a booking (panel) ──────────────────────────────────────────────
@@ -1216,7 +1276,7 @@ export async function rescheduleReservation(
   // day left: the hour is sold again, as when a booking is confirmed there
   // (ASK-OTH-3-CFG). Never fails the move.
   if (reservation.status === "confirmed") {
-    await chargeResale(reservation, sameDay);
+    await chargeResale(reservation, sameDay, now);
   }
   const notified = await notifyReservationRescheduled(reservation, existing);
   return {

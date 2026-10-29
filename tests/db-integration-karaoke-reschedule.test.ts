@@ -116,6 +116,7 @@ vi.mock("@/lib/payment", () => ({
 process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
 
 const karaoke = await import("@/lib/mobile/karaoke");
+const { karaokeStartInstant } = await import("@/lib/mobile/karaoke-time");
 const { istanbulClock } = await import("@/lib/mobile/venue");
 
 const HOUR = 3_600_000;
@@ -596,6 +597,13 @@ maybe("moving a karaoke booking (real Postgres)", () => {
       startHour: 18,
     });
     expect(res.ok).toBe(true);
+    // The moved booking's guest may still cancel it for nothing: nothing is
+    // counted until that window closes (29 Eki 2026); the daily run then
+    // counts it, here half an hour before the new evening.
+    expect((await row("krk-91020")).resoldHours ?? []).toEqual([]);
+    await karaoke.chargeSettledResales(
+      new Date(karaokeStartInstant(date, 18).getTime() - 30 * 60_000),
+    );
     const late = await row("krk-91020");
     expect(late.resoldHours).toEqual([18, 19]);
     expect(late.resaleRefundMinor).toBe(100_000);

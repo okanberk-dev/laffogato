@@ -804,6 +804,41 @@ describe("a paid booking's cancel names its reason (ASK-OTH-3 (c), ASK-Y3-4 (c))
     );
   });
 
+  it("a late request at 0 % before the start says the booking was released for sale, nothing refunded", async () => {
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: { ...member, status: "cancelled" },
+      refunded: false,
+      notified: true,
+      released: true,
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon" }),
+    );
+    expect(res.ok && res.message).toMatch(
+      /^Rezervasyon iade yapılmadan iptal edildi ve saati yeniden satışa açıldı: .*Üyeye e-posta gönderildi\.$/,
+    );
+  });
+
+  it("a release recorded once the evening is over says no mail went", async () => {
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: { ...member, status: "cancelled" },
+      refunded: false,
+      notified: true,
+      released: true,
+      silent: true,
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon" }),
+    );
+    expect(res.ok && res.message).toBe(
+      "Rezervasyon iade yapılmadan iptal edildi: istek rezervasyon saatinden önce gelmişti ve rezervasyonun kuralı geç iptalde iade vermiyor. Saati geçtiği için misafire e-posta gönderilmedi.",
+    );
+  });
+
   it("a request recorded once the evening is over says it stands and no mail went", async () => {
     h.cancel.mockResolvedValue({
       ok: true,
@@ -820,7 +855,7 @@ describe("a paid booking's cancel names its reason (ASK-OTH-3 (c), ASK-Y3-4 (c))
     expect(res).toEqual({
       ok: true,
       message:
-        "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+        "İstek kaydedildi. İstek rezervasyon saati geldikten sonra geldi ve rezervasyonun kuralı bu durumda iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
       tone: "success",
     });
   });

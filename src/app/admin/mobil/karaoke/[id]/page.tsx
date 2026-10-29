@@ -73,6 +73,7 @@ import {
   karaokeCancelDeadline,
   karaokeCancelPolicyOf,
   karaokeRulesOf,
+  keptWholeOnLateCancel,
 } from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
 
@@ -567,13 +568,17 @@ export default async function KaraokeReservationPage({
       ? { label: "İade edilecek", value: owed, tone: "danger" }
       : view.money === "pending"
         ? { label: "Ödeme bekleniyor", value: r.totalMinor, tone: "warning" }
-        : view.money === "refunded"
-          ? { label: "İade edildi", value: refundAmountMinor(r) }
-          : view.money === "paid" && paidMinor > 0
-            ? { label: "Tahsil edilen", value: paidMinor }
-            : view.money === "none" && view.live
-              ? { label: "Köşkte ödenecek", value: r.totalMinor }
-              : { label: "Tutar", value: r.totalMinor };
+        : // A late request under a 0 % rule: nothing went back, the
+          // hours are on sale (LEGAL-REDLINES §37.8).
+          keptWholeOnLateCancel(r)
+          ? { label: "Tutuldu, iade yapılmadı", value: paidMinor }
+          : view.money === "refunded"
+            ? { label: "İade edildi", value: refundAmountMinor(r) }
+            : view.money === "paid" && paidMinor > 0
+              ? { label: "Tahsil edilen", value: paidMinor }
+              : view.money === "none" && view.live
+                ? { label: "Köşkte ödenecek", value: r.totalMinor }
+                : { label: "Tutar", value: r.totalMinor };
   const chips: SummaryChip[] = [];
   // The booking's total beside a figure that is another amount.
   if (hero.value !== r.totalMinor) {

@@ -124,6 +124,8 @@ vi.mock("@/lib/payment", () => ({
 process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
 
 const pay = await import("@/lib/mobile/karaoke-payment");
+const karaoke = await import("@/lib/mobile/karaoke");
+const { karaokeStartInstant } = await import("@/lib/mobile/karaoke-time");
 const { istanbulClock } = await import("@/lib/mobile/venue");
 
 /** `days` after today in Tuzla, as a booking date. */
@@ -252,6 +254,29 @@ function madeGood(over: Row = {}): Row {
 const sorted = (v: unknown) =>
   [...((v as number[] | null) ?? [])].sort((a, b) => a - b);
 
+/**
+ * The daily run half an hour before the late bookings' evening
+ * (`dayAhead(3)`, 20:00): every buyer's own free window (a hold here: its
+ * start minus 2 h, 19:00 at the latest) has closed, so their sales count
+ * (29 Eki 2026).
+ */
+const settleResales = () =>
+  karaoke.chargeSettledResales(
+    new Date(karaokeStartInstant(dayAhead(3), 20).getTime() - 30 * 60_000),
+  );
+
+/** Nothing counted yet: the buyer may still cancel for nothing. */
+async function notYetCounted(id: string, refundMinor: number | null) {
+  const r = await row(id);
+  expect(sorted(r.resoldHours)).toEqual([]);
+  expect(r.refundMinor).toBe(refundMinor);
+  expect(
+    mail.alerts.filter(
+      (m) => m.title === "Geç iptal edilen saat yeniden satıldı",
+    ),
+  ).toHaveLength(0);
+}
+
 maybe("karaoke make-good and resale (real Postgres)", () => {
   let release: (() => Promise<void>) | null = null;
 
@@ -363,6 +388,8 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
       ]);
       expect(x).toMatchObject({ ok: true, outcome: "paid" });
       expect(y).toMatchObject({ ok: true, outcome: "paid" });
+      await notYetCounted("krk-90001", 100_000);
+      await settleResales();
       const a = await row("krk-90001");
       expect(sorted(a.resoldHours)).toEqual([20, 21]);
       expect(a).toMatchObject({
@@ -422,6 +449,9 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
         ok: true,
         outcome: "paid",
       });
+      // The buyer may still cancel for nothing: no resale yet.
+      await notYetCounted("krk-90001", 0);
+      await settleResales();
       const owed = await row("krk-90001");
       expect(owed).toMatchObject({
         paymentStatus: "refunding",
@@ -467,6 +497,37 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
       });
     });
 
+    it("a buyer who cancels inside their own free window sold nothing: the late booking is owed nothing (29 Eki 2026)", async () => {
+      // The hours a late request released, bought and then taken back within
+      // two hours (by anyone, or by the late canceller on another card).
+      await insert(
+        lateCancelled({
+          paymentStatus: "refunded",
+          refundMinor: 0,
+          freeCancelHours: 2,
+          lateRefundPercent: 0,
+        }),
+      );
+      await insert(hold("krk-90002", 20, 2));
+      expect(await paymentOf("krk-90002", "PNK-X", 200_000)).toMatchObject({
+        ok: true,
+        outcome: "paid",
+      });
+      await notYetCounted("krk-90001", 0);
+      // The buyer cancels inside their window: a full refund (the POS is
+      // stubbed to refuse here, so the row is put back to cancelled as by a
+      // refund already made).
+      await pool!.query(
+        `update public.karaoke_reservations set status = 'cancelled', "paymentStatus" = 'refunded' where id = 'krk-90002'`,
+      );
+      await settleResales();
+      expect(await row("krk-90001")).toMatchObject({
+        paymentStatus: "refunded",
+        refundMinor: 0,
+      });
+      expect(sorted((await row("krk-90001")).resoldHours)).toEqual([]);
+    });
+
     it("the same payment reported twice at once charges its hour once", async () => {
       await insert(lateCancelled());
       await insert(hold("krk-90002", 20, 1));
@@ -475,6 +536,9 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
         paymentOf("krk-90002", "PNK-X", 100_000),
       ]);
       expect(results.every((r) => r.ok)).toBe(true);
+      await notYetCounted("krk-90001", 100_000);
+      // Two daily runs at once count the hour once too.
+      await Promise.all([settleResales(), settleResales()]);
       expect(await row("krk-90001")).toMatchObject({
         resoldHours: [20],
         resaleRefundMinor: 50_000,
@@ -536,6 +600,7 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
         ok: true,
         outcome: "paid",
       });
+      await settleResales();
       // 20:00 counts to B (the later), 21:00 to A.
       expect(await row("krk-90004")).toMatchObject({
         resoldHours: [20],

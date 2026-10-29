@@ -1184,8 +1184,9 @@ ilettiği iptal, panelde "Misafir iptal istedi") ise rezervasyonun kuralına
 istek anına göre bağlıdır: pencere içindeyse tamamı, geç iptal payı varsa
 `refundMinor` o paydır, geç iptalde iade yoksa ve istek rezervasyon saatinden
 önce geldiyse rezervasyon iade yapılmadan iptal edilir ve saatleri yeniden
-satışa açılır (29 Eki 2026, aşağıda), istek ya da kaydı rezervasyon
-saatinden sonraysa rezervasyon olduğu gibi durur. Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
+satışa açılır (29 Eki 2026, aşağıda; isteğin anı sayılır, ekibin kaydı
+sonra olsa da), istek rezervasyon saatinden sonraysa rezervasyon olduğu gibi
+durur. Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
 `"cancelDeadline"`, `"cancellationRules"`; eski satırlarda `NULL` = 2 / 0 ve
 o günün varsayılan iki cümlesi) ve her süre, cümle ve iade o kayıttan okunur.
 
@@ -1254,7 +1255,10 @@ ve `cancellationRules`'u sunucudan okur; yalnız yedek cümle çifti değişir
   saatler yeniden satılırsa ödenen tutara eşit olabilir ve yine `null`
   olmaz; `paymentStatus` `refunded`'dan yeniden `refunding`'e dönebilir,
   ekip payı elle iade edince yine `refunded` olur). Her saat bir kez, o
-  saati en son geç iptal eden rezervasyona sayılır.
+  saati en son geç iptal eden rezervasyona sayılır. 29 Eki 2026'dan beri bir
+  satış ancak alıcının kendi ücretsiz iptal penceresi kapanınca sayılır
+  (sitenin günlük çalışması; o zamana kadar `refundMinor` değişmez): pencere
+  içinde iptal eden alıcı tam iade aldığı için o saat satılmış sayılmaz.
 - **Geç misafir isteğiyle satışa açılan rezervasyon (29 Eki 2026; alanlar,
   tipler, durum ve hata kodları değişmedi).** `lateRefundPercent` 0 iken
   misafir pencere geçtikten sonra ama rezervasyon saatinden önce gelemeyeceğini
@@ -1266,9 +1270,12 @@ ve `cancellationRules`'u sunucudan okur; yalnız yedek cümle çifti değişir
   satış kuralı işler: `refundMinor` o saatin tutarı kadar büyür,
   `paymentStatus` `refunding` olur ve ekip iade edince yine `refunded`.
   `paymentStatus: "refunded"` tek başına iade yapıldığını söylemez;
-  `refundMinor: 0` "iade yapılmadı" demektir. 1.1.0 (4) böyle bir satırda
-  "Rezervasyon iptal edildi" başlığı altında iade tutarını ₺0,00 yazar;
-  lafmobil'in sonraki derlemesi 0'ı ayrı bir cümleyle yazar. Üyenin kendi
+  `refundMinor: 0` "iade yapılmadı" demektir. 1.1.0 (4) böyle bir satırı
+  `refunded` diye okur: listede "İade edildi" etiketi, ayrıntıda "Ödeme: İade
+  edildi" ve "Geç iptal iadesi ₺0,00", sonuç kartında "Geç iptal iaden ₺0,00
+  kartına iade edildi." yazar; misafire giden e-posta doğrusunu söyler.
+  lafmobil'in sonraki derlemesi bu satırı "iptal, iade yok" diye okur
+  (`phaseOf`). Üyenin kendi
   iptali (`POST /karaoke/reservations/{id}/cancel`) değişmedi: pencere
   geçmişse %0'da **409** `too_late`. Gerekçe: LEGAL-REDLINES §37.8.
 - `POST /karaoke/reservations/{id}/cancel`: pencere geçtikten sonra
@@ -1349,7 +1356,9 @@ ve `cancellationRules`'u sunucudan okur; yalnız yedek cümle çifti değişir
   bırakabilir ve telafi geri açılır; sonra üyenin iptali **409** `too_late`
   alır, saat durur ve telafi kullanılmış kalır (köşk iade yetkisiyle
   bırakabilir). Panel saati taşırsa son an ve iki cümle yeni saate göre
-  yeniden yazılır. Açık rezervasyon tavanına
+  yeniden yazılır. Telafinin son gününden sonraki bir güne ayrılmış saat
+  zamanında bırakılırsa yeniden açılan telafi o saatin gününe kadar
+  geçerlidir (`makeGoodUntil` o güne uzar). Açık rezervasyon tavanına
   (`too_many_reservations`) sayılmaz. Uygulama `none` için ödeme satırı
   basmaz, 0 tutarı göstermez (lafmobil `karaoke-rezervasyon/[id].tsx`).
 

@@ -1086,6 +1086,8 @@ const EVENT_TITLES: Record<string, string> = {
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
   late_guest_request:
     "Misafir geç iptal istedi; kural iade vermiyor, rezervasyon duruyor",
+  late_guest_release:
+    "Misafir geç iptal istedi; iade yapılmadan iptal edildi, saat satışa açıldı",
   resale_refund_owed:
     "Geç iptal edilen saat yeniden satıldı; misafirde kalan tutardan iade bekliyor",
   resale_refund_unrecorded: "Yeniden satılan saatin iadesi kaydedilemedi",

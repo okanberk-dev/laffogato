@@ -142,6 +142,10 @@ vi.mock("@/lib/payment", () => ({
 process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
 
 const pay = await import("@/lib/mobile/karaoke-payment");
+const karaokeLib = await import("@/lib/mobile/karaoke");
+const { karaokeStartInstant: startOf } = await import(
+  "@/lib/mobile/karaoke-time"
+);
 const karaoke = await import("@/lib/mobile/karaoke");
 const core = await import("@/lib/mobile/karaoke-make-good-core");
 const { PaymentRefusedError } = await import("@/lib/payment/provider");
@@ -323,6 +327,11 @@ maybe("karaoke make-good and resale: the money review (real Postgres)", () => {
       ok: true,
       outcome: "paid",
     });
+    // Counted once the buyer's own free window has closed (29 Eki 2026):
+    // the daily run, half an hour before the evening.
+    await karaokeLib.chargeSettledResales(
+      new Date(startOf(dayAhead(3), 20).getTime() - 30 * 60_000),
+    );
     expect(await row("krk-90001")).toMatchObject({
       paymentStatus: "refunding",
       refundMinor: 150_000,

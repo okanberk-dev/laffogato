@@ -165,6 +165,7 @@ const { istanbulClock } = await import("@/lib/mobile/venue");
 const { karaokeStartInstant, karaokeSelfCancelTerms } =
   await import("@/lib/mobile/karaoke-time");
 const { makeGoodStateOf } = await import("@/lib/mobile/karaoke-make-good-core");
+const { formatReservationDate } = await import("@/lib/mobile/karaoke-format");
 const { getReservation } = await import("@/lib/mobile/karaoke");
 const { karaokeActionPlan, REFUND_PERMISSION_REASON } =
   await import("@/lib/admin/karaoke-panel");
@@ -357,6 +358,32 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       const original = await row("krk-90010");
       expect(original.makeGoodUsedAt).toBeNull();
       expect(makeGoodStateOf(original as never)).toBe("open");
+    });
+
+    it("a free hour on a day after the make-good's last day, let go in time, opens it again until that day, never until a day gone", async () => {
+      await insert(madeGood({ makeGoodUntil: dayAhead(2) }));
+      const given = await pay.giveKaraokeMakeGoodHour(
+        "krk-90010",
+        { date: dayAhead(5), startHour: 20 },
+        "yonetici@kosk",
+      );
+      if (!given.ok) throw new Error(given.reason);
+      // Let go two days before it, past the make-good's last day.
+      const now = new Date(
+        karaokeStartInstant(dayAhead(5), 20).getTime() - 2 * 86_400_000,
+      );
+      const res = await pay.cancelKaraokeReservation(
+        given.reservation.id,
+        MEMBER,
+        { now },
+      );
+      expect(res).toMatchObject({ ok: true });
+      const original = await row("krk-90010");
+      expect(original.makeGoodUsedAt).toBeNull();
+      expect(original.makeGoodUntil).toBe(dayAhead(5));
+      expect(mail.cancellations.at(-1)).toMatchObject({
+        makeGood: { until: formatReservationDate(dayAhead(5)) },
+      });
     });
 
     it("a free hour given less than four hours before its start keeps two hours from its giving, in its own words", async () => {

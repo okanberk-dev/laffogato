@@ -834,7 +834,7 @@ anında çıkar. Misafirin telefonla ya da e-postayla ilettiği istek
 verilmesi (`yeniden`) `KARAOKE_YENIDEN`. Üyenin kendi iptali bugünkü
 sözleriyle kalır (`KARAOKE_IPTAL_GENEL`). Bir açılış ve en çok bir para
 satırı (`karaokeCancellationFlags`). Misafirin geç isteğine kural iade
-vermiyorsa: istek ve kaydı rezervasyon saatinden önceyse rezervasyon iade
+vermiyorsa: istek rezervasyon saatinden önceyse (kaydı sonra olsa da) rezervasyon iade
 olmadan iptal edilir, saati satışa açılır ve `karaoke-iptal` gider
 (`KARAOKE_ISTEK` + `KARAOKE_SATISA_ACILDI`, 29 Eki 2026); rezervasyon saati
 geldiyse rezervasyon iptal edilmez ve `karaoke-iptal-istegi` gider:

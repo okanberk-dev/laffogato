@@ -1581,11 +1581,12 @@ export async function cancelKaraokeReservation(
   if (lateMatters) {
     const terms = karaokeSelfCancelTerms(r, judgedAt);
     if (terms.kind === "refused" && guestRequest) {
-      // Asked and taken before the start: the hours can still be sold, so
-      // they go back on sale (karaoke terms §7, 29 Eki 2026). Once the
-      // evening has begun there is nothing left to sell: it stands.
+      // Asked before the start: cancelled and its hours back on sale
+      // (karaoke terms §7, 29 Eki 2026), judged at the request like every
+      // guest request, so the team's delay in recording it costs the guest
+      // nothing. Asked once the evening had begun: it stands.
       const start = karaokeStartInstant(r.date, r.startHour).getTime();
-      return judgedAt.getTime() < start && now.getTime() < start
+      return judgedAt.getTime() < start
         ? releaseLateBooking(r, by, judgedAt, now)
         : keepLateGuestRequest(r, by, judgedAt, now);
     }
@@ -1971,7 +1972,10 @@ function staffWhy(
  * A guest asked, by phone or e-mail, to cancel after their free moment and
  * before the start, and the booking's rule refunds nothing then (a late
  * share of 0): the booking is cancelled with nothing refunded now and its
- * hours go back on sale, online too (karaoke terms §7, 29 Eki 2026). The
+ * hours go back on sale, online too (karaoke terms §7, 29 Eki 2026). A
+ * request recorded after the start is still released (the team's delay
+ * does not cost the guest the promise); its hours can no longer sell, and
+ * one recorded after the evening sends no mail. The
  * whole payment is the share kept (`refundMinor` 0 on a `refunded` row:
  * nothing is owed, `keptWholeOnLateCancel`), so an hour another guest then
  * books and pays for refunds what was kept for it, by hand, exactly as for
@@ -2009,9 +2013,12 @@ async function releaseLateBooking(
   );
   if (!moved) return { ok: false, reason: "raced", reservation: r };
   const cancelled: KaraokeReservation = { ...r, ...released };
-  const notified = await notifyReservationStatus(cancelled, {
-    cause: "misafir",
-  });
+  // Recorded once the evening is over: written down without a mail, as a
+  // kept request is (karar D7).
+  const ended = karaokeEndInstant(r).getTime() <= now.getTime();
+  const notified = ended
+    ? true
+    : await notifyReservationStatus(cancelled, { cause: "misafir" });
   await auditStaff(cancelled, by.actor, "transition", {
     event: "late_guest_release",
     status: "cancelled",
@@ -2021,15 +2028,23 @@ async function releaseLateBooking(
     by: "staff",
     ...staffWhy(by),
     requestedAt: judgedAt.toISOString(),
+    ...(ended ? { ended: true } : {}),
   });
-  return { ok: true, reservation: cancelled, refunded: false, notified, released: true };
+  return {
+    ok: true,
+    reservation: cancelled,
+    refunded: false,
+    notified,
+    released: true,
+    ...(ended ? { silent: true as const } : {}),
+  };
 }
 
 /**
  * A guest asked to cancel after their free moment, by phone or e-mail, and
- * the booking's rule refunds nothing then, but the request or its record
- * came once the evening had begun (a request before the start under a late
- * share of 0 releases the hours instead: `releaseLateBooking`): nothing
+ * the booking's rule refunds nothing then, but the request came once the
+ * evening had begun (a request before the start under a late share of 0
+ * releases the hours instead: `releaseLateBooking`): nothing
  * changes on the booking - it stands in their name and they may hand the
  * code on (karaoke terms §7). The request is recorded
  * (`late_guest_request`, with the channel and the instant) and the guest is
@@ -2725,10 +2740,26 @@ async function releaseMakeGoodHour(
   // The make-good this let go of is open again: the cancellation mail says
   // how much and until when, as the free hour's confirmation promised
   // ("telafin o zaman geri gelir"; review R4).
-  const original =
+  let original =
     outcome === "reopened" && hour.makeGoodFor
       ? await getReservation(hour.makeGoodFor)
       : null;
+  // A free hour on a day after its make-good's last day, let go in time
+  // (karaoke terms §8, 29 Eki 2026): the make-good it opens again runs until
+  // that day, so the guest is never offered an hour "until" a day already
+  // gone. Only ever later, and only from the day it was read at.
+  const until = original?.makeGoodUntil ?? "";
+  if (original && until && until < hour.date) {
+    const res = await getDb()
+      .from(TABLES.karaokeReservations)
+      .update({ makeGoodUntil: hour.date })
+      .eq("id", original.id)
+      .eq("makeGoodUntil", until)
+      .select("id");
+    if (rows<{ id: string }>(res, "karaoke.releaseMakeGoodHour.until").length) {
+      original = { ...original, makeGoodUntil: hour.date };
+    }
+  }
   const notified = ctx.silent
     ? true
     : await notifyReservationStatus(

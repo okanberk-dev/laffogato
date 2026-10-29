@@ -398,7 +398,9 @@ da PayNkolay'da iade edip kaydeden düğmeler.
 önce köşke gelemeyeceğini bildirirse ("Misafir iptal istedi") rezervasyon
 iade olmadan iptal edilir ve saati satışa açılır (`releaseLateBooking`;
 `refunded` + `refundMinor` 0, `keptWholeOnLateCancel`); saat başka bir
-misafire satılırsa o saatin tutarı yeniden satış yoluyla elle iade edilir.
+misafire satılırsa o saatin tutarı yeniden satış yoluyla elle iade edilir;
+bir satış alıcının kendi ücretsiz penceresi kapanınca sayılır (günlük iş
+`karaoke-resale`, `chargeSettledResales`).
 Üyenin kendi geç iptali (site, uygulama) yine `too_late`. Köşkün geç
 iptalindeki telafi her işletme iptalinde doğar ve öyle kalır. Ücretsiz
 telafi saati kendi kuralını taşır (`KARAOKE_MAKE_GOOD_POLICY` 2 / 0,
