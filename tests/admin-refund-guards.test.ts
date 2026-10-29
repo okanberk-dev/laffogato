@@ -30,8 +30,9 @@ describe("refundRefusal - decided before the POS is asked for money", () => {
   });
 
   it("lets a cancelled order that WAS paid be refunded", () => {
-    // The cancel dialog promises "İptal sonrası iade ayrıca başlatılır";
-    // refusing this left the customer's money with the shop.
+    // A cancel never refunds (28 Eki 2026): the money comes back through
+    // "İade başlat" on the cancelled order. Refusing this left the
+    // customer's money with the shop.
     expect(refundRefusal(order("cancelled"), 50000, true)).toBeNull();
   });
 
@@ -52,7 +53,8 @@ describe("refundRefusal - decided before the POS is asked for money", () => {
 
   it("is what the refund checks before provider.refund", () => {
     // The refund lives in lib/admin/order-ops.ts (issueRefund), shared by
-    // the İade modal and the cancel modal's "tutarın tamamını iade et".
+    // the İade modal and the two PayNkolay record buttons; a cancel never
+    // calls it (below).
     const ops = readFileSync("src/lib/admin/order-ops.ts", "utf8");
     const body = ops.slice(ops.indexOf("export async function issueRefund"));
     expect(body.indexOf("refundRefusal(")).toBeGreaterThan(-1);
@@ -144,5 +146,67 @@ describe("cancelling a paid order", () => {
     expect(body.indexOf('gate(id, actor, "cancel")')).toBeLessThan(
       body.indexOf('transitionOrder(id, "cancel"'),
     );
+  });
+
+  it("never moves money in the same step (operator, 28 Eki 2026)", () => {
+    // "e ticaret için de manuel işlem olsun, iade otomatik işlemesin": the
+    // cancel flags the order "iade bekliyor" and the refund is a separate,
+    // explicit step ("İade başlat", or the PayNkolay record buttons).
+    const ops = readFileSync("src/lib/admin/order-ops.ts", "utf8");
+    const requestStart = ops.indexOf("export interface CancelRequest");
+    const request = ops.slice(requestStart, ops.indexOf("\n}\n", requestStart));
+    expect(request).not.toMatch(/\brefund\b/);
+    expect(request).not.toContain("refundToken");
+    expect(request).not.toContain("expectedDestination");
+    const body = ops.slice(
+      ops.indexOf("export async function cancelOrder"),
+      ops.indexOf("// ── Payment"),
+    );
+    expect(body).not.toContain("issueRefund(");
+    expect(body).not.toContain("reserveRefund(");
+    expect(body).not.toContain("provider.refund(");
+    expect(body).not.toContain("creditWalletRefund(");
+    expect(body).toContain('setOrderAttention(id, "refund_due")');
+    expect(body).toContain("'İade başlat' ile iade et");
+    // The bulk tool goes through the same cancel, with nothing to refund.
+    const bulk = ops.slice(
+      ops.indexOf("export async function runBulkOrderAction"),
+    );
+    expect(bulk).not.toMatch(/refund:\s*(true|false)/);
+
+    // The Server Action reads no refund, token or destination field.
+    const actions = readFileSync("src/app/admin/siparisler/actions.ts", "utf8");
+    const action = actions.slice(
+      actions.indexOf("export async function cancelOrderAction"),
+      actions.indexOf("export async function refundOrderAction"),
+    );
+    expect(action).not.toMatch(
+      /field\(formData, "(refund|token|destination)"\)/,
+    );
+    expect(action).not.toContain("destinationOf(");
+
+    // The modal has no refund box and no refund token.
+    const ui = readFileSync(
+      "src/components/admin/order-actions-ui.tsx",
+      "utf8",
+    );
+    const modal = ui.slice(
+      ui.indexOf("function CancelOrderModal"),
+      ui.indexOf("function RefundOrderModal"),
+    );
+    expect(modal).not.toContain('name="refund"');
+    expect(modal).not.toContain("Tutarın tamamını");
+    expect(modal).not.toContain("refundToken");
+    expect(modal).not.toContain("DestinationNote");
+    // The money decision stays: the order number is still typed out.
+    expect(modal).toContain(
+      "confirmPhrase={money.collected ? String(order.orderNo) : undefined}",
+    );
+    // "İade başlat" keeps its own one-time token.
+    const refundModal = ui.slice(
+      ui.indexOf("function RefundOrderModal"),
+      ui.indexOf("function OutsideRefundModal"),
+    );
+    expect(refundModal).toContain("token: refundToken");
   });
 });

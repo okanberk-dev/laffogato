@@ -9,8 +9,8 @@ import "server-only";
 // would no longer offer.
 //
 // Each answers with one sentence for the toast ("Sipariş #10023 iptal
-// edildi · 3 ürün stoğa döndü · ₺450,00 karta iade edildi · e-posta
-// gönderildi."), a warning tone when something needs a hand.
+// edildi · 3 ürün stoğa döndü · e-posta gönderildi."), a warning tone when
+// something needs a hand.
 
 import { baseNoticeKind, isResendableKind } from "@/lib/email/notice-kinds";
 import { resendOrderNotice } from "@/lib/email/order-notices";
@@ -49,7 +49,7 @@ import {
   type RefundDestination,
 } from "./order-actions";
 import { noticeKindLabel } from "./order-timeline";
-import { canAccess, type AdminRole } from "./roles";
+import type { AdminRole } from "./roles";
 import {
   checkOrderWithPos,
   finalizeRefund,
@@ -240,8 +240,10 @@ export interface RefundRequest {
 }
 
 /**
- * The refund itself, for the İade modal and for the cancel modal's "tutarın
- * tamamını iade et": every refusal before money moves (rule 25), the ledger
+ * The refund itself, for the İade modal and the two PayNkolay record
+ * buttons ("PayNkolay'da iade ettim", "PayNkolay'dan iadeyi bul"). Never for
+ * a cancel: since 28 Eki 2026 `cancelOrder` moves no money (operator: "iade
+ * otomatik işlemesin"). Every refusal before money moves (rule 25), the ledger
  * entry reserved atomically against what was COLLECTED and the modal's
  * one-time token, the money sent back through the payment it came from
  * (wallet, card, or nowhere for a counter sale), then the status, the stamp
@@ -665,10 +667,6 @@ export interface CancelRequest {
    * for a parcel that already left (whether it comes back is the call).
    */
   restock: boolean | null;
-  /** Refund what was collected in the same step (the refunds role only). */
-  refund: boolean;
-  refundToken?: string;
-  expectedDestination?: RefundDestination;
   /**
    * The order number typed into the modal; required when money was taken
    * (ActionModal `confirmPhrase`, checked here too). The bulk tool checks
@@ -680,13 +678,19 @@ export interface CancelRequest {
 }
 
 /**
- * "İptal et": the reason, the stock decision, and when money was taken and
- * the operator may refund, the refund in the same step.
+ * "İptal et": the reason and the stock decision. Money NEVER moves here
+ * (operator, 28 Eki 2026: "e ticaret için de manuel işlem olsun, iade
+ * otomatik işlemesin"; until then the modal offered "tutarın tamamını şimdi
+ * iade et" in the same step). A cancel that keeps money flags the order
+ * "iade bekliyor" (`refund_due`) and says so in its sentence; the refund is
+ * a separate, explicit step on the cancelled order: "İade başlat"
+ * (`refundOrder`), or the two PayNkolay record buttons. Cancelling an order
+ * money was taken on still needs the refunds role (`gate` / `bulkRefusal`):
+ * keeping a customer's money is a money decision.
  *
  * A pending POS order is asked about first (rule 29): a payment the POS
  * shows is booked and the order is NOT cancelled; a POS that cannot be
- * asked is not "unpaid". A cancel that keeps the money flags the order
- * "iade bekliyor" so it does not sit in the list looking finished.
+ * asked is not "unpaid".
  */
 export async function cancelOrder(
   id: string,
@@ -756,7 +760,7 @@ export async function cancelOrder(
 
   const parts: string[] = [`${orderLabel(g.order)} iptal edildi`];
   let warn = false;
-  let order = moved.order;
+  const order = moved.order;
   if (moved.release?.released) {
     if (!restock) parts.push("stoğa alınmadı");
     else if (moved.release.units > 0)
@@ -767,38 +771,14 @@ export async function cancelOrder(
     parts.push(w);
   }
 
-  const mails: Array<NoticeOutcome | null | undefined> = [moved.mail];
-  let refundedMinor = 0;
   const due = refundableMinor(order, g.money.collected, g.money.collectedMinor);
   let followUp: string | undefined;
-  if (due > 0 && request.refund && canAccess("refunds", actor.role)) {
-    const refunded = await issueRefund(
-      order,
-      g.money,
-      {
-        amountMinor: due,
-        reason,
-        token: request.refundToken,
-        expectedDestination: request.expectedDestination,
-      },
-      actor,
-    );
-    if (refunded.ok) {
-      order = refunded.order;
-      refundedMinor = due;
-      parts.push(...refunded.parts);
-      mails.push(refunded.mail);
-      if (refunded.warn) warn = true;
-    } else {
-      warn = true;
-      parts.push(`iade yapılamadı: ${refunded.error}`);
-    }
-  }
-  if (due > 0 && refundedMinor === 0) {
-    // Money the shop still holds for an order that will not be made. A flag
-    // already on the order (a second charge, a wrong amount) says more and
-    // is kept: clearing "iade bekliyor" later must not forget it. The
-    // e-Arşiv one gives way (`MONEY_FIRST`).
+  if (due > 0) {
+    // Money the shop still holds for an order that will not be made: it
+    // stays until someone starts the refund on purpose. A flag already on
+    // the order (a second charge, a wrong amount) says more and is kept:
+    // clearing "iade bekliyor" later must not forget it. The e-Arşiv one
+    // gives way (`MONEY_FIRST`).
     const held = String(g.order.attention ?? "");
     if (!held || MONEY_FIRST.has(held)) {
       await setOrderAttention(id, "refund_due");
@@ -808,7 +788,7 @@ export async function cancelOrder(
     warn = true;
   }
 
-  const mail = combinedMail(mails);
+  const mail = combinedMail([moved.mail]);
   if (mail === "failed") warn = true;
   parts.push(mailPart(mail));
 
@@ -824,7 +804,6 @@ export async function cancelOrder(
       reason,
       restock,
       units: moved.release?.units ?? 0,
-      refundedMinor,
       ...(request.bulk ? { bulk: true } : {}),
     },
   });
@@ -1297,7 +1276,6 @@ export async function runBulkOrderAction(
                 {
                   reason: input.reason,
                   restock: true,
-                  refund: false,
                   bulk: true,
                 },
                 actor,

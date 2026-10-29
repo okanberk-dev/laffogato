@@ -463,7 +463,10 @@ describe("cancelOrderAction", () => {
     expect(res).toMatchObject({ ok: false, fieldErrors: { restock: expect.any(String) } });
   });
 
-  it("cancels and refunds in one step, in one sentence", async () => {
+  it("a refund-role user's cancel keeps the money: 'iade bekliyor', the POS not asked (28 Eki 2026)", async () => {
+    // Operator: "e ticaret için de manuel işlem olsun, iade otomatik
+    // işlemesin". Until then the modal refunded the whole payment in the
+    // same step for those who may refund.
     store.getOrder.mockResolvedValue(order());
     store.orderMoney.mockResolvedValue(PAID_MONEY);
     store.transitionOrder.mockResolvedValue({
@@ -478,29 +481,15 @@ describe("cancelOrderAction", () => {
       amountMinor: 50_000,
       trxDate: "2026-10-17",
     });
-    store.reserveRefund.mockResolvedValue({
-      ok: true,
-      refund: { id: "rfn-1", amountMinor: 50_000 },
-      order: order({ status: "cancelled", refunds: [{ id: "rfn-1", amountMinor: 50_000 }] }),
-    });
-    store.finalizeRefund.mockImplementation(async (o: unknown) => ({ order: o, mail: "sent" }));
     const res = await actions.cancelOrderAction(
       null,
-      form({
-        id: "ord-1",
-        reason: "Stokta yok",
-        restock: "1",
-        refund: "1",
-        token: "tok-1",
-        destination: "card",
-        confirm: "#10023",
-      }),
+      form({ id: "ord-1", reason: "Stokta yok", restock: "1", confirm: "#10023" }),
     );
     expect(res).toEqual({
       ok: true,
-      tone: "success",
+      tone: "warning",
       message:
-        "Sipariş #10023 iptal edildi · 2 ürün stoğa döndü · ₺500,00 karta iade edildi · e-posta gönderildi.",
+        "Sipariş #10023 iptal edildi · 2 ürün stoğa döndü · para henüz iade edilmedi, 'İade başlat' ile iade et · e-posta gönderildi.",
     });
     expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "cancel", {
       restock: true,
@@ -508,11 +497,18 @@ describe("cancelOrderAction", () => {
       // From the status the decision was made on, never from a newer one.
       expectStatus: "paid",
     });
-    expect(store.reserveRefund).toHaveBeenCalledWith(
-      "ord-1",
-      expect.objectContaining({ amountMinor: 50_000, token: "tok-1", destination: "card" }),
+    expect(providerRefund).not.toHaveBeenCalled();
+    expect(store.reserveRefund).not.toHaveBeenCalled();
+    expect(store.releaseRefund).not.toHaveBeenCalled();
+    expect(store.finalizeRefund).not.toHaveBeenCalled();
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
+    expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_unknown");
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "transition",
+        payload: expect.objectContaining({ transition: "cancel", reason: "Stokta yok", restock: true, units: 2 }),
+      }),
     );
-    expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_due");
   });
 
   it("a cancel that keeps the money flags the order 'iade bekliyor'", async () => {
@@ -539,13 +535,13 @@ describe("cancelOrderAction", () => {
   });
 });
 
-describe("cancelOrderAction, when the refund does not go through", () => {
-  function cancelled() {
-    store.getOrder.mockResolvedValue(order());
+describe("cancelOrderAction never refunds (operator, 28 Eki 2026)", () => {
+  function cancelled(over: Record<string, unknown> = {}) {
+    store.getOrder.mockResolvedValue(order(over));
     store.orderMoney.mockResolvedValue(PAID_MONEY);
     store.transitionOrder.mockResolvedValue({
       ok: true,
-      order: order({ status: "cancelled" }),
+      order: order({ ...over, status: "cancelled" }),
       mail: "sent",
       release: { released: true, units: 2, lines: [] },
     });
@@ -555,14 +551,16 @@ describe("cancelOrderAction, when the refund does not go through", () => {
       amountMinor: 50_000,
       trxDate: "2026-10-17",
     });
+    // Were a refund still wired in, these would let it "succeed".
     store.reserveRefund.mockResolvedValue({
       ok: true,
       refund: { id: "rfn-1", amountMinor: 50_000 },
       order: order({ status: "cancelled", refunds: [{ id: "rfn-1", amountMinor: 50_000 }] }),
     });
-    store.finalizeRefund.mockImplementation(async (o: unknown) => ({ order: o, mail: null }));
+    store.finalizeRefund.mockImplementation(async (o: unknown) => ({ order: o, mail: "sent" }));
   }
-  const fields = {
+  // The old modal's fields: a stale tab, or a hand-made POST, still sends them.
+  const posted = {
     id: "ord-1",
     reason: "Stokta yok",
     restock: "1",
@@ -572,34 +570,50 @@ describe("cancelOrderAction, when the refund does not go through", () => {
     confirm: "10023",
   };
 
-  it("a POS that did not answer: cancelled, refund kept as 'sonucu bilinmiyor', not 'iade bekliyor'", async () => {
+  it("ignores a posted refund=1 with its token and destination: cancelled, money kept, no POS call", async () => {
     cancelled();
-    providerRefund.mockRejectedValue(new Error("socket hang up"));
-    const res = await actions.cancelOrderAction(null, form(fields));
+    const res = await actions.cancelOrderAction(null, form(posted));
     expect(res).toMatchObject({ ok: true, tone: "warning" });
-    expect(res.ok && res.message).toMatch(/iptal edildi .*POS yanıt vermedi/);
-    expect(store.releaseRefund).not.toHaveBeenCalled();
-    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_unknown");
-    // "İade başlat" would invite the second refund this guards against.
-    expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_due");
+    expect(res.ok && res.message).toMatch(/^Sipariş #10023 iptal edildi/);
+    expect(res.ok && res.message).toContain("para henüz iade edilmedi, 'İade başlat' ile iade et");
+    expect(res.ok && res.message).not.toContain("iade edildi ·");
+    expect(providerRefund).not.toHaveBeenCalled();
+    expect(store.reserveRefund).not.toHaveBeenCalled();
+    expect(store.finalizeRefund).not.toHaveBeenCalled();
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
+    expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_unknown");
   });
 
-  it("a POS that refused: cancelled, the money still owed, and the sentence says so", async () => {
+  it("the audit row records no refund, with or without the old field", async () => {
     cancelled();
-    providerRefund.mockRejectedValue(new PaymentRefusedError("responseCode=0"));
-    const res = await actions.cancelOrderAction(null, form(fields));
+    await actions.cancelOrderAction(null, form(posted));
+    const [row] = safeAudit.mock.calls.map((c) => c[0] as { payload: Record<string, unknown> });
+    expect(row.payload).toMatchObject({ transition: "cancel", to: "cancelled", from: "paid" });
+    expect(row.payload).not.toHaveProperty("refundedMinor");
+  });
+
+  it("the manager too: the refunds role lets one cancel a paid order, not refund it in the same step", async () => {
+    session.role = "manager";
+    cancelled();
+    const res = await actions.cancelOrderAction(null, form(posted));
     expect(res).toMatchObject({ ok: true, tone: "warning" });
-    expect(res.ok && res.message).toContain("iade yapılamadı");
-    expect(res.ok && res.message).toContain("'İade başlat' ile iade et");
-    expect(store.releaseRefund).toHaveBeenCalledWith("ord-1", "rfn-1");
+    expect(providerRefund).not.toHaveBeenCalled();
     expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
   });
 
   it("says the money is still owed over the e-Arşiv refund flag", async () => {
+    cancelled({ attention: "invoice_refund" });
+    await actions.cancelOrderAction(null, form(posted));
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
+  });
+
+  it("the wallet is not credited either", async () => {
     cancelled();
-    store.getOrder.mockResolvedValue(order({ attention: "invoice_refund" }));
-    providerRefund.mockRejectedValue(new PaymentRefusedError("responseCode=0"));
-    await actions.cancelOrderAction(null, form(fields));
+    store.orderMoney.mockResolvedValue({ ...PAID_MONEY, destination: "wallet" });
+    const res = await actions.cancelOrderAction(null, form({ ...posted, destination: "wallet" }));
+    expect(res).toMatchObject({ ok: true, tone: "warning" });
+    expect(res.ok && res.message).not.toContain("cüzdana");
+    expect(store.reserveRefund).not.toHaveBeenCalled();
     expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
   });
 

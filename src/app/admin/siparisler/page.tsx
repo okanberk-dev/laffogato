@@ -32,7 +32,6 @@ import {
   withoutStatuses,
   type OrderSortKey,
 } from "@/lib/admin/order-filters";
-import { canAccess } from "@/lib/admin/roles";
 import {
   countOrdersByStatus,
   listOrderMoney,
@@ -193,7 +192,6 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       <OrdersList
         key={JSON.stringify(view)}
         rows={rows}
-        mayRefund={canAccess("refunds", session.role)}
         live={parsed.live}
         sort={parsed.sort}
         searchParams={sp}

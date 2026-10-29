@@ -169,7 +169,6 @@ export default async function AdminOrderDetailPage({
             money={money}
             actions={actions}
             refundToken={randomUUID()}
-            mayRefund={canAccess("refunds", session.role)}
           />
         }
       />
