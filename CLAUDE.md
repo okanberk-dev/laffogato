@@ -365,7 +365,8 @@ etiketini düşüren her yazım, yazım kancasından (`src/lib/db/index.ts`
 (iki projede aynı); yoksa ping gitmez ve çekme ucu panele kapalıdır; LafPOS'un
 anahtarı (`LAFPOS_SYNC_SECRET`) tanımlıysa uç yalnız LafPOS'a, dünden yarına
 açıktır (`docs/LAFPOS.md`). Panele yalnız ad, saat, kişi
-sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
+sayısı, durumlar, not, tutar ve iptalde iade tutarı (`refundMinor`; 0 = iade
+yok) gider; e-posta, telefon, soyad, ödeme referansı asla
 (`toPanelReservation` beyaz listesi). İmza kuralları
 `src/lib/panel/karaoke-sync-core.ts`'te ve panelde bayt bayt aynı; iki tarafın
 testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:

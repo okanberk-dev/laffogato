@@ -454,6 +454,7 @@ describe("LafPOS's karaoke read", () => {
         channel: "web",
         createdAt: "2026-10-20T09:00:00.000Z",
         updatedAt: "2026-10-20T09:05:00.000Z",
+        refundMinor: null,
       },
     ]);
     const text = JSON.stringify(body);

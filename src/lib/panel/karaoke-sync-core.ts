@@ -313,6 +313,18 @@ export interface PanelKaraokeReservation {
   channel: "web" | "app" | "";
   createdAt: string;
   updatedAt: string;
+  /**
+   * A cancelled booking's refund, kuruş (additive, 29 Eki 2026): what went
+   * back or goes back. 0 = nothing (a late guest request under a 0 % rule:
+   * the hours were put on sale, and `paymentStatus` reads "refunded" though
+   * no money moved), a share below the payment = a late share or a resold
+   * hour's part. `null` = no partial amount: if anything goes back it is the
+   * whole payment (a cancelled booking still `paid`, `refunding` or
+   * `refunded` in full, or one nothing was paid for), and always on a booking
+   * that is not cancelled. A panel that does not read it keeps its old
+   * wording.
+   */
+  refundMinor: number | null;
 }
 
 /** The columns the mapper reads; a full row is accepted and narrowed. */
@@ -329,7 +341,7 @@ export type PanelSourceRow = Pick<
   | "totalMinor"
   | "createdAt"
   | "updatedAt"
-> & { paymentStatus?: string; channel?: string };
+> & { paymentStatus?: string; channel?: string; refundMinor?: number | null };
 
 /** At most `max` characters, never splitting an emoji in two. */
 function clip(text: string, max: number): string {
@@ -378,6 +390,14 @@ export function toPanelReservation(
     : "none";
   const guests = Number(r.guests);
   const totalMinor = Number(r.totalMinor);
+  // Only a cancelled booking's: a live one has nothing going back.
+  const refundMinor =
+    status === "cancelled" &&
+    typeof r.refundMinor === "number" &&
+    Number.isInteger(r.refundMinor) &&
+    r.refundMinor >= 0
+      ? r.refundMinor
+      : null;
   return {
     id: String(r.id),
     date: r.date,
@@ -394,6 +414,7 @@ export function toPanelReservation(
     channel: r.channel === "web" || r.channel === "app" ? r.channel : "",
     createdAt: r.createdAt ?? "",
     updatedAt: r.updatedAt ?? "",
+    refundMinor,
   };
 }
 

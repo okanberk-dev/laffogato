@@ -277,7 +277,10 @@ kurallarıdır (`holdsSlot`, `src/lib/mobile/karaoke-core.ts`; para:
   `cancelled` satır odayı bırakmıştır, ödeme durumu ne olursa olsun (`paid`:
   iadesi henüz yapılmamış iptal; `refunding`: geç iptalin payı ödenecek ya da
   iadesi yolda; `refunded`, `expired`, `none`). İptal satırı "Sayacı başlat"ta
-  önerilmez, kasada hiçbir şeye sayılmaz.
+  önerilmez, kasada hiçbir şeye sayılmaz. 29 Ekim 2026'dan beri iptal
+  satırında `refunded` hiçbir şeyin geri gitmediği anlamına da gelebilir
+  (`refundMinor: 0`: %0 kuralında geç istekle saat satışa açıldı); kasa onu
+  yine yalnız "İptal" diye okur, alanı okuması gerekmez.
 - **Önceden ödenmiş blok** yalnız `status` `cancelled` değilken ve
   `paymentStatus` `paid` iken. Bloğun parası sitededir (online karaoke cirosu,
   `docs/PANEL-SALES.md`); kasa yalnız bloğu aşan süreyi kendi saat ücretiyle
@@ -305,8 +308,9 @@ kurallarıdır (`holdsSlot`, `src/lib/mobile/karaoke-core.ts`; para:
 LafPOS'a panelin aldığından fazlası gitmez: aynı uçlar, aynı beyaz listeler
 (`toPanelOrder`: yalnız ad; soyad, e-posta, telefon, adres, kurye notu, ödeme
 referansı asla. `toPanelReservation`: yalnız ad, gün ve saat, kişi sayısı,
-durum ve ödeme durumu, not, tutar, kanal; soyad, e-posta, telefon, iletişim
-izni, sözleşme kaydı, ödeme referansı, iade ayrıntısı ve IP asla). Sürüm ucu
+durum ve ödeme durumu, not, tutar, kanal, iptalde iade tutarı; soyad,
+e-posta, telefon, iletişim izni, sözleşme kaydı, ödeme referansı, iadenin
+diğer ayrıntıları ve IP asla). Sürüm ucu
 hiç veri taşımaz. Online satış ucu LafPOS'a kapalıdır.
 
 Karaoke okumasıyla rezervasyonun adı ve notu kafedeki makineye de gider. Bu

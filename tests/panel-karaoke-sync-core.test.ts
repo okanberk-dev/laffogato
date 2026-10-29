@@ -435,6 +435,8 @@ describe("what leaves the site", () => {
       channel: "web",
       createdAt: "2026-10-20T09:00:00.000Z",
       updatedAt: "2026-10-20T09:05:00.000Z",
+      // A live booking has nothing going back.
+      refundMinor: null,
     });
     const sent = JSON.stringify(toPanelReservation(row));
     for (const secret of [
@@ -447,6 +449,44 @@ describe("what leaves the site", () => {
     ]) {
       expect(sent).not.toContain(secret);
     }
+  });
+
+  it("names what a cancelled booking refunded, so the bar screen never says 'iade edildi' for nothing (29 Eki 2026)", () => {
+    const cancelled = { ...row, status: "cancelled" as const };
+    // A late guest request under a 0 % rule: refunded, nothing went back.
+    expect(
+      toPanelReservation({
+        ...cancelled,
+        paymentStatus: "refunded",
+        refundMinor: 0,
+      })!.refundMinor,
+    ).toBe(0);
+    // A late share or a resold hour's part.
+    expect(
+      toPanelReservation({
+        ...cancelled,
+        paymentStatus: "refunding",
+        refundMinor: 100000,
+      })!.refundMinor,
+    ).toBe(100000);
+    // The whole payment back.
+    expect(
+      toPanelReservation({
+        ...cancelled,
+        paymentStatus: "refunded",
+        refundMinor: null,
+      })!.refundMinor,
+    ).toBeNull();
+    // Never on a live booking, nor a value that is not a whole kuruş.
+    expect(
+      toPanelReservation({ ...row, refundMinor: 5 })!.refundMinor,
+    ).toBeNull();
+    expect(
+      toPanelReservation({ ...cancelled, refundMinor: -1 })!.refundMinor,
+    ).toBeNull();
+    expect(
+      toPanelReservation({ ...cancelled, refundMinor: 1.5 })!.refundMinor,
+    ).toBeNull();
   });
 
   it("ends a midnight block on the next day", () => {

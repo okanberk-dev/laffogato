@@ -38,9 +38,21 @@ birkaç saniyede bir sormadan.
    `Cache-Control: no-store`. Her rezervasyon yalnız şunları taşır: kimlik,
    gün, başlangıç saati, süre, başlangıç ve bitiş anı, kişi sayısı, durum,
    ödeme durumu, **yalnız ad** (soyad değil), not (en çok 300 karakter),
-   tutar, kanal (`web` / `app`), oluşturma ve güncelleme anı. E-posta,
-   telefon, soyad, iletişim izni, sözleşme kaydı, ödeme referansı, iade
-   ayrıntısı ve IP **hiç gönderilmez** (`toPanelReservation`, beyaz liste).
+   tutar, kanal (`web` / `app`), oluşturma ve güncelleme anı ve iptal
+   edilmiş rezervasyonun iade tutarı (`refundMinor`, 29 Ekim 2026, ekleme;
+   aşağıda). E-posta, telefon, soyad, iletişim izni, sözleşme kaydı, ödeme
+   referansı, iadenin diğer ayrıntıları ve IP **hiç gönderilmez**
+   (`toPanelReservation`, beyaz liste).
+
+   `refundMinor` (kuruş ya da `null`): iptal edilmiş rezervasyonda geri
+   giden ya da gidecek tutar. `0` hiçbir şey geri gitmedi demektir: %0
+   kuralında misafirin geç isteğiyle iade yapılmadan iptal edilip saati
+   satışa açılan rezervasyon `paymentStatus: "refunded"` taşır ama para
+   hareket etmemiştir (LEGAL-REDLINES §37.8). Ödenenden küçük bir tutar geç
+   iptal payı ya da yeniden satılan saatin payıdır; `null` tutarın tamamı
+   geri gitti ya da rezervasyon iptal edilmedi demektir. Alanı okumayan bir
+   panel eski sözleriyle çalışmaya devam eder; okuyan panel "iade edildi"
+   yerine "iade yok" yazar (lafmaliyet bar ekranı).
 
    Liste günün ve saatin sırasıyladır (erkenden geçe). Pencere 2000 satırı
    aşarsa (tek oda saatlik kiralanınca gerçek bir durum değil) site okumayı

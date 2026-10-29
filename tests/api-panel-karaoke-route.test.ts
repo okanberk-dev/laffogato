@@ -159,6 +159,9 @@ describe("a signed read", () => {
         "id",
         "note",
         "paymentStatus",
+        // A cancelled booking's refund (29 Eki 2026, additive): money, never
+        // a person.
+        "refundMinor",
         "startHour",
         "startsAt",
         "status",
