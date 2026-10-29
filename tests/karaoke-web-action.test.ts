@@ -226,6 +226,64 @@ describe("a member's paid booking", () => {
     expect(input).not.toHaveProperty("expectedCancelPolicy");
   });
 
+  it("echoes the stamp of the printed sentences, and a page without one sends null (28 Eki 2026)", async () => {
+    h.bookKaraoke.mockResolvedValue(held());
+    await submit({
+      ...MEMBER,
+      expectedFreeCancelHours: "2",
+      expectedLateRefundPercent: "0",
+      expectedCancelRules: "0badf00d",
+    });
+    expect(h.bookKaraoke.mock.calls[0]![2]).toMatchObject({
+      expectedRulesStamp: "0badf00d",
+    });
+    // A page drawn by the build before the stamp: the library refuses it.
+    await submit({
+      ...MEMBER,
+      expectedFreeCancelHours: "2",
+      expectedLateRefundPercent: "0",
+    });
+    expect(h.bookKaraoke.mock.calls[1]![2]).toMatchObject({
+      expectedRulesStamp: null,
+    });
+  });
+
+  it("refuses a stamp that is not eight hex digits before anything runs", async () => {
+    const state = await submit({
+      ...MEMBER,
+      expectedFreeCancelHours: "2",
+      expectedLateRefundPercent: "0",
+      expectedCancelRules: "<script>",
+    });
+    expect(state?.error).toBeTruthy();
+    expect(h.bookKaraoke).not.toHaveBeenCalled();
+  });
+
+  it("a changed rule tells the guest to draw the page again: its sentences are stale", async () => {
+    h.bookKaraoke.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "policy_changed",
+      message:
+        "İptal ve iade kuralı sen rezervasyon yaparken değişti. Yeni kuralı okuyup yeniden dene.",
+    });
+    expect((await submit(MEMBER))?.error).toBe(
+      "İptal ve iade kuralı sen bu sayfayı açtıktan sonra değişti. Sayfayı yenile, yeni kuralı oku ve yeniden dene.",
+    );
+  });
+
+  it("the form stamps the very sentences it prints", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      "src/components/laffogato/karaoke-booking.tsx",
+      "utf8",
+    );
+    expect(src).toMatch(/\{terms\.rules\[0\]\}\{" "\}\s*\{terms\.rules\[1\]\}/);
+    expect(src).toMatch(
+      /name="expectedCancelRules"\s+value=\{karaokeRulesStamp\(terms\.rules\)\}/,
+    );
+  });
+
   it("the form echoes the rule it prints", async () => {
     // While the box prints the default policy's two sentences, the hidden
     // pair must be the default's numbers; a page printing another rule

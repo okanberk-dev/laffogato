@@ -62,6 +62,7 @@ import {
   KARAOKE_BUSINESS_CANCEL,
   KARAOKE_NO_WITHDRAWAL,
   KARAOKE_PAYMENT_PAGE_MINUTES,
+  karaokeRulesStamp,
 } from "@/lib/mobile/karaoke-time";
 import { priceLabel } from "@/lib/utils/format";
 
@@ -1266,7 +1267,8 @@ export function KaraokeBooking({
                         )}
                       </ul>
                       {/* The rule printed above, echoed: a booking whose rule
-                          changed while this page was open is refused. */}
+                          changed while this page was open is refused, its
+                          numbers or its sentences. */}
                       {terms ? (
                         <>
                           <input
@@ -1278,6 +1280,11 @@ export function KaraokeBooking({
                             type="hidden"
                             name="expectedLateRefundPercent"
                             value={terms.policy.lateRefundPercent}
+                          />
+                          <input
+                            type="hidden"
+                            name="expectedCancelRules"
+                            value={karaokeRulesStamp(terms.rules)}
                           />
                         </>
                       ) : null}

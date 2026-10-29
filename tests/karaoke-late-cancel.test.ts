@@ -498,6 +498,86 @@ describe("the snapshot at booking", () => {
     });
   });
 
+  describe("the web form's stamp of the sentences it printed (28 Eki 2026)", () => {
+    const LEGACY_PAIR = [
+      "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+      "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+    ];
+    const book = (stamp: string | null | undefined) =>
+      karaoke.createReservation(
+        { email: "eda@example.com", name: "Eda Yılmaz" },
+        {
+          ...input,
+          expectedCancelPolicy: { freeCancelHours: 2, lateRefundPercent: 0 },
+        },
+        new Date("2026-10-20T09:00:00.000Z"),
+        undefined,
+        {
+          channel: "web",
+          prepay: true,
+          legalConsent: consent,
+          ...(stamp !== undefined ? { expectedRulesStamp: stamp } : {}),
+        },
+      );
+
+    it("a page drawn before the deploy printed the old pair under the same numbers: refused, nothing held", async () => {
+      // The 2 h / 0 % rule kept its numbers and changed its meaning: the
+      // numbers alone would have booked this guest under sentences the page
+      // never showed (TKHK m.4/2).
+      vi.mocked(rateLimit.reserveLoginAttempt).mockClear();
+      const res = await book(time.karaokeRulesStamp(LEGACY_PAIR));
+      expect(res).toMatchObject({
+        ok: false,
+        status: 409,
+        error: "policy_changed",
+        policy: {
+          freeCancelHours: 2,
+          lateRefundPercent: 0,
+          cancellationRules: [
+            time.KARAOKE_REFUND_RULE,
+            time.KARAOKE_NO_REFUND_RULE,
+          ],
+        },
+      });
+      expect(h.tables.get("karaoke_reservations") ?? []).toEqual([]);
+      expect(rateLimit.reserveLoginAttempt).not.toHaveBeenCalled();
+    });
+
+    it("a page from a build that sent no stamp: refused the same way", async () => {
+      expect(await book(null)).toMatchObject({
+        ok: false,
+        error: "policy_changed",
+      });
+      expect(h.tables.get("karaoke_reservations") ?? []).toEqual([]);
+    });
+
+    it("the stamp of the sentences in force: booked", async () => {
+      const res = await book(
+        time.karaokeRulesStamp([
+          time.KARAOKE_REFUND_RULE,
+          time.KARAOKE_NO_REFUND_RULE,
+        ]),
+      );
+      expect(res.ok).toBe(true);
+    });
+
+    it("the app route sends no stamp and is compared on the numbers alone (v1)", async () => {
+      expect((await book(undefined)).ok).toBe(true);
+    });
+
+    it("is eight hex digits, and differs for the old and the new pair", () => {
+      const now = time.karaokeRulesStamp([
+        time.KARAOKE_REFUND_RULE,
+        time.KARAOKE_NO_REFUND_RULE,
+      ]);
+      expect(now).toMatch(/^[0-9a-f]{8}$/);
+      expect(time.karaokeRulesStamp(LEGACY_PAIR)).not.toBe(now);
+      expect(time.karaokeRulesStamp(LEGACY_PAIR)).toBe(
+        time.karaokeRulesStamp([...time.LEGACY_KARAOKE_RULES]),
+      );
+    });
+  });
+
   it("an unreadable expectedCancelPolicy is a 400, nothing held", async () => {
     const res = await karaoke.createReservation(
       { email: "eda@example.com", name: "Eda Yılmaz" },

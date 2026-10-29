@@ -559,6 +559,8 @@ export async function bookKaraoke(
     legalConsent?: KaraokeLegalConsent;
     buyerIp?: string;
     now?: Date;
+    /** The web form's stamp of the sentences it printed (createReservation). */
+    expectedRulesStamp?: string | null;
   },
 ): Promise<BookKaraokeResult> {
   const guest = customer === null;
@@ -598,6 +600,9 @@ export async function bookKaraoke(
     legalConsent: opts.legalConsent,
     guest,
     ip: opts.buyerIp,
+    ...(opts.expectedRulesStamp !== undefined
+      ? { expectedRulesStamp: opts.expectedRulesStamp }
+      : {}),
   });
   if (!created.ok) return created;
   const reservation = created.reservation;

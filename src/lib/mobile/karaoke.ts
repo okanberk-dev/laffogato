@@ -47,6 +47,7 @@ import {
   karaokeDeadlineFor,
   karaokeMovedDeadline,
   karaokeRulesOf,
+  karaokeRulesStamp,
   karaokeStartInstant,
   karaokeVenueCancelUntilOf,
   KARAOKE_OPEN_CAP,
@@ -241,6 +242,15 @@ export interface CreateReservationOptions {
   prepay?: boolean;
   /** Required with an honoured `prepay` (MSY m.7): the record of the boxes. */
   legalConsent?: KaraokeLegalConsent;
+  /**
+   * The web form only: `karaokeRulesStamp` of the two sentences the page
+   * printed, compared with the sentences a booking made now gets whenever
+   * the request echoes a policy. Null is a page drawn by a build that sent
+   * no stamp (before 28 Eki 2026, when the 2 h rule changed its meaning but
+   * not its numbers): refused like a changed policy. Left out by the app
+   * route, whose v1 request carries no such field.
+   */
+  expectedRulesStamp?: string | null;
 }
 
 const MSG_CONSENT_REQUIRED =
@@ -352,7 +362,13 @@ export async function createReservation(
       message: MSG_EXPECTED_POLICY_INVALID,
     };
   }
-  if (expected && !samePolicy(expected, policy)) {
+  if (
+    expected &&
+    (!samePolicy(expected, policy) ||
+      (options.expectedRulesStamp !== undefined &&
+        options.expectedRulesStamp !==
+          karaokeRulesStamp(karaokeCancellationRules(policy).rules)))
+  ) {
     return {
       ok: false,
       status: 409,

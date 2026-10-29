@@ -156,6 +156,25 @@ export function samePolicy(
 }
 
 /**
+ * A short stamp of the two sentences a form printed (FNV-1a, 32 bits, as 8
+ * hex digits). The web form echoes it with the booking, and a booking whose
+ * page printed other sentences than a booking made now gets is refused even
+ * when the two numbers match: on 28 Eki 2026 the 2 h / 0 % rule kept its
+ * numbers and changed its meaning, and a page drawn before the deploy would
+ * otherwise have booked under sentences it never showed. A change detector,
+ * not a secret.
+ */
+export function karaokeRulesStamp(rules: readonly string[]): string {
+  const text = rules.join("\n");
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+/**
  * The deadline a NEW booking's snapshot stores (`"cancelDeadline"`): the
  * booking instant plus the free window, ending at the latest the minute
  * before the start (a booking made closer to its start than the window is

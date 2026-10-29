@@ -195,6 +195,9 @@ const CONTRACTS: FormContract[] = [
       // a rule changed while the page was open refuses the booking.
       "expectedFreeCancelHours",
       "expectedLateRefundPercent",
+      // And a stamp of its two sentences (28 Eki 2026): same numbers under
+      // other words refuse the booking too.
+      "expectedCancelRules",
     ],
   },
   {
