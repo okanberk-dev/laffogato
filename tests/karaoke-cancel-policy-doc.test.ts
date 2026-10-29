@@ -109,7 +109,9 @@ describe("opening the app lock", () => {
    * 2026). That is true while every booking is made under 2 hours / 0 %,
    * which the lock guarantees. Whoever opens it (KARAOKE_POLICY_APP_VERSION)
    * rewrites them first, to point at the karaoke terms instead of repeating
-   * a rule the panel may change.
+   * a rule the panel may change. Since 28 Ekim 2026 they quote it counted
+   * from the booking ("andan itibaren 2 saat"); the old wording, counted back
+   * from the start ("2 saatten fazla / az"), is matched too.
    */
   it("needs every other document to stop quoting the fixed rule", async () => {
     const { KARAOKE_POLICY_APP_VERSION } =
@@ -118,7 +120,9 @@ describe("opening the app lock", () => {
     const quoting = LEGAL_DOCS.filter(
       (d) =>
         d.slug !== SLUG &&
-        /(?<!\d)2 saatten (fazla|az)/.test(JSON.stringify(d)),
+        /(?<!\d)2 saatten (fazla|az)|andan itibaren 2 saat/.test(
+          JSON.stringify(d),
+        ),
     ).map((d) => d.slug);
     if (KARAOKE_POLICY_APP_VERSION === null) {
       // Shut: the quotes are true, and they are there.

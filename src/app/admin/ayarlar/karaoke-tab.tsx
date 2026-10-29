@@ -9,6 +9,7 @@ import { cx } from "@/components/laffogato/cx";
 import type { AdminSettings } from "@/lib/admin/store";
 import {
   KARAOKE_FREE_CANCEL_HOURS_MAX,
+  KARAOKE_FREE_CANCEL_HOURS_MIN,
   karaokeCancellationRules,
   karaokeCancelPolicyOf,
   karaokeCancelPolicyRefusal,
@@ -115,7 +116,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
 
       <Section
         title="İptal ve iade kuralı"
-        description="Üyenin kendi yaptığı iptal için. Rezervasyon saatinden önceki ücretsiz iptal süresinde ödemenin tamamı iade edilir; rezervasyona gelinmediğinde iade yapılmaz. Köşk iptal ederse her zaman tamamı iade edilir."
+        description="Üyenin kendi yaptığı iptal için. Rezervasyon yapıldıktan sonraki ücretsiz iptal süresinde, rezervasyon saati gelmeden yapılan iptalde ödemenin tamamı iade edilir; süre geçince ve rezervasyona gelinmediğinde iade yapılmaz. Köşk iptal ederse her zaman tamamı iade edilir."
       >
         {/* The section body has no gap of its own: the note, the preview and
             the lock box would sit on the last hint. */}
@@ -124,13 +125,13 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
             <SettingsField
               name="karaokeFreeCancelHours"
               label="Ücretsiz iptal (saat)"
-              hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: rezervasyon saati gelene kadar ücretsiz iptal.`}
+              hint={`Rezervasyon yapıldıktan sonra bu kadar saat içinde (rezervasyon saati gelmeden) yapılan iptalde tamamı iade edilir. ${KARAOKE_FREE_CANCEL_HOURS_MIN} ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası.`}
             >
               <TextInput
                 name="karaokeFreeCancelHours"
                 type="number"
                 inputMode="numeric"
-                min={0}
+                min={KARAOKE_FREE_CANCEL_HOURS_MIN}
                 max={KARAOKE_FREE_CANCEL_HOURS_MAX}
                 step={1}
                 defaultValue={String(saved.freeCancelHours)}

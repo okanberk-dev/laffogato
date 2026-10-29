@@ -227,9 +227,12 @@ export async function transitionOrderAction(
 }
 
 /**
- * "İptal et": reason (required), the stock decision (required once the
- * parcel left), and for money that was taken, the refund in the same step
- * for those who may refund. Money collected = the order number typed out.
+ * "İptal et": reason (required) and the stock decision (required once the
+ * parcel left). Money collected = the order number typed out. No money
+ * moves here (operator, 28 Eki 2026: "iade otomatik işlemesin"): a posted
+ * `refund`, `token` or `destination` field is not read, the cancelled order
+ * is flagged "iade bekliyor", and the refund is its own step
+ * (`refundOrderAction` and the PayNkolay record actions below).
  */
 export async function cancelOrderAction(
   _prev: ActionResult | null,
@@ -246,9 +249,6 @@ export async function cancelOrderAction(
       {
         reason: field(formData, "reason"),
         restock: restockRaw === "1" ? true : restockRaw === "0" ? false : null,
-        refund: field(formData, "refund") === "1",
-        refundToken: field(formData, "token"),
-        expectedDestination: destinationOf(formData),
         confirm: field(formData, "confirm"),
       },
       actorOf(session),

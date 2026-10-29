@@ -59,8 +59,6 @@ export interface OrderListRow {
 
 interface Props {
   rows: OrderListRow[];
-  /** The signed-in role may refund (the cancel modal's refund box). */
-  mayRefund: boolean;
   /**
    * Poll for new arrivals (`ParsedOrderList.live`): every order on the
    * plain first page, open orders on the plain "Açık" tab, nothing behind a
@@ -273,7 +271,6 @@ function OrderNo({ order, isNew }: { order: AdminOrder; isNew: boolean }) {
 
 export function OrdersList({
   rows,
-  mayRefund,
   live,
   sort,
   searchParams,
@@ -530,7 +527,6 @@ export function OrdersList({
             money={r.money}
             actions={r.actions}
             refundToken={r.refundToken}
-            mayRefund={mayRefund}
             openLink
             // The step is on the row itself (the Durum cell, the card's
             // last line): the menu does not offer it twice.

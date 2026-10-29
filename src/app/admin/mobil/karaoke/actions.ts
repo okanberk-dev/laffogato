@@ -388,7 +388,12 @@ export async function cancelReservationAction(
   }
   if (result.kept && result.silent) {
     return actionOk(
-      "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+      "İstek kaydedildi. İstek rezervasyon saati geldikten sonra geldi ve rezervasyonun kuralı bu durumda iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+    );
+  }
+  if (result.released && result.silent) {
+    return actionOk(
+      "Rezervasyon iade yapılmadan iptal edildi: istek rezervasyon saatinden önce gelmişti ve rezervasyonun kuralı geç iptalde iade vermiyor. Saati geçtiği için misafire e-posta gönderilmedi.",
     );
   }
   if (result.silent) {
@@ -396,9 +401,16 @@ export async function cancelReservationAction(
       "Rezervasyon iptal edildi. Saati geçtiği için müşteriye e-posta gönderilmedi.",
     );
   }
+  if (result.released) {
+    return okWithNotice(
+      "Rezervasyon iade yapılmadan iptal edildi ve saati yeniden satışa açıldı: ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor. Saat başka bir misafire satılırsa o saatin tutarı karta iade edilecek; panel o zaman haber verir.",
+      result.notified,
+      recipient(result.reservation),
+    );
+  }
   if (result.kept) {
     return okWithNotice(
-      "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi, misafirin adına duruyor.",
+      "İstek kaydedildi. İstek rezervasyon saati geldikten sonra geldi ve rezervasyonun kuralı bu durumda iade vermiyor: rezervasyon iptal edilmedi, misafirin adına duruyor.",
       result.notified,
       recipient(result.reservation),
     );

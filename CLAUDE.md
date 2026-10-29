@@ -371,6 +371,45 @@ sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
 testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
 `docs/PANEL-KARAOKE.md`.
 
+## Karaoke iptal ve iade penceresi (28-29 Eki 2026)
+
+Operatör: _"karaoke için 2 saat içinde iptal etmezse iade olamaz; e-ticaret
+için de manuel işlem olsun, iade otomatik işlemesin"_. Üyenin ücretsiz iptal
+penceresi **rezervasyonun yapıldığı andan** itibaren `freeCancelHours` (2) saat,
+en geç rezervasyon saatinden bir dakika önce biter (`karaokeDeadlineFor`:
+`min(yapıldığı an + 2 saat, başlangıçtan 1 dakika önce)`, son dakika dahil;
+sayfalar son anı dakikasıyla yazar); dışında iade yok, rezervasyon durur. İki
+cümle: "Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati
+gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir." /
+"Rezervasyonu yaptığın andan 2 saat geçtikten sonra yapılan iptallerde ve
+rezervasyona gelinmediğinde ücret iadesi yapılmaz." (ikincisi `too_late`'te
+tek başına yazılır). Her satır son anını ve iki cümlesini saklar; 28 Eki'den
+önce yapılanlar eski kuralı (başlangıçtan 2 saat önce) korur, saat
+değiştirilince de (`karaokeMovedDeadline`). Köşkün kendi iptali yine tam iade,
+"Yine de tamamını iade et" durur; panelde 2-72 saat (ön ödeme rezervasyondan
+75 dakika sonrasına kadar gelebilir). Web formu bastığı iki cümlenin
+damgasını gönderir (`karaokeRulesStamp`): sayıları aynı, cümleleri farklı bir
+sayfa `policy_changed` alır (yayın anı, LEGAL-REDLINES §37.7).
+Sipariş iadesi **elle**: "İptal et" para iade etmez; yalnız "İade başlat" ya
+da PayNkolay'da iade edip kaydeden düğmeler.
+
+**Kararlar (29 Eki 2026, avukat yerine operatörün talimatıyla; LEGAL-REDLINES
+§37.8).** %0 kuralında misafir pencereden sonra ama rezervasyon saatinden
+önce köşke gelemeyeceğini bildirirse ("Misafir iptal istedi") rezervasyon
+iade olmadan iptal edilir ve saati satışa açılır (`releaseLateBooking`;
+`refunded` + `refundMinor` 0, `keptWholeOnLateCancel`); saat başka bir
+misafire satılırsa o saatin tutarı yeniden satış yoluyla elle iade edilir;
+bir satış alıcının kendi ücretsiz penceresi kapanınca sayılır (günlük iş
+`karaoke-resale`, `chargeSettledResales`).
+Üyenin kendi geç iptali (site, uygulama) yine `too_late`. Köşkün geç
+iptalindeki telafi her işletme iptalinde doğar ve öyle kalır. Ücretsiz
+telafi saati kendi kuralını taşır (`KARAOKE_MAKE_GOOD_POLICY` 2 / 0,
+panelden bağımsız): başlangıcına 2 saatten fazla varken bırakılır, geç
+verilmişse verildikten sonra 2 saat (`karaokeMakeGoodDeadline`), kendi iki
+cümlesiyle (`karaokeMakeGoodRules`); koşullar §7, §8 ve Ödeme Koşulları §21
+bunu yazar (29 Eki 2026). Ayrıntı: `docs/API-MOBILE.md` §7.1,
+`docs/LEGAL-REDLINES-2026-09.md` §37.
+
 ## Köşkün paneli: menü bağlantısı (22 Eki 2026)
 
 Operatör: _"bir yerden pasif yapınca veya fiyat değişince diğer yerlerden de

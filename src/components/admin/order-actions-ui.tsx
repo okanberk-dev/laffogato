@@ -328,22 +328,24 @@ function RestockChoice({ shipped }: { shipped: boolean }) {
   );
 }
 
+/**
+ * "İptal et". Money never moves here (operator, 28 Eki 2026: "iade otomatik
+ * işlemesin"): the "tutarın tamamını şimdi iade et" box is gone, a paid
+ * order's cancel flags it "iade bekliyor" and the refund is its own step
+ * ("İade başlat" in the same menu). The order number is still typed out
+ * when money was taken.
+ */
 function CancelOrderModal({
   order,
   money,
   state,
-  refundToken,
-  mayRefund,
   triggerVariant,
 }: {
   order: AdminOrder;
   money: OrderMoneyView;
   state: OrderActionState;
-  refundToken: string;
-  mayRefund: boolean;
   triggerVariant: ButtonVariant;
 }) {
-  const due = refundableMinor(order, money.collected, money.collectedMinor);
   const askPos = order.status === "pending_payment" && isPosOrder(order);
   // The same rule the server asks the stock question by.
   const askStock = hasStockToReturn(order);
@@ -354,7 +356,9 @@ function CancelOrderModal({
       description={
         askPos
           ? "Önce POS'a sorulur: ödeme görünürse sipariş iptal edilmez."
-          : "Müşteriye iptal e-postası gider (mağaza siparişinde)."
+          : money.collected
+            ? "Para bu adımda iade edilmez: sipariş 'iade bekliyor' işareti alır, iadeyi ayrıca 'İade başlat' ile yap. Müşteriye iptal e-postası gider (mağaza siparişinde)."
+            : "Müşteriye iptal e-postası gider (mağaza siparişinde)."
       }
       trigger="İptal et"
       triggerVariant={triggerVariant}
@@ -362,11 +366,7 @@ function CancelOrderModal({
       tone="danger"
       submitLabel="İptal et"
       confirmPhrase={money.collected ? String(order.orderNo) : undefined}
-      hidden={{
-        id: order.id,
-        token: refundToken,
-        destination: money.destination,
-      }}
+      hidden={{ id: order.id }}
     >
       {({ fieldErrors, errorId }) => (
         <>
@@ -389,20 +389,6 @@ function CancelOrderModal({
           </div>
           {askStock ? (
             <RestockChoice shipped={order.status === "shipped"} />
-          ) : null}
-          {due > 0 && mayRefund ? (
-            <div className="flex flex-col gap-2">
-              <Checkbox
-                name="refund"
-                value="1"
-                defaultChecked
-                label="Tutarın tamamını şimdi iade et"
-              />
-              <DestinationNote
-                destination={money.destination}
-                amountMinor={due}
-              />
-            </div>
           ) : null}
         </>
       )}
@@ -707,13 +693,11 @@ export function OrderActionMenu({
   money,
   actions,
   refundToken,
-  mayRefund,
   openLink = false,
   skip = null,
   children,
   framed = false,
 }: OrderControlsProps & {
-  mayRefund: boolean;
   /** Start with "Siparişi aç" (the list's row menu). */
   openLink?: boolean;
   /** The action already shown as the page's primary button. */
@@ -826,8 +810,6 @@ export function OrderActionMenu({
             order={order}
             money={money}
             state={a.cancel!}
-            refundToken={refundToken}
-            mayRefund={mayRefund}
             triggerVariant="menuDanger"
           />
         </>
@@ -840,9 +822,7 @@ export function OrderActionMenu({
  * The order page's header actions: one primary "next step" button, and the
  * rest in the "⋯" menu with "Fiş yazdır" at its end.
  */
-export function OrderHeaderActions(
-  props: OrderControlsProps & { mayRefund: boolean },
-) {
+export function OrderHeaderActions(props: OrderControlsProps) {
   const { order, actions } = props;
   const primary = nextStep(order, actions);
   return (

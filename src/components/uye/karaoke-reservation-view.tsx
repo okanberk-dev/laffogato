@@ -12,6 +12,8 @@ import {
   karaokeLateRefundMinor,
   karaokeRulesOf,
   karaokeSelfCancelTerms,
+  karaokeStartInstant,
+  keptWholeOnLateCancel,
   mayReopenPayment,
   refundAmountOf,
 } from "@/lib/mobile/karaoke-time";
@@ -79,8 +81,15 @@ const PAYMENT_LABEL: Record<string, string> = {
 export function karaokeStatusLine(r: {
   status: string;
   paymentStatus: string;
+  paidMinor?: number;
+  refundMinor?: number | null;
 }): { label: string; tone: string } {
   if (r.status === "cancelled") {
+    // A late cancel that kept the payment and put the hours on sale: nothing
+    // went back (yet), so "iade edildi" would not be true.
+    if (keptWholeOnLateCancel(r)) {
+      return { label: "İptal edildi, saat satışa açıldı", tone: "cancelled" };
+    }
     return r.paymentStatus === "refunded"
       ? { label: "İptal edildi, iade edildi", tone: "refunded" }
       : r.paymentStatus === "expired"
@@ -243,10 +252,25 @@ export function KaraokeReservationView({
           <dd>
             {r.makeGoodFor && r.paymentStatus === "none"
               ? "Telafi saati, senden ödeme alınmaz"
-              : (PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus)}
+              : keptWholeOnLateCancel(r)
+                ? "Ödendi, iade yapılmadı"
+                : (PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus)}
           </dd>
         </div>
-        {r.status === "cancelled" && isPartialRefund(r) ? (
+        {keptWholeOnLateCancel(r) ? (
+          <div>
+            {/* A late request under a late share of 0 (karaoke terms §7,
+                29 Eki 2026): the hours are on sale, and a resold one
+                refunds what was paid for it. */}
+            <dt>İade</dt>
+            <dd>
+              Ücretsiz iptal süren geçtiği için ücret iadesi yapılmadı.
+              Saatlerin yeniden satışa açıldı; biri başka bir misafire satılırsa
+              o saat için ödediğin tutar en geç 14 gün içinde kartına iade
+              edilir ve sana e-postayla haber veririz.
+            </dd>
+          </div>
+        ) : r.status === "cancelled" && isPartialRefund(r) ? (
           <div>
             {/* A late cancel's share (karar D9): what goes back, not the
                 whole payment. */}
@@ -332,6 +356,20 @@ export function KaraokeReservationView({
                 Gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin;
                 odayı o kullanır.
               </p>
+              {/* Karaoke terms §7 (29 Eki 2026): told before the start, the
+                  köşk cancels and puts the hours back on sale. A free make-
+                  good hour has its own rule and no money to give back. */}
+              {!r.makeGoodFor &&
+              now.getTime() <
+                karaokeStartInstant(r.date, r.startHour).getTime() ? (
+                <p>
+                  Ya da rezervasyon saatinden önce bizi arayıp ya da yazıp
+                  gelemeyeceğini söyle: rezervasyonunu iptal eder, saatlerini
+                  yeniden satışa açarız. Ücret iadesi yapılmaz, ama saatlerinden
+                  biri başka bir misafire satılırsa o saat için ödediğin tutar
+                  kartına iade edilir.
+                </p>
+              ) : null}
               <Link href={backHref} className="btn btn-primary btn-sm">
                 Geri dön
               </Link>

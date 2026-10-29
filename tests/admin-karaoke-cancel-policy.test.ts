@@ -4,10 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The karaoke cancellation policy in the panel (P2a): Ayarlar > Karaoke
- * saves it (owner only, Turkish refusals, the fairness limits, the app
- * lock), the tab previews what a customer will read, and the karaoke panel
- * shows an owed late share with "Elle iade edildi" instead of a POS retry.
- * The revenue report's half is tests/admin-reports-ltv.test.ts.
+ * saves it (owner only, Turkish refusals, the two ranges, the app lock),
+ * the tab previews what a customer will read, and the karaoke panel shows
+ * an owed late share with "Elle iade edildi" instead of a POS retry. Since
+ * 28 Eki 2026 (operator: "karaoke için 2 saat içinde iptal etmezse iade
+ * olamaz") the window is counted from the booking: 2..72 hours (0 and 1
+ * are refused: a prepaid booking can be paid up to 75 minutes after it is
+ * made), and the 24 h / 50 % fairness coupling is gone on purpose
+ * (karaoke-time.ts, `karaokeCancelPolicyRefusal`). The revenue report's
+ * half is tests/admin-reports-ltv.test.ts.
  */
 
 const h = vi.hoisted(() => ({
@@ -113,11 +118,22 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     }
   });
 
+  const HOURS_RANGE =
+    "Ücretsiz iptal süresi 2 ile 72 saat arasında tam sayı olmalı.";
+
   it.each([
-    ["abc", "0", "karaokeFreeCancelHours", /0 ile 72 saat/],
-    ["73", "0", "karaokeFreeCancelHours", /0 ile 72 saat/],
-    ["-1", "0", "karaokeFreeCancelHours", /0 ile 72 saat/],
-    ["2.5", "0", "karaokeFreeCancelHours", /0 ile 72 saat/],
+    ["abc", "0", "karaokeFreeCancelHours", HOURS_RANGE],
+    // 0 ("free until the start") is gone since 28 Eki 2026.
+    ["0", "0", "karaokeFreeCancelHours", HOURS_RANGE],
+    ["0", "100", "karaokeFreeCancelHours", HOURS_RANGE],
+    // 1 is under the two-hour floor: a prepaid booking can be paid up to 75
+    // minutes after it is made.
+    ["1", "0", "karaokeFreeCancelHours", HOURS_RANGE],
+    ["1", "100", "karaokeFreeCancelHours", HOURS_RANGE],
+    ["73", "0", "karaokeFreeCancelHours", HOURS_RANGE],
+    ["-1", "0", "karaokeFreeCancelHours", HOURS_RANGE],
+    ["2.5", "0", "karaokeFreeCancelHours", HOURS_RANGE],
+    ["", "0", "karaokeFreeCancelHours", HOURS_RANGE],
     ["2", "101", "karaokeLateRefundPercent", /0 ile 100/],
     ["2", "", "karaokeLateRefundPercent", /0 ile 100/],
   ])(
@@ -133,13 +149,17 @@ describe("saveKaraokeAction: the cancellation policy", () => {
       );
       expect(state.error).toMatch(message);
       expect(state.fieldErrors?.[field]).toMatch(message);
+      expect(state.error).not.toMatch(/0 ile 72/);
       expect(h.updates).toEqual([]);
     },
   );
 
-  it("holds the fairness limits even with the app lock open", async () => {
+  it("the 24 h / 50 % coupling is gone (28 Eki 2026): a long window with nothing back saves with the lock open", async () => {
     h.appVersion = "1.1.0";
     h.settings = baseSettings("1.1.0");
+    // 48 h / 0 % was refused ("en fazla 24 saat") while the window was
+    // counted back from the start; counted from the booking it is more
+    // time to cancel freely (karaoke-time.ts, `karaokeCancelPolicyRefusal`).
     const longNoRefund = await saveKaraokeAction(
       {},
       form({
@@ -148,11 +168,31 @@ describe("saveKaraokeAction: the cancellation policy", () => {
         karaokeLateRefundPercent: "0",
       }),
     );
-    expect(longNoRefund.fieldErrors?.karaokeFreeCancelHours).toMatch(
-      /en fazla 24 saat/,
+    expect(longNoRefund.error).toBeUndefined();
+    expect(longNoRefund.fieldErrors).toBeUndefined();
+    expect(h.updates.at(-1)).toMatchObject({
+      karaokeFreeCancelHours: 48,
+      karaokeLateRefundPercent: 0,
+    });
+    h.settings = { ...h.settings, ...h.updates.at(-1) };
+    // 30 h / 10 % was refused ("en az %50"); accepted now.
+    const lowShare = await saveKaraokeAction(
+      {},
+      form({
+        ...BASE,
+        karaokeFreeCancelHours: "30",
+        karaokeLateRefundPercent: "10",
+      }),
     );
-    expect(h.updates).toEqual([]);
-    // 0 hours is free until the start (ASK-OTH-3-CFG): nothing to refuse.
+    expect(lowShare.error).toBeUndefined();
+    expect(h.updates.at(-1)).toMatchObject({
+      karaokeFreeCancelHours: 30,
+      karaokeLateRefundPercent: 10,
+    });
+    expect(JSON.stringify(h.updates)).not.toMatch(/en fazla 24 saat|en az %50/);
+    // 0 hours is not "free until the start" any more: refused, lock or no
+    // lock, before anything is written.
+    h.updates.length = 0;
     const zero = await saveKaraokeAction(
       {},
       form({
@@ -161,31 +201,47 @@ describe("saveKaraokeAction: the cancellation policy", () => {
         karaokeLateRefundPercent: "0",
       }),
     );
-    expect(zero.error).toBeUndefined();
-    expect(h.updates.at(-1)).toMatchObject({
-      karaokeFreeCancelHours: 0,
-      karaokeLateRefundPercent: 0,
-    });
+    expect(zero.fieldErrors?.karaokeFreeCancelHours).toBe(HOURS_RANGE);
+    expect(h.updates).toEqual([]);
+    // Neither is 1 (under the two-hour floor), with the lock open.
+    const one = await saveKaraokeAction(
+      {},
+      form({
+        ...BASE,
+        karaokeFreeCancelHours: "1",
+        karaokeLateRefundPercent: "0",
+      }),
+    );
+    expect(one.error).toBe(HOURS_RANGE);
+    expect(one.fieldErrors?.karaokeFreeCancelHours).toBe(HOURS_RANGE);
+    expect(h.updates).toEqual([]);
+    // The floor and the ceiling themselves save.
+    for (const hours of ["2", "72"]) {
+      const edge = await saveKaraokeAction(
+        {},
+        form({
+          ...BASE,
+          karaokeFreeCancelHours: hours,
+          karaokeLateRefundPercent: "0",
+        }),
+      );
+      expect(edge.error).toBeUndefined();
+      expect(h.updates.at(-1)).toMatchObject({
+        karaokeFreeCancelHours: Number(hours),
+      });
+      h.settings = { ...h.settings, ...h.updates.at(-1) };
+    }
   });
 
   it("accepts a late share of 1..99 % now the resale refund is built (D-KAR-1-99)", async () => {
     h.appVersion = "1.1.0";
     h.settings = baseSettings("1.1.0");
-    // The fairness limit stays: above 24 hours at least half goes back.
-    const below = await saveKaraokeAction(
-      {},
-      form({
-        ...BASE,
-        karaokeFreeCancelHours: "30",
-        karaokeLateRefundPercent: "40",
-      }),
-    );
-    expect(below.fieldErrors?.karaokeLateRefundPercent).toMatch(/en az %50/);
-    expect(h.updates).toEqual([]);
     for (const [hours, percent] of [
       ["30", "50"],
+      ["30", "40"],
       ["24", "1"],
       ["2", "99"],
+      ["3", "10"],
     ] as const) {
       const state = await saveKaraokeAction(
         {},
@@ -202,8 +258,9 @@ describe("saveKaraokeAction: the cancellation policy", () => {
       });
       h.settings = { ...h.settings, ...h.updates.at(-1) };
     }
-    // The old refusal is gone from the code.
+    // The old refusals are gone from the code.
     expect(JSON.stringify(h.updates)).not.toContain("%0 ya da %100");
+    expect(JSON.stringify(h.updates)).not.toContain("en az %50");
   });
 
   it("while the app lock is shut, a share of 1..99 % is refused by the lock", async () => {
@@ -455,11 +512,53 @@ describe("the Karaoke tab", () => {
     expect(html).toContain(
       "Değişiklik yalnız bundan sonra yapılan rezervasyonlara uygulanır.",
     );
+    // The default pair of 28 Eki 2026, as the customer reads it.
     expect(html).toContain(
-      "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+      "Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
     );
+    expect(html).toContain(
+      "Rezervasyonu yaptığın andan 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+    );
+    // The late sentence stands on its own (the app prints it alone).
+    expect(html).not.toContain("Bu 2 saat");
+    expect(html).not.toContain("saatten fazla varken");
+    expect(html).not.toContain("saatten az kala");
     // The lock says why only the default can be saved.
     expect(html).toContain("yalnız 2 saat ve %0");
+  });
+
+  it("the hours box runs 2 to 72 and says the window counts from the booking", () => {
+    const html = renderToStaticMarkup(
+      createElement(KaraokeTab, { settings: settingsFor("1.0.0") }),
+    );
+    const box =
+      /<input[^>]*name="karaokeFreeCancelHours"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(box).toContain('min="2"');
+    expect(box).not.toContain('min="1"');
+    expect(box).toContain('max="72"');
+    expect(html).toContain(
+      "Rezervasyon yapıldıktan sonra bu kadar saat içinde",
+    );
+    expect(html).toContain("2 ile 72 arası");
+    expect(html).not.toContain("1 ile 72");
+    expect(html).not.toContain("0 ile 72");
+    expect(html).not.toContain("rezervasyon saati gelene kadar");
+  });
+
+  it("a stored 0 or 1 (under today's floor) is drawn as the default 2", () => {
+    for (const stored of [0, 1]) {
+      const html = renderToStaticMarkup(
+        createElement(KaraokeTab, {
+          settings: settingsFor("1.0.0", stored, 0),
+        }),
+      );
+      const box =
+        /<input[^>]*name="karaokeFreeCancelHours"[^>]*>/.exec(html)?.[0] ?? "";
+      expect(box).toContain('value="2"');
+      expect(html).toContain(
+        "Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edersen",
+      );
+    }
   });
 
   it("previews a saved non-default policy in its own words", () => {
@@ -467,8 +566,21 @@ describe("the Karaoke tab", () => {
     const html = renderToStaticMarkup(
       createElement(KaraokeTab, { settings: settingsFor("1.1.0", 24, 100) }),
     );
-    expect(html).toContain("de ödediğin tutarın tamamı kartına iade edilir");
+    expect(html).toContain(
+      "Rezervasyonu yaptığın andan itibaren 24 saat içinde, rezervasyon saati gelmeden iptal edersen",
+    );
+    expect(html).toContain(
+      "Rezervasyonu yaptığın andan 24 saat geçtikten sonra, rezervasyon saati gelmeden yapılan iptalde de ödediğin tutarın tamamı kartına iade edilir",
+    );
     expect(html).not.toContain("yalnız 2 saat ve %0");
+    // A long window with nothing back previews as a rule, not a refusal.
+    const long = renderToStaticMarkup(
+      createElement(KaraokeTab, { settings: settingsFor("1.1.0", 48, 0) }),
+    );
+    expect(long).toContain(
+      "Rezervasyonu yaptığın andan 48 saat geçtikten sonra yapılan iptallerde",
+    );
+    expect(long).not.toContain("en fazla 24 saat");
   });
 
   it("a share of 1..99 % previews as its sentence, with the by-hand note", () => {

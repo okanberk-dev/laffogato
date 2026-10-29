@@ -97,7 +97,6 @@ function list(props: Partial<Parameters<typeof OrdersList>[0]> = {}): string {
   return renderToStaticMarkup(
     createElement(OrdersList, {
       rows: [row(order())],
-      mayRefund: true,
       live: "all",
       sort: { key: "no", dir: "desc" },
       searchParams: {},

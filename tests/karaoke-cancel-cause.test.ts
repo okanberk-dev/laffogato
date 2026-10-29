@@ -154,7 +154,11 @@ describe("the cancellation mail names why the köşk cancelled", () => {
       "KARAOKE_IADE",
       "KARAOKE_TAM_IADE",
       "KARAOKE_KISMI_IADE_EDILDI",
+      "KARAOKE_KISMI_SATIS_IADE_EDILDI",
+      "KARAOKE_SATIS_IADE",
+      "KARAOKE_SATIS_IADE_EDILDI",
       "KARAOKE_KISMI_IADE",
+      "KARAOKE_SATISA_ACILDI",
       "KARAOKE_ODEMESIZ",
     ];
     const money = [
@@ -162,6 +166,14 @@ describe("the cancellation mail names why the köşk cancelled", () => {
       { refundedMinor: 200_000, refundIsShare: false },
       { refundedMinor: 100_000, refundIsShare: true },
       { refundOwedMinor: 100_000, refundIsShare: true },
+      { releasedForResale: true },
+      { refundedMinor: 100_000, refundIsShare: true, refundIsResaleOnly: true },
+      {
+        refundedMinor: 100_000,
+        refundIsShare: true,
+        refundIncludesResale: true,
+      },
+      { refundedMinor: 50_000, refundIsShare: true, refundIsResaleTopUp: true },
     ];
     for (const c of [undefined, ...cause.KARAOKE_CANCEL_CAUSES]) {
       for (const m of money) {

@@ -337,14 +337,16 @@ export interface KaraokeAvailability {
    */
   paymentRequired: boolean;
   /**
-   * Up to how many hours before the start the member may cancel for a full
-   * refund: the policy a booking made NOW gets (Ayarlar > Karaoke). 0: no
-   * free window.
+   * For how many hours after the booking is made the member may cancel for
+   * a full refund, ending at the latest the minute before the start: the
+   * policy a booking made NOW gets (Ayarlar > Karaoke, 2..72; counted from
+   * the booking since 28 Eki 2026, back from the start before; a booking
+   * keeps the counting it was made under).
    */
   freeCancelHours: number;
   /**
    * Additive (18 Eki 2026, §7.1): the share (whole %) of the payment a
-   * cancel inside the window refunds, before the start. 0: refused.
+   * cancel after the window refunds, before the start. 0: refused.
    */
   lateRefundPercent: number;
   /**

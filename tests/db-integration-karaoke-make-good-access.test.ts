@@ -165,6 +165,7 @@ const { istanbulClock } = await import("@/lib/mobile/venue");
 const { karaokeStartInstant, karaokeSelfCancelTerms } =
   await import("@/lib/mobile/karaoke-time");
 const { makeGoodStateOf } = await import("@/lib/mobile/karaoke-make-good-core");
+const { formatReservationDate } = await import("@/lib/mobile/karaoke-format");
 const { getReservation } = await import("@/lib/mobile/karaoke");
 const { karaokeActionPlan, REFUND_PERMISSION_REASON } =
   await import("@/lib/admin/karaoke-panel");
@@ -322,6 +323,96 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       const original = await row("krk-90010");
       expect(original.makeGoodUsedAt).not.toBeNull();
       expect(makeGoodStateOf(original as never)).toBe("hour");
+    });
+
+    it("the free hour is released while more than 2 hours remain to its start, and its page and mail say so (karaoke terms §8, 29 Eki 2026)", async () => {
+      const { hour, start } = await freeHour(10);
+      const stored = await row(hour.id);
+      // Its own rule, not the paid bookings' window counted from the
+      // booking: given days ahead, it is released until two hours before
+      // its start, so the call that booked it does not use the make-good up.
+      expect(stored.cancelDeadline).toBe(
+        new Date(start.getTime() - 2 * 3_600_000).toISOString(),
+      );
+      // Its own sentences: nothing was paid for it.
+      expect(stored.cancellationRules).toEqual([
+        "Bu ücretsiz telafi saatini rezervasyon saatine 2 saatten fazla varken bırakabilirsin; telafin o zaman yeniden açılır.",
+        "Rezervasyon saatine 2 saatten az kala bırakılan ya da gelinmeyen ücretsiz telafi saatinde telafi kullanılmış sayılır.",
+      ]);
+      expect(mail.confirmations).toHaveLength(1);
+      const k = mail.confirmations[0]! as {
+        cancellation?: { venueUntil: string | null; rules: string[] };
+      };
+      expect(k.cancellation?.venueUntil).toBe(
+        "rezervasyon saatine 2 saatten fazla varken",
+      );
+      expect(k.cancellation?.rules).toEqual(stored.cancellationRules);
+    });
+
+    it("released three days ahead (long after the call that gave it), the free hour opens its make-good again", async () => {
+      const { hour, start } = await freeHour(10);
+      const now = new Date(start.getTime() - 3 * 86_400_000);
+      const res = await pay.cancelKaraokeReservation(hour.id, MEMBER, { now });
+      expect(res).toMatchObject({ ok: true });
+      expect((await row(hour.id)).status).toBe("cancelled");
+      const original = await row("krk-90010");
+      expect(original.makeGoodUsedAt).toBeNull();
+      expect(makeGoodStateOf(original as never)).toBe("open");
+    });
+
+    it("a free hour on a day after the make-good's last day, let go in time, opens it again until that day, never until a day gone", async () => {
+      await insert(madeGood({ makeGoodUntil: dayAhead(2) }));
+      const given = await pay.giveKaraokeMakeGoodHour(
+        "krk-90010",
+        { date: dayAhead(5), startHour: 20 },
+        "yonetici@kosk",
+      );
+      if (!given.ok) throw new Error(given.reason);
+      // Let go two days before it, past the make-good's last day.
+      const now = new Date(
+        karaokeStartInstant(dayAhead(5), 20).getTime() - 2 * 86_400_000,
+      );
+      const res = await pay.cancelKaraokeReservation(
+        given.reservation.id,
+        MEMBER,
+        { now },
+      );
+      expect(res).toMatchObject({ ok: true });
+      const original = await row("krk-90010");
+      expect(original.makeGoodUsedAt).toBeNull();
+      expect(original.makeGoodUntil).toBe(dayAhead(5));
+      expect(mail.cancellations.at(-1)).toMatchObject({
+        makeGood: { until: formatReservationDate(dayAhead(5)) },
+      });
+    });
+
+    it("a free hour given less than four hours before its start keeps two hours from its giving, in its own words", async () => {
+      await insert(madeGood());
+      const given = await pay.giveKaraokeMakeGoodHour(
+        "krk-90010",
+        { date: dayAhead(5), startHour: 20 },
+        "yonetici@kosk",
+        // Three hours before that start.
+        new Date(
+          karaokeStartInstant(dayAhead(5), 20).getTime() - 3 * 3_600_000,
+        ),
+      );
+      if (!given.ok) throw new Error(given.reason);
+      const start = karaokeStartInstant(dayAhead(5), 20).getTime();
+      const stored = await row(given.reservation.id);
+      expect(stored.cancelDeadline).toBe(
+        new Date(start - 3_600_000).toISOString(),
+      );
+      expect(stored.cancellationRules).toEqual([
+        "Bu ücretsiz telafi saatini sana ayrıldığı andan itibaren 2 saat içinde, rezervasyon saati gelmeden bırakabilirsin; telafin o zaman yeniden açılır.",
+        "Ayrıldığı andan 2 saat geçtikten sonra bırakılan ya da gelinmeyen ücretsiz telafi saatinde telafi kullanılmış sayılır.",
+      ]);
+      const k = mail.confirmations[0]! as {
+        cancellation?: { venueUntil: string | null };
+      };
+      expect(k.cancellation?.venueUntil).toBe(
+        "bu saat ayrıldıktan sonraki 2 saat içinde, rezervasyon saati gelmeden",
+      );
     });
 
     it("characterisation (control): 10 minutes before the start the guest's OWN cancel of the free hour is too_late", async () => {
@@ -489,7 +580,7 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
         String(a.title).includes("telafi saati"),
       ) as { title: string; summary: string; rows: Array<{ value: string }> };
       expect(alert.title).toBe(
-        "Kapanan hesabın 2 saatten az kalan telafi saati",
+        "Kapanan hesabın ücretsiz iptal süresi geçmiş telafi saati",
       );
       expect(alert.summary).toContain("KRK-90010 için");
       expect(alert.summary).not.toMatch(/ödenmiş/);
@@ -556,23 +647,26 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       });
     });
 
-    it("setup check: with the lock lifted the free hour is snapshotted 2 h / 50 % and the terms read 'late 50' one hour before the start", async () => {
+    it("with the lock lifted and the panel at 50 %, the free hour still takes its own rule (2 h / 0 %, 29 Eki 2026): an hour before its start the guest's own cancel is too_late", async () => {
       const { hour, now } = await freeHour(60, 50);
       expect(await row(hour.id)).toMatchObject({
         status: "confirmed",
         paymentStatus: "none",
         makeGoodFor: "krk-90010",
         freeCancelHours: 2,
-        lateRefundPercent: 50,
+        lateRefundPercent: 0,
       });
       const stored = (await getReservation(hour.id))!;
-      expect(karaokeSelfCancelTerms(stored, now)).toEqual({
-        kind: "late",
-        percent: 50,
-      });
+      expect(karaokeSelfCancelTerms(stored, now)).toEqual({ kind: "refused" });
+      expect(
+        await pay.cancelKaraokeReservation(hour.id, MEMBER, { now }),
+      ).toMatchObject({ ok: false, reason: "too_late" });
+      // The make-good stays used: a late share of the paid bookings never
+      // reaches a free hour, so no late cancel can open it again.
+      expect((await row("krk-90010")).makeGoodUsedAt).not.toBeNull();
     });
 
-    it("characterisation: the free hour's confirmation mail promises it - 'rezervasyon saatinden önce ... telafin o zaman geri gelir'", async () => {
+    it("the free hour's confirmation mail states its own rule, whatever the panel's share: 'rezervasyon saatine 2 saatten fazla varken ... telafin o zaman geri gelir'", async () => {
       await freeHour(60, 50);
       expect(mail.confirmations).toHaveLength(1);
       const k = mail.confirmations[0]! as {
@@ -580,7 +674,9 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
         cancellation?: { venueUntil: string | null };
       };
       expect(k.makeGoodHourFor).toBe("krk-90010");
-      expect(k.cancellation?.venueUntil).toBe("rezervasyon saatinden önce");
+      expect(k.cancellation?.venueUntil).toBe(
+        "rezervasyon saatine 2 saatten fazla varken",
+      );
       // The sentence the guest actually reads, rendered by the real mailer.
       const sent: Array<{ html: string; text: string }> = [];
       process.env.RESEND_API_KEY = "re_test";
@@ -599,18 +695,8 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       await realSend.sendKaraokeConfirmationEmail(k as never);
       const text = sent[0]!.text.replace(/\s+/g, " ");
       expect(text).toContain(
-        "Planın değişirse rezervasyon saatinden önce rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri gelir.",
+        "Planın değişirse rezervasyon saatine 2 saatten fazla varken rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri gelir.",
       );
-    });
-
-    it("A3, by design: the member's late cancel under 2 h / 50 % is accepted and opens the whole make-good, as the confirmation promised", async () => {
-      const { hour, now } = await freeHour(60, 50);
-      const res = await pay.cancelKaraokeReservation(hour.id, MEMBER, { now });
-      expect(res).toMatchObject({ ok: true, refunded: false });
-      const original = await row("krk-90010");
-      expect(original.makeGoodUsedAt).toBeNull();
-      expect(original.makeGoodMinor).toBe(200_000);
-      expect(makeGoodStateOf(original as never)).toBe("open");
     });
 
     it("control (pre-existing rule, same on main): any unpaid booking under 2 h / 50 % is cancellable by the member until the start, no share kept", async () => {
@@ -648,7 +734,7 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       expect((await row("krk-90040")).status).toBe("cancelled");
     });
 
-    it("controls: at 0 % the late cancel is refused; at 100 % the whole make-good coming back is right (a late cancel that refunds everything)", async () => {
+    it("controls: at 0 % and at 100 % alike the free hour's late cancel is refused and its make-good stays used", async () => {
       const zero = await freeHour(60);
       expect(
         await pay.cancelKaraokeReservation(zero.hour.id, MEMBER, {
@@ -661,15 +747,14 @@ maybe("karaoke make-good: who may let the free hour go (real Postgres)", () => {
       const full = await freeHour(60, 100);
       const stored = (await getReservation(full.hour.id))!;
       expect(karaokeSelfCancelTerms(stored, full.now)).toEqual({
-        kind: "late",
-        percent: 100,
+        kind: "refused",
       });
       expect(
         await pay.cancelKaraokeReservation(full.hour.id, MEMBER, {
           now: full.now,
         }),
-      ).toMatchObject({ ok: true });
-      expect((await row("krk-90010")).makeGoodUsedAt).toBeNull();
+      ).toMatchObject({ ok: false, reason: "too_late" });
+      expect((await row("krk-90010")).makeGoodUsedAt).not.toBeNull();
     });
   });
 });

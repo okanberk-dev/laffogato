@@ -15,6 +15,7 @@ import { createDb, type Executor } from "@/lib/db/client";
 const resumePendingCampaigns = vi.fn();
 const runBirthdayGreetings = vi.fn();
 const expireUnpaidReservations = vi.fn();
+const chargeSettledResales = vi.fn();
 const expireStalePendingOrders = vi.fn();
 const runRetention = vi.fn();
 const destructionEnabled = vi.fn();
@@ -45,6 +46,7 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/email/campaigns", () => ({ resumePendingCampaigns }));
 vi.mock("@/app/api/cron/_birthday", () => ({ runBirthdayGreetings }));
 vi.mock("@/lib/mobile/karaoke-payment", () => ({ expireUnpaidReservations }));
+vi.mock("@/lib/mobile/karaoke", () => ({ chargeSettledResales }));
 // The unpaid-order sweep has its own tests (tests/db-integration-payment-sweep.test.ts).
 vi.mock("@/lib/admin/store", () => ({ expireStalePendingOrders }));
 // The log line is the real one (tests/api-cron-retention-record.test.ts
@@ -120,6 +122,7 @@ function expectOtherJobsRan(): void {
   expect(resumePendingCampaigns).toHaveBeenCalledTimes(1);
   expect(runBirthdayGreetings).toHaveBeenCalledTimes(1);
   expect(expireUnpaidReservations).toHaveBeenCalledTimes(1);
+  expect(chargeSettledResales).toHaveBeenCalledTimes(1);
   expect(expireStalePendingOrders).toHaveBeenCalledTimes(1);
   expect(recordShownLegalVersions).toHaveBeenCalledTimes(1);
   expect(runRetention).toHaveBeenCalledTimes(1);
@@ -138,6 +141,7 @@ beforeEach(() => {
   resumePendingCampaigns.mockResolvedValue([]);
   runBirthdayGreetings.mockResolvedValue(BIRTHDAY);
   expireUnpaidReservations.mockResolvedValue(0);
+  chargeSettledResales.mockResolvedValue({ days: 0 });
   expireStalePendingOrders.mockResolvedValue(0);
   checkPushReceipts.mockResolvedValue({ read: 0, forgotten: 0, cleared: 0 });
   reconcileIys.mockResolvedValue({ onay: 0, ret: 0, superseded: 0 });
@@ -191,6 +195,7 @@ describe("/api/cron/daily", () => {
       birthday: { ok: true, ...BIRTHDAY },
       iys: { ok: true, reconcile: { onay: 0, ret: 0, superseded: 0 } },
       karaoke: { ok: true, expired: 0 },
+      karaokeResale: { ok: true, days: 0 },
       orders: { ok: true, expired: 0 },
       pushReceipts: { ok: true, read: 0, forgotten: 0, cleared: 0 },
       legalVersions: { ok: true, documents: 27 },

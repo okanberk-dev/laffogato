@@ -55,6 +55,9 @@ const MSG = {
     "Rezervasyon servisine şu an ulaşılamıyor. Kısa süre içinde tekrar dene.",
   internal: "Beklenmeyen bir hata oluştu. Tekrar dener misin?",
   guestName: "Adını ve soyadını ayrı ayrı yaz.",
+  // The form's own sentences are stale until the page is drawn again.
+  policyChanged:
+    "İptal ve iade kuralı sen bu sayfayı açtıktan sonra değişti. Sayfayı yenile, yeni kuralı oku ve yeniden dene.",
 } as const;
 
 /** What the form posts; every field a string, parsed before anything runs. */
@@ -81,6 +84,12 @@ const FormSchema = z.object({
   expectedLateRefundPercent: z
     .string()
     .regex(/^\d{1,3}$/)
+    .optional(),
+  // And a stamp of its two sentences (karaokeRulesStamp, 28 Eki 2026): the
+  // same numbers under other words refuse the booking too.
+  expectedCancelRules: z
+    .string()
+    .regex(/^[0-9a-f]{8}$/)
     .optional(),
 });
 
@@ -124,6 +133,7 @@ export async function bookKaraokeAction(
     consentKvkk: text(formData.get("consentKvkk")),
     expectedFreeCancelHours: text(formData.get("expectedFreeCancelHours")),
     expectedLateRefundPercent: text(formData.get("expectedLateRefundPercent")),
+    expectedCancelRules: text(formData.get("expectedCancelRules")),
   });
   if (!parsed.success) {
     return { error: "Formdaki bilgileri kontrol edip yeniden dene." };
@@ -209,9 +219,19 @@ export async function bookKaraokeAction(
         legalConsent,
         buyerIp: ip,
         now,
+        // Compared only with the echoed numbers above; a page from before
+        // the stamp sends none and is refused (createReservation).
+        expectedRulesStamp: form.expectedCancelRules ?? null,
       },
     );
-    if (!result.ok) return { error: result.message };
+    if (!result.ok) {
+      return {
+        error:
+          result.error === "policy_changed"
+            ? MSG.policyChanged
+            : result.message,
+      };
+    }
     revalidatePath("/karaoke");
 
     const r = result.reservation;

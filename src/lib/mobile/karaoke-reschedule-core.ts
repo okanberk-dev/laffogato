@@ -5,9 +5,11 @@
  *
  * Only the evening moves: the length, the party, the price, the payment and
  * the cancellation policy the booking was made under stay as they were. The
- * policy's deadline follows the new start (its sentences are counted from
- * "rezervasyon saati"), and so does everything the evening's end decides
- * (the signed link, the e-Arşiv invoice's due time).
+ * policy's deadline is recounted under the rule the booking was made under
+ * (`karaokeMovedDeadline`): from the booking, capped before the new start,
+ * since 28 Eki 2026; back from the new start for a booking made before.
+ * Everything the evening's end decides follows the new start (the signed
+ * link, the e-Arşiv invoice's due time).
  *
  * Pure, with no Zod and no database: the panel's plan
  * (lib/admin/karaoke-panel.ts, client-safe), the dialog, the server

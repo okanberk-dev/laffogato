@@ -19,6 +19,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *   left for a person (`roomUseUnknown`).
  * - Without a request (the panel's Yönetim card, DELETE /me with none open)
  *   the closure is judged now, as before.
+ * - The seeded rows are from before the snapshot and keep the rule counted
+ *   back from the start; a booking made under the 28 Eki 2026 rule is judged
+ *   by its own window, two hours from its making, however far off the
+ *   evening is.
  *
  * The real karaoke.ts and karaoke-payment.ts over an in-memory table; the
  * POS, the mail and the audit log are scripted.
@@ -241,8 +245,12 @@ vi.mock("@/lib/payment", async () => {
 
 const { cancelKaraokeForClosedAccount } =
   await import("@/lib/mobile/karaoke-payment");
-const { closureJudgedAt, startedSinceRequest } =
-  await import("@/lib/mobile/karaoke-time");
+const {
+  closureJudgedAt,
+  KARAOKE_NO_REFUND_RULE,
+  KARAOKE_REFUND_RULE,
+  startedSinceRequest,
+} = await import("@/lib/mobile/karaoke-time");
 
 const EMAIL = "eda@example.com";
 // 30 Ekim 2026, 20:00 in Tuzla.
@@ -251,6 +259,8 @@ const HOUR = 3600_000;
 const at = (hoursFromStart: number) => new Date(START + hoursFromStart * HOUR);
 const TITLE =
   "Silme talebi sırasında süresinde olan ödenmiş rezervasyonun saati geçti";
+const LATE_TITLE =
+  "Kapanan hesabın ücretsiz iptal süresi geçmiş ödenmiş rezervasyonu";
 
 /** A paid, confirmed booking of the member's, with its payment row. */
 function seedPaid(over: Partial<Row> = {}): void {
@@ -383,6 +393,99 @@ describe("the request's instant decides the two-hour rule", () => {
     });
     expect(h.refunds).toEqual([]);
     expect(h.alerts.at(-1)).toMatchObject({ key: "account-late" });
+  });
+});
+
+describe("a booking made under the 28 Eki 2026 rule: two hours from its making", () => {
+  // Booked and paid three days before the evening; its free window ends two
+  // hours later (`karaokeDeadlineFor`), long before the start.
+  const made = at(-72);
+  const after = (hours: number) => new Date(made.getTime() + hours * HOUR);
+  const own: Partial<Row> = {
+    createdAt: made.toISOString(),
+    updatedAt: made.toISOString(),
+    paidAt: made.toISOString(),
+    freeCancelHours: 2,
+    lateRefundPercent: 0,
+    cancelDeadline: after(2).toISOString(),
+    cancellationRules: [KARAOKE_REFUND_RULE, KARAOKE_NO_REFUND_RULE],
+  };
+
+  it("a closure one hour after the booking refunds in full", async () => {
+    seedPaid(own);
+    const closedAt = after(1);
+    await cancelKaraokeForClosedAccount(EMAIL, closedAt);
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(booking()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+      refundedAt: closedAt.toISOString(),
+    });
+    expect(h.alerts).toEqual([]);
+  });
+
+  it("a closure five hours after it keeps the payment, the evening stands and the team is told", async () => {
+    // Three days before the evening: under the rule counted back from the
+    // start this would have refunded in full.
+    seedPaid(own);
+    await cancelKaraokeForClosedAccount(EMAIL, after(5));
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "paid",
+    });
+    expect(h.cancellations).toEqual([]);
+    expect(h.alerts).toHaveLength(1);
+    expect(h.alerts[0]).toMatchObject({
+      id: "krk-00042",
+      key: "account-late",
+      title: LATE_TITLE,
+    });
+    expect(h.alerts[0]!.rows).toContainEqual({
+      label: "POS referansı",
+      value: "PNK-1",
+    });
+    expect(h.audits).toContainEqual(
+      expect.objectContaining({
+        entityId: "krk-00042",
+        payload: expect.objectContaining({
+          event: "account_closed_late_paid_booking",
+          amountMinor: 200_000,
+          providerRef: "PNK-1",
+        }),
+      }),
+    );
+  });
+
+  it("a web request one hour after the booking, closed at five: judged at the request, in full", async () => {
+    seedPaid(own);
+    const closedAt = after(5);
+    await cancelKaraokeForClosedAccount(EMAIL, closedAt, {
+      windowAt: after(1),
+    });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(booking()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+      refundedAt: closedAt.toISOString(),
+    });
+    expect(h.alerts).toEqual([]);
+  });
+
+  it("a web request five hours after the booking gives nothing back, though the evening is days away", async () => {
+    seedPaid(own);
+    await cancelKaraokeForClosedAccount(EMAIL, after(6), {
+      windowAt: after(5),
+    });
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "paid",
+    });
+    expect(h.alerts.at(-1)).toMatchObject({
+      key: "account-late",
+      title: LATE_TITLE,
+    });
   });
 });
 

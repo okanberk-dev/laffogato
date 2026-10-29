@@ -581,12 +581,20 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   bitmiş, ödemesi beklenen ya da iadesi süren rezervasyon taşınmaz
   (`karaokeRescheduleBlock`). Yeni saat bir rezervasyon gibi denetlenir
   (açılış saatleri, rezervasyon penceresi, geçmiş saat yok) ve günün diğer
-  rezervasyonlarıyla çakışamaz (`karaoke_reservations_no_overlap`). İptal
-  kuralının son anı yeni başlangıca göre yeniden hesaplanır; `updatedAt`
-  değişmez (son durum kararının anıdır). Onaylı rezervasyon, geç iptal
-  edilmiş bir saate taşınırsa saat yeniden satılmış sayılır (onaydaki gibi
-  `chargeResale`). Müşteriye `karaoke-saat-degisikligi` e-postası gider
-  (yeni ve eski saat, yeni imzalı bağlantı); taşıma Geçmiş'e "Tarih / saat
+  rezervasyonlarıyla çakışamaz (`karaoke_reservations_no_overlap`). Ücretsiz
+  iptalin son anı rezervasyonun kendi kuralıyla yeniden hesaplanır
+  (`karaokeMovedDeadline`): 28 Ekim 2026'dan beri yapılan rezervasyonda
+  rezervasyondan sayılır ve yeni saate göre uzamaz (yapıldığı an + süre, en
+  geç yeni başlangıçtan bir dakika önce), daha önce yapılanda yeni
+  başlangıçtan 2 saat öncedir. Pencerenin açıklaması bunu söyler: "...
+  ücretsiz iptalin son anı rezervasyonun kendi kuralıyla yeniden hesaplanır
+  (28 Ekim'den sonra yapılanda rezervasyondan sayılır ve yeni saate göre
+  uzamaz) ve e-postada yazar." `updatedAt` değişmez (son durum kararının
+  anıdır). Onaylı rezervasyon, geç iptal edilmiş bir saate taşınırsa saat
+  yeniden satılmış sayılır (onaydaki gibi `chargeResale`). Müşteriye
+  `karaoke-saat-degisikligi` e-postası gider (yeni ve eski saat, yeni imzalı
+  bağlantı; ödenmiş rezervasyonda "İptal kuralın değişmedi:", iki cümle ve
+  "Son ücretsiz iptal: [KARAOKE_SON_IPTAL]."); taşıma Geçmiş'e "Tarih / saat
   değiştirildi" olarak düşer, köşkün paneline ve LafPOS'a yazım pingi gider.
 - **Kullanıcılar**: rol sütunu rolün açtığı bölümleri çip olarak gösterir
   ("Genel bakış · Kasa · damga · Siparişler +3"); "Roller neyi açar" artık
@@ -845,6 +853,41 @@ kartına iki satır eklendi, Genel bakış yalnız uyarıyı tekrarlar (operatö
   Ayrıntı ve anahtarın yetkisi `docs/DATABASE.md` "Sistem durumu: Neon
   işlem süresi".
 
+## Sipariş iptali para iade etmez (28 Eki 2026)
+
+Operatör: _"e ticaret için de manuel işlem olsun, iade otomatik işlemesin"_
+(karaoke rezervasyonunun iptal penceresiyle aynı gün;
+`docs/LEGAL-REDLINES-2026-09.md` §37). O güne dek sipariş sayfasının ve
+satır menüsünün "İptal et" penceresi, iade yetkisi olana "Tutarın tamamını
+şimdi iade et" kutusunu işaretli getiriyor ve iptalle aynı adımda parayı
+POS'a (ya da cüzdana) iade ediyordu. Artık:
+
+- **"İptal et" hiçbir zaman para hareket ettirmez.** Pencerede iade kutusu
+  ve hedef notu yok; eski bir sekmeden ya da elle gönderilen `refund=1`
+  okunmaz (`cancelOrderAction`, `cancelOrder`: `CancelRequest`'te `refund`,
+  `refundToken`, `expectedDestination` kalktı). Nedeni, stok kararı ve
+  ödemesi alınmış siparişte sipariş numarasının yazılması aynen.
+- **Ödemesi alınmış sipariş iptal edilince** "İptal edildi, iade bekliyor"
+  (`refund_due`) işareti alır, pencere ve tost "para henüz iade edilmedi,
+  'İade başlat' ile iade et" der; sipariş iade edilene kadar Genel bakış ve
+  listenin dikkat süzgecinde durur. Siparişte zaten daha önemli bir para
+  işareti (mükerrer çekim, tutar uyuşmazlığı) varsa o kalır.
+- **İade her zaman ayrı, açıkça başlatılan bir adımdır** ve yalnız `refunds`
+  yetkisiyle: "İade başlat" (tutar, neden, sipariş numarası, tek kullanımlık
+  jeton; POS'a iade isteği), ya da para PayNkolay panelinden geri
+  verildiyse aşağıdaki "PayNkolay'dan iadeyi bul" / "PayNkolay'da iade
+  ettim". Kod hiçbir sipariş yolunda kendiliğinden iade başlatmaz
+  (uygulamada sipariş iptali yok; iptal edilmiş siparişe gelen ödeme panele
+  düşer; webhook yalnız kaydeder). Karaoke'nin başıboş ödeme iadesi
+  (`refundStrayPayment`) karaoke içindir ve kalır.
+- **Ödemesi alınmış siparişin iptali yine `refunds` yetkisi ister**
+  (`orderActions` / `bulkRefusal`): müşterinin parasını tutmak para
+  kararıdır. Toplu iptal aynı yoldan geçer, o da iade etmez.
+
+Testler: `tests/admin-order-actions.test.ts` ("cancelOrderAction never
+refunds"), `tests/admin-refund-guards.test.ts` ("never moves money in the
+same step").
+
 ## Siparişte PayNkolay'da yapılmış iade (22 Eki 2026)
 
 Operatör: _"siparişleri iptal edince PayNkolay'dan manuel iade ediyorum ama
@@ -852,7 +895,8 @@ panelde siparişi iade edildi işaretleyemiyorum"_. "İade başlat" parayı POS'
 iade isteği göndererek geri verir; para PayNkolay işyeri panelinden zaten
 geri verildiyse onu kullanmak **ikinci bir iade** isteği gönderirdi. Kartla
 (PayNkolay) ödenmiş bir siparişin "⋯" menüsünde bunun için iki seçenek var
-(ikisi de `refunds` yetkisi ister, POS'a istek göndermez):
+(ikisi de `refunds` yetkisi ister, POS'a istek göndermez; iptal bunların
+hiçbirini kendiliğinden yapmaz, yukarıdaki bölüm, 28 Eki 2026):
 
 - **PayNkolay'dan iadeyi bul**: PayNkolay'ın işlem listesine
   (`PaymentList`, `docs/PAYNKOLAY.md` §2) bu siparişin başarılı iptal ve

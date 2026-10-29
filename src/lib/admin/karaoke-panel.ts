@@ -336,6 +336,16 @@ export function paymentLabel(
         ? "Kısmi iade bekliyor"
         : "İade sonucu bekleniyor";
     case "refunded":
+      // A guest's late request under a late share of 0: cancelled, the hours
+      // on sale, nothing refunded unless one sells again (29 Eki 2026).
+      if (
+        typeof r.refundMinor === "number" &&
+        r.refundMinor === 0 &&
+        (r.resaleRefundMinor ?? 0) === 0 &&
+        (r.paidMinor ?? 0) > 0
+      ) {
+        return "İade yok · saat satışta";
+      }
       return isPartialRefund(r) ? "Kısmen iade edildi" : "İade edildi";
     case "expired":
       if (unverified) return "Ödeme doğrulanamadı";
@@ -1076,6 +1086,8 @@ const EVENT_TITLES: Record<string, string> = {
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
   late_guest_request:
     "Misafir geç iptal istedi; kural iade vermiyor, rezervasyon duruyor",
+  late_guest_release:
+    "Misafir geç iptal istedi; iade yapılmadan iptal edildi, saat satışa açıldı",
   resale_refund_owed:
     "Geç iptal edilen saat yeniden satıldı; misafirde kalan tutardan iade bekliyor",
   resale_refund_unrecorded: "Yeniden satılan saatin iadesi kaydedilemedi",

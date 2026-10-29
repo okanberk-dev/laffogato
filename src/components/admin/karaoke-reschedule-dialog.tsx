@@ -94,7 +94,7 @@ export function KaraokeReschedule(p: KaraokeRescheduleProps) {
     <ActionModal
       action={rescheduleReservationAction}
       title="Saati değiştir"
-      description={`Şimdiki saat: ${p.current}. Yeni gün ve başlangıcı seç; süre, kişi sayısı ve iptal kuralı aynı kalır, iptal süreleri yeni saate göre işler. ${money}, para hareket etmez. Kaydedince müşteriye yeni saati bildiren e-posta gider.`}
+      description={`Şimdiki saat: ${p.current}. Yeni gün ve başlangıcı seç; süre, kişi sayısı ve iptal kuralı aynı kalır; ücretsiz iptalin son anı rezervasyonun yapıldığı kuralla yeniden hesaplanır (yeni kuralda rezervasyondan sayılır, yeni saate göre uzamaz) ve e-postada yazar. ${money}, para hareket etmez. Kaydedince müşteriye yeni saati bildiren e-posta gider.`}
       trigger="Saati değiştir"
       triggerVariant={p.variant}
       submitLabel="Saati değiştir"

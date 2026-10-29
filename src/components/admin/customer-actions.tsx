@@ -157,11 +157,14 @@ export function CloseAccountButton({
             Üyenin kendi hesap silmesiyle aynı işlem yapılır, geri alınamaz.
           </li>
           <li>
-            Gelecekteki karaoke rezervasyonları iptal edilir, ödenmiş olanlar
-            karta iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyon
-            iade edilmez, olduğu gibi kalır; açık bir silme talebi varsa bu süre
-            talep anına göre sayılır. İade yapılmazsa ya da POS iadeyi hemen
-            onaylamazsa ekibe e-posta gider.
+            Gelecekteki karaoke rezervasyonları iptal edilir; ücretsiz iptal
+            süresi (rezervasyon yapıldıktan sonraki 2 saat, rezervasyon saati
+            gelmeden) içindeki ödenmiş olanlar karta iade edilir. Süresi geçmiş
+            ödenmiş rezervasyon iade edilmez, olduğu gibi kalır; daha önceki
+            kurala göre yapılmış rezervasyonda son an rezervasyon saatinden 2
+            saat öncedir. Açık bir silme talebi varsa bu süre talep anına göre
+            sayılır. İade yapılmazsa ya da POS iadeyi hemen onaylamazsa ekibe
+            e-posta gider.
           </li>
           <li>Uygulamadan kasa (barista) yetkisi varsa kaldırılır.</li>
           <li>

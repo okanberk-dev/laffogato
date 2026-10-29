@@ -19,12 +19,15 @@ import {
 
 /**
  * "Saati değiştir" (27 Eki 2026) against a real Postgres: the booking
- * moves, its policy's deadline follows the new start, `updatedAt` (the last
- * status decision) stays, the member is mailed once with the old and new
- * evening, and the move loses to a booking or a change that lands in
- * between - the JS check, the exclusion constraint and the guarded UPDATE.
- * Only the mail is scripted. Skipped without TEST_DATABASE_URL, like the
- * other db-integration suites.
+ * moves, its deadline is recounted under the rule it was booked under
+ * (`karaokeMovedDeadline`: back from the new start for a booking made before
+ * 28 Eki 2026; from its making, ending at the latest the minute before the
+ * new start, for one made since), `updatedAt` (the last status decision)
+ * stays, the member is mailed once with the old and new evening and the
+ * recounted last free moment, and the move loses to a booking or a change
+ * that lands in between - the JS check, the exclusion constraint and the
+ * guarded UPDATE. Only the mail is scripted. Skipped without
+ * TEST_DATABASE_URL, like the other db-integration suites.
  */
 const URL_ = process.env.TEST_DATABASE_URL;
 const maybe = URL_ ? describe : describe.skip;
@@ -113,7 +116,22 @@ vi.mock("@/lib/payment", () => ({
 process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
 
 const karaoke = await import("@/lib/mobile/karaoke");
+const { karaokeStartInstant } = await import("@/lib/mobile/karaoke-time");
 const { istanbulClock } = await import("@/lib/mobile/venue");
+
+const HOUR = 3_600_000;
+const MINUTE = 60_000;
+
+/** The instant `hour`:00 on `date` begins in Tuzla. */
+function startOf(date: string, hour: number): number {
+  return Date.parse(`${date}T${String(hour).padStart(2, "0")}:00:00+03:00`);
+}
+
+/** "30 Ekim 2026, 18:00": the mail's "Son ücretsiz iptal" for an instant. */
+function freeUntilLabel(at: number): string {
+  const local = new Date(at + 3 * HOUR).toISOString();
+  return `${karaoke.formatReservationDate(local.slice(0, 10))}, ${local.slice(11, 16)}`;
+}
 
 /** `days` after today in Tuzla, as a booking date. */
 function dayAhead(days: number): string {
@@ -198,6 +216,162 @@ maybe("moving a karaoke booking (real Postgres)", () => {
     await pool!.query(`delete from public.karaoke_reservations`);
     dbHook.before = null;
     for (const list of Object.values(mail)) list.length = 0;
+  });
+
+  it("a booking made before 28 Eki 2026 keeps counting back from its new start", async () => {
+    // The fixture: 24 h / 50 %, made two days ago, its deadline its start
+    // minus 24 hours: the rule it was booked under (counted back from the
+    // start). Moving it must not take that window away by counting it from
+    // the booking instead.
+    await insert(paid());
+    const before = await row("krk-91001");
+    type Booking = Parameters<typeof karaoke.karaokeCountsBackFromStart>[0];
+    expect(karaoke.karaokeCountsBackFromStart(before as Booking)).toBe(true);
+
+    const to = { date: dayAhead(5), startHour: 21 };
+    const res = await karaoke.rescheduleReservation("krk-91001", to);
+    expect(res.ok).toBe(true);
+
+    const newStart = startOf(to.date, 21);
+    const after = await row("krk-91001");
+    // Back from the new start, as it was promised.
+    expect(after.cancelDeadline).toBe(
+      new Date(newStart - 24 * HOUR).toISOString(),
+    );
+    // Never recounted from its making: that window closed a day ago.
+    const fromMaking = Math.min(
+      Date.parse(String(before.createdAt)) + 24 * HOUR,
+      newStart - MINUTE,
+    );
+    expect(after.cancelDeadline).not.toBe(new Date(fromMaking).toISOString());
+    // Still a booking of the earlier rule after the move, so a later move
+    // counts back from its start again.
+    expect(karaoke.karaokeCountsBackFromStart(after as Booking)).toBe(true);
+    expect(after).toMatchObject({ freeCancelHours: 24, lateRefundPercent: 50 });
+
+    // The mail prints the recounted last free moment, and the rule the
+    // booking was made under (it stores no sentences: the earlier pair).
+    expect(mail.moves).toHaveLength(1);
+    expect(mail.moves[0]).toMatchObject({
+      cancellation: {
+        rules: karaoke.legacyKaraokeCancellationRules({
+          freeCancelHours: 24,
+          lateRefundPercent: 50,
+        }),
+        venueUntil: "rezervasyon saatinden önce",
+        freeUntil: freeUntilLabel(newStart - 24 * HOUR),
+      },
+    });
+  });
+
+  it("a booking made under the 28 Eki rule keeps two hours from its making, ending at the latest the minute before the new start", async () => {
+    // Made 90 minutes before a 20:00 start: its window ran to 19:59, the
+    // minute before the start (`karaokeDeadlineFor`). Moved to the same
+    // hour two days later, the window is its making plus two hours, long
+    // before the new start.
+    const date = dayAhead(3);
+    const start = startOf(date, 20);
+    const made = start - 90 * MINUTE;
+    await insert(
+      paid({
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        createdAt: new Date(made).toISOString(),
+        cancelDeadline: new Date(start - MINUTE).toISOString(),
+        cancellationRules: [
+          karaoke.KARAOKE_REFUND_RULE,
+          karaoke.KARAOKE_NO_REFUND_RULE,
+        ],
+      }),
+    );
+    type Booking = Parameters<typeof karaoke.karaokeCountsBackFromStart>[0];
+    expect(
+      karaoke.karaokeCountsBackFromStart((await row("krk-91001")) as Booking),
+    ).toBe(false);
+    const res = await karaoke.rescheduleReservation("krk-91001", {
+      date: dayAhead(5),
+      startHour: 20,
+    });
+    expect(res.ok).toBe(true);
+    expect((await row("krk-91001")).cancelDeadline).toBe(
+      new Date(made + 2 * HOUR).toISOString(),
+    );
+    // The mail: the booking's own pair, the venue wording of the rule
+    // counted from the booking, and the recounted last free moment.
+    expect(mail.moves.at(-1)).toMatchObject({
+      cancellation: {
+        rules: [karaoke.KARAOKE_REFUND_RULE, karaoke.KARAOKE_NO_REFUND_RULE],
+        venueUntil:
+          "rezervasyonu yaptıktan sonraki 2 saat içinde, rezervasyon saati gelmeden",
+        freeUntil: freeUntilLabel(made + 2 * HOUR),
+      },
+    });
+
+    // Moved earlier than its window's end: the window ends the minute
+    // before the new start (12:59 for 13:00), never at the start itself,
+    // which is refused.
+    await pool!.query(`delete from public.karaoke_reservations`);
+    const earlyMade = startOf(dayAhead(4), 12);
+    await insert(
+      paid({
+        date: dayAhead(4),
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        createdAt: new Date(earlyMade).toISOString(),
+        cancelDeadline: new Date(earlyMade + 2 * HOUR).toISOString(),
+      }),
+    );
+    const moved = await karaoke.rescheduleReservation("krk-91001", {
+      date: dayAhead(4),
+      startHour: 13,
+    });
+    expect(moved.ok).toBe(true);
+    const newStart = startOf(dayAhead(4), 13);
+    expect((await row("krk-91001")).cancelDeadline).toBe(
+      new Date(newStart - MINUTE).toISOString(),
+    );
+    expect(mail.moves.at(-1)).toMatchObject({
+      cancellation: { freeUntil: freeUntilLabel(newStart - MINUTE) },
+    });
+  });
+
+  it("a booking of the 28 Eki rule whose making cannot be read keeps its deadline, capped the minute before the new start", async () => {
+    // `createdAt` defaults to '' in the table: no making to count from.
+    const date = dayAhead(4);
+    const stored = startOf(date, 14);
+    await insert(
+      paid({
+        date,
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        createdAt: "",
+        cancelDeadline: new Date(stored).toISOString(),
+      }),
+    );
+    // Moved later: the stored deadline stands.
+    expect(
+      (
+        await karaoke.rescheduleReservation("krk-91001", {
+          date,
+          startHour: 21,
+        })
+      ).ok,
+    ).toBe(true);
+    expect((await row("krk-91001")).cancelDeadline).toBe(
+      new Date(stored).toISOString(),
+    );
+    // Moved before it: the minute before the new start.
+    expect(
+      (
+        await karaoke.rescheduleReservation("krk-91001", {
+          date,
+          startHour: 13,
+        })
+      ).ok,
+    ).toBe(true);
+    expect((await row("krk-91001")).cancelDeadline).toBe(
+      new Date(startOf(date, 13) - MINUTE).toISOString(),
+    );
   });
 
   it("moves the evening, its deadline with it, and mails the member once", async () => {
@@ -423,6 +597,13 @@ maybe("moving a karaoke booking (real Postgres)", () => {
       startHour: 18,
     });
     expect(res.ok).toBe(true);
+    // The moved booking's guest may still cancel it for nothing: nothing is
+    // counted until that window closes (29 Eki 2026); the daily run then
+    // counts it, here half an hour before the new evening.
+    expect((await row("krk-91020")).resoldHours ?? []).toEqual([]);
+    await karaoke.chargeSettledResales(
+      new Date(karaokeStartInstant(date, 18).getTime() - 30 * 60_000),
+    );
     const late = await row("krk-91020");
     expect(late.resoldHours).toEqual([18, 19]);
     expect(late.resaleRefundMinor).toBe(100_000);

@@ -95,7 +95,6 @@ function list(rows: ReturnType<typeof row>[]): string {
   return renderToStaticMarkup(
     createElement(OrdersList, {
       rows,
-      mayRefund: true,
       live: "all",
       sort: { key: "no", dir: "desc" },
       searchParams: {},

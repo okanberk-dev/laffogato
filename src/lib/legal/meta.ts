@@ -137,6 +137,25 @@ export const META_PIXEL_IN_LEGAL_TEXTS = true;
 export const META_PIXEL_LEGAL_UPDATED = "25 Ekim 2026";
 
 /**
+ * The day the karaoke free-cancel window started to be counted from the
+ * booking instead of back from the start (operator, 28 Ekim 2026: "karaoke
+ * için 2 saat içinde iptal etmezse iade olamaz"; `karaokeDeadlineFor`,
+ * src/lib/mobile/karaoke-time.ts; LEGAL-REDLINES §37). The two documents
+ * that quote the default rule in their own words, Ödeme Koşulları (§21) and
+ * Hesap Silme (§6, §8), carry it as their own `updatedAt`. Neither is a
+ * checkout document, so the set's revision (`LEGAL_UPDATED`), the version a
+ * checkout consent records, stays where it is, and with it
+ * `COMMERCIAL_CONSENT_UPDATED`. The karaoke terms name no hours (they point
+ * at the booking's own summary since 19 Ekim 2026), so `KARAOKE_LEGAL_UPDATED`
+ * stays too. Add the two documents to tests/legal-dates.test.ts with this day.
+ */
+// 29 Ekim 2026: §21 also says that a resold hour of a booking cancelled
+// after its free window goes back within 14 days, and no longer that karaoke
+// refunds are never partial (LEGAL-REDLINES §37.8); 28 Ekim 2026: the window
+// counted from the booking.
+export const KARAOKE_WINDOW_LEGAL_UPDATED = "29 Ekim 2026";
+
+/**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
  * sona eklenir, böylece yeni kategori eklemek burayı güncellemeyi zorunlu
  * kılmaz.
@@ -176,7 +195,11 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
  * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
  */
-// 21 Ekim 2026: §8 makes good the köşk's late cancel (a free hour of the
+// 29 Ekim 2026: §7 says a guest who tells us before the start that they
+// will not come is cancelled and their hours go back on sale, a resold hour
+// refunding what was paid for it; §8 says until when a free make-good hour
+// can be let go and what happens after (LEGAL-REDLINES §37.8). 21 Ekim
+// 2026: §8 makes good the köşk's late cancel (a free hour of the
 // same length, or the amount paid to the guest's own bank account), §9 says
 // a share goes back within 14 days, now that a late share of 1..99 % can be
 // chosen (karaoke-make-good-and-resale, LEGAL-REDLINES §26). (20 Ekim 2026:
@@ -189,4 +212,4 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
 // PR that moved this label merged per Istanbul day (D-SAME-DAY); a
 // booking's consent now records the hash of the text it confirmed as well
 // (LEGAL-REDLINES §25), and the rule ended.
-export const KARAOKE_LEGAL_UPDATED = "21 Ekim 2026";
+export const KARAOKE_LEGAL_UPDATED = "29 Ekim 2026";

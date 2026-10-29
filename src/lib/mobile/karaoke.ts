@@ -28,7 +28,11 @@ import { karaokeTaxRate } from "@/lib/utils/kdv";
 
 import type { KaraokeCancelCause } from "./karaoke-cancel-cause";
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
-import { makeGoodStateOf, resaleAllocation } from "./karaoke-make-good-core";
+import {
+  keptShareOfCancelled,
+  makeGoodStateOf,
+  resaleAllocation,
+} from "./karaoke-make-good-core";
 import { karaokeLinkUrl } from "./karaoke-link";
 import {
   karaokeRescheduleBlock,
@@ -44,12 +48,16 @@ import {
   karaokeCancelDeadline,
   karaokeFreeCancelEnd,
   karaokeCancellationRules,
-  karaokeCancelPolicyOf,
   karaokeDeadlineFor,
+  karaokeMakeGoodRules,
+  karaokeMovedDeadline,
+  keptWholeOnLateCancel,
   karaokeRulesOf,
+  karaokeRulesStamp,
   karaokeStartInstant,
-  karaokeVenueCancelUntil,
+  karaokeVenueCancelUntilOf,
   KARAOKE_OPEN_CAP,
+  withinFreeCancel,
   paymentDueFrom,
   paymentStatusOf,
   quoteReservation,
@@ -241,6 +249,15 @@ export interface CreateReservationOptions {
   prepay?: boolean;
   /** Required with an honoured `prepay` (MSY m.7): the record of the boxes. */
   legalConsent?: KaraokeLegalConsent;
+  /**
+   * The web form only: `karaokeRulesStamp` of the two sentences the page
+   * printed, compared with the sentences a booking made now gets whenever
+   * the request echoes a policy. Null is a page drawn by a build that sent
+   * no stamp (before 28 Eki 2026, when the 2 h rule changed its meaning but
+   * not its numbers): refused like a changed policy. Left out by the app
+   * route, whose v1 request carries no such field.
+   */
+  expectedRulesStamp?: string | null;
 }
 
 const MSG_CONSENT_REQUIRED =
@@ -352,7 +369,13 @@ export async function createReservation(
       message: MSG_EXPECTED_POLICY_INVALID,
     };
   }
-  if (expected && !samePolicy(expected, policy)) {
+  if (
+    expected &&
+    (!samePolicy(expected, policy) ||
+      (options.expectedRulesStamp !== undefined &&
+        options.expectedRulesStamp !==
+          karaokeRulesStamp(karaokeCancellationRules(policy).rules)))
+  ) {
     return {
       ok: false,
       status: 409,
@@ -532,7 +555,7 @@ export async function createReservation(
     taxRatePct: karaokeTaxRate(settings.taxRates),
     freeCancelHours: policy.freeCancelHours,
     lateRefundPercent: policy.lateRefundPercent,
-    cancelDeadline: karaokeDeadlineFor(policy, req).toISOString(),
+    cancelDeadline: karaokeDeadlineFor(policy, req, now).toISOString(),
     cancellationRules: [...karaokeCancellationRules(policy).rules],
     refundMinor: null,
   };
@@ -1034,24 +1057,35 @@ export async function setReservationStatus(
   // it (ASK-OTH-3-CFG). Right after the write that sold it, before the mail
   // (a slow mail must not stand between the sale and what it owes); never
   // fails the confirmation.
-  if (status === "confirmed") await chargeResale(reservation, sameDay);
+  if (status === "confirmed") await chargeResale(reservation, sameDay, now);
   const notified =
     opts.notify === false ? true : await notifyReservationStatus(reservation);
   return { ok: true, reservation, notified };
 }
 
 /**
- * The resale refund of an hour just sold, best effort: what each
- * late-cancelled booking of the day is owed is worked out here
- * (`resaleAllocation`, pure), and only when one is owed something does the
- * money side load (karaoke-payment.ts imports this module, hence the
- * dynamic import, as for the sweep above).
+ * The resale refund of an hour sold, best effort: what each late-cancelled
+ * booking of the day is owed is worked out here (`resaleAllocation`, pure),
+ * and only when one is owed something does the money side load
+ * (karaoke-payment.ts imports this module, hence the dynamic import, as for
+ * the sweep above).
+ *
+ * A sale counts only once its buyer can no longer take it back for nothing
+ * (29 Eki 2026): inside the buyer's own free window a cancel refunds them in
+ * full, and the late canceller would have been refunded for an hour the
+ * köşk never kept the money for. Anyone booking a freed hour and cancelling
+ * within two hours did exactly that, and a late canceller could rebook
+ * their own hours on another card to get their payment back. A sale still
+ * inside that window is counted by the daily run once it closes
+ * (`chargeSettledResales`); the database counts each hour once.
  */
 async function chargeResale(
   sold: KaraokeReservation,
   sameDay: readonly KaraokeReservation[],
+  now: Date = new Date(),
 ): Promise<void> {
   try {
+    if (withinFreeCancel(sold, now)) return;
     const allocation = resaleAllocation(sold, sameDay);
     if (allocation.length === 0) return;
     const { chargeResoldHours } = await import("./karaoke-payment");
@@ -1059,6 +1093,50 @@ async function chargeResale(
   } catch (err) {
     console.error(`[karaoke] resale refund not worked out ${sold.id}`, err);
   }
+}
+
+/**
+ * The daily run's half of the resale refund (29 Eki 2026): every sold hour
+ * whose buyer's free window has closed since, on a day that still has a
+ * late-cancelled booking with something kept and an hour not yet counted.
+ * Days from yesterday on (Istanbul): a sale is final at the latest the
+ * minute before its start, and the run is daily. Idempotent: the database
+ * counts each hour of a late booking once (karaoke_charge_resold_hours).
+ * Returns how many days were looked at.
+ */
+export async function chargeSettledResales(
+  now: Date = new Date(),
+): Promise<{ days: number }> {
+  const today = istanbulClock(now).date;
+  const [y, m, d] = today.split("-").map(Number);
+  const yesterday = new Date(Date.UTC(y!, m! - 1, d! - 1))
+    .toISOString()
+    .slice(0, 10);
+  const res = await getDb()
+    .from(TABLES.karaokeReservations)
+    .select(
+      "id, date, status, paymentStatus, paidMinor, totalMinor, refundMinor, resaleRefundMinor, resoldHours, hours, makeGoodFor",
+    )
+    .eq("status", "cancelled")
+    .gte("date", yesterday);
+  const late = rows<KaraokeReservation>(
+    res,
+    "karaoke.chargeSettledResales",
+  ).filter(
+    (r) =>
+      !r.makeGoodFor &&
+      keptShareOfCancelled(r) > 0 &&
+      (r.resoldHours ?? []).length < r.hours,
+  );
+  const days = [...new Set(late.map((r) => r.date))].sort();
+  for (const date of days) {
+    const sameDay = await listByDate(date);
+    for (const sold of sameDay) {
+      if (sold.status !== "confirmed") continue;
+      await chargeResale(sold, sameDay, now);
+    }
+  }
+  return { days: days.length };
 }
 
 // ─── Moving a booking (panel) ──────────────────────────────────────────────
@@ -1157,20 +1235,26 @@ export async function rescheduleReservation(
   }
 
   const payment = paymentStatusOf(existing);
-  // The policy's deadline is counted from the start, so it follows it. A row
-  // from before the snapshot has none stored and already counts from its
-  // own date and hour (`karaokeCancelDeadline`).
+  // The booking keeps its own window (its making plus its policy's hours),
+  // never past the new start (`karaokeMovedDeadline`). A row from before the
+  // snapshot has none stored and keeps counting back from its own date and
+  // hour (`karaokeCancelDeadline`).
+  // A free make-good hour is recounted under its own rule and gets the
+  // sentences of the new count (`karaokeMakeGoodRules`): moved close to its
+  // start, it is released from when it was given, no longer by the start.
+  const deadline =
+    existing.cancelDeadline || existing.makeGoodFor
+      ? karaokeMovedDeadline(existing, slot)
+      : null;
   const patch: Pick<KaraokeReservation, "date" | "startHour"> &
-    Partial<Pick<KaraokeReservation, "cancelDeadline">> = {
+    Partial<
+      Pick<KaraokeReservation, "cancelDeadline" | "cancellationRules">
+    > = {
     date: slot.date,
     startHour: slot.startHour,
-    ...(existing.cancelDeadline
-      ? {
-          cancelDeadline: karaokeDeadlineFor(
-            karaokeCancelPolicyOf(existing),
-            slot,
-          ).toISOString(),
-        }
+    ...(deadline ? { cancelDeadline: deadline.toISOString() } : {}),
+    ...(deadline && existing.makeGoodFor
+      ? { cancellationRules: karaokeMakeGoodRules(slot, deadline) }
       : {}),
   };
   const res = await getDb()
@@ -1192,7 +1276,7 @@ export async function rescheduleReservation(
   // day left: the hour is sold again, as when a booking is confirmed there
   // (ASK-OTH-3-CFG). Never fails the move.
   if (reservation.status === "confirmed") {
-    await chargeResale(reservation, sameDay);
+    await chargeResale(reservation, sameDay, now);
   }
   const notified = await notifyReservationRescheduled(reservation, existing);
   return {
@@ -1313,7 +1397,8 @@ function karaokeMailPayload(
     // The booking's own rule, never the panel's current one.
     cancellation: {
       rules: karaokeRulesOf(r),
-      venueUntil: karaokeVenueCancelUntil(karaokeCancelPolicyOf(r)),
+      // In the words of the rule it was booked under.
+      venueUntil: karaokeVenueCancelUntilOf(r),
       freeUntil: freeUntilLabel(r),
     },
     // Why the köşk cancelled (the panel's code), never the note it typed.
@@ -1321,17 +1406,24 @@ function karaokeMailPayload(
     // What actually went back: the whole payment, or a late cancel's share
     // (with what an hour sold again gave back). A refund that only adds the
     // resale part says that part.
-    ...(r.status === "cancelled" && money === "refunded"
-      ? {
-          refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
-          refundIsShare: isPartialRefund(r),
-          ...(note.resaleTopUp
-            ? { refundIsResaleTopUp: true }
-            : (r.resaleRefundMinor ?? 0) > 0
-              ? { refundIncludesResale: true }
-              : {}),
-        }
-      : {}),
+    // A late cancel that kept everything and put the hours on sale (a late
+    // share of 0): nothing went back, and the mail says what may still.
+    ...(keptWholeOnLateCancel(r)
+      ? { releasedForResale: true }
+      : r.status === "cancelled" && money === "refunded"
+        ? {
+            refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
+            refundIsShare: isPartialRefund(r),
+            ...(note.resaleTopUp
+              ? { refundIsResaleTopUp: true }
+              : (r.resaleRefundMinor ?? 0) > 0
+                ? // All of it a resale part: no late share was refunded.
+                  (r.refundMinor ?? 0) <= (r.resaleRefundMinor ?? 0)
+                  ? { refundIsResaleOnly: true }
+                  : { refundIncludesResale: true }
+                : {}),
+          }
+        : {}),
     // A late cancel's share the köşk still owes (refunded by hand).
     ...(r.status === "cancelled" && money === "refunding" && isPartialRefund(r)
       ? { refundOwedMinor: refundAmountOf(r), refundIsShare: true }
@@ -1460,10 +1552,10 @@ export async function notifyReservationRescheduled(
 
 /**
  * The late request's middle sentence when it came once the evening had
- * begun: the booking's own late sentence is about cancels "rezervasyon
- * saatine H saatten az kala" and, for a share over 0, would promise a refund
- * the started evening no longer gives (karaoke terms §7: the late share is
- * for cancels before the start).
+ * begun: the booking's own late sentence is about cancels after its free
+ * window and, for a share over 0, would promise a refund the started evening
+ * no longer gives (karaoke terms §7: the late share is for cancels before
+ * the start).
  */
 export const KARAOKE_STARTED_REQUEST_RULE =
   "Rezervasyon saatin gelmişti; saati gelmiş bir rezervasyonda ücret iadesi yapılmaz.";
