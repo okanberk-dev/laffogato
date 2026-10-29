@@ -405,7 +405,7 @@ telafi saati kendi kuralını taşır (`KARAOKE_MAKE_GOOD_POLICY` 2 / 0,
 panelden bağımsız): başlangıcına 2 saatten fazla varken bırakılır, geç
 verilmişse verildikten sonra 2 saat (`karaokeMakeGoodDeadline`), kendi iki
 cümlesiyle (`karaokeMakeGoodRules`); koşullar §7, §8 ve Ödeme Koşulları §21
-bunu yazar (29 Ekim 2026). Ayrıntı: `docs/API-MOBILE.md` §7.1,
+bunu yazar (29 Eki 2026). Ayrıntı: `docs/API-MOBILE.md` §7.1,
 `docs/LEGAL-REDLINES-2026-09.md` §37.
 
 ## Köşkün paneli: menü bağlantısı (22 Eki 2026)
