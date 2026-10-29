@@ -49,10 +49,14 @@ birkaç saniyede bir sormadan.
    kuralında misafirin geç isteğiyle iade yapılmadan iptal edilip saati
    satışa açılan rezervasyon `paymentStatus: "refunded"` taşır ama para
    hareket etmemiştir (LEGAL-REDLINES §37.8). Ödenenden küçük bir tutar geç
-   iptal payı ya da yeniden satılan saatin payıdır; `null` tutarın tamamı
-   geri gitti ya da rezervasyon iptal edilmedi demektir. Alanı okumayan bir
-   panel eski sözleriyle çalışmaya devam eder; okuyan panel "iade edildi"
-   yerine "iade yok" yazar (lafmaliyet bar ekranı).
+   iptal payı ya da yeniden satılan saatin payıdır; bütün saatleri yeniden
+   satılan rezervasyonda ödenene eşit olabilir. `null` kısmi bir tutar yok
+   demektir: iptal edilmemiş rezervasyonda hep, iptalde ise bir şey geri
+   gidiyorsa tamamı. Paranın gidip gitmediğini `paymentStatus` söyler
+   (`refunding` / `refunded`); iptal edilmiş ama hâlâ `paid`, `none` ya da
+   `expired` olan satırda da `null` gelir ve orada iade yoktur. Alanı
+   okumayan bir panel eski sözleriyle çalışmaya devam eder; okuyan panel
+   "iade edildi" yerine "iade yok" yazar (lafmaliyet bar ekranı).
 
    Liste günün ve saatin sırasıyladır (erkenden geçe). Pencere 2000 satırı
    aşarsa (tek oda saatlik kiralanınca gerçek bir durum değil) site okumayı
