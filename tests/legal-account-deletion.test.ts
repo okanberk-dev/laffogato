@@ -138,9 +138,15 @@ describe("hesap-silme", () => {
     );
   });
 
-  it("no longer describes saved cards: none are kept (rule 28)", () => {
-    expect(text).not.toContain("Kayıtlı kartlarınız");
-    expect(text).not.toContain("kart saklama");
+  it("says the saved cards are deleted at PayNkolay first (5 Kasım 2026)", () => {
+    // Saved cards came back with PayNkolay's authorisation (LEGAL-REDLINES
+    // §38): the card was never ours, so closing asks PayNkolay to delete it,
+    // then the random member key goes (deleteMe, docs/PAYNKOLAY.md §16).
+    expect(text).toContain("Kayıtlı kartlarınız");
+    expect(text).toContain(
+      "Hesap kapatılırken Satıcı önce PayNkolay'dan üyeliğinize ait kayıtlı kartların silinmesini ister",
+    );
+    expect(text).not.toMatch(/kart saklama özelliği açık/);
   });
 
   it("says a Site request fixes the karaoke window at the request", () => {

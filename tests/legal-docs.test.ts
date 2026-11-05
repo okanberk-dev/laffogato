@@ -480,27 +480,30 @@ describe("legal content - distance sales after the 1 Ocak 2026 amendment", () =>
   });
 });
 
-describe("legal content - no saved cards", () => {
-  // Card storage was never turned on (rule 28), yet 42 sentences in 14
-  // documents described it "once it is turned on": a member key, the last
-  // four digits, a nickname, deletion at PayNkolay. A notice may not suggest
-  // processing that does not happen (Aydınlatma Tebliği m.5/1-g, j), and the
-  // server minted the member key anyway. The passages are kept word for word
-  // in docs/LEGAL-REDLINES-2026-09.md §19; they come back in the PR that
-  // flips SAVED_CARDS_IN_LEGAL_TEXTS, and the server gate reads that flag
-  // (tests/saved-cards.test.ts).
-  const savedCard =
-    /kart saklama|kayıtlı kart|üye anahtarı|müşteri anahtarı|sonraki ödemeler için kaydet/i;
+describe("legal content - saved cards (PayNkolay card storage)", () => {
+  // 18 Ekim 2026 to 5 Kasım 2026 no text described saved cards: storage was
+  // not on, and a notice may not suggest processing that does not happen
+  // (Aydınlatma Tebliği m.5/1-g, j). PayNkolay's authorisation came on
+  // 5 Kasım 2026 and the passages kept in LEGAL-REDLINES §19 came back,
+  // written as a service that is on (§38). The server gate reads the same
+  // flag (tests/saved-cards.test.ts), so the texts are published before the
+  // first card is saved (m.5/1-b).
+  const hedge =
+    /(kart saklama|kayıtlı kart)[^.;]{0,40}(açıldığında|açılana kadar|açılmadan|açıksa|açık olduğu dönemde)/i;
 
-  it("describes no saved card while the texts say they are off", () => {
-    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(false);
+  it("describes saved cards now that the texts say they are on", () => {
+    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(true);
     for (const [where, text] of docTexts()) {
-      expect(text, where).not.toMatch(savedCard);
+      // No "once it is turned on": it is on.
+      expect(text, where).not.toMatch(hedge);
+      // And nowhere still says the card is never kept for later.
+      expect(text, where).not.toMatch(
+        /sonraki ödemeler için (PayNkolay nezdinde de )?kaydedilmez/,
+      );
     }
   });
 
-  it("says in the payment documents that the card is not kept", () => {
-    const kept = /sonraki ödemeler için (PayNkolay nezdinde de )?kaydedilmez/;
+  it("says in the payment documents how a card is saved, kept and deleted", () => {
     for (const slug of [
       "on-bilgilendirme-formu",
       "mesafeli-satis-sozlesmesi",
@@ -509,10 +512,30 @@ describe("legal content - no saved cards", () => {
       "mobil-uygulama-kosullari",
       "kafe-hizmet-kosullari",
     ]) {
-      expect(
-        docTexts(slug).some(([, text]) => kept.test(text)),
-        slug,
-      ).toBe(true);
+      const text = docTexts(slug)
+        .map(([, t]) => t)
+        .join(" ");
+      // The box is the member's choice and starts unticked.
+      expect(text, slug).toContain("Bu kartı sonraki ödemeler için kaydet");
+      expect(text, slug).toMatch(/işaretsiz/);
+      // The card stays at PayNkolay; we keep the random member key only.
+      expect(text, slug).toMatch(/PayNkolay'ın kart saklama hizmet/);
+      // A saved card is paid with 3D Secure too and can be deleted.
+      expect(text, slug).toMatch(/kayıtlı kartla[^.]{0,40}3D Secure/i);
+      expect(text, slug).toMatch(/sil/);
+    }
+    // The member key is named where the data is listed (ÖBF §20, MSS §16,
+    // Gizlilik §3, KVKK §6).
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+      "gizlilik-politikasi",
+      "kvkk-aydinlatma-metni",
+    ]) {
+      const text = docTexts(slug)
+        .map(([, t]) => t)
+        .join(" ");
+      expect(text, slug).toMatch(/(üye|müşteri) anahtar/);
     }
   });
 });

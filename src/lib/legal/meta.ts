@@ -19,6 +19,16 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
+// 5 Kasım 2026: saved cards. PayNkolay granted the card-storage authorisation
+// (operator, 5 Kas 2026), so the passages that LEGAL-REDLINES §19 kept since
+// 18 Ekim 2026 came back, written as a service that is on: a member may tick
+// the unticked "Bu kartı sonraki ödemeler için kaydet" box, the card stays at
+// PayNkolay, we keep only the random 11-character member key, saved-card
+// payments go through 3D Secure too, and closing the account asks PayNkolay
+// to delete the cards first. The ÖBF (§7, §9, §20) and the MSS (§7, §16)
+// changed, so the label moved; Ödeme Koşulları and Hesap Silme, which had
+// carried 29 Ekim 2026 of their own, read the set's day again
+// (LEGAL-REDLINES §38).
 // 27 Ekim 2026: App Review 4.3(b) and 5.1.1(v). fA'L left the app (lafmobil
 // karar 330) and Kahve Modu took its place: a mood written on the member's
 // own photo on the device, nothing uploaded, no AI. Every coded text says
@@ -48,7 +58,7 @@
 // (`legalConsent.textHashes`) and the text is stored under it
 // (`legal_doc_versions`), so the hash, not the day, tells two texts apart.
 // The label still names the day the set was published.
-export const LEGAL_UPDATED = "27 Ekim 2026";
+export const LEGAL_UPDATED = "5 Kasım 2026";
 
 /**
  * The Ticari Elektronik İleti ve İYS Aydınlatması's own revision, printed
@@ -64,13 +74,15 @@ export const LEGAL_UPDATED = "27 Ekim 2026";
  * printed date never is, tests/legal-dates.test.ts), so a later revision of
  * the set moves it too, as the version always did.
  */
-export const COMMERCIAL_CONSENT_UPDATED = "27 Ekim 2026";
+// 5 Kasım 2026: the text did not change; the set's revision moved past it
+// (saved cards, LEGAL-REDLINES §38) and a printed date is never before it.
+export const COMMERCIAL_CONSENT_UPDATED = "5 Kasım 2026";
 
 /**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,
- * docs/PAYNKOLAY.md §16). They do not since 18 Ekim 2026: the passages that
- * said "kart saklama özelliği açıldığında ..." are kept in
- * docs/LEGAL-REDLINES-2026-09.md §19, to come back word for word.
+ * docs/PAYNKOLAY.md §16). They did not from 18 Ekim 2026 (the passages were
+ * kept in docs/LEGAL-REDLINES-2026-09.md §19); since 5 Kasım 2026 they do,
+ * written as a service that is on (PayNkolay's authorisation came, §38).
  *
  * The payment provider ANDs this with `PAYNKOLAY_CARD_STORAGE`, so the env
  * switch alone cannot turn card storage on, and no member key is minted
@@ -79,7 +91,7 @@ export const COMMERCIAL_CONSENT_UPDATED = "27 Ekim 2026";
  * m.5/1-b: the notice comes before the processing). tests/legal-docs.test.ts
  * holds the texts to this value.
  */
-export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
+export const SAVED_CARDS_IN_LEGAL_TEXTS = true;
 
 /**
  * Whether the legal texts describe Google's tags (Tag Manager, Analytics,
@@ -149,6 +161,9 @@ export const META_PIXEL_LEGAL_UPDATED = "25 Ekim 2026";
  * at the booking's own summary since 19 Ekim 2026), so `KARAOKE_LEGAL_UPDATED`
  * stays too. Add the two documents to tests/legal-dates.test.ts with this day.
  */
+// 5 Kasım 2026: the set moved past this day (saved cards, LEGAL-REDLINES
+// §38), so Ödeme Koşulları and Hesap Silme read the set's day again; kept as
+// the record of when the karaoke window entered them.
 // 29 Ekim 2026: §21 also says that a resold hour of a booking cancelled
 // after its free window goes back within 14 days, and no longer that karaoke
 // refunds are never partial (LEGAL-REDLINES §37.8); 28 Ekim 2026: the window

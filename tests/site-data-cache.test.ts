@@ -342,19 +342,19 @@ describe("the documents a consent is recorded against", () => {
     async (slug, versionFn) => {
       const legal = await import("@/lib/legal/store");
       caching();
-      // Both after the coded set's revision (LEGAL_UPDATED, 27 Ekim 2026):
+      // Both after the coded set's revision (LEGAL_UPDATED, 5 Kasım 2026):
       // an override moves the recorded version only when it is later.
-      h.rows.legal_docs = [override(slug, "Eski metin", "28 Ekim 2026")];
+      h.rows.legal_docs = [override(slug, "Eski metin", "8 Kasım 2026")];
       expect((await site.getSiteLegalOverride(slug))?.bodyMarkdown).toBe(
         "Eski metin",
       );
       // The panel publishes a new text and the write's expiry never
       // arrives (a write outside getDb, a rollback, a cache error): here
       // nothing expires anything at all.
-      h.rows.legal_docs = [override(slug, "Yeni metin", "29 Ekim 2026")];
+      h.rows.legal_docs = [override(slug, "Yeni metin", "9 Kasım 2026")];
       const recorded = await legal[versionFn]();
       const shown = await site.getSiteLegalOverride(slug);
-      expect(recorded).toBe("29 Ekim 2026");
+      expect(recorded).toBe("9 Kasım 2026");
       expect(shown?.effectiveDate).toBe(recorded);
       expect(shown?.bodyMarkdown).toBe("Yeni metin");
     },

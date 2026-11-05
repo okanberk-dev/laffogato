@@ -113,10 +113,10 @@ function published(slug: string, patch: Row = {}): Row {
     slug,
     title: "Mesafeli Satış Sözleşmesi (panel)",
     summary: "",
-    effectiveDate: "2 Kasım 2026",
+    effectiveDate: "12 Kasım 2026",
     bodyMarkdown: "## 1. Taraflar\n\nPanel metni.",
     isPublished: true,
-    updatedAt: "2026-11-02T09:00:00.000Z",
+    updatedAt: "2026-11-12T09:00:00.000Z",
     ...patch,
   };
 }
@@ -156,7 +156,7 @@ describe("checkoutConsentShown", () => {
     expect(hashes[MSS]).toBe(live.hash);
     expect(hashes[OBF]).toBe(coded(OBF).hash);
     // The label the same record carries comes from the same row.
-    expect((await store.checkoutConsentShown()).version).toBe("2 Kasım 2026");
+    expect((await store.checkoutConsentShown()).version).toBe("12 Kasım 2026");
   });
 
   /**
@@ -171,20 +171,20 @@ describe("checkoutConsentShown", () => {
 
   it("never pairs one text's label with another text's hash across a publish", async () => {
     const A = published(MSS, {
-      effectiveDate: "1 Kasım 2026",
+      effectiveDate: "11 Kasım 2026",
       bodyMarkdown: "## Metin A",
     });
     const B = published(MSS, {
-      effectiveDate: "2 Kasım 2026",
+      effectiveDate: "12 Kasım 2026",
       bodyMarkdown: "## Metin B",
-      updatedAt: "2026-11-02T09:00:00.000Z",
+      updatedAt: "2026-11-12T09:00:00.000Z",
     });
     // The first read of the contract sees A; any later read sees B.
     h.seen = (slug, nth) => (slug === MSS ? (nth === 1 ? A : B) : null);
     const shown = await store.checkoutConsentShown();
     const hashOf = (o: Row) =>
       legalVersionOf(overrideVersionDoc(findLegalDoc(MSS)!, o as never)).hash;
-    expect(shown.version).toBe("1 Kasım 2026");
+    expect(shown.version).toBe("11 Kasım 2026");
     expect(shown.textHashes[MSS]).toBe(hashOf(A));
   });
 

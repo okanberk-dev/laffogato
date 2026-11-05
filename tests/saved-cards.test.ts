@@ -277,11 +277,13 @@ describe("saved cards", () => {
 /**
  * Card storage needs the legal text as well as PayNkolay's grant.
  *
- * Since 18 Ekim 2026 the legal texts do not describe saved cards (the
- * passages wait in docs/LEGAL-REDLINES-2026-09.md §19). Until they come back,
+ * From 18 Ekim to 5 Kasım 2026 the legal texts did not describe saved cards
+ * (the passages waited in docs/LEGAL-REDLINES-2026-09.md §19); since 5 Kasım
+ * 2026 they do (§38). Both keys stay: without the texts,
  * `PAYNKOLAY_CARD_STORAGE=on` alone must not start offering "kaydet", listing
- * cards or minting member keys: that would process data the privacy notice
- * does not name (Aydınlatma Tebliği m.5/1-b, m.5/1-j).
+ * cards or minting member keys, which would process data the privacy notice
+ * does not name (Aydınlatma Tebliği m.5/1-b, m.5/1-j); without the env
+ * switch the texts alone open nothing either.
  */
 describe("card storage and the legal texts", () => {
   const PAYNKOLAY_ENV: Record<string, string> = {
@@ -316,13 +318,24 @@ describe("card storage and the legal texts", () => {
     vi.resetModules();
   });
 
-  it("the texts do not describe saved cards", () => {
-    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(false);
+  it("the texts describe saved cards (5 Kasım 2026, LEGAL-REDLINES §38)", () => {
+    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(true);
   });
 
-  it("keeps card storage off although PAYNKOLAY_CARD_STORAGE is on", async () => {
-    const provider = await freshProvider("on");
-    expect(provider.cardStorageEnabled).toBe(false);
+  it("turns card storage on only with PAYNKOLAY_CARD_STORAGE as well", async () => {
+    // The texts alone open nothing: the env switch is still the second key,
+    // set on Vercel after the texts are live (docs/PAYNKOLAY.md §16).
+    expect((await freshProvider("on")).cardStorageEnabled).toBe(true);
+    expect((await freshProvider("")).cardStorageEnabled).toBe(false);
+    expect((await freshProvider("off")).cardStorageEnabled).toBe(false);
+  });
+
+  it("keeps card storage off while the texts say they are off", async () => {
+    vi.doMock("@/lib/legal/meta", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@/lib/legal/meta")>()),
+      SAVED_CARDS_IN_LEGAL_TEXTS: false,
+    }));
+    expect((await freshProvider("on")).cardStorageEnabled).toBe(false);
   });
 
   it("is still the switch that turns it on once the texts describe it", async () => {

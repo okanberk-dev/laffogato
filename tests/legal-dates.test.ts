@@ -50,6 +50,9 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
+    // 5 Kasım 2026: saved cards. PayNkolay's card-storage authorisation came
+    // and the passages LEGAL-REDLINES §19 kept since 18 Ekim 2026 came back
+    // (§38). The ÖBF and the MSS changed, so the consent version moved.
     // 27 Ekim 2026: App Review 4.3(b) and 5.1.1(v). fA'L left the app and
     // Kahve Modu took its place; R12 retired; the phone is optional at
     // sign-up (LEGAL-REDLINES §36). The ÖBF and the MSS changed, so the
@@ -57,7 +60,7 @@ describe("legal document dates", () => {
     // push, §30; 20 Ekim 2026: the e-Arşiv invoice by e-mail, §24; 19 Ekim
     // 2026: the KDV rule, §16.4; 18 Ekim 2026: the distance-sales rules of
     // 2026.)
-    expect(LEGAL_UPDATED).toBe("27 Ekim 2026");
+    expect(LEGAL_UPDATED).toBe("5 Kasım 2026");
     // The karaoke terms carry their own label: 29 Ekim 2026, §7 releases the
     // hours of a guest who tells us they will not come and §8 says until
     // when a free make-good hour can be let go (LEGAL-REDLINES §37.8).
@@ -69,7 +72,10 @@ describe("legal document dates", () => {
 
   it("a document that changes after the revision carries its own day", () => {
     // Empty on 16, 18, 20, 22 and 27 Ekim 2026: every coded document carries
-    // the set's day. On the 27th the Kahve Modu wording moved the checkout
+    // the set's day. On 5 Kasım 2026 the saved-card wording moved the
+    // checkout documents, and with them the revision, past the two that
+    // carried 29 Ekim 2026 of their own (Ödeme Koşulları and Hesap Silme, the
+    // karaoke window, §37): they read the set's day again (§38). On the 27th the Kahve Modu wording moved the checkout
     // documents, and with them the revision, past the four that carried 25
     // Ekim 2026 of their own (the Meta Pixel, §35): they read the set's day
     // again (LEGAL-REDLINES §36). On the 22nd the push wording moved the checkout
@@ -90,20 +96,21 @@ describe("legal document dates", () => {
       // instead of fA'L (LEGAL-REDLINES §36). (22 Ekim 2026: the İYS sync,
       // §31.)
       "ticari-elektronik-ileti": COMMERCIAL_CONSENT_UPDATED,
-      // 28 Ekim 2026: the karaoke free-cancel window is counted from the
-      // booking (LEGAL-REDLINES §37); 29 Ekim 2026: §21 says a resold hour
-      // of a late-cancelled booking goes back (§37.8). Only these two quote
-      // the default rule in their own words, and neither is a checkout
-      // document, so the set (and the version a checkout consent records)
-      // did not move.
-      "odeme-kosullari": KARAOKE_WINDOW_LEGAL_UPDATED,
-      "hesap-silme": KARAOKE_WINDOW_LEGAL_UPDATED,
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
     }
-    expect(COMMERCIAL_CONSENT_UPDATED).toBe("27 Ekim 2026");
+    // The İYS notice's text did not change on 5 Kasım 2026; its day moved
+    // with the set because a printed date is never before the revision.
+    expect(COMMERCIAL_CONSENT_UPDATED).toBe("5 Kasım 2026");
+    // Kept as the record of the karaoke window's day; since 5 Kasım 2026 no
+    // document carries it of its own (the set moved past it, §38).
     expect(KARAOKE_WINDOW_LEGAL_UPDATED).toBe("29 Ekim 2026");
+    for (const src of LEGAL_CONTENT) {
+      // The karaoke contract carries its own label, which is the same day.
+      if (src.slug === "karaoke-odasi-rezervasyon") continue;
+      expect(src.updatedAt, src.slug).not.toBe(KARAOKE_WINDOW_LEGAL_UPDATED);
+    }
     // 25 Ekim 2026 (the Meta Pixel, §35) is before the revision now, so no
     // document carries it of its own any more.
     expect(META_PIXEL_LEGAL_UPDATED).toBe("25 Ekim 2026");

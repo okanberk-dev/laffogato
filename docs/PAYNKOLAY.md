@@ -1181,6 +1181,12 @@ detaylarını toplamayalım, PayNkolay'da kalsın"_. §9.1'deki "kart saklama v1
 dışında" kararının yerini alır. Kart PayNkolay'ın kart saklama hizmetinde
 durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
 
+> **Durum (5 Kas 2026):** PayNkolay yetkiyi verdi (operatör). 1. adım
+> yapıldı: hukuk metinleri kayıtlı kartı anlatıyor ve
+> `SAVED_CARDS_IN_LEGAL_TEXTS = true` (LEGAL-REDLINES §38). Kalan: metin
+> yayına girince Vercel'de `PAYNKOLAY_CARD_STORAGE=on` ve yeniden yayın
+> (aşağıdaki 3. adım).
+
 **Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on` **ve**
 `SAVED_CARDS_IN_LEGAL_TEXTS = true` (`src/lib/legal/meta.ts`). PayNkolay kart
 saklamayı üye işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da
@@ -1189,7 +1195,7 @@ listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez ve
 uygulama siparişi ya da karaoke ödemesi üye anahtarı **üretmez**
 (`provider.cardStorageEnabled`; web ödemesi bunu zaten soruyordu).
 
-18 Eki 2026'dan beri hukuk metinleri kayıtlı kartı anlatmıyor (kart
+18 Eki - 5 Kas 2026 arasında hukuk metinleri kayıtlı kartı anlatmadı (kart
 saklanmadığı hâlde "özellik açıldığında" diye anlatıyorlardı; Aydınlatma
 Tebliği m.5/1-j). Kaldırılan pasajlar `docs/LEGAL-REDLINES-2026-09.md`
 §19'da olduğu gibi durur. Yetki gelince açma sırası:

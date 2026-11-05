@@ -2144,6 +2144,11 @@ back".
 
 ## 19. Y5 - Kayıtlı kart metinleri kaldırıldı (18 Eki 2026)
 
+> **Durum (5 Kas 2026): metinler geri geldi** (§38). PayNkolay kart saklama
+> yetkisini verdi; §19.4'teki 43 pasaj, "özellik açıldığında" kayıtları
+> olmadan, açık bir hizmet olarak `content.ts`'e döndü ve
+> `SAVED_CARDS_IN_LEGAL_TEXTS = true`. Aşağısı 18 Ekim kararının kaydıdır.
+
 > **Durum: metin ve kod kapısı aynı dalda değişti** (`feat/legal-distance-sales-2026`).
 > Avukat turu yok (operatör kararı, 18 Eki 2026). Kaldırılan her pasaj
 > §19.4'te olduğu gibi duruyor: kayıtlı kart açılırsa oradan geri gelir.
@@ -5034,6 +5039,40 @@ e-posta doğrusunu söyler, sonraki derleme düzeltir.
    geç 14 gün).
 3. Telefonla ücretsiz telafi saati ayırırken bırakma kuralını söyle
    (başlangıcına 2 saatten fazla varken).
+
+## 38. Y23 - Kayıtlı kart metinleri geri geldi (5 Kasım 2026)
+
+> **Durum: metin ve kod kapısı aynı dalda değişti**
+> (`claude/legal-saved-cards`). Avukat turu yok: operatörün talimatı
+> (5 Kas 2026: "nkolay kart saklama olayını aldım ... sonraki siparişler
+> için kart nkolayda saklanacak"). §19.5'in açma sırasının 1. adımıdır.
+
+**Ne değişti.** §19.4'teki 43 pasaj (14 belge) geri geldi; hepsi açık bir
+hizmeti anlatır, "kart saklama özelliği açıldığında", "bu özellik açılana
+kadar hiçbir kart kaydedilmez" gibi kayıtlar düştü. Anlatılan gerçek
+(docs/PAYNKOLAY.md §16): üye ödeme sayfasındaki işaretsiz gelen "Bu kartı
+sonraki ödemeler için kaydet" kutusunu işaretlerse kart PayNkolay'ın kart
+saklama hizmetinde saklanır; biz yalnız rastgele 11 karakterlik üye
+anahtarını tutarız (T.C. kimlik ya da telefon değildir); kayıtlı kartla
+ödemede de 3D Secure zorunludur; kart ödeme sayfasından silinir; hesap
+kapanırken önce PayNkolay'dan kartların silinmesi istenir. §19.3'ün "Yeni"
+sütunundaki "kart bilgileri sonraki ödemeler için kaydedilmez" cümleleri
+yerlerini bu pasajlara bıraktı.
+
+**Tarihler.** ÖBF (§7, §9, §20) ve MSS (§7, §16) değiştiği için
+`LEGAL_UPDATED` 27 Ekim 2026 → **5 Kasım 2026**. Kendi günü olan iki belge,
+Ödeme Koşulları ve Hesap Silme (`KARAOKE_WINDOW_LEGAL_UPDATED`, 29 Ekim
+2026), takımın gününe döndü (ikisi de bu turda değişti; basılan tarih
+revizyondan önce olamaz). `COMMERCIAL_CONSENT_UPDATED` metni değişmeden
+27 Ekim → 5 Kasım 2026 (aynı kural; ticari ileti onayının kaydettiği sürüm
+`ticari-elektronik-ileti@5 Kasım 2026` olur). `KARAOKE_LEGAL_UPDATED`
+(29 Ekim 2026) **değişmedi**: karaoke sözleşmesi kendi sürümünü taşır ve
+kayıtlı kartı anlatmaz.
+
+**Kalan adım (§19.5, 2-3).** Bu metin yayına girer; ancak ondan sonra
+Vercel'de `PAYNKOLAY_CARD_STORAGE=on` yapılıp yeniden yayınlanır. Değişken
+tek başına hiçbir şeyi açmaz, metin de tek başına açmaz
+(`tests/saved-cards.test.ts`).
 
 ## Ek A - Cümle cümle düzeltme listesi
 
