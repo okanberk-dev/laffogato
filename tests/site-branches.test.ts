@@ -57,6 +57,31 @@ describe("site branches", () => {
     );
   });
 
+  it("places Marina at Tuzla Marina and guesses nothing else (5 Kas 2026)", () => {
+    // Operator: "Marina tuzla marinada". No unit, postal code, phone or
+    // hours were given, so they stay empty and off the page.
+    expect(branchAddressLines(MARINA_BRANCH)).toEqual([
+      "Tuzla Marina",
+      "Tuzla / İstanbul",
+    ]);
+    expect(MARINA_BRANCH.localityLine).not.toMatch(/\d/);
+    expect(branchMapUrl(MARINA_BRANCH)).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Tuzla%20Marina%2C%20Tuzla%2C%20%C4%B0stanbul",
+    );
+    expect(branchTel(MARINA_BRANCH)).toBeNull();
+    expect(MARINA_BRANCH.hoursLabel).toBe("");
+  });
+
+  it("says the hours and the phone follow while only the address is known", () => {
+    const visit = readFileSync(
+      "src/components/laffogato/visit-page.tsx",
+      "utf8",
+    );
+    expect(visit).toContain(
+      "Çalışma saatleri ve telefonu çok yakında bu sayfada.",
+    );
+  });
+
   it("never maps a branch whose address is not known", () => {
     // A map pin without an address is a guess at where the branch is.
     for (const b of OTHER_BRANCHES) {

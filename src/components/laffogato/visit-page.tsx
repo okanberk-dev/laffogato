@@ -744,6 +744,11 @@ function BranchSection({ branch }: { branch: SiteBranch }) {
                 </a>
               ) : null}
             </p>
+          ) : lines.length > 0 ? (
+            // The address is known, the hours and the phone are not yet.
+            <p className="branch-text">
+              Çalışma saatleri ve telefonu çok yakında bu sayfada.
+            </p>
           ) : null}
           {mapUrl ? (
             <a

@@ -35,15 +35,20 @@ export interface SiteBranch {
   mapsQuery: string;
 }
 
+/**
+ * Operator, 5 Kas 2026: "Marina tuzla marinada". The place is Tuzla Marina
+ * (also listed as Viaport Marina Tuzla); the unit inside it, the postal
+ * code, the phone and the hours are still unknown and stay empty.
+ */
 export const MARINA_BRANCH: SiteBranch = {
   id: "marina",
   name: "L'Affogato Marina",
   status: "open",
-  streetAddress: "",
-  localityLine: "",
+  streetAddress: "Tuzla Marina",
+  localityLine: "Tuzla / İstanbul",
   phone: "",
   hoursLabel: "",
-  mapsQuery: "",
+  mapsQuery: "Tuzla Marina, Tuzla, İstanbul",
 };
 
 /** Every branch the site shows besides the Tuzla köşk, in page order. */

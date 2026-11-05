@@ -362,7 +362,11 @@ Operatör: _"Laffogato Marina şubesi ... açıldı olarak göster"_, kapsam
 lafmaliyet'in şube kütüğüyle aynı: `marina`); `/ziyaret`'te kart ve footer'da
 bir satır. Adres, telefon ve saat o gün hiçbir yerde yoktu: alanlar boş, boş
 alan basılmaz, adres girilene kadar harita bağlantısı ve JSON-LD yok
-(`tests/site-branches.test.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
+(`tests/site-branches.test.ts`). Aynı gün operatör: _"Marina tuzla
+marinada"_: kart "Tuzla Marina, Tuzla / İstanbul" yazar ve haritayı
+"Tuzla Marina, Tuzla, İstanbul" aramasıyla açar; marinadaki birim, posta
+kodu, telefon ve saat hâlâ boş, kart "Çalışma saatleri ve telefonu çok
+yakında" der. Şubeler için JSON-LD hiç basılmaz (`structured-data.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
 yalnız Tuzla köşküne hizmet eder; kart bunu yazar. Hukuk metinlerinde 12 belge
 (ÖBF ve MSS dahil) hâlâ "tek şube bulunduğundan konuma bağlı bir işlev yoktur"
 der: düzeltilmesi onay sürümünü (`LEGAL_UPDATED`) taşır, ayrı bir hukuk

@@ -214,6 +214,18 @@ describe("the visit page", () => {
   it("names the courier and its fee while the panel offers one", () => {
     expect(html).toContain("Tuzla içi kurye");
   });
+
+  it("draws Marina's card at Tuzla Marina with a map and no phone yet", () => {
+    const card = html.slice(html.indexOf('id="marina"'));
+    expect(card).toContain("Tuzla Marina");
+    expect(card).toContain("Tuzla / İstanbul");
+    expect(card).toContain("Haritada gör");
+    expect(card).toContain(
+      "Çalışma saatleri ve telefonu çok yakında bu sayfada.",
+    );
+    expect(card).not.toContain("Adresi, çalışma saatleri");
+    expect(card.slice(0, card.indexOf("</section>"))).not.toContain("tel:");
+  });
 });
 
 /**
