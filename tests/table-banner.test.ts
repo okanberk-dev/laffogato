@@ -35,10 +35,12 @@ describe("table page banner", () => {
 });
 
 describe("store buttons", () => {
-  it("shows the live App Store listing and an honest line for Android", () => {
+  it("shows the live App Store listing and promises nothing for Android", () => {
+    // Operator, 5 Kas 2026: no Android app for now - so no "yakında" line.
     const html = renderToStaticMarkup(createElement(AppStoreLinks));
     expect(html).toContain(`href="${LIVE_APP_STORE_URL}"`);
-    expect(html).toContain("Android uygulaması yakında");
+    expect(html).not.toContain("Android");
+    expect(html).not.toContain("Google Play");
     // No Play button while there is no Play listing.
     expect(html).not.toContain("play.google.com");
   });

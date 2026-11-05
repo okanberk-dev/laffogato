@@ -12,10 +12,13 @@ import { cx } from "./cx";
  * The listings come from src/lib/mobile/app-store.ts (the same pair the
  * e-mails use): the App Store listing is compiled in since the iOS app went
  * live (5 Kas 2026), Google Play's is read from NEXT_PUBLIC_PLAY_STORE_URL.
- * Each listing that exists gets a button; the one that does not yet is an
- * honest "yakında" line next to it, never a button that goes nowhere. With
- * neither, the whole block is that line. Setting the Play variable on Vercel
- * turns its button on everywhere; nothing else has to change.
+ * Each listing that exists gets a button, never a button that goes nowhere.
+ *
+ * Android is off the plan for now (operator, 5 Kas 2026: "Android tarafı
+ * uygulama olmayacak şimdilik"), so the site no longer promises it: no
+ * "Android yakında" line. If a Play listing ever exists, setting the Play
+ * variable on Vercel turns its button on everywhere; nothing else has to
+ * change.
  *
  * Text buttons, not Apple's and Google's badge artwork: the badges come with
  * their own licence terms, and a plain capsule in the house style says the
@@ -32,7 +35,7 @@ export function AppStoreLinks({
   if (!hasAnyAppLink()) {
     return (
       <SoonLine tone={tone} className={className}>
-        Çok yakında App Store ve Google Play&apos;de.
+        Çok yakında App Store&apos;da.
       </SoonLine>
     );
   }
@@ -67,9 +70,7 @@ export function AppStoreLinks({
             <span className="store-btn-big">Google Play</span>
           </span>
         </a>
-      ) : (
-        <SoonLine tone={tone}>Android uygulaması yakında.</SoonLine>
-      )}
+      ) : null}
     </div>
   );
 }

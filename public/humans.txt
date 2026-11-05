@@ -10,4 +10,4 @@ Dil: Türkçe
 Teknoloji: Next.js, React, TypeScript, Tailwind CSS, PostgreSQL
 Barındırma: Vercel
 Yazı tipi: Poppins
-Uygulama: L'Affogato (iOS / Android) - site ile tek hesap
+Uygulama: L'Affogato (iOS) - site ile tek hesap
