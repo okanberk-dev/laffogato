@@ -19,20 +19,28 @@ import { MENU, LOCATION, type HomeSlideAction } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
-import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
+import {
+  DEFAULT_PICKUP_MINUTES,
+  MENU_TAG_LABELS,
+  type PageProps,
+} from "./page-shared";
 import { splitLead } from "./split-lead";
 import { useKaraokeToday } from "./use-karaoke-today";
 import { useOpenStatus } from "./use-open-status";
 
-/** Minutes a pickup takes when the page has no settings (the column default). */
-const DEFAULT_PICKUP_MINUTES = 15;
-
-/** What the app does that the site does not - the reasons to install it. */
-function appFeatures(stampTarget: number) {
+/**
+ * What the app does that the site does not - the reasons to install it. The
+ * courier is named only while Mobil → Ayarlar offers it (operator, 5 Kas
+ * 2026: "kurye olmasın şimdilik"), so the page never promises what the
+ * checkout would refuse.
+ */
+export function appFeatures(stampTarget: number, courierEnabled: boolean) {
   return [
     {
       title: "Siparişini ver",
-      body: "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı.",
+      body: courierEnabled
+        ? "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı."
+        : "gel-al, kafe menüsünün tamamı.",
     },
     {
       title: "Damga kartın",
@@ -47,6 +55,13 @@ function appFeatures(stampTarget: number) {
       body: "odanı ayırt, köşkte olanları ilk sen gör.",
     },
   ];
+}
+
+/** The order door's second line: the courier and its fee while it runs. */
+export function orderDoorSub(courierEnabled: boolean, courierFee: string) {
+  return courierEnabled
+    ? `Uygulamadan; Tuzla içi kurye ${courierFee}`
+    : "Uygulamadan sipariş ver";
 }
 
 /** The four figures under the signature block. */
@@ -71,6 +86,9 @@ export function PageHome({
   // Operator-editable at /admin/ayarlar; the phone already reads it from
   // bootstrap, so the web quoting a constant was the odd one out.
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
+  // Mobil → Ayarlar → Kurye; a page rendered without settings keeps the
+  // column default (offered).
+  const courierEnabled = settings?.courierEnabled !== false;
   // The order and rewards shortcuts say what the panel says: Ayarlar →
   // "Gel-al hazırlık süresi" and the loyalty card's stamp count.
   const pickupMinutes = settings?.pickupReadyMinutes ?? DEFAULT_PICKUP_MINUTES;
@@ -193,7 +211,7 @@ export function PageHome({
       href: "#uygulama",
       kicker: "Sipariş",
       title: `Gel-al · ${pickupMinutes} dk`,
-      sub: `Uygulamadan; Tuzla içi kurye ${courierFee}`,
+      sub: orderDoorSub(courierEnabled, courierFee),
       icon: (
         <>
           <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" />
@@ -632,7 +650,7 @@ export function PageHome({
               <div className="eyebrow">L’Affogato uygulaması</div>
               <h2 className="h2">Köşk, cebinde</h2>
               <ul className="app-block-list">
-                {appFeatures(stampTarget).map((f) => (
+                {appFeatures(stampTarget, courierEnabled).map((f) => (
                   <li key={f.title}>
                     <span className="app-block-tick" aria-hidden="true">
                       <svg viewBox="0 0 12 12" fill="none">

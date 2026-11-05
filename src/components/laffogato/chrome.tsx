@@ -916,6 +916,8 @@ export interface FooterSettings {
   hours?: [string, string][];
   /** Courier fee in kuruş, from /admin/ayarlar. */
   courierFeeMinor?: number;
+  /** Mobil → Ayarlar → Kurye (`mobileApp.ordering.deliveryEnabled`). */
+  courierEnabled?: boolean;
   /** Ayarlar → "Gel-al hazırlık süresi", for the home page's order card. */
   pickupReadyMinutes?: number;
   /** Stamps per free drink (`mobileApp.loyalty.stampTarget`). */

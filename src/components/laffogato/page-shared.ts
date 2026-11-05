@@ -26,6 +26,9 @@ export const MENU_TAG_LABELS: Record<string, string> = {
   new: "YENİ",
 };
 
+/** Minutes a pickup takes when the page has no settings (the column default). */
+export const DEFAULT_PICKUP_MINUTES = 15;
+
 /** The props LaffogatoApp (app.tsx) renders every page with. */
 export interface PageProps {
   navigate: (r: Route) => void;
@@ -36,6 +39,9 @@ export interface PageProps {
     email?: string;
     address?: string;
     courierFeeMinor?: number;
+    /** Mobil → Ayarlar → Kurye (`mobileApp.ordering.deliveryEnabled`).
+        `false` drops every courier line; absent reads as offered. */
+    courierEnabled?: boolean;
     pickupReadyMinutes?: number;
     stampTarget?: number;
     /** The day under the menu: "YYYY-MM-DD", or "" (not entered). */

@@ -210,6 +210,61 @@ describe("the visit page", () => {
     expect(untilTime("10:00")).toBe("10:00'a");
     expect(untilTime("00:00")).toBe("yarısına");
   });
+
+  it("names the courier and its fee while the panel offers one", () => {
+    expect(html).toContain("Tuzla içi kurye");
+  });
+});
+
+/**
+ * Operator, 5 Kas 2026: "kahvelerde sadece gel al yap, ayrıca kurye
+ * olmasın şimdilik". The switch is Mobil → Ayarlar → Kurye, the one
+ * POST /orders enforces (`fulfillment_unavailable`); the site's own courier
+ * lines follow it instead of promising what the checkout refuses.
+ */
+describe("the courier switch (Mobil → Ayarlar → Kurye)", () => {
+  const visitHtml = (settings: Record<string, unknown>) =>
+    renderToStaticMarkup(
+      createElement(PageVisit, {
+        navigate: vi.fn(),
+        addToCart: vi.fn(),
+        openProduct: vi.fn(),
+        settings,
+      } as unknown as Parameters<typeof PageVisit>[0]),
+    );
+
+  it("the visit page shows the pickup time in the courier's place while it is off", () => {
+    const html = visitHtml({ courierEnabled: false, pickupReadyMinutes: 12 });
+    expect(html).not.toMatch(/kurye/i);
+    expect(html).toContain("12 dk");
+    expect(html).toContain("uygulamadan gel-al");
+  });
+
+  it("the visit page keeps the courier when the switch is on", () => {
+    const html = visitHtml({ courierEnabled: true, courierFeeMinor: 7500 });
+    expect(html).toContain("Tuzla içi kurye");
+    expect(html).not.toContain("uygulamadan gel-al");
+  });
+
+  it("the home page's order lines name the courier only while it runs", async () => {
+    const { appFeatures, orderDoorSub } =
+      await import("@/components/laffogato/home-page");
+    expect(appFeatures(6, false)[0].body).toBe(
+      "gel-al, kafe menüsünün tamamı.",
+    );
+    expect(orderDoorSub(false, "55 ₺")).toBe("Uygulamadan sipariş ver");
+    expect(appFeatures(6, true)[0].body).toContain("Tuzla içi kurye");
+    expect(orderDoorSub(true, "55 ₺")).toBe(
+      "Uygulamadan; Tuzla içi kurye 55 ₺",
+    );
+  });
+
+  it("the pages read the switch POST /orders enforces", () => {
+    const props = readFileSync("src/lib/seo/app-props.ts", "utf8");
+    expect(props).toContain(
+      "courierEnabled: settings.mobileApp.ordering.deliveryEnabled",
+    );
+  });
 });
 
 describe("no page builds its footer settings by hand", () => {

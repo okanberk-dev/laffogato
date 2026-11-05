@@ -25,11 +25,15 @@ import {
   MatchaGlass,
   PhotoSurface,
 } from "./visuals";
-import type { PageProps } from "./page-shared";
+import { DEFAULT_PICKUP_MINUTES, type PageProps } from "./page-shared";
 import { cx } from "./cx";
 
 export function PageVisit({ visit, settings }: PageProps) {
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
+  // Mobil → Ayarlar → Kurye. While it is off (5 Kas 2026: pickup only for
+  // now) the courier's stat gives its place to the pickup time.
+  const courierEnabled = settings?.courierEnabled !== false;
+  const pickupMinutes = settings?.pickupReadyMinutes ?? DEFAULT_PICKUP_MINUTES;
   const addressLines = visit?.addressLines ?? LOCATION.address;
   // `||`: a field cleared in Ayarlar arrives as "" and must not print (or
   // dial) nothing.
@@ -141,10 +145,17 @@ export function PageVisit({ visit, settings }: PageProps) {
                   <div className="visit-stat-n">{closing.value}</div>
                   <div className="visit-stat-l">{closing.label}</div>
                 </div>
-                <div>
-                  <div className="visit-stat-n">{courierFee}</div>
-                  <div className="visit-stat-l">Tuzla içi kurye</div>
-                </div>
+                {courierEnabled ? (
+                  <div>
+                    <div className="visit-stat-n">{courierFee}</div>
+                    <div className="visit-stat-l">Tuzla içi kurye</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="visit-stat-n">{pickupMinutes} dk</div>
+                    <div className="visit-stat-l">uygulamadan gel-al</div>
+                  </div>
+                )}
                 <div>
                   <div className="visit-stat-n">Var</div>
                   <div className="visit-stat-l">otopark · sokak</div>

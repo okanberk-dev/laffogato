@@ -90,6 +90,9 @@ export async function loadAppProps({
       settings: {
         ...footerSettings(settings),
         courierFeeMinor: settings.courierFeeMinor,
+        // The panel's courier switch, the one POST /orders enforces: while
+        // it is off the home and visit pages offer pickup only.
+        courierEnabled: settings.mobileApp.ordering.deliveryEnabled,
         // The home page's order and rewards shortcuts (presentation only).
         pickupReadyMinutes: settings.pickupReadyMinutes,
         stampTarget: settings.mobileApp.loyalty.stampTarget,

@@ -368,6 +368,20 @@ yalnız Tuzla köşküne hizmet eder; kart bunu yazar. Hukuk metinlerinde 12 bel
 der: düzeltilmesi onay sürümünü (`LEGAL_UPDATED`) taşır, ayrı bir hukuk
 revizyonudur ve operatörün onayını bekler.
 
+## Kafede yalnız gel-al, kurye şimdilik kapalı (5 Kas 2026)
+
+Operatör: _"kahvelerde sadece gel al yap ayrıca kurye olmasın şimdilik"_.
+Anahtar koddaki bir sabit değil, panelin kendisidir: **Mobil → Ayarlar →
+Kurye kapalı** (`mobileApp.ordering.deliveryEnabled = false`). `POST /orders`
+kurye siparişini `400 fulfillment_unavailable` ile reddeder, uygulama (1.1.0
+dahil) ödeme sayfasında yalnız "Gel al"ı çizer; masaya sipariş (QR) kendi
+anahtarıyla açık kalır. Sitenin kurye satırları (Ana Sayfa'nın sipariş kapısı
+ve uygulama maddesi, `/ziyaret`'in kurye kutusu) aynı anahtarı okur
+(`app-props.ts` → `courierEnabled`) ve kapalıyken gel-al süresini yazar
+(`tests/site-settings-reach.test.ts`). `public/llms.txt` sabittir: kurye geri
+gelince elle düzeltilir. Hukuk metinleri kuryeyi bir seçenek olarak anlatır ve
+değişmedi (seçeneğin kapalı olması metni yanlış yapmaz).
+
 ## Masalar (QR) ve "yeni sipariş" e-postası (15 Eki 2026)
 
 - **Masa = ad + rastgele kod.** `public.cafe_tables`; kod 10 karakter Crockford
