@@ -880,9 +880,11 @@ durum bozulmaya uygundur.
 - **Skill'ler** `.claude/skills/` altında; liste, kaynak ve lisanslar
   `docs/SKILLS.md`. Dışarıdan alınanlarda (`frontend-design`,
   `frontend-design-principles`, `copywriting`, `cro`, `emails`, `social`,
-  `referrals`, `seo-audit`) başlarındaki "Bu projede" bölümü geçerlidir;
+  `referrals`, `seo-audit`, `design-lab`) başlarındaki "Bu projede" bölümü geçerlidir;
   pazarlama bağlamı `.claude/product-marketing.md`. Panelde yeni bir alan:
-  `build-admin-panel` (gerçek tarayıcıyla doğrulama dahil)
+  `build-admin-panel` (gerçek tarayıcıyla doğrulama dahil). Panelde bir ekran
+  için beş tasarım seçeneği ve operatörün yorumu: `design-lab` (lab
+  `/admin/design-lab`, git'e girmez)
 - **Açık bulgular** `docs/AUDIT.md` §8 "Açık"ta; biri üzerinde çalışırken
   oradan sil ve "Düzeltilenler" tablosuna testiyle birlikte taşı
 

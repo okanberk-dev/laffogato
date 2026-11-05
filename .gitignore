@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design-lab skill (.claude/skills/design-lab): a lab's temporary files.
+# The skill deletes them when the lab ends; they never belong in a commit.
+/.claude-design/
+/src/app/admin/design-lab/
+/src/app/admin/design-preview/
+/feedback-*.json

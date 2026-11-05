@@ -69,6 +69,10 @@ const eslintConfig = defineConfig([
     // build artifact only produced noise — 10 `no-this-alias` errors in a
     // minifier's output — which drowned out real findings in `src`.
     "public/laffogato-pour.js",
+    // Vendored skill templates (.claude/skills/design-lab, docs/SKILLS.md),
+    // kept as their source wrote them. A design lab copies the overlay into
+    // its route under src/app/admin, where the panel's rules lint it.
+    ".claude/skills/design-lab/templates/**",
   ]),
 ]);
 

@@ -40,6 +40,7 @@ Genel bakış'ın ekran görüntüsünü alır. Form göndermez.
 | `social` | aynı | MIT | Instagram / TikTok içeriği |
 | `referrals` | aynı | MIT | Davet ve yorum programı (kurallar operatörün) |
 | `seo-audit` | aynı | MIT | Teknik ve yerel SEO denetimi |
+| `design-lab` | [0xdesign/design-plugin](https://github.com/0xdesign/design-plugin) `design-and-refine/skills/design-lab` @ `913a7ab` (ui-skills.com `0xdesign/design-lab`) | MIT (kaynağın README'si ve `plugin.json`'ı; ayrı `LICENSE` dosyası yok) | Yönetim paneli için beş tasarım seçeneği, yorum katmanı, birleştirme, plan |
 
 `aso` (App Store / Google Play listelemesi) uygulamanın deposunda:
 `RiosenBeq/lafmobil` `.claude/skills/aso`.
@@ -68,6 +69,37 @@ bölümlerinin kapattıkları:
   tasarlamak.
 - Kaynak pazarlama deposunun kök `CLAUDE.md`'si alınmadı: her oturumda
   GitHub'dan sürüm dosyası çekmeyi ve `git pull` yapmayı söylüyor.
+
+## `design-lab` (5 Kasım 2026)
+
+Operatör ui-skills.com'daki `0xdesign/design-lab`'ı yönetim paneline
+uygulanmak üzere istedi. Site bu ortamdan açılmadı; skill kaynağından,
+`0xdesign/design-plugin` deposundan alındı. Eklentinin yalnız skill'i
+(`SKILL.md`, `DESIGN_PRINCIPLES.md`) ve şablonları (`templates/`: yorum
+katmanı `FeedbackOverlay.tsx` ve yardımcıları, plan ve hafıza şablonları)
+kopyalandı. Komutlar (`/design-and-refine:start`, `:cleanup`) yerine skill
+`/design-lab` olarak çağrılır; eklentinin `cleanup-check.sh` kancası yerine
+projenin `.claude/hooks/design-lab-check.sh`'i (Stop) kalmış lab dosyasını
+bildirir.
+
+Her dosya baştan sona okundu:
+
+- Gizli metin, görünmez karakter, komut enjeksiyonu yok. Yorum katmanı
+  dışarı istek atmaz; yorumları tarayıcının `localStorage`'ına yazar ve
+  panoya kopyalar.
+- **Kural çatışmaları ve "Bu projede" bölümünün kapattıkları:** skill görsel
+  dili mülakatta sorar ve `DESIGN_MEMORY.md` yazar; panelin dili hazır
+  (Innex, `docs/ADMIN-INNEX.md`) ve hafızası o belgelerdir. `__design_lab`
+  rotası Next 16'da özel klasör olduğu için açılmaz; lab
+  `src/app/admin/design-lab/`'da, sahibe açık (`requireRole("audit")`).
+  `DESIGN_PRINCIPLES.md`'deki bazı hareket örnekleri kurulu olmayan bir
+  kütüphaneye dayanır; panel yeni paket almaz. Lab verisi uydurmadır,
+  veritabanından müşteri bilgisi kopyalanmaz. Upstream "sunucuyu başlatma"
+  der; bulut oturumunda sunucu arka planda başlar ve varyantların ekran
+  görüntüsü gönderilir. Plan kökte değil `docs/design-lab/`'da.
+- Geçici yollar (`.claude-design/`, `src/app/admin/design-lab/`,
+  `src/app/admin/design-preview/`, `feedback-*.json`) `.gitignore`'da;
+  şablonlar vendored kod olarak ESLint dışında (`eslint.config.mjs`).
 
 ## Güncelleme
 
