@@ -63,11 +63,12 @@ const STOPS: Array<{
  * parent route segment here, so unlike /hukuk/* or /uye/* it cannot inherit
  * a layout's chrome and wires SiteChrome itself.
  *
- * The picture is the app's launch (lafmobil DESIGN-GLASS §13.14): porcelain,
- * the L'Af mark in latte foam, and coffee rising through the letters with
- * steam over it - so a wrong turn still lands on the brand's own moment, and
- * the line under it says what the picture already does: the coffee is ready,
+ * The café-retail split (5 Kas 2026): the copy on white beside a solid
+ * house-green block where the L'Af mark, in latte foam, fills with coffee
+ * and steams once - so a wrong turn still lands on the brand's own moment,
+ * and the headline says what the picture already does: the coffee is ready,
  * the page is not. Pure CSS; under reduced motion the mark is simply full.
+ * Below, the six places a lost visitor most likely meant, as white cards.
  *
  * getSiteSettings() degrades to sane defaults on a database outage rather
  * than throwing, so this page never itself breaks while explaining that
@@ -80,39 +81,46 @@ export default async function NotFound() {
     <SiteChrome settings={footerSettings(settings)}>
       <div className="nf-page">
         <div className="wrap">
-          <section className="nf-hero" aria-labelledby="nf-title">
-            <div className="nf-stage" aria-hidden="true">
-              <span className="nf-glow" />
-              <span className="nf-steam">
-                <i />
-                <i />
-                <i />
-              </span>
-              <span className="nf-mark">
-                <span className="nf-coffee" />
-              </span>
+          <section
+            className="nf-hero nf-hero--split"
+            aria-labelledby="nf-title"
+          >
+            <div className="nf-copy">
+              <p className="nf-code">
+                <span>404</span> Sayfa bulunamadı
+              </p>
+              <h1 id="nf-title" className="nf-title">
+                Kahve hazır, <span className="script">sayfa değil</span>
+              </h1>
+              <p className="nf-lede">
+                Aradığın bağlantı taşınmış ya da hiç var olmamış olabilir. Menü,
+                mağaza ve köşk ise yerli yerinde - buradan devam et.
+              </p>
+              <div className="nf-actions">
+                <Link href="/" className="btn btn-primary btn-lg">
+                  Anasayfaya dön
+                </Link>
+                <Link href="/menu" className="btn btn-outline btn-lg">
+                  Menüye göz at
+                </Link>
+              </div>
             </div>
 
-            <p className="nf-code">
-              <span>404</span> Sayfa bulunamadı
-            </p>
-            <h1 id="nf-title" className="nf-title">
-              Kahve hazır, <span className="script">sayfa değil</span>
-            </h1>
-            <p className="nf-lede">
-              Aradığın bağlantı taşınmış ya da hiç var olmamış olabilir. Menü,
-              mağaza ve köşk ise yerli yerinde - buradan devam et.
-            </p>
-            <div className="nf-actions">
-              <Link href="/" className="btn btn-primary btn-lg">
-                Anasayfaya dön
-              </Link>
-              <Link href="/menu" className="btn btn-ghost btn-lg">
-                Menüye göz at
-              </Link>
+            <div className="nf-art" aria-hidden="true">
+              <div className="nf-stage">
+                <span className="nf-steam">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="nf-mark">
+                  <span className="nf-coffee" />
+                </span>
+              </div>
             </div>
           </section>
 
+          <h2 className="nf-stops-title">Belki şunu arıyordun</h2>
           <nav className="nf-stops" aria-label="Popüler sayfalar">
             {STOPS.map((stop) => {
               const s = SCENES[stop.scene];
@@ -120,9 +128,7 @@ export default async function NotFound() {
                 <a key={stop.href} href={stop.href} className="nf-stop">
                   <span
                     className="nf-stop-orb"
-                    style={{
-                      background: `radial-gradient(circle at 34% 30%, #fff 0%, ${s.mid} 34%, ${s.core} 100%)`,
-                    }}
+                    style={{ background: s.mid }}
                     aria-hidden="true"
                   />
                   <span className="nf-stop-text">

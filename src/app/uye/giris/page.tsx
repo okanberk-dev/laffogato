@@ -32,37 +32,68 @@ export default async function GirisPage({ searchParams }: PageProps) {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-head">
-          <Link href="/" className="auth-back">
-            ← Anasayfa
-          </Link>
-          <LafMark tone="duo" />
-        </div>
-        <DegradedAuthNotice />
-        {justVerified && (
-          <p role="status" className="auth-note auth-note--status">
-            E-posta adresin doğrulandı. Şifrenle giriş yapabilirsin.
-          </p>
-        )}
-        <h1 className="auth-title">
-          Giriş <span className="script">yap</span>
-        </h1>
-        <p className="auth-lede">
-          Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede doldur.
-        </p>
-        <LoginForm next={next} />
-        <div className="auth-foot">
-          <Link href="/uye/sifremi-unuttum" className="auth-link">
-            Şifreni mi unuttun?
-          </Link>
-          <span>
-            Hesabın yok mu?{" "}
-            <Link href="/uye/kayit" className="auth-link">
-              Üye ol
+      <div className="auth-split">
+        <section className="auth-card" aria-labelledby="auth-title">
+          <div className="auth-head">
+            <Link href="/" className="auth-back">
+              ← Anasayfa
             </Link>
-          </span>
-        </div>
+            <LafMark tone="duo" />
+          </div>
+          <DegradedAuthNotice />
+          {justVerified && (
+            <p role="status" className="auth-note auth-note--status">
+              E-posta adresin doğrulandı. Şifrenle giriş yapabilirsin.
+            </p>
+          )}
+          <p className="eyebrow">Üye girişi</p>
+          <h1 id="auth-title" className="auth-title">
+            Tekrar hoş geldin
+          </h1>
+          <p className="auth-lede">
+            Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede
+            doldur.
+          </p>
+          <LoginForm next={next} />
+          <div className="auth-foot">
+            <Link href="/uye/sifremi-unuttum" className="auth-link">
+              Şifreni mi unuttun?
+            </Link>
+          </div>
+        </section>
+
+        {/* The reward panel beside the form: the one place on this page
+            brass may speak (the stamps), on the house green. */}
+        <aside
+          className="auth-join"
+          data-ground="dark"
+          aria-labelledby="auth-join-title"
+        >
+          <p className="auth-join-kicker">L&apos;Af üyeliği</p>
+          <h2 id="auth-join-title" className="auth-join-title">
+            Henüz üye değil misin?
+          </h2>
+          <p className="auth-join-lede">
+            Ücretsiz üye ol; uygulamada ve sitede aynı hesapla devam et.
+          </p>
+          <ul className="auth-join-perks">
+            <li>
+              <span className="auth-join-stamp" aria-hidden="true" />
+              Uygulamadan verdiğin kafe siparişlerinde damga topla
+            </li>
+            <li>
+              <span className="auth-join-stamp" aria-hidden="true" />
+              Damgaların ücretsiz içecek kuponuna dönüşsün
+            </li>
+            <li>
+              <span className="auth-join-stamp" aria-hidden="true" />
+              Siparişlerin ve adreslerin tek yerde dursun
+            </li>
+          </ul>
+          <Link href="/uye/kayit" className="btn btn-light btn-lg">
+            Üye ol
+          </Link>
+        </aside>
       </div>
     </div>
   );
