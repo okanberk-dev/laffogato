@@ -51,7 +51,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 
 ## Uygulama ve Üyelik
 
-- L'Affogato mobil uygulaması (iOS / Android) ve site tek hesap kullanır: damga kartı, kuponlar, adresler ve karaoke rezervasyonları iki yerde aynıdır
+- L'Affogato mobil uygulaması (iPhone, App Store) ve site tek hesap kullanır: damga kartı, kuponlar, adresler ve karaoke rezervasyonları iki yerde aynıdır
 - Damga programı: 6 damgada 1 içecek; uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga (kurye ücreti sayılmaz)
 - Kafe siparişi uygulamadan verilir: gel-al ya da masadaki QR kodla masaya (kurye şimdilik yok); online mağaza sitede
 

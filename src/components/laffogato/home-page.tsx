@@ -566,8 +566,8 @@ export function PageHome({
               </h2>
               <p>
                 Uygulamadan verilen 140 TL ve üzeri kafe siparişi damga
-                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Altıncı damga
-                90 gün geçerli ücretsiz içecek kuponuna dönüşür.
+                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Altıncı
+                damga 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
               </p>
               <div className="cta-row">
                 <a href="/uye/hesap" className="btn btn-light">
@@ -630,9 +630,8 @@ export function PageHome({
       {/* The app ─────────────────────────────────────────────── */}
       {/* The site's door into lafmobil: ordering, the stamp card and the
           counter code live there. Store buttons come from
-          src/lib/mobile/app-store.ts (App Store live, Google Play from
-          NEXT_PUBLIC_PLAY_STORE_URL); a listing that does not exist yet is a
-          "yakında" line instead of a link to nowhere. */}
+          src/lib/mobile/app-store.ts (App Store live; no Android app for
+          now, operator 5 Kas 2026, so nothing promises one). */}
       <section className="home-section" id="uygulama">
         <div className="wrap">
           <div className="app-block reveal">
@@ -671,15 +670,34 @@ export function PageHome({
               </ul>
               <AppStoreLinks />
             </div>
-            <div className="app-phone" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/app-screen-home.webp"
-                alt=""
-                width={600}
-                height={1300}
-                loading="lazy"
-              />
+            {/* Two real screens, held up on a house-green block: the home
+                screen in front, Kampanyalar behind it at an angle - whole
+                devices, never cropped. */}
+            <div className="app-stage" aria-hidden="true">
+              <div className="app-phones">
+                <div className="app-phone app-phone--back">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/brand/app-screen-campaigns.webp"
+                    alt=""
+                    width={600}
+                    height={1300}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <div className="app-phone app-phone--front">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/brand/app-screen-home.webp"
+                    alt=""
+                    width={600}
+                    height={1300}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
