@@ -230,7 +230,7 @@ export default async function HesapPage() {
           screen makes this its own block, and it is the only place the site
           tells a member the app exists. */}
       <div className="account-app-block" data-ground="dark">
-        <div>
+        <div className="account-app-copy">
           <div className="account-app-kicker">Tek üyelik</div>
           <div className="account-app-title">
             Aynı hesapla uygulamada devam et
@@ -239,8 +239,23 @@ export default async function HesapPage() {
             Damgan, kuponların ve adreslerin uygulamada birebir aynı. Uygulama
             üzerinden verdiğin kafe siparişleri de bu karta işler.
           </p>
+          <AppStoreLinks tone="dark" className="account-app-links" />
         </div>
-        <AppStoreLinks tone="dark" className="account-app-links" />
+        {/* The app's home screen as a whole small device, on an uplift
+            disc - the home page's stage in miniature. */}
+        <div className="account-app-stage" aria-hidden="true">
+          <div className="app-phone">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/app-screen-home.webp"
+              alt=""
+              width={600}
+              height={1300}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        </div>
       </div>
 
       <AccountCard

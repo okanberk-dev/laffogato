@@ -672,8 +672,12 @@ export function PageHome({
             </div>
             {/* Two real screens, held up on a house-green block: the home
                 screen in front, Kampanyalar behind it at an angle - whole
-                devices, never cropped. */}
+                devices, never cropped. Around them, two things the app
+                really does, drawn as white cards: the pickup push (its
+                exact words, src/lib/mobile/order-stage-text.ts) and the
+                stamp card at the panel's own target. */}
             <div className="app-stage" aria-hidden="true">
+              <span className="app-stage-ring" />
               <div className="app-phones">
                 <div className="app-phone app-phone--back">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -697,6 +701,48 @@ export function PageHome({
                     decoding="async"
                   />
                 </div>
+                <span className="app-floor" />
+              </div>
+
+              <div className="app-float app-float--push">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/app-icon-192.png"
+                  alt=""
+                  width={36}
+                  height={36}
+                  loading="lazy"
+                  decoding="async"
+                  className="app-float-icon"
+                />
+                <span className="app-float-text">
+                  <span className="app-float-meta">
+                    <span>L&apos;Affogato</span>
+                    <span>şimdi</span>
+                  </span>
+                  <span className="app-float-title">Siparişin hazır</span>
+                  <span className="app-float-body">
+                    #10248 numaralı siparişin hazır, tezgâhta seni bekliyor.
+                  </span>
+                </span>
+              </div>
+
+              <div className="app-float app-float--stamps">
+                <span className="app-float-kicker">Damga kartın</span>
+                <span className="app-float-stamps">
+                  {Array.from({ length: stampTarget }, (_, i) => (
+                    <i
+                      key={i}
+                      className={
+                        i < Math.min(4, stampTarget - 1) ? "on" : undefined
+                      }
+                    />
+                  ))}
+                </span>
+                <span className="app-float-note">
+                  {Math.max(stampTarget - Math.min(4, stampTarget - 1), 1)}{" "}
+                  damga sonra içecek bizden
+                </span>
               </div>
             </div>
           </div>

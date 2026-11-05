@@ -4047,12 +4047,26 @@ summary:focus-visible,
   position: relative;
   display: grid;
   place-items: center;
-  min-height: clamp(460px, 44vw, 620px);
-  padding: clamp(32px, 4vw, 56px) 24px;
+  min-height: clamp(500px, 46vw, 660px);
+  padding: clamp(40px, 5vw, 72px) 24px;
   background: var(--green-house);
   overflow: hidden;
+  isolation: isolate;
+}
+/* A thin ring outside the disc: depth by line, not by glow. */
+.app-stage-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--phone-w) * 3);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: -1;
 }
 .app-stage::before {
+  z-index: -1;
   content: "";
   position: absolute;
   left: 50%;
@@ -4110,8 +4124,153 @@ summary:focus-visible,
   height: 100%;
   object-fit: cover;
   border-radius: calc(var(--phone-w) * 0.13);
+  /* The glass meets the bezel with a hairline, as a real screen does. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
   opacity: 1;
   transition: opacity 0.3s ease-in;
+}
+/* The shadow the pair casts on the stage. */
+.app-floor {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--phone-w) * -0.12);
+  width: calc(var(--phone-w) * 1.9);
+  height: calc(var(--phone-w) * 0.16);
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(0, 0, 0, 0.32) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  z-index: 0;
+}
+
+/* Two white cards floating over the stage: the pickup push and the stamp
+   card. White on the house green, the card radius, the layered lift of
+   the floating order button. */
+.app-float {
+  position: absolute;
+  z-index: 3;
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-frap);
+}
+.app-float--push {
+  top: clamp(20px, 7%, 48px);
+  left: clamp(12px, 5%, 40px);
+  width: min(300px, 64%);
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+}
+.app-float-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+.app-float-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.app-float-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+.app-float-meta span:last-child {
+  font-weight: 500;
+}
+.app-float-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.app-float-body {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.app-float--stamps {
+  right: clamp(12px, 5%, 40px);
+  bottom: clamp(20px, 8%, 52px);
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.app-float-kicker {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.app-float-stamps {
+  display: flex;
+  gap: 6px;
+}
+.app-float-stamps i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--ink-quiet);
+}
+/* A filled stamp: brass with a check - the reward voice, the one place on
+   this block gold appears. */
+.app-float-stamps i.on {
+  border: 0;
+  background: var(--gold-soft)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e2113' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12.5 4 4 8-9'/%3E%3C/svg%3E")
+    center / 13px no-repeat;
+}
+.app-float-note {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* Arrival, once, when the block scrolls in (.reveal): the phones rise, the
+   cards follow. Under reduced motion everything simply sits there. */
+.app-block.will-reveal.is-in .app-phone--front {
+  animation: app-phone-front-in 0.8s var(--ease-spring) 0.1s both;
+}
+.app-block.will-reveal.is-in .app-phone--back {
+  animation: app-phone-back-in 0.9s var(--ease-spring) 0.2s both;
+}
+.app-block.will-reveal.is-in .app-float--push {
+  animation: app-float-in 0.6s var(--ease-spring) 0.55s both;
+}
+.app-block.will-reveal.is-in .app-float--stamps {
+  animation: app-float-in 0.6s var(--ease-spring) 0.75s both;
+}
+@keyframes app-phone-front-in {
+  from {
+    opacity: 0;
+    transform: translate(22%, 8%);
+  }
+}
+@keyframes app-phone-back-in {
+  from {
+    opacity: 0;
+    transform: translate(-22%, 10%) rotate(-3deg) scale(0.9);
+  }
+}
+@keyframes app-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-block .app-phone,
+  .app-block .app-float {
+    animation: none !important;
+  }
 }
 .app-phone--front {
   z-index: 2;
@@ -4131,6 +4290,16 @@ summary:focus-visible,
   .app-stage {
     --phone-w: clamp(150px, 40vw, 210px);
     min-height: 0;
+    padding: 96px 16px 104px;
+  }
+  .app-float--push {
+    top: 16px;
+    left: 16px;
+    width: min(290px, calc(100% - 32px));
+  }
+  .app-float--stamps {
+    right: 16px;
+    bottom: 16px;
   }
 }
 
@@ -12078,9 +12247,47 @@ button.kw-progress-cell:hover .kw-progress-label {
   box-shadow: none;
   color: #fff;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 22px;
   align-items: center;
+  overflow: hidden;
+}
+.account-app-copy {
+  display: grid;
+  justify-items: start;
+}
+/* The small device on an uplift disc (the home page's .app-stage in
+   miniature): the whole phone, never cropped. */
+.account-app-stage {
+  --phone-w: 128px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 6px 28px;
+  isolation: isolate;
+}
+.account-app-stage::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--phone-w) * 1.75);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--green-uplift);
+  z-index: -1;
+}
+.account-app-stage .app-phone {
+  transform: rotate(4deg);
+}
+@media (max-width: 640px) {
+  .account-app-block {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .account-app-stage {
+    justify-self: center;
+  }
 }
 .account-app-kicker {
   font-size: 13.5px;
@@ -12102,16 +12309,9 @@ button.kw-progress-cell:hover .kw-progress-label {
   color: rgba(255, 255, 255, 0.92);
   max-width: 46ch;
 }
-/* The store pair is <AppStoreLinks tone="dark">: real links once
-   NEXT_PUBLIC_APP_STORE_URL / _PLAY_STORE_URL are set, an honest "yakında"
-   line until then - never two labels that look like buttons. */
+/* The store button is <AppStoreLinks tone="dark">, under the copy. */
 .account-app-links {
-  justify-self: end;
-}
-@media (max-width: 640px) {
-  .account-app-links {
-    justify-self: start;
-  }
+  margin-top: 16px;
 }
 
 /* ─────────────────────────────────────────────────────────────
