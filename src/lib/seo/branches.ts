@@ -37,8 +37,9 @@ export interface SiteBranch {
 
 /**
  * Operator, 5 Kas 2026: "Marina tuzla marinada". The place is Tuzla Marina
- * (also listed as Viaport Marina Tuzla); the unit inside it, the postal
- * code, the phone and the hours are still unknown and stay empty.
+ * (also listed as Viaport Marina Tuzla). Hours the same day: "açılış 10
+ * kapanış 2300" (no days named, so none are printed). The unit inside the
+ * marina, the postal code and the phone are still unknown and stay empty.
  */
 export const MARINA_BRANCH: SiteBranch = {
   id: "marina",
@@ -47,7 +48,7 @@ export const MARINA_BRANCH: SiteBranch = {
   streetAddress: "Tuzla Marina",
   localityLine: "Tuzla / İstanbul",
   phone: "",
-  hoursLabel: "",
+  hoursLabel: "10:00 - 23:00",
   mapsQuery: "Tuzla Marina, Tuzla, İstanbul",
 };
 

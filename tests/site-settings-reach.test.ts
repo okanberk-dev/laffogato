@@ -29,7 +29,11 @@ vi.mock("next/navigation", () => ({
 import type { WeeklyHours } from "@/lib/admin/days";
 import { Footer } from "@/components/laffogato/chrome";
 import { SeoContent } from "@/components/laffogato/seo-content";
-import { PageVisit, untilTime } from "@/components/laffogato/visit-page";
+import {
+  PageVisit,
+  branchPending,
+  untilTime,
+} from "@/components/laffogato/visit-page";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import {
   footerSettings,
@@ -215,16 +219,29 @@ describe("the visit page", () => {
     expect(html).toContain("Tuzla içi kurye");
   });
 
-  it("draws Marina's card at Tuzla Marina with a map and no phone yet", () => {
+  it("draws Marina's card at Tuzla Marina with its hours, a map and no phone yet", () => {
     const card = html.slice(html.indexOf('id="marina"'));
-    expect(card).toContain("Tuzla Marina");
-    expect(card).toContain("Tuzla / İstanbul");
-    expect(card).toContain("Haritada gör");
-    expect(card).toContain(
+    const section = card.slice(0, card.indexOf("</section>"));
+    expect(section).toContain("Tuzla Marina");
+    expect(section).toContain("Tuzla / İstanbul");
+    expect(section).toContain("10:00 - 23:00");
+    expect(section).toContain("Haritada gör");
+    expect(section).toContain("Telefonu çok yakında bu sayfada.");
+    expect(section).not.toContain("Çalışma saatleri ve telefonu");
+    expect(section).not.toContain("Adresi, çalışma saatleri");
+    expect(section).not.toContain("tel:");
+  });
+
+  it("a branch card names only what still follows", () => {
+    expect(branchPending("", null)).toBe(
       "Çalışma saatleri ve telefonu çok yakında bu sayfada.",
     );
-    expect(card).not.toContain("Adresi, çalışma saatleri");
-    expect(card.slice(0, card.indexOf("</section>"))).not.toContain("tel:");
+    expect(branchPending("10:00 - 23:00", null)).toBe(
+      "Telefonu çok yakında bu sayfada.",
+    );
+    expect(branchPending("", "+902160000000")).toBe(
+      "Çalışma saatleri çok yakında bu sayfada.",
+    );
   });
 });
 

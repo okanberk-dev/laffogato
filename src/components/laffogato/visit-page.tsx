@@ -699,6 +699,14 @@ function MapSketch() {
   );
 }
 
+/** What a branch card with a known address still promises to add. */
+export function branchPending(hoursLabel: string, tel: string | null): string {
+  if (!hoursLabel && !tel)
+    return "Çalışma saatleri ve telefonu çok yakında bu sayfada.";
+  if (!tel) return "Telefonu çok yakında bu sayfada.";
+  return "Çalışma saatleri çok yakında bu sayfada.";
+}
+
 /**
  * Another branch of the house (src/lib/seo/branches.ts): its name, that it
  * opened, and only the facts that are known. Until the address is entered the
@@ -744,10 +752,11 @@ function BranchSection({ branch }: { branch: SiteBranch }) {
                 </a>
               ) : null}
             </p>
-          ) : lines.length > 0 ? (
-            // The address is known, the hours and the phone are not yet.
+          ) : null}
+          {lines.length > 0 && !(branch.hoursLabel && tel) ? (
+            // The address is known; say which of the other two still follows.
             <p className="branch-text">
-              Çalışma saatleri ve telefonu çok yakında bu sayfada.
+              {branchPending(branch.hoursLabel, tel)}
             </p>
           ) : null}
           {mapUrl ? (
