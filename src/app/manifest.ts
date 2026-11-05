@@ -13,13 +13,11 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    // The installed app's splash and status bar: the app's own porcelain
-    // (lafmobil app.json backgroundColor #F7F3ED = globals.css --bg) and the
-    // glass header's ground (layout.tsx themeColor #fbf8f4). The site took
-    // the app's palette on 25 Eyl 2026, so the installed web app opens on the
-    // same ground the phone app does.
-    background_color: "#f7f3ed",
-    theme_color: "#fbf8f4",
+    // The installed app's splash and status bar: the site's warm canvas
+    // (globals.css --bg) and the white top bar (layout.tsx themeColor), since
+    // the café-retail restyle of 5 Kas 2026.
+    background_color: "#f2f0eb",
+    theme_color: "#ffffff",
     lang: SITE.language,
     dir: "ltr",
     categories: ["food", "lifestyle", "shopping"],

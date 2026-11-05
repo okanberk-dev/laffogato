@@ -102,12 +102,10 @@ function isActivePath(pathname: string | null, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** A category's swatch: the app's scene light for that family, as an orb. */
+/** A category's swatch: the scene colour for that family, a flat disc. */
 function swatchStyle(hue: DropdownEntry["hue"]): React.CSSProperties {
   const s = SCENES[sceneForHue(hue === "dark" ? "espresso" : hue)];
-  return {
-    background: `radial-gradient(circle at 34% 30%, #fff 0%, ${s.mid} 34%, ${s.core} 100%)`,
-  };
+  return { background: s.mid };
 }
 
 interface NavProps {
@@ -590,6 +588,26 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           <span>Hesabım</span>
         </a>
       </nav>
+
+      {/* The floating order button: a green circle bottom-right that rides
+          over every scrolled surface and opens the cart. Phones already
+          carry the cart in the tab bar, and the checkout is the cart, so it
+          stays off both (globals.css .frap). */}
+      {!pathname?.startsWith("/odeme") && (
+        <button
+          type="button"
+          className="frap"
+          aria-label={`Sepetim - ${cartCount} ürün`}
+          onClick={openCart}
+        >
+          <BagGlyph />
+          {cartCount > 0 && (
+            <span className="frap-badge" aria-hidden="true">
+              {cartCount}
+            </span>
+          )}
+        </button>
+      )}
     </>
   );
 }

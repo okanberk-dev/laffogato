@@ -99,7 +99,7 @@ describe("home hero", () => {
     expect(HOME).toContain('content?.["home.hero.lede"]');
     expect(HOME).toContain('className="home-intro-lead"');
     expect(rule(".home-intro-text")).toMatch(/font-weight: 300;/);
-    expect(rule(".home-intro-lead")).toMatch(/font-weight: 800;/);
+    expect(rule(".home-intro-lead")).toMatch(/font-weight: 600;/);
   });
 
   it("advances on the progress line's end, so a pause cannot drift", () => {
@@ -146,10 +146,12 @@ describe("the rest of the landing page", () => {
     expect(arrow).not.toMatch(/font-family/);
   });
 
-  it("sets the hero titles and the figures in ExtraBold", () => {
-    expect(rule(".hero-x-title")).toMatch(/font-weight: 800;/);
-    expect(rule(".h-display")).toMatch(/font-weight: 800;/);
-    expect(rule(".stat-n")).toMatch(/font-weight: 800;/);
+  it("sets the hero titles and the figures in SemiBold - weight, not size, carries the hierarchy", () => {
+    // Café-retail restyle, 5 Kas 2026: display moments are 600 in one face;
+    // an ExtraBold squeeze is the look this replaced.
+    expect(rule(".hero-x-title")).toMatch(/font-weight: 600;/);
+    expect(rule(".h-display")).toMatch(/font-weight: 600;/);
+    expect(rule(".stat-n")).toMatch(/font-weight: 600;/);
   });
 });
 

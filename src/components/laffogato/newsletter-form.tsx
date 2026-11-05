@@ -30,7 +30,7 @@ export function NewsletterForm() {
         />
         <button
           type="submit"
-          className="btn btn-gold btn-sm"
+          className="btn btn-light btn-sm"
           /* No radius override: `.btn` resolves --r-btn, and this inline 999
              was the last capsule-shaped real button on the site - in the
              footer of every route. The field around it moved to the same

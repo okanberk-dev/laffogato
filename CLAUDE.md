@@ -113,7 +113,20 @@ aynı fonksiyonu çağırsın. Örnekler: `src/lib/mobile/karaoke-core.ts` ↔
 `karaoke.ts` (web `/karaoke` sayfası ile mobil uç aynı `createReservation`'a
 iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 
-**Tasarım paritesi VAR (25 Eyl 2026'dan beri) - kaynak uygulamadır.**
+**Site görünümü 5 Kas 2026'dan beri kafe-perakende düzeninde (operatör:
+_"starbucks tarzı istiyorum ... ama panel değil"_).** Krem zemin `#f2f0eb`,
+logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56` başlık/metin, cta
+`#1f7a5c` dolu düğme, house `#173f35` bant ve footer, uplift `#2a5a4d`),
+pirinç `#cba258` yalnız ödül anında, tek ses Poppins (Gabarito emekli;
+ödül başlığında sistem serifi), 12px kart, katmanlı siyah-alfa gölge, cam /
+bulanıklık / degrade dolgu yok, düğme 50px hap ve basınca 0.95, sağ altta
+yüzen sipariş düğmesi (`.frap`). Başka markanın yeşili kullanılmaz
+(`tests/brand-theme.test.ts`). Bu, aşağıdaki uygulama paritesinden
+**bilinçli ayrışmadır**; değerler `docs/BRAND.md` §0. Panel (`/admin`)
+değişmedi. E-posta, bağlantı önizlemesi ve ikonlar eski (porselen) palette.
+Aşağıdaki paragraf tarihçedir:
+
+**Tasarım paritesi (25 Eyl - 5 Kas 2026) - kaynak uygulamaydı.**
 Operatör talimatı (25 Eyl 2026): _"lafmobil ... tasarımı apple'a uygun, sen de
 site tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
 seçeneğiyle kapattı: site uygulamanın bütün paletini (`lafmobil/src/theme/tokens.ts`,

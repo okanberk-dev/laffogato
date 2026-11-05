@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Gabarito, Poppins } from "next/font/google";
+import { Poppins } from "next/font/google";
 
 import { MetaPixel } from "@/components/laffogato/meta-pixel";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
@@ -29,15 +29,15 @@ const GTM_ID = siteTagManagerId(process.env.NEXT_PUBLIC_GTM_ID);
 // marketing switch and no tracker.
 const META_PIXEL_ID = metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID);
 
-// Two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi duruyor, yazı
-// tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
+// One voice (5 Kas 2026, the café-retail restyle; docs/BRAND.md §2).
 //
-// Poppins reads and works the controls: sentences, captions, help, legal
-// and field text, buttons, chips, labels, product names and list prices
-// (operator, 11 Eki 2026: "sitede poppins fontu olsun"). Six static cuts:
-// 300 for the large statement copy, 400 to read, 500 and 600 for labels and
-// controls, 700 and 800 where a figure or a label must stand out. Turkish
-// via latin-ext.
+// Poppins sets everything - headlines, sentences, captions, controls,
+// product names and prices (operator, 11 Eki 2026: "sitede poppins fontu
+// olsun"). Hierarchy comes from weight and colour, not from a second face,
+// so the Gabarito headline voice (14 Eki 2026) is retired. Six static cuts:
+// 300 for the large statement copy, 400 to read, 500 and 600 for labels,
+// controls and headlines, 700 and 800 where a figure must stand out.
+// Turkish via latin-ext.
 const brandFont = Poppins({
   subsets: ["latin", "latin-ext"],
   weight: ["300", "400", "500", "600", "700", "800"],
@@ -45,27 +45,12 @@ const brandFont = Poppins({
   display: "swap",
 });
 
-// Gabarito sets the headlines - page, section and card titles and the
-// display figures (`--headline` in globals.css). It stands in for Biennale
-// (Latinotype), the face the operator named: Biennale is sold per licence
-// and none is held, and Gabarito (SIL OFL, on Google Fonts) is its nearest
-// free kin - geometric, a large x-height, built for headlines and brands,
-// with clean Turkish marks. A licensed Biennale replaces it here and in the
-// `--headline` stack and nowhere else. Three cuts: 600 for card titles, 700
-// for headings, 800 for the display moments.
-const headlineFont = Gabarito({
-  subsets: ["latin", "latin-ext"],
-  weight: ["600", "700", "800"],
-  variable: "--font-headline",
-  display: "swap",
-});
-
 export const viewport: Viewport = {
-  // The porcelain the glass header sits on. The site, like the app
+  // The white top bar. The site, like the app
   // (userInterfaceStyle "light"), has one appearance: declaring "light dark"
   // let a dark-mode browser paint its own dark form controls and scrollbars
   // onto a page that has no dark styles.
-  themeColor: "#fbf8f4",
+  themeColor: "#ffffff",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -178,7 +163,7 @@ export const metadata: Metadata = {
   },
 };
 
-const fontVariables = `${brandFont.variable} ${headlineFont.variable}`;
+const fontVariables = brandFont.variable;
 
 export default function RootLayout({
   children,

@@ -1,213 +1,244 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   L'Affogato - design system v2 (Apple-clean premium)
+   L'Affogato - design system v3 (café retail: cream, green, pill)
    ───────────────────────────────────────────────────────────── */
 
 :root {
   /* ─────────────────────────────────────────────────────────────
-     Palette: the app's porcelain, 25 Eyl 2026.
+     Palette: café retail, 5 Kas 2026.
 
-     Operator, 25 Eyl 2026: "lafmobil ... tasarımı apple'a uygun, sen de site
-     tasarımını buna uygun olarak güncelle". That closes lafmobil's karar 31
-     with option (c), the whole palette: every value below is read from
-     lafmobil src/theme/tokens.ts (`porcelain`, DESIGN-GLASS §13) on that day,
-     as docs/SITE-PALETTE-SYNC.md asked a re-sync to be done. The Köşk palette
-     (#143d2b green, #84233c bordo, white ground) is history; its values are
-     in git and in docs/BRAND.md's changelog.
+     Operator, 5 Kas 2026: "sitenin görselini ... starbucks tarzı istiyorum
+     ... ama panel değil". The site takes the structure of a coffee-retail
+     flagship: a warm cream canvas instead of white, white cards with a
+     whisper of shadow, a FOUR-tier green system where each green has one
+     job, a deep house-green band and footer bookending the bright body,
+     brass kept for the reward moments only, full-pill buttons that press to
+     0.95, one sans voice with tight tracking. The greens are derived from
+     L'Affogato's own logo green (#1D6D56), not copied from anyone's
+     storefront (tests/brand-theme.test.ts keeps that line). The bordo stays:
+     it is the logo's, one signature surface per screen.
 
-     The variable NAMES did not move - ~800 call sites here and in the panel
-     read them - only what they resolve to. Where an old name no longer says
-     what it holds (--bg-espresso is the house GREEN, and has been since 2
-     Eyl), the comment says it.
+     This is a deliberate divergence from lafmobil's porcelain palette
+     (karar 31 (c), 25 Eyl 2026): the operator's call, recorded in
+     docs/BRAND.md. The variable NAMES did not move - ~800 call sites read
+     them - only what they resolve to. Where an old name no longer says what
+     it holds (--bg-espresso is the HOUSE green band), the comment says it.
 
      Contrast is held by tests/contrast.test.ts; the palette itself by
-     tests/brand-theme.test.ts. The app's measured pairs are quoted next to
-     each value (lafmobil DESIGN-GLASS §13.6). */
+     tests/brand-theme.test.ts. */
 
-  /* Grounds. Porcelain, not white, exactly as the app: warm, very light, so
-     a white card lifts off it (DESIGN-GLASS §13.3). --bg is the page;
-     --bg-warm is the lighter band (the app's ground.top); --bg-stone the
-     deeper one (ground.deep); --bg-cream the brass wash (bg.accentSubtle). */
-  --bg: #f7f3ed;
-  --bg-warm: #fbf8f4;
-  --bg-stone: #f2ece4;
-  --bg-cream: #f3eee0;
-  /* The white card and the opaque sheet (glass.selected / glass.sheet). */
+  /* Grounds. --bg is the warm-neutral canvas (the café's napkin and wall);
+     --bg-warm the near-white content band; --bg-stone the ceramic step for
+     zone separators; --bg-cream the brass-cream wash under reward blocks. */
+  --bg: #f2f0eb;
+  --bg-warm: #f9f8f6;
+  --bg-stone: #edebe9;
+  --bg-cream: #faf6ee;
+  /* The white card and the opaque sheet. */
   --surface: #ffffff;
-  --surface-sheet: #fffdfa;
+  --surface-sheet: #ffffff;
+  /* The cool utility surface: dropdowns, account menu, quiet wraps. */
+  --surface-cool: #f9f9f9;
 
-  /* The home hero's own five. Kept as tokens because the hero is the one band
-     that draws a product stage; they now resolve onto the porcelain palette. */
-  --hero-cream: #fbf8f4;
-  --hero-green: #1d6d56;
-  --hero-cocoa: #564d46;
-  --hero-tile: #f2ece4;
-  --hero-tile-deep: #ece6de;
+  /* The home hero's own five, on the café palette. */
+  --hero-cream: #f9f8f6;
+  --hero-green: #173f35;
+  --hero-cocoa: #5c5955;
+  --hero-tile: #edebe9;
+  --hero-tile-deep: #e4e1dc;
+
+  /* The four greens, each with one role (never "one brand green"):
+     - brand  #1D6D56  the logo green: headings, green text, links, kickers
+                       (5.46:1 on the canvas);
+     - cta    #1F7A5C  a step brighter: every filled call to action and the
+                       floating order button (white on it 5.25:1);
+     - house  #173F35  the deep band: feature bands, footer, reward panels
+                       (white on it 11.67:1);
+     - uplift #2A5A4D  decorative accents inside the house band.
+     --green-light is the pale mint wash (valid-field tint, light utility). */
+  --green-brand: #1d6d56;
+  --green-cta: #1f7a5c;
+  --green-cta-pressed: #17624a;
+  --green-house: #173f35;
+  --green-uplift: #2a5a4d;
+  --green-light: #d5e8df;
 
   /* The dark ground. Named "espresso" from the heritage palette; it is the
-     house green, the app's bg.inverse #1D6D56 (cream on it 5.88:1). The deep
-     step is the app's gradient end (gradient.brand #0C3B2D). */
-  --bg-espresso: #1d6d56;
-  --bg-espresso-deep: #0c3b2d;
+     house green band. The deep step sits under it in the footer. */
+  --bg-espresso: #173f35;
+  --bg-espresso-deep: #0f2b24;
 
-  /* Ink - the app's warm espresso ramp (text.primary / secondary / tertiary),
-     15.27 / 7.46 / 5.74 on --bg. --ink-quiet is glyph-only (3.64): chevrons,
-     dividers, a disabled tile - never text. Lines are ink at 8 % and 14 %,
-     which is how the app draws every hairline (glass.hairline, border.field). */
-  --ink: #211c18;
-  --ink-soft: #564d46;
-  --ink-mute: #675e56;
-  --ink-quiet: #877d74;
-  --ink-line: rgba(33, 28, 24, 0.08);
-  --ink-line-strong: rgba(33, 28, 24, 0.14);
+  /* Ink - never pure black: 87 % black read on the warm canvas, then the
+     58 % secondary. --ink-quiet is glyph-only (3.06:1): chevrons, dividers,
+     a disabled tile - never text. Lines are black at 8 % and 14 %. */
+  --ink: #211f1d;
+  --ink-soft: #5c5955;
+  --ink-mute: #64615c;
+  --ink-quiet: #8c8984;
+  --ink-line: rgba(0, 0, 0, 0.08);
+  --ink-line-strong: rgba(0, 0, 0, 0.14);
+  /* On the house band: white and white at 70 %. */
+  --ink-on-dark: #ffffff;
+  --ink-on-dark-soft: rgba(255, 255, 255, 0.7);
 
-  /* Green - one value, fill and text alike: #1D6D56 is 5.63:1 on porcelain
-     and 6.22:1 on white (brand.fg). --green-mint / --green-mist are the
-     secondary and body inks INSIDE a green block (text.onInverseSecondary
-     4.64:1, and a lighter mist at 5.3:1). */
+  /* Green as text and as the plain fill most rules already reach for: the
+     brand green. --green-mint / --green-mist are the secondary and body inks
+     INSIDE a green block. */
   --green: #1d6d56;
   --green-pressed: #165543;
-  --green-mint: #d3e2d9;
+  --green-mint: #d5e8df;
   --green-mist: #e6efe9;
-  --green-wash: #daece2;
+  --green-wash: #d5e8df;
 
-  /* Brass - the reward voice. --gold is brass as TEXT (accent.goldFg, 5.89:1
-     on porcelain); --gold-soft the brass FILL (accent.gold) that only ever
-     carries ink (--gold-ink, text.onBrass, 9.65:1). */
+  /* Brass - the REWARD voice and nothing else (stamps, tiers, coupons).
+     --gold is brass as text (5.72:1 on the canvas); --gold-soft the brass
+     fill that only ever carries ink (--gold-ink, 6.59:1); --gold-light the
+     softer wash on reward sections. */
   --gold: #765923;
   --gold-deep: #5c4325;
-  --gold-soft: #e8c877;
+  --gold-soft: #cba258;
+  --gold-light: #dfc49d;
   --gold-ink: #2e2113;
 
-  /* Bordo - the signature surface, one per screen (the app's K23): velvet
-     #9D2543 with its deep and its wash. It is also text on porcelain (6.84:1).
+  /* Bordo - the logo's, one signature surface per screen. It is also text on
+     the canvas (6.63:1).
 
-     DANGER: bordo and the house green are near-equal in luminance (1.21:1).
-     They are never each other's foreground and background - on green, the
-     accent ink is --accent-on-dark (the app's text.onVelvet, 5.27:1 on
-     #1D6D56). Guarded in tests/contrast.test.ts. */
+     DANGER: bordo and the greens are near-equal in luminance (1.55:1 on the
+     house green). They are never each other's foreground and background -
+     on green, the accent ink is --accent-on-dark (9.89:1 on the house band).
+     Guarded in tests/contrast.test.ts. */
   --accent: #9d2543;
   --accent-deep: #520f1f;
   --accent-soft: #f9e6ea;
   --accent-on-dark: #f6e9ec;
 
-  /* Brand - the logo's tint on a light ground (logo.tintOnNeutral). */
+  /* Brand - the logo's tint on a light ground. */
   --brand: #1d6d56;
 
-  /* State, not brand. Success is the house green. --rose is the low-stock
-     alarm on small text; it stays a brighter red than the bordo so "almost
-     gone" never reads as a brand accent. #c5435a measured 4.39:1 on the
-     porcelain (it was drawn for white), so it went one step darker: 4.92:1
-     here, 4.64:1 on --bg-stone. --info is the app's cobalt ice (tone.ice,
-     7.26:1), for notes and "new" badges only. */
-  --rose: #bb3b52;
+  /* State, not brand. Success is the brand green. --rose is the error and
+     low-stock red (5.02:1 on the canvas, 4.81:1 on --bg-stone): brighter
+     than the bordo so "almost gone" never reads as a brand accent. --info is
+     the cobalt for notes and "new" badges only. */
+  --rose: #c82014;
   --matcha: #1d6d56;
   --info: #3442b8;
   --info-fill: #4858d2;
 
-  /* Type - two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi
-     duruyor, yazı tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
+  /* Type - one voice (5 Kas 2026). Poppins (operator, 11 Eki 2026: "sitede
+     poppins fontu olsun") sets everything: headlines, sentences, controls,
+     prices. Hierarchy comes from WEIGHT and COLOUR, not from a second face:
+     a 600 green headline over a 400 ink one. Tracking is tight across the
+     board (--tracking, -0.01em). Six cuts load through next/font in
+     layout.tsx (300 · 400 · 500 · 600 · 700 · 800).
 
-     --display is Poppins and does the work: sentences, captions, help,
-     legal and field text, buttons, chips, labels, product names and list
-     prices. Six cuts load through next/font in layout.tsx (300 · 400 · 500
-     · 600 · 700 · 800); 400 reads, 500-600 labels. The historical names
-     (--sans, --serif, --script, --mono, …) all resolve to it so every call
-     site keeps working. Poppins has no arrow or symbol glyphs; those fall
-     through to the system font, and the arrow after a label is drawn
-     instead (.arrow).
+     --headline is kept as a name (the title rules read it) and resolves to
+     the same face. The historical names (--sans, --serif, --script, --mono,
+     …) all resolve to it so every call site keeps working. Poppins has no
+     arrow glyphs; the arrow after a label is drawn (.arrow).
 
-     --headline is Gabarito and sets the headlines: page, section and card
-     titles (.h-display, .h1-.h3, *-title) and the display figures (.stat-n,
-     the product page's price, the amount to pay). It stands in for
-     Biennale, which needs a licence (layout.tsx); 600 for card titles, 700
-     for headings, 800 for the display moments. Its fallback is Poppins, so
-     a missing cut degrades to the reading voice, never to the system font. */
+     --reward-serif is the one context switch: the editorial serif on the
+     reward (stamp card, loyalty) headline - system serifs only, nothing is
+     downloaded for it. It never appears in the shopping flow. */
   --display:
     var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "Helvetica Neue", sans-serif;
-  --headline: var(--font-headline), "Gabarito", var(--display);
+    "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --headline: var(--display);
+  --reward-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --sans: var(--display);
   --serif: var(--display);
   --serif-modern: var(--display);
   --serif-display: var(--display);
   --script: var(--display);
   --mono: var(--sans);
+  --tracking: -0.01em;
+
+  /* Spacing - a semantic 4/8 scale anchored at 16px (--space-3), the
+     system's most frequent unit: outer gutter, card padding, body size. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+  --space-7: 48px;
+  --space-8: 56px;
+  --space-9: 64px;
 
   /* Layout */
   --content: 1280px;
-  --content-wide: 1480px;
+  --content-wide: 1440px;
   --content-narrow: 880px;
-  --gutter: clamp(16px, 4vw, 44px);
+  --gutter: clamp(16px, 3vw, 40px);
 
-  /* Radii - the app's (DESIGN-GLASS §2.7): product card 28, wide card 24,
-     shelf/offer 22, list panel 20, option tile 18; chips, badges, pills and
-     BUTTONS are full capsules. */
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 22px;
-  --r-xl: 28px;
-  --r-panel: 20px;
-  --r-card: 28px;
+  /* Radii - cards, modals and tiles 12px; fields 4px; every button and chip
+     a full pill; avatars and the floating button a circle. The old names
+     resolve onto that short scale. */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 12px;
+  --r-panel: 12px;
+  --r-card: 12px;
   --r-pill: 999px;
-  --r-btn: 999px;
+  --r-btn: 50px;
 
-  /* Glass - the content layer is frosted white over porcelain, never blurred
-     per card (HIG: Liquid Glass belongs to navigation, not content). Only the
-     floating chrome (header, tab bar, sheets) is real glass with a backdrop
-     blur. Values: glass.fill / raised / control / chrome (DESIGN-GLASS §13.5). */
-  --glass: rgba(255, 255, 255, 0.72);
-  --glass-raised: rgba(255, 255, 255, 0.85);
-  --glass-control: rgba(255, 255, 255, 0.45);
-  --glass-chrome: rgba(251, 248, 244, 0.78);
-  --glass-disc: rgba(33, 28, 24, 0.06);
-  --glass-dim: rgba(33, 28, 24, 0.28);
-  --glass-blur: saturate(180%) blur(22px);
-  /* The two-tone rim of a control: white lip at the top, ink shade below. */
-  --rim:
-    inset 0 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -1px 0 rgba(33, 28, 24, 0.06);
+  /* Surfaces are solid colour blocks: no frosted glass, no blur. The glass
+     names stay (many rules read them) and resolve to opaque white. */
+  --glass: #ffffff;
+  --glass-raised: #ffffff;
+  --glass-control: #ffffff;
+  --glass-chrome: #ffffff;
+  --glass-disc: rgba(0, 0, 0, 0.06);
+  --glass-dim: rgba(0, 0, 0, 0.4);
+  --glass-blur: none;
+  /* The two-tone rim of the glass era, retired: a transparent no-op so the
+     `box-shadow: var(--rim), …` lists keep parsing. */
+  --rim: 0 0 0 0 transparent;
 
-  /* Shadows - warm earth #3B2A1E (the app's `shadow`), never black and never
-     above 12 % on glass: glass 6 %, lift 10 %, chrome 12 % (§13.5). The
-     sm/md/lg ramp the pages already use sits on the same colour. */
-  --shadow-glass: 0 6px 16px rgba(59, 42, 30, 0.06);
-  --shadow-lift: 0 2px 8px rgba(59, 42, 30, 0.1);
-  --shadow-chrome: 0 8px 24px rgba(59, 42, 30, 0.12);
-  --shadow-sm:
-    0 1px 2px rgba(59, 42, 30, 0.04), 0 4px 12px rgba(59, 42, 30, 0.05);
-  --shadow-md:
-    0 4px 14px rgba(59, 42, 30, 0.06), 0 16px 40px rgba(59, 42, 30, 0.07);
-  --shadow-lg:
-    0 10px 30px rgba(59, 42, 30, 0.08), 0 40px 90px rgba(59, 42, 30, 0.1);
+  /* Shadows - whisper-soft and LAYERED: two or three low-alpha shadows at
+     different offsets (ambient + direct), never one heavy drop.
+     card  - the default content card;
+     nav   - the three-layer lift under the fixed top bar;
+     frap  - the floating order button, the most elevated thing on a page. */
+  --shadow-card: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.24);
+  --shadow-nav:
+    0 1px 3px rgba(0, 0, 0, 0.1), 0 2px 2px rgba(0, 0, 0, 0.06),
+    0 0 2px rgba(0, 0, 0, 0.07);
+  --shadow-frap: 0 0 6px rgba(0, 0, 0, 0.24), 0 8px 12px rgba(0, 0, 0, 0.14);
+  --shadow-glass: var(--shadow-card);
+  --shadow-lift: var(--shadow-card);
+  --shadow-chrome: var(--shadow-nav);
+  --shadow-sm: var(--shadow-card);
+  --shadow-md: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.12);
+  --shadow-lg: var(--shadow-frap);
 
-  /* Focus - the house green ring with a soft halo, legible on porcelain, on
-     white and (with the cream variant) on the green blocks. */
+  /* Focus - the brand green ring with a soft halo, legible on the canvas,
+     on white and (with the white variant) on the house band. */
   --ring: 0 0 0 4px rgba(29, 109, 86, 0.18);
 
-  /* Tricolore - the flag as a 3px rule under a heading, the app's
-     <TricoloreRule>: green, porcelain white, bordo. The on-dark version lifts
-     the green to mint and the bordo to its blush so both thirds show on the
-     green blocks. */
+  /* Tricolore - the flag as a 3px rule under a heading, with hard stops (a
+     rule, not a gradient fill): green, white, bordo. The on-dark version
+     lifts the green to mint and the bordo to its blush. */
   --tricolore: linear-gradient(
     to right,
-    var(--hero-green) 0 33.33%,
-    #fbf8f4 33.33% 66.66%,
+    var(--green-brand) 0 33.33%,
+    #ffffff 33.33% 66.66%,
     var(--accent) 66.66% 100%
   );
   --tricolore-on-dark: linear-gradient(
     to right,
     var(--green-mint) 0 33.33%,
-    #fbf8f4 33.33% 66.66%,
+    #ffffff 33.33% 66.66%,
     var(--accent-on-dark) 66.66% 100%
   );
 
-  /* Motion - Apple's spring-ish curve for anything that moves into place,
-     and the app's press: scale 0.97 in 120 ms (motion.pressScale). */
-  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Motion - every button presses to 0.95 in 0.2 s; accordions open over
+     300 ms on a measured ease-out; images fade in over 0.3 s. */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
-  --press-scale: 0.97;
+  --press-scale: 0.95;
+  --expander-duration: 300ms;
 
   /* Card scheme marks on /odeme (scheme-marks.tsx), drawn locally - the
      checkout loads no image from anywhere else. The schemes' own colours. */
@@ -236,9 +267,10 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
-  /* Poppins is a wide face with a tall x-height: a little more lead than
-     Inter needed keeps a paragraph of it from reading as a block. */
-  line-height: 1.6;
+  /* Body copy: 16px on 1.5, tracked tight (-0.01em) like the rest of the
+     system - confident and friendly, never airy. */
+  line-height: 1.5;
+  letter-spacing: var(--tracking);
   font-feature-settings: "kern";
   /* No tabular-nums here any more: Poppins (Google's cut) has proportional
      figures and no tnum, so the property only ever reached the fallback
@@ -346,7 +378,7 @@ select {
   top: -56px;
   z-index: 100;
   background: var(--ink);
-  color: #fbf8f4;
+  color: #ffffff;
   padding: 10px 18px;
   border-radius: var(--r-pill);
   margin-top: 8px;
@@ -360,18 +392,16 @@ select {
   top: 0;
 }
 
-/* Headlines: Poppins 700, the app's four heading roles (hero · title ·
-   display · heading) scaled up for a browser window; the largest, the
-   display role, in ExtraBold 800. Tracking tightens with size the way
-   Apple's display type does; never below -0.035em, where Poppins' round
-   letters start to touch. `.script` is the accent-coloured word in a
-   headline ("içilir, sonra kupası yenir"). */
+/* Headlines: one face, hierarchy by weight and colour. Display and title
+   sizes are SemiBold 600 on 1.2 with the system's tight tracking - a
+   confident café signboard, not a fashion-magazine cover. `.script` is the
+   accent-coloured word in a headline ("içilir, sonra kupası yenir"). */
 .h-display {
   font-family: var(--headline);
-  font-weight: 800;
-  font-size: clamp(38px, 5.6vw, 76px);
-  line-height: 1.04;
-  letter-spacing: -0.035em;
+  font-weight: 600;
+  font-size: clamp(36px, 5.2vw, 72px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -385,10 +415,10 @@ select {
    The typography classes intentionally use a non-hyphenated form. */
 .h1 {
   font-family: var(--headline);
-  font-weight: 700;
-  font-size: clamp(34px, 4.6vw, 60px);
-  line-height: 1.06;
-  letter-spacing: -0.028em;
+  font-weight: 600;
+  font-size: clamp(32px, 4.2vw, 56px);
+  line-height: 1.15;
+  letter-spacing: -0.018em;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -399,10 +429,10 @@ select {
 
 .h2 {
   font-family: var(--headline);
-  font-weight: 700;
-  font-size: clamp(28px, 3.5vw, 46px);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  font-size: clamp(26px, 3.2vw, 40px);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -414,19 +444,19 @@ select {
 .h3 {
   font-family: var(--headline);
   font-weight: 600;
-  font-size: clamp(19px, 1.9vw, 23px);
-  line-height: 1.25;
-  letter-spacing: -0.015em;
+  font-size: clamp(19px, 1.9vw, 24px);
+  line-height: 1.5;
+  letter-spacing: var(--tracking);
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 
-/* The subhead under a headline - Apple's large, calm second line: Poppins
-   400 at 16.5-19px in the secondary ink. */
+/* The subhead under a headline - the large intro line: Poppins 400 at
+   16.5-19px on 1.75, in the secondary ink. */
 .lede {
   font-size: clamp(16.5px, 1.3vw, 19px);
-  line-height: 1.6;
-  letter-spacing: -0.005em;
+  line-height: 1.75;
+  letter-spacing: var(--tracking);
   color: var(--ink-soft);
   max-width: 56ch;
   margin: 0;
@@ -457,41 +487,37 @@ select {
    clamp(44px, 6vw, 88px) between blocks, where this used to open 160px of
    empty page between one headline and the next. */
 .section {
-  padding: clamp(44px, 6vw, 88px) 0;
+  padding: clamp(40px, 5vw, 64px) 0;
 }
 .section-tight {
-  padding: clamp(32px, 4.5vw, 64px) 0;
+  padding: clamp(32px, 4vw, 48px) 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
    Buttons - capsules, the app's control language
    ───────────────────────────────────────────────────────────── */
 
-/* Every button is a full capsule (DESIGN-GLASS §2.7: "rozet, çip, hap, düğme
-   tam kapsül"), labelled in the display voice (Poppins 600, the app's
-   `bodyStrong`), at least 44px tall (the touch floor). It answers a press by
-   scaling to 0.97, never by fading (karar 137). */
+/* Every button is a full pill (50px radius, no exception), labelled in
+   Poppins 600 at 16px with the tight tracking, a 1px border in its own
+   colour, at least 44px tall (the touch floor). It answers a press by
+   scaling to 0.95 - the signature micro-interaction - never by fading. Flat:
+   no shadow, the colour block is the affordance. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 24px;
+  min-height: 44px;
+  padding: 0 22px;
   border-radius: var(--r-btn);
   font-family: var(--display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1;
+  letter-spacing: var(--tracking);
+  line-height: 1.2;
   border: 1px solid transparent;
   cursor: pointer;
-  transition:
-    transform 0.18s var(--ease-spring),
-    background-color 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: all 0.2s ease;
   white-space: nowrap;
   font-feature-settings: "calt", "kern";
   -webkit-user-select: none;
@@ -605,84 +631,85 @@ select {
   }
 }
 
-/* The decided action: the house green, cream label (5.88:1). Bordo is a
-   signature surface, never the button a page is built around. */
+/* Primary filled - the decided action: the CTA green, white label
+   (5.25:1). Bordo is a signature surface, never the button a page is built
+   around. */
 .btn-primary {
-  background: var(--bg-espresso);
-  color: #fbf8f4;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.18) inset,
-    var(--shadow-lift);
+  background: var(--green-cta);
+  border-color: var(--green-cta);
+  color: #ffffff;
 }
 .btn-primary:hover {
-  background: var(--green-pressed);
+  background: var(--green-cta-pressed);
+  border-color: var(--green-cta-pressed);
 }
 
-/* The ink capsule - the app's cart bar and "auth" button (15.95:1). */
+/* Black filled - the conversion moment ("Üye ol", the cart): pure black,
+   white label. */
 .btn-ink {
-  background: var(--ink);
-  color: #fbf8f4;
-  box-shadow: var(--shadow-lift);
+  background: #000000;
+  border-color: #000000;
+  color: #ffffff;
 }
 .btn-ink:hover {
-  background: #0d0907;
+  background: rgba(0, 0, 0, 0.8);
 }
 
-/* Glass: frosted white with the two-tone rim - the second action beside a
-   green one, and every quiet control. */
+/* Dark outlined - the second action beside a green one, and every quiet
+   control: transparent, an ink border, an ink label. */
 .btn-ghost {
-  background: var(--glass-raised);
+  background: transparent;
   color: var(--ink);
-  border-color: var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border-color: var(--ink);
 }
 .btn-ghost:hover {
-  background: #fff;
+  background: rgba(0, 0, 0, 0.06);
   color: var(--ink);
-  border-color: var(--ink-line-strong);
 }
 
-/* The same glass with a green label - "Tüm menü", "Hesabım". */
+/* Primary outlined - "Tüm menü", "Hesabım": transparent, CTA-green border
+   and label. */
 .btn-outline {
-  background: var(--glass-raised);
-  color: var(--green);
-  border-color: var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  background: transparent;
+  color: var(--green-cta);
+  border-color: var(--green-cta);
 }
 .btn-outline:hover {
-  background: #fff;
-  border-color: var(--ink-line-strong);
+  background: rgba(31, 122, 92, 0.08);
 }
 
-/* On a green block: a porcelain capsule with a green label. */
+/* Green-on-green inverted - on the house band: a white pill with a CTA-green
+   label instead of a green pill on green. */
 .btn-light {
-  background: #fbf8f4;
-  color: var(--bg-espresso);
-  box-shadow: var(--shadow-lift);
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--green-cta);
 }
 .btn-light:hover {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.88);
 }
 
-/* On a green block, the quieter one: clear glass with a cream label. */
+/* Outlined on dark - the quieter action on the house band: transparent,
+   white border, white label. */
 .btn-glass-dark {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fbf8f4;
-  border-color: rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: #ffffff;
+  border-color: #ffffff;
 }
 .btn-glass-dark:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-/* Brass is the reward voice - loyalty CTAs, the coupon. Ink on the brass
-   fill (9.65:1), never white on it. */
+/* Brass is the REWARD voice only - loyalty CTAs, the coupon. Ink on the
+   brass fill (6.59:1), never white on it. */
 .btn-gold {
   background: var(--gold-soft);
+  border-color: var(--gold-soft);
   color: var(--gold-ink);
-  box-shadow: var(--shadow-lift);
 }
 .btn-gold:hover {
-  background: #f0d68f;
+  background: var(--gold-light);
+  border-color: var(--gold-light);
 }
 
 /* Keyboard focus: the house green ring with a soft halo. Shown only for
@@ -702,8 +729,8 @@ summary:focus-visible,
 [data-ground="dark"] :focus-visible,
 .footer :focus-visible,
 .loyalty-block :focus-visible {
-  outline-color: #fbf8f4;
-  box-shadow: 0 0 0 4px rgba(251, 248, 244, 0.25);
+  outline-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
 }
 
 /* Selecting text should look like the brand, not like the OS. */
@@ -713,13 +740,13 @@ summary:focus-visible,
 }
 
 .btn-sm {
-  min-height: 40px;
-  padding: 0 18px;
+  min-height: 36px;
+  padding: 0 16px;
   font-size: 14px;
 }
 .btn-lg {
-  min-height: 54px;
-  padding: 0 30px;
+  min-height: 52px;
+  padding: 0 32px;
   font-size: 16px;
 }
 
@@ -760,28 +787,37 @@ summary:focus-visible,
    ───────────────────────────────────────────────────────────── */
 
 :root {
-  --header-h: 68px;
+  /* The top bar grows with the screen: 64 · 72 · 83 · 99. */
+  --header-h: 64px;
   /* The floating tab bar's footprint on small screens, named so full-height
      sections and the footer can clear it. */
   --bottom-nav-h: 84px;
 }
 
+@media (min-width: 480px) {
+  :root {
+    --header-h: 72px;
+  }
+}
+@media (min-width: 768px) {
+  :root {
+    --header-h: 83px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --header-h: 99px;
+  }
+}
+
+/* A solid white bar with the quiet three-layer lift - no glass. */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 60;
-  background: var(--glass-chrome);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid transparent;
-  transition:
-    border-color 0.25s,
-    box-shadow 0.25s,
-    background-color 0.25s;
-}
-.site-header.is-scrolled {
-  border-bottom-color: var(--ink-line);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  background: #ffffff;
+  box-shadow: var(--shadow-nav);
+  transition: background-color 0.25s;
 }
 .site-header.is-sheet-open {
   background: var(--surface-sheet);
@@ -792,7 +828,7 @@ summary:focus-visible,
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
   .site-header {
-    background: #fbf8f4;
+    background: #ffffff;
   }
 }
 
@@ -841,7 +877,7 @@ summary:focus-visible,
   --laf-bean: #b08a2e;
 }
 .laf-mark--cream {
-  --laf-ink: #fbf6f1;
+  --laf-ink: #ffffff;
   --laf-bean: var(--gold-soft);
 }
 
@@ -874,7 +910,7 @@ summary:focus-visible,
 .nav-center {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: clamp(2px, 0.6vw, 8px);
 }
@@ -900,10 +936,10 @@ summary:focus-visible,
   padding: 0 12px;
   border-radius: var(--r-pill);
   font-family: var(--sans);
-  font-size: 14.5px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--ink);
   white-space: nowrap;
   transition:
     color 0.2s,
@@ -911,8 +947,7 @@ summary:focus-visible,
 }
 .nav-link:hover,
 .nav-link.is-open {
-  color: var(--ink);
-  background: rgba(33, 28, 24, 0.045);
+  color: var(--green);
 }
 .nav-link.active {
   color: var(--ink);
@@ -921,13 +956,15 @@ summary:focus-visible,
 .nav-link.active::after {
   content: "";
   position: absolute;
-  left: 50%;
-  bottom: 3px;
-  width: 16px;
-  height: 2.5px;
-  margin-left: -8px;
-  border-radius: 2px;
-  background: var(--green);
+  left: 12px;
+  right: 12px;
+  bottom: calc((40px - var(--header-h)) / 2);
+  height: 6px;
+  border-radius: 0;
+  background: var(--green-cta);
+}
+.nav-link-wrap.has-dropdown .nav-link.active::after {
+  right: 4px;
 }
 .nav-link-wrap.has-dropdown .nav-link {
   padding-right: 4px;
@@ -983,12 +1020,10 @@ summary:focus-visible,
   height: 16px;
 }
 .nav-dropdown-inner {
-  background: rgba(251, 248, 244, 0.86);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--ink-line);
+  background: var(--surface-cool);
+  border: 0;
   border-radius: var(--r-lg);
-  box-shadow: var(--rim), var(--shadow-chrome);
+  box-shadow: var(--shadow-chrome);
   padding: 16px;
   color: var(--ink);
 }
@@ -1014,7 +1049,7 @@ summary:focus-visible,
   align-items: center;
   gap: 12px;
   padding: 10px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: var(--glass);
   border: 1px solid transparent;
   transition:
@@ -1037,8 +1072,8 @@ summary:focus-visible,
   height: 40px;
   border-radius: 50%;
   box-shadow:
-    inset 0 -2px 4px rgba(59, 42, 30, 0.08),
-    0 2px 6px rgba(59, 42, 30, 0.1);
+    inset 0 -2px 4px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.1);
 }
 .nav-dropdown-text {
   display: flex;
@@ -1081,12 +1116,11 @@ summary:focus-visible,
   height: 32px;
   padding: 0 14px;
   border-radius: var(--r-pill);
-  background: var(--glass-control);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  background: transparent;
+  border: 1px solid var(--ink-line-strong);
   font-family: var(--display);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
   transition:
@@ -1095,18 +1129,16 @@ summary:focus-visible,
     transform 0.2s var(--ease-spring);
 }
 .chip-link:hover {
-  background: #fff;
-  border-color: var(--ink-line-strong);
+  border-color: var(--ink);
 }
 .chip-link:active {
   transform: scale(var(--press-scale));
 }
 .chip-link.active,
 .chip-link[aria-current="page"] {
-  background: #fff;
-  border-color: rgba(33, 28, 24, 0.22);
-  box-shadow: var(--rim), var(--shadow-lift);
-  font-weight: 600;
+  background: var(--green-cta);
+  border-color: var(--green-cta);
+  color: #ffffff;
 }
 
 /* Round glass controls: search and account. 40px, the touch floor with the
@@ -1119,18 +1151,15 @@ summary:focus-visible,
   place-items: center;
   flex-shrink: 0;
   color: var(--ink);
-  background: var(--glass-control);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
-  transition:
-    background-color 0.2s,
-    transform 0.2s var(--ease-spring);
+  background: transparent;
+  border: 1px solid var(--ink);
+  transition: all 0.2s ease;
 }
 .nav-icon-btn:hover {
-  background: #fff;
+  background: rgba(0, 0, 0, 0.06);
 }
 .nav-icon-btn:active {
-  transform: scale(0.94);
+  transform: scale(var(--press-scale));
 }
 
 /* Search in the header: minimal - the glyph and one quiet word, no box, no
@@ -1189,10 +1218,10 @@ summary:focus-visible,
   min-width: 190px;
   display: grid;
   padding: 6px;
-  border-radius: 18px;
+  border-radius: var(--r-card);
   background: var(--surface-sheet);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-md);
+  box-shadow: var(--shadow-md);
   animation: nav-menu-in 0.18s var(--ease-out);
 }
 @keyframes nav-menu-in {
@@ -1236,19 +1265,16 @@ summary:focus-visible,
   height: 40px;
   padding: 0 8px 0 14px;
   border-radius: var(--r-pill);
-  background: var(--ink);
-  color: #fbf8f4;
+  background: #000000;
+  color: #ffffff;
   font-family: var(--display);
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  box-shadow: var(--shadow-lift);
-  transition:
-    background-color 0.2s,
-    transform 0.2s var(--ease-spring);
+  letter-spacing: var(--tracking);
+  transition: all 0.2s ease;
 }
 .nav-cart:hover {
-  background: #0d0907;
+  background: rgba(0, 0, 0, 0.8);
 }
 .nav-cart:active {
   transform: scale(var(--press-scale));
@@ -1264,15 +1290,15 @@ summary:focus-visible,
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  background: rgba(251, 248, 244, 0.16);
-  color: #fbf8f4;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
   transition:
     background-color 0.25s,
     color 0.25s;
 }
 .nav-cart-count.has-items {
-  background: var(--gold-soft);
-  color: var(--gold-ink);
+  background: #ffffff;
+  color: #000000;
 }
 
 /* Two lines, not three - the iOS 26 menu glyph - that cross into an X. */
@@ -1282,9 +1308,8 @@ summary:focus-visible,
   height: 40px;
   border-radius: 50%;
   position: relative;
-  background: var(--glass-control);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  background: transparent;
+  border: 1px solid var(--ink);
 }
 .nav-burger span {
   position: absolute;
@@ -1439,7 +1464,7 @@ summary:focus-visible,
   gap: 12px;
   align-items: center;
   padding: 8px 10px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
 }
 .sheet-sub-link:active {
   background: var(--bg-stone);
@@ -1448,7 +1473,7 @@ summary:focus-visible,
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  box-shadow: inset 0 -2px 4px rgba(59, 42, 30, 0.08);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.08);
 }
 .sheet-sub-text {
   display: flex;
@@ -1500,6 +1525,74 @@ summary:focus-visible,
   color: var(--ink-mute);
 }
 
+/* ── The floating order button ("frap") ─────────────────────────
+   A 56px circle in the CTA green, fixed bottom-right over every scrolled
+   surface - the most elevated element on the page (base halo + ambient
+   lift). It opens the cart. On a press it scales to 0.95 and the ambient
+   shadow fades out, as if pushed into the page. The hit area reaches 8px
+   past the circle. Phones carry the cart in the tab bar instead. */
+.frap {
+  position: fixed;
+  right: clamp(16px, 2.4vw, 32px);
+  bottom: calc(clamp(16px, 2.4vw, 32px) + env(safe-area-inset-bottom));
+  z-index: 55;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--green-cta);
+  color: #ffffff;
+  box-shadow: var(--shadow-frap);
+  transition: all 0.2s ease;
+}
+.frap::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+.frap svg {
+  width: 24px;
+  height: 24px;
+}
+.frap:hover {
+  background: var(--green-cta-pressed);
+}
+.frap:active {
+  transform: scale(var(--press-scale));
+  box-shadow:
+    0 0 6px rgba(0, 0, 0, 0.24),
+    0 8px 12px rgba(0, 0, 0, 0);
+}
+.frap-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  display: grid;
+  place-items: center;
+  background: #000000;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+@media (max-width: 760px) {
+  .frap {
+    display: none;
+  }
+}
+@media print {
+  .frap {
+    display: none;
+  }
+}
+
 /* ── The tab bar: a floating glass capsule on phones ────────── */
 .tab-bar {
   display: none;
@@ -1517,19 +1610,15 @@ summary:focus-visible,
     height: 64px;
     padding: 5px;
     border-radius: 32px;
-    background: rgba(251, 248, 244, 0.8);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid rgba(33, 28, 24, 0.08);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      var(--shadow-chrome);
+    background: #ffffff;
+    border: 0;
+    box-shadow: var(--shadow-frap);
   }
   @supports not (
     (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
   ) {
     .tab-bar {
-      background: rgba(251, 248, 244, 0.97);
+      background: rgba(255, 255, 255, 0.97);
     }
   }
   .tab-item {
@@ -1563,9 +1652,8 @@ summary:focus-visible,
     transform: scale(0.94);
   }
   .tab-item.active {
-    color: var(--ink);
-    background: #fff;
-    box-shadow: var(--rim), var(--shadow-lift);
+    color: var(--green);
+    background: var(--green-light);
   }
   .tab-item.active svg {
     stroke: var(--green);
@@ -1582,13 +1670,13 @@ summary:focus-visible,
     height: 18px;
     padding: 0 5px;
     border-radius: var(--r-pill);
-    background: var(--gold-soft);
-    color: var(--gold-ink);
+    background: #000000;
+    color: #ffffff;
     font-size: 10.5px;
     font-weight: 700;
     line-height: 18px;
     text-align: center;
-    box-shadow: 0 0 0 2px #fbf8f4;
+    box-shadow: 0 0 0 2px #ffffff;
   }
   /* Keep the floating bar from covering the last of the page. */
   .footer {
@@ -1609,10 +1697,10 @@ summary:focus-visible,
 /* /ziyaret: another branch of the house (visit-page.tsx BranchSection,
    src/lib/seo/branches.ts). The table strip's card language. */
 .branch-card {
-  border-radius: 24px;
+  border-radius: var(--r-card);
   border: 1px solid var(--ink-line);
   background: var(--surface);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
   padding: clamp(20px, 3.4vw, 40px) clamp(18px, 3.6vw, 44px);
   display: grid;
   gap: 10px;
@@ -1641,7 +1729,7 @@ summary:focus-visible,
 .branch-title {
   margin: 0;
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(28px, 4vw, 44px);
   line-height: 1.1;
   color: var(--ink);
@@ -1685,10 +1773,10 @@ summary:focus-visible,
   padding: clamp(10px, 1.6vw, 20px) 0 0;
 }
 .table-banner-card {
-  border-radius: 24px;
+  border-radius: var(--r-card);
   border: 1px solid var(--ink-line);
   background: var(--surface);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
   padding: clamp(18px, 3vw, 28px) clamp(18px, 3.4vw, 36px);
   display: grid;
   gap: 8px;
@@ -1702,7 +1790,7 @@ summary:focus-visible,
 .table-banner-title {
   margin: 0;
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(24px, 3.2vw, 34px);
   line-height: 1.15;
   color: var(--ink);
@@ -1726,7 +1814,7 @@ summary:focus-visible,
   padding: 0 18px 0 14px;
   border-radius: 14px;
   background: var(--ink);
-  color: #fbf8f4;
+  color: #ffffff;
   box-shadow: var(--shadow-lift);
   transition:
     background-color 0.2s,
@@ -1739,7 +1827,7 @@ summary:focus-visible,
   transform: scale(var(--press-scale));
 }
 .app-links.on-dark .store-btn {
-  background: #fbf8f4;
+  background: #ffffff;
   color: var(--ink);
 }
 .app-links.on-dark .store-btn:hover {
@@ -1784,7 +1872,7 @@ summary:focus-visible,
   height: 7px;
   border-radius: 50%;
   background: var(--gold-soft);
-  box-shadow: 0 0 0 3px rgba(232, 200, 119, 0.3);
+  box-shadow: 0 0 0 3px rgba(203, 162, 88, 0.3);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1922,27 +2010,26 @@ summary:focus-visible,
 .hero-x {
   padding: clamp(10px, 1.6vw, 20px) 0 clamp(14px, 2vw, 26px);
 }
+/* The split hero of a café flagship: copy on the warm canvas (60 %), the
+   drink on a solid block of its own colour (40 %) - a colour block, not a
+   glow. */
 .hero-x-frame {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 52fr) minmax(0, 48fr);
-  align-items: center;
+  grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+  align-items: stretch;
   gap: clamp(16px, 3vw, 48px);
-  min-height: clamp(540px, 60vw, 740px);
-  padding: clamp(28px, 4vw, 64px) clamp(20px, 4.4vw, 72px);
-  border-radius: 36px;
-  background:
-    radial-gradient(
-      70% 90% at 78% 46%,
-      var(--scene-edge) 0%,
-      rgba(251, 248, 244, 0) 70%
-    ),
-    linear-gradient(180deg, #fbf8f4 0%, #f7f3ed 100%);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  min-height: clamp(500px, 52vw, 680px);
+  padding: 0;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   isolation: isolate;
-  transition: background 0.6s var(--ease-out);
+}
+.hero-x-frame > .hero-x-copy {
+  padding: clamp(28px, 4vw, 64px) 0 clamp(28px, 4vw, 64px)
+    clamp(20px, 4.4vw, 72px);
 }
 
 .hero-x-copy {
@@ -1970,18 +2057,19 @@ summary:focus-visible,
   height: 4px;
   border-radius: 2px;
   background: var(--tricolore);
-  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 .hero-x-title {
   margin: 0;
   display: grid;
   font-family: var(--headline);
-  font-size: clamp(42px, 6vw, 86px);
-  /* ExtraBold: the one place a single word has to carry a whole screen. */
-  font-weight: 800;
-  line-height: 0.98;
-  letter-spacing: -0.04em;
-  color: var(--ink);
+  font-size: clamp(40px, 5.4vw, 80px);
+  /* SemiBold in the brand green: the display role carries the screen by
+     weight and colour, not by an ExtraBold squeeze. */
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--green);
   animation: hero-x-copy-in 0.6s var(--ease-spring) both;
 }
 @keyframes hero-x-copy-in {
@@ -2081,10 +2169,10 @@ summary:focus-visible,
   gap: 6px;
   width: 100%;
   padding: 10px 8px 10px;
-  border-radius: 20px;
+  border-radius: var(--r-card);
   background: var(--glass);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
   cursor: pointer;
   overflow: hidden;
   transition:
@@ -2101,13 +2189,13 @@ summary:focus-visible,
 }
 .hero-x-thumb.on {
   background: #fff;
-  border-color: rgba(33, 28, 24, 0.2);
-  box-shadow: var(--rim), var(--shadow-lift);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lift);
 }
 .hero-x-thumb-light {
   position: absolute;
   inset: 8px 8px 30px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   opacity: 0.9;
 }
 .hero-x-thumb img {
@@ -2117,7 +2205,7 @@ summary:focus-visible,
   height: auto;
   aspect-ratio: 581 / 942;
   object-fit: contain;
-  filter: drop-shadow(0 6px 8px rgba(59, 42, 30, 0.18));
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18));
   transition: transform 0.35s var(--ease-spring);
 }
 .hero-x-thumb:hover img,
@@ -2173,10 +2261,18 @@ summary:focus-visible,
   position: relative;
   z-index: 1;
   align-self: stretch;
-  --stage: clamp(320px, 40vw, 620px);
+  --stage: clamp(320px, 36vw, 560px);
   min-height: var(--stage);
   display: grid;
   place-items: center;
+  /* The drink's own colour as a solid block (coral, sage, amber ...). */
+  background: var(--scene-mid, var(--bg-stone));
+  transition: background-color 0.6s var(--ease-out);
+}
+/* Colour block, not light: the halo and the glassy spheres stay out. */
+.hero-x-halo,
+.hero-x-sphere {
+  display: none;
 }
 /* The halo: the family's core at the drink's body, its ring, melting into
    the porcelain - drawn large and soft, the app's `halo` beam. */
@@ -2209,7 +2305,7 @@ summary:focus-visible,
     var(--scene-mid) 38%,
     var(--scene-core) 100%
   );
-  box-shadow: 0 18px 30px -12px rgba(59, 42, 30, 0.25);
+  box-shadow: 0 18px 30px -12px rgba(0, 0, 0, 0.25);
   opacity: 0.9;
 }
 .hero-x-sphere.a {
@@ -2234,8 +2330,8 @@ summary:focus-visible,
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(59, 42, 30, 0.22) 0%,
-    rgba(59, 42, 30, 0) 100%
+    rgba(0, 0, 0, 0.22) 0%,
+    rgba(0, 0, 0, 0) 100%
   );
 }
 .hero-x-photo {
@@ -2248,7 +2344,7 @@ summary:focus-visible,
      the stage's width and letterboxed instead. */
   max-width: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 30px 34px rgba(59, 42, 30, 0.22));
+  filter: drop-shadow(0 30px 34px rgba(0, 0, 0, 0.22));
   animation: hero-x-rise 0.7s var(--ease-spring) both;
 }
 @keyframes hero-x-rise {
@@ -2275,15 +2371,11 @@ summary:focus-visible,
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
     gap: 4px;
-    padding: 12px clamp(18px, 5vw, 32px) clamp(22px, 5vw, 32px);
-    border-radius: 30px;
-    background:
-      radial-gradient(
-        90% 55% at 50% 22%,
-        var(--scene-edge) 0%,
-        rgba(251, 248, 244, 0) 75%
-      ),
-      linear-gradient(180deg, #fbf8f4 0%, #f7f3ed 100%);
+    padding: 0;
+    border-radius: var(--r-card);
+  }
+  .hero-x-frame > .hero-x-copy {
+    padding: 8px clamp(18px, 5vw, 32px) clamp(22px, 5vw, 32px);
   }
   .hero-x-copy {
     order: 2;
@@ -2354,7 +2446,7 @@ summary:focus-visible,
   height: 4px;
   border-radius: 2px;
   background: var(--tricolore);
-  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 .home-intro-text {
   margin: 0;
@@ -2367,8 +2459,8 @@ summary:focus-visible,
   text-wrap: balance;
 }
 .home-intro-lead {
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
@@ -2389,16 +2481,9 @@ summary:focus-visible,
   gap: clamp(24px, 4vw, 64px);
   padding: clamp(24px, 3.6vw, 48px);
   padding-left: clamp(24px, 4.4vw, 64px);
-  border-radius: 36px;
-  background:
-    radial-gradient(
-      70% 90% at 84% 44%,
-      var(--scene-edge) 0%,
-      rgba(251, 248, 244, 0) 70%
-    ),
-    linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 /* The room's light behind the stage, the page heroes' corner light. */
 .home-karaoke-light {
@@ -2413,7 +2498,7 @@ summary:focus-visible,
     closest-side,
     var(--scene-core) 0%,
     var(--scene-mid) 42%,
-    rgba(251, 248, 244, 0) 100%
+    rgba(255, 255, 255, 0) 100%
   );
   opacity: 0.5;
   filter: blur(8px);
@@ -2443,15 +2528,15 @@ summary:focus-visible,
   height: 4px;
   border-radius: 2px;
   background: var(--tricolore);
-  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 .home-karaoke-title {
   margin: 0;
   font-family: var(--headline);
   font-size: clamp(34px, 4.6vw, 60px);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   color: var(--ink);
   text-wrap: balance;
 }
@@ -2488,7 +2573,7 @@ summary:focus-visible,
   height: 7px;
   border-radius: 50%;
   background: var(--scene-core);
-  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.12);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 /* Today's hours. Whatever the calendar answers (hours, a full or finished
    day, no answer at all) the line keeps the height it held while it was
@@ -2525,7 +2610,7 @@ summary:focus-visible,
   border-radius: var(--r-pill);
   background: var(--surface);
   border: 1px solid var(--ink-line-strong);
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
   font-family: var(--display);
   font-size: 15px;
   font-weight: 600;
@@ -2578,10 +2663,10 @@ summary:focus-visible,
   overflow: hidden;
   isolation: isolate;
   aspect-ratio: 1;
-  border-radius: 28px;
+  border-radius: var(--r-card);
   box-shadow:
-    0 0 0 1px rgba(33, 28, 24, 0.08),
-    0 24px 48px -26px rgba(59, 42, 30, 0.45);
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 24px 48px -26px rgba(0, 0, 0, 0.45);
 }
 .home-karaoke-stage img {
   display: block;
@@ -2629,10 +2714,10 @@ summary:focus-visible,
       "copy";
     gap: 22px;
     padding: 14px 14px 26px;
-    border-radius: 30px;
+    border-radius: var(--r-card);
   }
   .home-karaoke-stage {
-    border-radius: 22px;
+    border-radius: var(--r-card);
   }
   .home-karaoke-copy {
     padding: 0 8px;
@@ -2747,10 +2832,10 @@ summary:focus-visible,
 }
 .seo-facts > div {
   padding: 18px 20px;
-  border-radius: 20px;
+  border-radius: var(--r-card);
   background: var(--glass);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
 }
 .seo-facts-label {
   margin: 0 0 8px;
@@ -2803,8 +2888,8 @@ summary:focus-visible,
   margin: 0;
   font-family: var(--headline);
   font-size: clamp(24px, 2.8vw, 36px);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.12;
   color: var(--ink);
   text-wrap: balance;
@@ -2819,7 +2904,7 @@ summary:focus-visible,
   margin-top: 14px;
   border-radius: 2px;
   background: var(--tricolore);
-  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 [data-ground="dark"] .section-title::after {
   background: var(--tricolore-on-dark);
@@ -2838,16 +2923,21 @@ summary:focus-visible,
 }
 .page-hero-frame {
   position: relative;
-  border-radius: 32px;
-  background: linear-gradient(180deg, #fbf8f4 0%, #f7f3ed 100%);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   isolation: isolate;
   padding: clamp(32px, 5vw, 72px) clamp(22px, 4.4vw, 72px);
   min-height: clamp(220px, 24vw, 320px);
   display: grid;
   align-content: center;
+}
+/* Colour block, not light: the page heroes and the karaoke band draw no
+   glow behind their art any more (5 Kas 2026). */
+.page-hero-light,
+.home-karaoke-light {
+  display: none;
 }
 .page-hero-light {
   position: absolute;
@@ -2860,7 +2950,7 @@ summary:focus-visible,
     closest-side,
     var(--scene-core) 0%,
     var(--scene-mid) 42%,
-    rgba(251, 248, 244, 0) 100%
+    rgba(255, 255, 255, 0) 100%
   );
   opacity: 0.55;
   filter: blur(8px);
@@ -2924,9 +3014,9 @@ summary:focus-visible,
   display: block;
   font-family: var(--headline);
   font-size: clamp(34px, 5vw, 66px);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.04;
-  letter-spacing: -0.032em;
+  letter-spacing: -0.02em;
   color: var(--ink);
   text-wrap: balance;
 }
@@ -2943,7 +3033,7 @@ summary:focus-visible,
 }
 @media (max-width: 760px) {
   .page-hero-frame {
-    border-radius: 26px;
+    border-radius: var(--r-card);
   }
   .page-hero-light {
     right: -40%;
@@ -2981,10 +3071,10 @@ summary:focus-visible,
 /* A raster picture (the karaoke room) is framed like a window, not cut out;
    wherever it is used (the page hero, "Görüşmek üzere", /rezervasyon). */
 .illo-framed {
-  border-radius: 26px;
+  border-radius: var(--r-card);
   box-shadow:
-    0 0 0 1px rgba(33, 28, 24, 0.08),
-    0 20px 40px -22px rgba(59, 42, 30, 0.45);
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 20px 40px -22px rgba(0, 0, 0, 0.45);
 }
 @media (max-width: 760px) {
   .page-hero-frame.has-art {
@@ -2999,7 +3089,7 @@ summary:focus-visible,
     width: 116px;
   }
   .page-hero-art .illo-framed {
-    border-radius: 20px;
+    border-radius: var(--r-card);
   }
 }
 
@@ -3021,15 +3111,9 @@ summary:focus-visible,
   gap: clamp(16px, 3vw, 40px);
   padding: clamp(24px, 3vw, 36px) clamp(22px, 3vw, 40px);
   border-radius: var(--r-xl);
-  background:
-    radial-gradient(
-      80% 140% at 100% 0%,
-      rgba(114, 203, 172, 0.28) 0%,
-      rgba(114, 203, 172, 0) 60%
-    ),
-    linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
-  color: #fbf8f4;
-  box-shadow: var(--shadow-md);
+  background: var(--green-house);
+  color: #ffffff;
+  box-shadow: none;
   transition:
     transform 0.3s var(--ease-spring),
     box-shadow 0.3s;
@@ -3038,13 +3122,7 @@ summary:focus-visible,
    to inherit the green board's mint and mist and all but vanished on the
    caramel this replaced). */
 .promo-banner.gold {
-  background:
-    radial-gradient(
-      80% 140% at 100% 0%,
-      rgba(255, 255, 255, 0.4) 0%,
-      rgba(255, 255, 255, 0) 60%
-    ),
-    linear-gradient(135deg, #efd490 0%, #e1bb62 100%);
+  background: var(--gold-soft);
   color: var(--gold-ink);
 }
 .promo-banner.gold .promo-banner-wave {
@@ -3058,7 +3136,7 @@ summary:focus-visible,
 }
 .promo-banner:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
 }
 .promo-banner:active {
   transform: scale(0.99);
@@ -3085,8 +3163,8 @@ summary:focus-visible,
 .promo-banner-title {
   font-family: var(--headline);
   font-size: clamp(22px, 2.4vw, 30px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 .promo-banner-body {
   font-size: 15px;
@@ -3102,7 +3180,7 @@ summary:focus-visible,
   min-height: 44px;
   padding: 0 22px;
   border-radius: var(--r-btn);
-  background: #fbf8f4;
+  background: #ffffff;
   color: var(--bg-espresso);
   font-family: var(--display);
   font-size: 14.5px;
@@ -3165,15 +3243,15 @@ summary:focus-visible,
   border-radius: var(--r-xl);
   overflow: hidden;
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
   transition:
     transform 0.3s var(--ease-spring),
     box-shadow 0.3s;
 }
 .campaign-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--rim), var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 .campaign-card-photo {
   aspect-ratio: 16 / 9;
@@ -3215,7 +3293,7 @@ summary:focus-visible,
   margin: 0;
   font-family: var(--headline);
   font-size: 19px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
@@ -3296,8 +3374,8 @@ summary:focus-visible,
   margin: 0;
   font-family: var(--headline);
   font-size: clamp(26px, 3.2vw, 40px);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.08;
   color: var(--ink);
   text-wrap: balance;
@@ -3321,18 +3399,14 @@ summary:focus-visible,
   padding: var(--door-pad) var(--door-pad) 22px;
   color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--ink-line);
-  /* Fallback first; the arch where container units are understood. */
-  border-radius: 30px;
-  border-radius: 50cqw 50cqw 30px 30px;
-  box-shadow: var(--rim), var(--shadow-glass);
-  transition:
-    transform 0.4s var(--ease-spring),
-    box-shadow 0.4s;
+  border: 0;
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s ease;
 }
 .door:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--rim), var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 .door:active {
   transform: scale(var(--press-scale));
@@ -3348,13 +3422,8 @@ summary:focus-visible,
   display: grid;
   place-items: center;
   aspect-ratio: 5 / 4;
-  border-radius: 22px;
-  border-radius: calc(50cqw - var(--door-pad)) calc(50cqw - var(--door-pad))
-    20px 20px;
+  border-radius: var(--r-md);
   background: var(--door-pane);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    inset 0 -24px 40px rgba(0, 0, 0, 0.1);
 }
 /* Daylight through the glass: a soft pool high in the arch that brightens
    on hover. */
@@ -3369,10 +3438,7 @@ summary:focus-visible,
   );
   opacity: 0.8;
   z-index: -1;
-  transition: opacity 0.4s;
-}
-.door:hover .door-light {
-  opacity: 1;
+  display: none;
 }
 .door-icon {
   width: clamp(54px, 26cqw, 68px);
@@ -3414,8 +3480,8 @@ summary:focus-visible,
 .door-title {
   font-family: var(--headline);
   font-size: clamp(18px, 1.6vw, 21px);
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.18;
   text-wrap: balance;
 }
@@ -3454,33 +3520,33 @@ summary:focus-visible,
 /* The four panes. Kicker inks are the text-safe steps of each colour
    (all above 4.5:1 on the white frame). */
 .door--green {
-  --door-pane: linear-gradient(165deg, #2a8f71 0%, #1d6d56 42%, #0c3b2d 100%);
-  --door-icon-ink: #fbf8f4;
+  --door-pane: var(--green-house);
+  --door-icon-ink: #ffffff;
   --door-icon-disc: rgba(255, 255, 255, 0.14);
   --door-kicker: var(--green);
 }
 .door--cream {
-  --door-pane: linear-gradient(165deg, #fdf6ec 0%, #f3e4cd 55%, #e6cfae 100%);
+  --door-pane: var(--bg-stone);
   --door-icon-ink: var(--green);
   --door-icon-disc: rgba(255, 255, 255, 0.6);
   --door-kicker: var(--ink-soft);
 }
 .door--brass {
-  --door-pane: linear-gradient(165deg, #f5e3ae 0%, #e1bb62 50%, #b3873a 100%);
+  --door-pane: var(--gold-soft);
   --door-icon-ink: var(--gold-ink);
   --door-icon-disc: rgba(255, 255, 255, 0.34);
   --door-kicker: var(--gold);
 }
 .door--velvet {
-  --door-pane: linear-gradient(165deg, #bf3a61 0%, #9d2543 45%, #520f1f 100%);
+  --door-pane: var(--accent);
   --door-icon-ink: #f6e9ec;
   --door-icon-disc: rgba(255, 255, 255, 0.14);
   --door-kicker: var(--accent);
 }
 .door--cream .door-arch {
   box-shadow:
-    inset 0 0 0 1px rgba(59, 42, 30, 0.08),
-    inset 0 -24px 40px rgba(59, 42, 30, 0.06);
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    inset 0 -24px 40px rgba(0, 0, 0, 0.06);
 }
 
 @media (max-width: 1000px) {
@@ -3548,8 +3614,8 @@ summary:focus-visible,
   display: grid;
   place-items: center;
   background: var(--glass-raised);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
   color: var(--ink);
   font-size: 22px;
   line-height: 1;
@@ -3590,15 +3656,15 @@ summary:focus-visible,
   display: grid;
   grid-template-rows: auto 1fr;
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
   transition:
     transform 0.3s var(--ease-spring),
     box-shadow 0.3s;
 }
 .rail-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--rim), var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 .rail-card-media {
   height: 220px;
@@ -3607,7 +3673,7 @@ summary:focus-visible,
   position: relative;
   width: 100%;
   overflow: hidden;
-  border-radius: calc(var(--r-card) - 6px);
+  border-radius: calc(var(--r-card) - 4px);
   margin: 6px 6px 0;
   width: calc(100% - 12px);
 }
@@ -3615,7 +3681,7 @@ summary:focus-visible,
   max-height: 180px;
   max-width: 74%;
   object-fit: contain;
-  filter: drop-shadow(0 14px 22px rgba(59, 42, 30, 0.16));
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.16));
   transition: transform 0.4s var(--ease-spring);
 }
 .rail-card:hover .rail-card-media img {
@@ -3632,7 +3698,7 @@ summary:focus-visible,
   border-radius: var(--r-pill);
   background: var(--glass-raised);
   color: var(--ink);
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
 /* "Yeni" is the app's cobalt info badge (white on it 5.83:1). */
 .rail-card-badge.new {
@@ -3725,16 +3791,16 @@ summary:focus-visible,
 }
 .stat-row > div {
   padding: 16px;
-  border-radius: 20px;
-  background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  border: 0;
+  box-shadow: var(--shadow-card);
 }
 .stat-n {
   font-family: var(--headline);
   font-size: clamp(26px, 2.6vw, 34px);
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--green);
   line-height: 1;
 }
@@ -3751,52 +3817,49 @@ summary:focus-visible,
   flex-wrap: wrap;
 }
 
-/* Loyalty block ─── the bordo signature surface ───────────────
-   In the app the stamp card and the membership card are the velvet surface
-   (bg.velvet, gradient.velvetCard #9D2543 → #69172A): one per screen, the
-   brand's signature. Text on it is the blush onVelvet (6.40:1). */
+/* Loyalty block ─── the reward panel ─────────────────────────
+   The reward moment: a solid house-green panel where brass is allowed to
+   speak (stamps, tier, the reward CTA) - the one place gold appears. White
+   and 70 %-white text; the headline switches to the reward serif, the
+   system's single context-specific face. */
 
 .loyalty-block {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  border-radius: 32px;
-  background:
-    radial-gradient(
-      70% 110% at 100% 0%,
-      rgba(243, 137, 155, 0.32) 0%,
-      rgba(243, 137, 155, 0) 60%
-    ),
-    linear-gradient(150deg, #9d2543 0%, #69172a 100%);
-  color: #f6e9ec;
-  --script-ink: #f6e9ec;
+  border-radius: var(--r-card);
+  background: var(--green-house);
+  color: #ffffff;
+  --script-ink: var(--accent-on-dark);
   padding: clamp(28px, 4vw, 56px);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: clamp(24px, 3vw, 48px);
   align-items: center;
-  box-shadow: 0 18px 40px -18px rgba(105, 23, 42, 0.55);
+  box-shadow: none;
 }
 .loyalty-block .eyebrow.on-dark {
-  color: #ebc2cc;
+  color: var(--gold-soft);
 }
 .loyalty-block .h2 {
-  color: #fff6f8;
+  color: #ffffff;
+  font-family: var(--reward-serif);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 .loyalty-block p {
   margin: 16px 0 0;
   font-size: 16px;
   line-height: 1.6;
-  color: #ebc2cc;
+  color: var(--ink-on-dark-soft);
   max-width: 46ch;
 }
-/* The stamp card: glass on bordo, brass stamps. */
+/* The stamp card: the uplift green on the house band, brass stamps. */
 .loyalty-card {
   padding: 24px;
   border-radius: var(--r-lg);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background: var(--green-uplift);
+  border: 0;
 }
 .loyalty-card-head {
   display: flex;
@@ -3830,8 +3893,8 @@ summary:focus-visible,
   font-family: var(--display);
   font-size: 16px;
   font-weight: 600;
-  border: 1.5px dashed rgba(246, 233, 236, 0.45);
-  color: rgba(246, 233, 236, 0.75);
+  border: 1.5px dashed rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.75);
 }
 .stamp:not(.reward) {
   font-size: 14px;
@@ -3905,11 +3968,11 @@ summary:focus-visible,
 }
 .loyalty-headline {
   margin-top: 18px;
-  font-family: var(--headline);
-  font-size: 19px;
+  font-family: var(--reward-serif);
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.02em;
-  color: #fff6f8;
+  letter-spacing: 0;
+  color: #ffffff;
 }
 
 /* App block ─── the phone, the store buttons ────────────────── */
@@ -3923,16 +3986,9 @@ summary:focus-visible,
   align-items: center;
   gap: clamp(24px, 4vw, 64px);
   padding: clamp(28px, 4.4vw, 64px) clamp(24px, 4.4vw, 72px) 0;
-  border-radius: 36px;
-  background:
-    radial-gradient(
-      60% 80% at 80% 60%,
-      rgba(114, 203, 172, 0.3) 0%,
-      rgba(114, 203, 172, 0) 70%
-    ),
-    linear-gradient(180deg, #fbf8f4 0%, #f2ece4 100%);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 .app-block-copy {
   padding-bottom: clamp(28px, 4.4vw, 64px);
@@ -3944,7 +4000,7 @@ summary:focus-visible,
   width: 64px;
   height: 64px;
   border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(12, 59, 45, 0.25);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 .app-block-list {
   list-style: none;
@@ -3992,7 +4048,7 @@ summary:focus-visible,
   padding: 10px;
   background: linear-gradient(145deg, #3a342f 0%, #211c18 60%, #0d0907 100%);
   box-shadow:
-    0 40px 80px -30px rgba(59, 42, 30, 0.45),
+    0 40px 80px -30px rgba(0, 0, 0, 0.45),
     inset 0 0 0 1.5px rgba(255, 255, 255, 0.14);
 }
 .app-phone img {
@@ -4040,10 +4096,10 @@ summary:focus-visible,
 }
 .visit-facts > div {
   padding: 16px 18px;
-  border-radius: 20px;
+  border-radius: var(--r-card);
   background: var(--glass);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
 }
 .visit-fact-label {
   font-size: 13px;
@@ -4092,11 +4148,11 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Footer - the app icon's ground
+   Footer - the house-green bookend
 
-   The page comes to rest on the house green exactly as the app icon draws
-   it (lafmobil icon candidate A: a soft radial #23876A → #1D6D56 → #0C3B2D),
-   with the L'Af mark in cream and its bean in brass. Above the link grid,
+   The page comes to rest on a solid block of the house green - the dark
+   bookend opposite the bright body - with white and 70 %-white text, the
+   L'Af mark in white and its bean in brass. Above the link grid,
    the two ways to stay close: the app and the monthly letter (a live feature
    with 6563 consent records behind it).
    ───────────────────────────────────────────────────────────── */
@@ -4105,11 +4161,9 @@ summary:focus-visible,
   --script-ink: var(--accent-on-dark);
   position: relative;
   margin-top: clamp(40px, 6vw, 72px);
-  color: #fbf8f4;
-  background:
-    radial-gradient(120% 70% at 50% 0%, #23876a 0%, rgba(35, 135, 106, 0) 60%),
-    linear-gradient(180deg, #1d6d56 0%, #0c3b2d 100%);
-  border-radius: 32px 32px 0 0;
+  color: #ffffff;
+  background: var(--green-house);
+  border-radius: 0;
   overflow: hidden;
 }
 .footer-inner {
@@ -4143,8 +4197,8 @@ summary:focus-visible,
   margin: 6px 0 0;
   font-family: var(--headline);
   font-size: clamp(22px, 2.2vw, 28px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
   line-height: 1.15;
 }
 .footer-brand-line {
@@ -4152,20 +4206,18 @@ summary:focus-visible,
   max-width: 34ch;
   font-size: 15px;
   line-height: 1.55;
-  color: var(--green-mist);
+  color: var(--ink-on-dark-soft);
 }
 
-/* Glass on green: white at 8 % with a light lip - the app's raised glass,
-   inverted onto the dark ground. */
+/* A card on the house band: the uplift green, flat. */
 .footer-card {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 22px;
+  padding: 24px;
   border-radius: var(--r-lg);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: var(--green-uplift);
+  border: 0;
 }
 .footer-card-head {
   display: flex;
@@ -4183,9 +4235,9 @@ summary:focus-visible,
   margin: 0;
   font-family: var(--headline);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.015em;
-  color: #fbf8f4;
+  color: #ffffff;
 }
 .footer-card-title .script {
   color: var(--gold-soft);
@@ -4221,7 +4273,7 @@ summary:focus-visible,
   border: 0;
   outline: 0;
   background: transparent;
-  color: #fbf8f4;
+  color: #ffffff;
   font-size: 15px;
 }
 .newsletter-form input::placeholder {
@@ -4256,7 +4308,7 @@ summary:focus-visible,
 .footer ul a,
 .footer-linkish {
   font-size: 14.5px;
-  color: rgba(251, 248, 244, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   transition: color 0.2s;
 }
 .footer ul a:hover,
@@ -4274,7 +4326,7 @@ summary:focus-visible,
 }
 .footer-contact-col li {
   font-size: 14.5px;
-  color: rgba(251, 248, 244, 0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 .footer-contact-col .footer-contact-hours {
   display: grid;
@@ -4306,7 +4358,7 @@ summary:focus-visible,
   gap: 6px;
   font-size: 12.5px;
   line-height: 1.5;
-  color: rgba(251, 248, 244, 0.86);
+  color: rgba(255, 255, 255, 0.86);
 }
 .footer-company div {
   display: grid;
@@ -4324,7 +4376,7 @@ summary:focus-visible,
   display: inline-block;
   margin-top: 10px;
   font-size: 14px;
-  color: rgba(251, 248, 244, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -4340,7 +4392,7 @@ summary:focus-visible,
   font-family: var(--display);
   font-size: 15px;
   font-weight: 600;
-  color: #fbf8f4;
+  color: #ffffff;
 }
 .footer-social-links {
   display: flex;
@@ -4357,7 +4409,7 @@ summary:focus-visible,
   background: rgba(255, 255, 255, 0.06);
   font-size: 13px;
   font-weight: 600;
-  color: #fbf8f4;
+  color: #ffffff;
   transition: background-color 0.2s;
 }
 .footer-social-links a:hover {
@@ -4427,8 +4479,8 @@ summary:focus-visible,
   flex-direction: column;
   border-radius: var(--r-card);
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
   padding: 6px;
   transition:
     transform 0.3s var(--ease-spring),
@@ -4436,10 +4488,10 @@ summary:focus-visible,
 }
 .product-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--rim), var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 .product-card:active {
-  transform: scale(0.985);
+  transform: scale(0.98);
 }
 .product-card-link {
   display: flex;
@@ -4447,11 +4499,11 @@ summary:focus-visible,
   flex: 1;
   color: inherit;
   cursor: pointer;
-  border-radius: calc(var(--r-card) - 6px);
+  border-radius: calc(var(--r-card) - 4px);
 }
 .product-card-img {
   aspect-ratio: 4/4.6;
-  border-radius: calc(var(--r-card) - 6px);
+  border-radius: calc(var(--r-card) - 4px);
   overflow: hidden;
   position: relative;
 }
@@ -4472,12 +4524,13 @@ summary:focus-visible,
   font-family: var(--display);
   font-size: 11.5px;
   font-weight: 500;
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
-/* Featured: brass fill, ink on it (10.42:1). */
+/* Featured ("İmza"): the house green, white on it. Brass is kept for the
+   reward moments, so the featured flag no longer borrows it. */
 .product-card-flag.gold {
-  background: var(--gold-soft);
-  color: var(--gold-ink);
+  background: var(--green-house);
+  color: #fff;
 }
 /* New: the app's cobalt info badge (white 5.83:1). */
 .product-card-flag.new {
@@ -4503,9 +4556,9 @@ summary:focus-visible,
 }
 .product-card-name {
   font-family: var(--display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 17px;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking);
   line-height: 1.25;
   margin: 0;
 }
@@ -4553,8 +4606,8 @@ summary:focus-visible,
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  background: var(--bg-espresso);
-  color: #fbf8f4;
+  background: var(--green-cta);
+  color: #ffffff;
   box-shadow: var(--shadow-lift);
   transition:
     background-color 0.2s,
@@ -4595,7 +4648,7 @@ summary:focus-visible,
   font-size: 16px;
   color: var(--ink);
   outline: none;
-  box-shadow: 0 1px 2px rgba(59, 42, 30, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition:
     border-color 0.2s,
     box-shadow 0.2s,
@@ -4604,7 +4657,7 @@ summary:focus-visible,
 .input:hover,
 .textarea:hover,
 .select:hover {
-  border-color: rgba(33, 28, 24, 0.24);
+  border-color: rgba(0, 0, 0, 0.24);
 }
 .input:focus,
 .textarea:focus,
@@ -4652,10 +4705,10 @@ summary:focus-visible,
 }
 .page-head h1 {
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(34px, 4.6vw, 60px);
   line-height: 1.06;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.02em;
   margin: 0 0 18px;
 }
 .page-head h1 .script {
@@ -4800,12 +4853,12 @@ summary:focus-visible,
     border-color 0.2s;
 }
 .menu-tab:hover {
-  border-color: var(--bg-espresso);
+  border-color: var(--green-cta);
 }
 .menu-tab.on {
-  background: var(--bg-espresso);
+  background: var(--green-cta);
   color: #fff;
-  border-color: var(--bg-espresso);
+  border-color: var(--green-cta);
 }
 /* Explicit colours rather than opacity: white at 70 % on the green tab
    measured 3.94:1 for 11.5 px text. */
@@ -4815,7 +4868,7 @@ summary:focus-visible,
   color: var(--ink-mute);
 }
 .menu-tab.on .count {
-  color: rgba(255, 255, 255, 0.88);
+  color: #ffffff;
 }
 
 /* Menu page - flat card grid, one list rather than a section per category */
@@ -4925,7 +4978,7 @@ summary:focus-visible,
   margin-top: 8px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--gold);
+  color: var(--green);
   text-decoration: none;
 }
 .menu-card-guide:hover {
@@ -5082,7 +5135,7 @@ summary:focus-visible,
   border-radius: var(--r-pill);
   background: var(--glass-raised);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
   font-size: 13.5px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -5122,8 +5175,8 @@ summary:focus-visible,
   padding: 8px;
   border-radius: var(--r-lg);
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
 }
 .shop-filter-block {
   padding: 16px 10px;
@@ -5161,7 +5214,7 @@ summary:focus-visible,
     box-shadow 0.2s;
 }
 .shop-cat:hover {
-  background: rgba(33, 28, 24, 0.045);
+  background: rgba(0, 0, 0, 0.045);
   color: var(--ink);
 }
 /* Selected: opaque white with the rim and the lift, the app's selected. */
@@ -5169,7 +5222,7 @@ summary:focus-visible,
   background: #fff;
   color: var(--ink);
   font-weight: 600;
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
 .shop-cat .count {
   font-family: var(--sans);
@@ -5231,7 +5284,7 @@ summary:focus-visible,
 }
 .shop-helpline {
   padding: 16px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: var(--bg-warm);
   border: 1px solid var(--ink-line);
 }
@@ -5330,8 +5383,8 @@ summary:focus-visible,
   background: #fff;
   border: 0;
   box-shadow:
-    0 0 0 1px rgba(33, 28, 24, 0.12),
-    0 2px 6px rgba(59, 42, 30, 0.2);
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   pointer-events: auto;
   margin-top: -10px;
@@ -5343,8 +5396,8 @@ summary:focus-visible,
   background: #fff;
   border: 0;
   box-shadow:
-    0 0 0 1px rgba(33, 28, 24, 0.12),
-    0 2px 6px rgba(59, 42, 30, 0.2);
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -5388,8 +5441,8 @@ summary:focus-visible,
 .shop-featured-now {
   font-family: var(--headline);
   font-size: 40px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 .shop-featured-was {
   font-size: 16px;
@@ -5415,8 +5468,8 @@ summary:focus-visible,
   padding: 20px 22px;
   border-radius: var(--r-panel);
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
 }
 .trust-k {
   font-size: 13px;
@@ -5497,7 +5550,7 @@ summary:focus-visible,
     border-radius: var(--r-pill);
     border: 1px solid var(--ink-line);
     background: var(--glass-control);
-    box-shadow: var(--rim);
+    box-shadow: none;
     font-family: var(--display);
     font-size: 13.5px;
     font-weight: 500;
@@ -5514,8 +5567,8 @@ summary:focus-visible,
     background: #fff;
     color: var(--ink);
     font-weight: 600;
-    border-color: rgba(33, 28, 24, 0.2);
-    box-shadow: var(--rim), var(--shadow-lift);
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-lift);
   }
   .shop-pill .count {
     font-family: var(--sans);
@@ -5537,7 +5590,7 @@ summary:focus-visible,
     padding: 0 16px;
     border-radius: var(--r-pill);
     background: var(--ink);
-    color: #fbf8f4;
+    color: #ffffff;
     font-family: var(--display);
     font-size: 13.5px;
     font-weight: 600;
@@ -5549,8 +5602,8 @@ summary:focus-visible,
     height: 20px;
     padding: 0 6px;
     border-radius: var(--r-pill);
-    background: var(--gold-soft);
-    color: var(--gold-ink);
+    background: var(--green-cta);
+    color: #ffffff;
     font-size: 11px;
     font-weight: 700;
   }
@@ -5592,13 +5645,13 @@ summary:focus-visible,
     flex-direction: column;
     max-height: 86vh;
     background: var(--surface-sheet);
-    border-radius: 28px 28px 0 0;
+    border-radius: 12px 12px 0 0;
     transform: translateY(101%);
     visibility: hidden;
     transition:
       transform 0.45s var(--ease-spring),
       visibility 0s linear 0.45s;
-    box-shadow: 0 -12px 40px rgba(59, 42, 30, 0.18);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
   }
   .shop-sheet.open {
     transform: translateY(0);
@@ -5611,7 +5664,7 @@ summary:focus-visible,
     width: 38px;
     height: 5px;
     border-radius: 999px;
-    background: rgba(33, 28, 24, 0.22);
+    background: rgba(0, 0, 0, 0.22);
     margin: 8px auto 4px;
   }
   .shop-sheet-head {
@@ -5630,7 +5683,7 @@ summary:focus-visible,
     margin: 2px 0 0;
     font-family: var(--headline);
     font-size: 22px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.02em;
   }
   .shop-sheet-body {
@@ -5664,7 +5717,7 @@ summary:focus-visible,
   gap: 14px;
 }
 .story-mosaic > div {
-  border-radius: 24px;
+  border-radius: var(--r-card);
   overflow: hidden;
 }
 .story-mosaic-lead {
@@ -5703,7 +5756,7 @@ summary:focus-visible,
   font-size: 48px;
   line-height: 1;
   letter-spacing: -0.01em;
-  color: var(--gold-soft);
+  color: var(--green-mint);
 }
 .timeline-dot {
   display: grid;
@@ -5715,10 +5768,9 @@ summary:focus-visible,
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  /* Brass on the green ground: --gold (#765923) is the text gold for light
-     grounds and turns to mud here. */
-  background: var(--gold-soft);
-  box-shadow: 0 0 0 5px rgba(232, 200, 119, 0.16);
+  /* Mint on the house band: brass is kept for the reward moments. */
+  background: var(--green-mint);
+  box-shadow: 0 0 0 5px rgba(213, 232, 223, 0.16);
 }
 /* The year over its drawing (story-page.tsx TIMELINE_ART); beside it on a
    phone, where the row is one column. */
@@ -5776,7 +5828,7 @@ summary:focus-visible,
   background: var(--glass);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
 }
 /* Each principle's line icon, in the corner across from its number. */
 .value-icon {
@@ -5800,13 +5852,13 @@ summary:focus-visible,
   height: 32px;
   padding: 0 12px;
   border-radius: var(--r-pill);
-  background: rgba(232, 200, 119, 0.28);
+  background: rgba(203, 162, 88, 0.28);
   font-family: var(--display);
   font-weight: 600;
   font-size: 15px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--gold);
+  color: var(--green);
   margin-bottom: 20px;
 }
 .value-card p {
@@ -5853,7 +5905,7 @@ summary:focus-visible,
   place-items: center;
   border-radius: var(--r-pill);
   background: var(--glass-raised);
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
   font: 600 12px/1 var(--sans);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
@@ -5941,7 +5993,7 @@ summary:focus-visible,
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
 }
 .visit-map-cta p {
   margin: 0;
@@ -6025,7 +6077,7 @@ summary:focus-visible,
   background: var(--glass);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-panel);
-  box-shadow: var(--rim);
+  box-shadow: none;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -6060,13 +6112,13 @@ summary:focus-visible,
   background: var(--glass);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-panel);
-  box-shadow: var(--rim);
+  box-shadow: none;
 }
 .visit-today-hours {
   margin-top: 4px;
   font-family: var(--headline);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .visit-today-card p {
@@ -6331,7 +6383,7 @@ select {
   .newsletter-form {
     flex-direction: column;
     padding: 8px;
-    border-radius: 18px;
+    border-radius: var(--r-card);
     gap: 8px;
   }
   .newsletter-form input {
@@ -6429,7 +6481,7 @@ select {
   flex-direction: column;
   background: var(--surface-sheet);
   border: 1px solid var(--ink-line);
-  border-radius: 28px;
+  border-radius: var(--r-card);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   transform: translateX(calc(100% + 24px));
@@ -6464,7 +6516,7 @@ select {
   margin: 2px 0 0;
   font-family: var(--headline);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .cart-drawer-body {
@@ -6495,7 +6547,7 @@ select {
 .cart-item-thumb {
   width: 72px;
   height: 72px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   overflow: hidden;
 }
 .cart-item-name {
@@ -6553,14 +6605,14 @@ select {
   margin: 0 auto 20px;
   color: var(--ink-mute);
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
 }
 .cart-empty-title {
   margin: 0 0 22px;
   font-family: var(--headline);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .cart-drawer-foot {
@@ -6598,7 +6650,7 @@ select {
     bottom: 0;
     width: 100%;
     max-height: 90vh;
-    border-radius: 28px 28px 0 0;
+    border-radius: 12px 12px 0 0;
     border-bottom: 0;
     transform: translateY(101%);
   }
@@ -6607,7 +6659,7 @@ select {
     width: 38px;
     height: 5px;
     border-radius: 999px;
-    background: rgba(33, 28, 24, 0.22);
+    background: rgba(0, 0, 0, 0.22);
     margin: 8px auto 0;
   }
   .cart-drawer-header {
@@ -6637,7 +6689,7 @@ select {
     grid-template-columns: 1fr !important;
     max-height: 92vh !important;
     overflow-y: auto !important;
-    border-radius: 28px 28px 0 0 !important;
+    border-radius: 12px 12px 0 0 !important;
   }
   .product-modal > div:first-of-type {
     aspect-ratio: auto !important;
@@ -6861,7 +6913,7 @@ select {
   background: var(--glass-raised);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-panel);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
   padding: 8px;
 }
 .account-nav-list {
@@ -6885,11 +6937,11 @@ select {
 /* The decided row, in the house green - the app's selected tab. */
 .account-nav-link[data-active="true"] {
   background: var(--green);
-  color: #fbf8f4;
+  color: #ffffff;
   box-shadow: var(--shadow-lift);
 }
 .account-nav-link[data-active="true"] .account-nav-link-hint {
-  color: rgba(251, 248, 244, 0.78);
+  color: rgba(255, 255, 255, 0.78);
 }
 .account-nav-link-label {
   display: block;
@@ -6924,7 +6976,7 @@ select {
   background: var(--glass-raised);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-panel);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
   padding: 14px 16px;
 }
 .account-topnav-list {
@@ -6962,7 +7014,7 @@ select {
 .account-topnav-link[data-active="true"] {
   background: var(--green);
   border-color: var(--green);
-  color: #fbf8f4;
+  color: #ffffff;
 }
 .account-topnav-link:focus-visible {
   outline: none;
@@ -7025,7 +7077,7 @@ select {
 .account-empty-icon {
   font-family: var(--script);
   font-size: 48px;
-  color: var(--gold);
+  color: var(--green);
   margin-bottom: 14px;
 }
 /* The list's own drawing (EmptyState `art`). The karaoke room is a picture,
@@ -7038,7 +7090,7 @@ select {
   margin: 0 auto 14px;
 }
 .account-empty-art.is-picture {
-  border-radius: 28px;
+  border-radius: var(--r-card);
   object-fit: cover;
   box-shadow: 0 0 0 1px var(--ink-line-strong);
 }
@@ -7219,7 +7271,7 @@ select {
 .account-field input:focus,
 .account-field textarea:focus,
 .account-field select:focus {
-  outline: 2px solid var(--gold-soft);
+  outline: 2px solid var(--green-cta);
   outline-offset: 1px;
 }
 .account-readonly {
@@ -7291,7 +7343,7 @@ select {
   border: 1px dashed var(--gold);
   border-radius: var(--r-md);
   padding: 18px 20px;
-  background: linear-gradient(135deg, var(--bg-cream), var(--bg-warm));
+  background: var(--bg-cream);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -7411,7 +7463,7 @@ select {
   background: var(--glass-raised);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-card);
-  box-shadow: var(--rim), var(--shadow-chrome);
+  box-shadow: var(--shadow-chrome);
 }
 .order-done-head {
   text-align: center;
@@ -7424,13 +7476,13 @@ select {
   place-items: center;
   border-radius: 50%;
   background: var(--green);
-  color: #fbf8f4;
+  color: #ffffff;
   box-shadow: 0 0 0 8px var(--green-mist);
 }
 .order-done-badge.is-pending {
   background: var(--gold-soft);
   color: var(--gold-ink);
-  box-shadow: 0 0 0 8px rgba(232, 200, 119, 0.28);
+  box-shadow: 0 0 0 8px rgba(203, 162, 88, 0.28);
 }
 .order-done-badge svg {
   width: 30px;
@@ -7451,10 +7503,10 @@ select {
 .order-done-title {
   margin: 10px 0 0;
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(30px, 4.6vw, 42px);
   line-height: 1.08;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 .order-done-lede {
@@ -7571,7 +7623,7 @@ select {
   background: var(--glass-raised);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-card);
-  box-shadow: var(--rim), var(--shadow-chrome);
+  box-shadow: var(--shadow-chrome);
 }
 .checkout-gate .laf-mark {
   --laf-h: 30px;
@@ -7581,8 +7633,8 @@ select {
   margin: 0 0 10px;
   font-family: var(--headline);
   font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.15;
 }
 .checkout-gate-lede {
@@ -7655,7 +7707,7 @@ select {
 }
 .checkout-empty-mark {
   font-family: var(--script);
-  color: var(--gold);
+  color: var(--green);
   font-size: 56px;
   line-height: 1;
   margin-bottom: 14px;
@@ -7704,7 +7756,7 @@ select {
   font-size: 14px;
   font-weight: 600;
   background: var(--green);
-  color: #fbf8f4;
+  color: #ffffff;
   border: 0;
   cursor: pointer;
   transition: transform 0.12s var(--ease-out);
@@ -7718,7 +7770,7 @@ select {
   transform: scale(var(--press-scale));
 }
 .checkout-promo button:hover {
-  background: var(--bg-espresso);
+  background: var(--green-cta);
 }
 .checkout-promo-msg {
   grid-column: 1 / -1;
@@ -7822,9 +7874,9 @@ select {
   height: auto;
   aspect-ratio: 3 / 2;
   object-fit: cover;
-  border-radius: 18px;
+  border-radius: var(--r-card);
   background: var(--bg-warm);
-  box-shadow: 0 18px 40px rgba(59, 42, 30, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
 }
 .guide-hero figcaption {
   margin-top: 10px;
@@ -7911,7 +7963,7 @@ select {
 }
 .guide-bullets li::marker,
 .guide-ordered li::marker {
-  color: var(--gold);
+  color: var(--green);
   font-weight: 600;
 }
 
@@ -7953,7 +8005,7 @@ select {
   margin: clamp(36px, 5vw, 52px) 0 0;
   padding: clamp(22px, 3.4vw, 32px);
   border: 1px solid var(--ink-line);
-  border-radius: 18px;
+  border-radius: var(--r-card);
   background: var(--bg-warm);
   scroll-margin-top: 96px;
 }
@@ -8046,7 +8098,7 @@ select {
   transition: border-color 0.2s ease;
 }
 .guide-related a:hover {
-  border-color: var(--gold);
+  border-color: var(--green);
 }
 .guide-related-title {
   font-family: var(--serif);
@@ -8100,7 +8152,7 @@ select {
     transform 0.2s ease;
 }
 .guide-card:hover {
-  border-color: var(--gold);
+  border-color: var(--green);
   transform: translateY(-2px);
 }
 /* The guide's photograph on its hub card: a 3:2 window into the card's top. */
@@ -8312,7 +8364,7 @@ select {
   padding-left: 6px;
 }
 .legal-bullets li::marker {
-  color: var(--gold);
+  color: var(--green);
   content: "■  ";
   font-size: 8px;
 }
@@ -8665,8 +8717,8 @@ select {
   padding: 5px 14px 5px 5px;
   border-radius: var(--r-pill);
   background: var(--glass-raised);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
   font-size: 13.5px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -8676,7 +8728,7 @@ select {
   padding: 3px 10px;
   border-radius: var(--r-pill);
   background: var(--ink);
-  color: #fbf8f4;
+  color: #ffffff;
   font-family: var(--display);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -8685,9 +8737,9 @@ select {
   margin: 18px 0 0;
   font-family: var(--headline);
   font-size: clamp(36px, 5.4vw, 68px);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.04;
-  letter-spacing: -0.032em;
+  letter-spacing: -0.02em;
   color: var(--ink);
   text-wrap: balance;
   animation: nf-rise 0.7s var(--ease-spring) 0.3s both;
@@ -8739,8 +8791,8 @@ select {
   padding: 14px 16px;
   border-radius: var(--r-panel);
   background: var(--glass);
-  border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-glass);
+  border: 0;
+  box-shadow: var(--shadow-card);
   transition:
     background-color 0.2s,
     box-shadow 0.2s,
@@ -8748,7 +8800,7 @@ select {
 }
 .nf-stop:hover {
   background: #fff;
-  box-shadow: var(--rim), var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 .nf-stop:active {
   transform: scale(var(--press-scale));
@@ -8758,8 +8810,8 @@ select {
   height: 44px;
   border-radius: 50%;
   box-shadow:
-    inset 0 -2px 4px rgba(59, 42, 30, 0.08),
-    0 2px 6px rgba(59, 42, 30, 0.1);
+    inset 0 -2px 4px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.1);
 }
 .nf-stop-text {
   display: flex;
@@ -8827,7 +8879,7 @@ select {
   aspect-ratio: 21 / 8;
   max-height: 540px;
   min-height: 380px;
-  border-radius: 36px;
+  border-radius: var(--r-card);
   background: var(--bg-warm);
   overflow: hidden;
   isolation: isolate;
@@ -8837,7 +8889,7 @@ select {
   .shop-hero-slider {
     aspect-ratio: 4 / 4.6;
     max-height: 560px;
-    border-radius: 28px;
+    border-radius: var(--r-card);
   }
 }
 
@@ -8893,15 +8945,15 @@ select {
   border: 1px solid rgba(255, 255, 255, 0.28);
 }
 .shop-hero-slide[data-theme="dark"] .shop-hero-eyebrow {
-  background: rgba(59, 42, 30, 0.08);
-  border-color: rgba(59, 42, 30, 0.16);
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.16);
 }
 .shop-hero-title {
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(34px, 5.6vw, 68px);
   line-height: 1.04;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -8993,8 +9045,8 @@ select {
 }
 .shop-hero-dot[data-active="true"] {
   width: 26px;
-  background: var(--gold-soft);
-  border-color: var(--gold-soft);
+  background: #ffffff;
+  border-color: #ffffff;
   border-radius: 999px;
 }
 
@@ -9057,7 +9109,7 @@ select {
 .cart-freeship {
   margin: 0 16px 10px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: var(--bg-cream);
   border: 1px solid var(--ink-line);
 }
@@ -9067,7 +9119,7 @@ select {
   margin-bottom: 8px;
 }
 .cart-freeship-text strong {
-  color: var(--gold);
+  color: var(--green);
   font-weight: 700;
 }
 /* The app's progress ramp: dark brass into deep brass on a raised track
@@ -9179,7 +9231,7 @@ select {
   font-weight: 500;
   color: var(--ink-soft);
   background: var(--glass-control);
-  box-shadow: var(--rim);
+  box-shadow: none;
   transition:
     background-color 0.2s,
     border-color 0.2s,
@@ -9197,10 +9249,10 @@ select {
 }
 .variant-chip[data-active="true"] {
   background: #fff;
-  border-color: rgba(33, 28, 24, 0.22);
+  border-color: rgba(0, 0, 0, 0.22);
   color: var(--ink);
   font-weight: 600;
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
 .variant-chip:disabled {
   opacity: 0.45;
@@ -9288,10 +9340,10 @@ select {
 .pdp-gallery-main {
   position: relative;
   aspect-ratio: 4/4.4;
-  border-radius: 32px;
+  border-radius: var(--r-card);
   overflow: hidden;
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-md);
+  box-shadow: var(--shadow-md);
 }
 .pdp-save-badge {
   position: absolute;
@@ -9314,7 +9366,7 @@ select {
 .pdp-thumb {
   width: 72px;
   height: 80px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   overflow: hidden;
   border: 2px solid transparent;
   box-shadow: var(--shadow-glass);
@@ -9328,10 +9380,10 @@ select {
 }
 .pdp-title {
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(32px, 4.4vw, 52px);
   line-height: 1.05;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   margin: 12px 0 0;
   text-wrap: balance;
 }
@@ -9344,7 +9396,7 @@ select {
 .pdp-price {
   font-family: var(--headline);
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .pdp-compare {
@@ -9428,7 +9480,7 @@ select {
   border-radius: var(--r-panel);
   background: var(--glass);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
 }
 .pdp-trust li {
   display: flex;
@@ -9546,7 +9598,7 @@ select {
   position: fixed;
   inset: 0;
   z-index: 95;
-  background: rgba(33, 28, 24, 0.28);
+  background: rgba(0, 0, 0, 0.28);
   -webkit-backdrop-filter: blur(6px) saturate(120%);
   backdrop-filter: blur(6px) saturate(120%);
   animation: search-scrim-in 0.25s var(--ease-out);
@@ -9569,7 +9621,7 @@ select {
   border-radius: 0 0 32px 32px;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 40px 80px -30px rgba(59, 42, 30, 0.35);
+    0 40px 80px -30px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   outline: none;
   transform-origin: top center;
@@ -9691,7 +9743,7 @@ select {
   color: var(--ink);
   background: var(--glass-control);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
 }
 .search-close:hover {
   background: #fff;
@@ -9711,7 +9763,7 @@ select {
   color: var(--ink-soft);
   background: var(--glass-disc);
   border: 1px solid var(--ink-line);
-  box-shadow: 0 1px 0 rgba(59, 42, 30, 0.08);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
 }
 
 .search-body {
@@ -9772,7 +9824,7 @@ select {
   color: var(--ink);
   background: #fff;
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
   transition:
     background-color 0.2s,
     border-color 0.2s,
@@ -9800,10 +9852,10 @@ select {
   align-content: start;
   gap: 10px;
   padding: 14px;
-  border-radius: 20px;
+  border-radius: var(--r-card);
   background: #fff;
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim);
+  box-shadow: none;
   color: var(--ink);
   transition:
     transform 0.3s var(--ease-spring),
@@ -9811,7 +9863,7 @@ select {
 }
 .search-quick-item:hover {
   transform: translateY(-2px);
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
 .search-quick-icon {
   width: 38px;
@@ -9874,19 +9926,19 @@ select {
   gap: 14px;
   width: 100%;
   padding: 9px 12px;
-  border-radius: 18px;
+  border-radius: var(--r-card);
   text-align: left;
   color: inherit;
   transition: background-color 0.15s;
 }
 .search-result.is-active {
   background: #fff;
-  box-shadow: var(--rim), var(--shadow-lift);
+  box-shadow: var(--shadow-lift);
 }
 .search-result-thumb {
   width: 52px;
   height: 52px;
-  border-radius: 15px;
+  border-radius: var(--r-md);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -9915,7 +9967,7 @@ select {
 .search-result-name mark {
   background: none;
   color: var(--green);
-  box-shadow: inset 0 -0.34em 0 rgba(232, 200, 119, 0.55);
+  box-shadow: inset 0 -0.34em 0 rgba(203, 162, 88, 0.55);
   border-radius: 2px;
 }
 .search-result-sub {
@@ -9966,7 +10018,7 @@ select {
   margin: 0;
   font-family: var(--headline);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
@@ -10075,12 +10127,12 @@ select {
    ───────────────────────────────────────────────────────────── */
 .pour-module {
   border: 1px solid var(--ink-line);
-  border-radius: 32px;
+  border-radius: var(--r-card);
   overflow: hidden;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   background: var(--glass);
-  box-shadow: var(--rim), var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
 }
 .pour-module-copy {
   padding: clamp(24px, 3.4vw, 52px);
@@ -10092,9 +10144,9 @@ select {
   margin: 0;
   font-family: var(--headline);
   font-size: clamp(26px, 2.8vw, 38px);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.02em;
 }
 .pour-module-copy p {
   margin: 0;
@@ -10117,7 +10169,7 @@ select {
       rgba(255, 207, 168, 0.25) 45%,
       rgba(253, 230, 213, 0) 80%
     ),
-    linear-gradient(180deg, #fde6d5 0%, #f7f3ed 100%);
+    linear-gradient(180deg, #fde6d5 0%, #f2f0eb 100%);
 }
 .pour-module-stage {
   position: absolute;
@@ -10173,7 +10225,7 @@ select {
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   border: 1px solid var(--ink-line);
-  box-shadow: var(--rim), var(--shadow-chrome);
+  box-shadow: var(--shadow-chrome);
 }
 /* Server-rendered banner, before hydration, for a visitor who already
    decided (layout.tsx CONSENT_SEEN): hidden before it can paint. */
@@ -10229,7 +10281,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   max-height: min(84vh, 720px);
   overflow-y: auto;
   padding: 26px;
-  border-radius: 20px;
+  border-radius: var(--r-card);
   background: var(--bg-cream);
   border: 1px solid var(--ink-line-strong);
   box-shadow: 0 24px 64px rgba(18, 13, 8, 0.4);
@@ -10407,7 +10459,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   background: var(--glass-raised);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-card);
-  box-shadow: var(--rim), var(--shadow-chrome);
+  box-shadow: var(--shadow-chrome);
 }
 .auth-card--wide {
   max-width: 500px;
@@ -10462,10 +10514,10 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .auth-title {
   margin: 0 0 10px;
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(30px, 4.4vw, 38px);
   line-height: 1.08;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 .auth-lede {
   color: var(--ink-soft);
@@ -10638,10 +10690,10 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .newsletter-consent input {
   flex: 0 0 auto;
   margin-top: 2px;
-  accent-color: var(--gold);
+  accent-color: var(--green);
 }
 .newsletter-consent input:focus-visible {
-  outline: 2px solid var(--gold-soft);
+  outline: 2px solid #ffffff;
   outline-offset: 2px;
 }
 
@@ -10698,7 +10750,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   margin: 0;
   font-family: var(--headline);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.01em;
   scroll-margin-top: calc(var(--header-h) + 12px);
@@ -10713,7 +10765,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--bg-espresso);
+  background: var(--green-cta);
   color: #fff;
   font-family: var(--display);
   font-size: 15px;
@@ -10758,12 +10810,12 @@ html[data-consent="set"] .cookie-banner[data-pending] {
     border-color 0.2s;
 }
 .karaoke-day:hover {
-  border-color: var(--bg-espresso);
+  border-color: var(--green-cta);
   color: var(--bg-espresso);
 }
 .karaoke-day.on {
-  background: var(--bg-espresso);
-  border-color: var(--bg-espresso);
+  background: var(--green-cta);
+  border-color: var(--green-cta);
   color: #fff;
 }
 .karaoke-hours {
@@ -10787,11 +10839,11 @@ html[data-consent="set"] .cookie-banner[data-pending] {
     border-color 0.2s;
 }
 .karaoke-hour:hover:not(.taken) {
-  border-color: var(--bg-espresso);
+  border-color: var(--green-cta);
 }
 .karaoke-hour.on {
-  background: var(--bg-espresso);
-  border-color: var(--bg-espresso);
+  background: var(--green-cta);
+  border-color: var(--green-cta);
   color: #fff;
 }
 /* A booked hour is out, and says so rather than just looking dimmer. */
@@ -10840,7 +10892,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   background: var(--bg-warm);
 }
 .karaoke-step-up {
-  background: var(--bg-espresso);
+  background: var(--green-cta);
   color: #fff;
 }
 /* Contact block: who to reach about the booking, and the permission. */
@@ -11003,7 +11055,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .karaoke-total-n {
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.035em;
 }
 /* "%20 KDV dahil (KDV 166,67₺)": the rate and the KDV inside the total,
@@ -11062,7 +11114,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   margin: 0 0 10px;
   font-family: var(--headline);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
 }
 .karaoke-preinfo ul {
@@ -11254,7 +11306,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .kw-paybox-total strong {
   font-family: var(--headline);
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .kw-paybox-note {
@@ -11394,10 +11446,10 @@ button.kw-progress-cell:hover .kw-progress-label {
     min-height: 64px;
     padding: 8px 8px 8px 18px;
     border-radius: 32px;
-    background: rgba(251, 248, 244, 0.86);
+    background: rgba(255, 255, 255, 0.86);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
-    border: 1px solid rgba(33, 28, 24, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.9),
       var(--shadow-chrome);
@@ -11406,7 +11458,7 @@ button.kw-progress-cell:hover .kw-progress-label {
     (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
   ) {
     .karaoke-page[data-wizard="on"] .kw-nav {
-      background: rgba(251, 248, 244, 0.97);
+      background: rgba(255, 255, 255, 0.97);
     }
   }
   .karaoke-page[data-wizard="on"] .kw-nav-total {
@@ -11417,7 +11469,7 @@ button.kw-progress-cell:hover .kw-progress-label {
   .karaoke-page[data-wizard="on"] .kw-nav-total strong {
     font-family: var(--headline);
     font-size: 20px;
-    font-weight: 800;
+    font-weight: 600;
     line-height: 1.15;
   }
   .karaoke-page[data-wizard="on"] .kw-nav-total .kw-kdv {
@@ -11535,7 +11587,7 @@ button.kw-progress-cell:hover .kw-progress-label {
   .karaoke-link-art {
     order: -1;
     width: 120px;
-    border-radius: 20px;
+    border-radius: var(--r-card);
   }
 }
 .karaoke-link-page .karaoke-mine {
@@ -11571,7 +11623,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 .karaoke-mine-code {
   font-family: var(--headline);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 .karaoke-mine-grid {
@@ -11646,7 +11698,7 @@ button.kw-progress-cell:hover .kw-progress-label {
   margin: 0;
   font-family: var(--headline);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
 }
 /* The confirm and the way back: full tap targets on a phone. */
@@ -11790,7 +11842,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 .stamp-card-headline {
   margin-top: 16px;
   font-size: 21px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.025em;
 }
 .stamp-card-note {
@@ -11809,14 +11861,8 @@ button.kw-progress-cell:hover .kw-progress-label {
   margin-bottom: 18px;
   padding: 26px;
   border-radius: var(--r-card);
-  background:
-    radial-gradient(
-      120% 90% at 0% 0%,
-      rgba(255, 255, 255, 0.12) 0%,
-      rgba(255, 255, 255, 0) 55%
-    ),
-    linear-gradient(160deg, #9d2543 0%, #69172a 100%);
-  box-shadow: var(--shadow-md);
+  background: var(--green-house);
+  box-shadow: none;
   color: #fff;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -11832,8 +11878,8 @@ button.kw-progress-cell:hover .kw-progress-label {
   margin-top: 8px;
   font-family: var(--headline);
   font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.12;
 }
 .account-app-block p {
@@ -11870,7 +11916,7 @@ button.kw-progress-cell:hover .kw-progress-label {
   align-items: start;
 }
 .visit-open-photo {
-  border-radius: 24px;
+  border-radius: var(--r-card);
   overflow: hidden;
   min-height: 400px;
   position: relative;
@@ -11890,7 +11936,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 }
 .visit-facts-card {
   padding: 26px;
-  border-radius: 24px;
+  border-radius: var(--r-card);
   background: var(--bg-espresso);
   color: #fff;
   display: grid;
@@ -11904,7 +11950,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 }
 .visit-stats-card {
   padding: 26px;
-  border-radius: 24px;
+  border-radius: var(--r-card);
   border: 1px solid var(--ink-line);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -11912,7 +11958,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 }
 .visit-stat-n {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.035em;
   color: var(--bg-espresso);
 }
@@ -12133,7 +12179,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 .co-title {
   margin: 0;
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(26px, 3.2vw, 36px);
   line-height: 1.1;
   color: var(--ink);
@@ -12527,7 +12573,7 @@ button.co-steps-link {
 }
 .co-brief-total dd {
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 20px;
 }
 /* The KDV inside the total: one quiet line under it, never the headline. */
@@ -12557,7 +12603,7 @@ button.co-steps-link {
   border-radius: var(--r-lg);
   background: var(--bg);
   color: var(--ink);
-  box-shadow: 0 24px 64px rgba(59, 42, 30, 0.24);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24);
   overflow: hidden;
 }
 .co-docpanel[open] {
@@ -12929,7 +12975,7 @@ button.co-steps-link {
 }
 .co-paybar-total strong {
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 24px;
   color: var(--ink);
 }
@@ -13105,7 +13151,7 @@ button.co-steps-link {
 }
 .co-totals-total dd {
   font-family: var(--headline);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 24px;
   color: var(--ink);
 }
@@ -13178,7 +13224,7 @@ button.co-steps-link {
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
     background: var(--surface);
     border-top: 1px solid var(--ink-line);
-    box-shadow: 0 -8px 24px rgba(59, 42, 30, 0.08);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
   }
   .co-paybar-total strong {
     font-size: 20px;

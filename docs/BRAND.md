@@ -4,17 +4,66 @@
 > `src/app/globals.css` içindeki `:root` bloğudur. Buradaki her değer oradan
 > okunmuştur; ikisi çelişirse **globals.css doğrudur** ve bu belge güncellenir.
 >
-> **Kaynak: mobil uygulama.** 25 Eyl 2026 operatör talimatı: _"lafmobil
-> reposu mobil uygulamanın reposu ve tasarımı apple'a uygun, sen de site
-> tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
-> seçeneğiyle kapattı: site uygulamanın **bütün** paletini, iki yazı sesini
-> ve cam malzeme dilini aldı. Yazıda tek bir ayrışma var: 14 Eki 2026'dan
-> beri site başlıkları Gabarito'yla, gerisini Poppins'le yazar (§2). Değerler o gün `lafmobil/src/theme/tokens.ts`
-> (`porcelain`, DESIGN-GLASS §13) dosyasından okundu. Uygulama değişirse site
-> aynı PR serisinde izler; değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`.
+> **Kafe-perakende düzeni (5 Kas 2026, operatör).** Talimat: _"sitenin
+> görselini ... starbucks tarzı istiyorum ... ama panel değil"_. Site bir
+> kahve perakende vitrininin **yapısını** aldı: sıcak krem zemin, beyaz kart
+> ve fısıltı gölgesi, her birinin tek bir işi olan **dört yeşil**, sayfayı
+> iki uçtan kapatan koyu yeşil bant ve footer, yalnız ödül anlarında pirinç,
+> basınca 0.95'e inen tam hap düğmeler, tek yazı sesi. **Renkler kopyalanmadı,
+> logo yeşilinden türetildi** (başka markanın yeşili `tests/brand-theme.test.ts`
+> tarafından reddedilir). Bu, lafmobil'in porselen paletinden (karar 31 c,
+> 25 Eyl 2026) **bilinçli bir ayrışmadır** ve operatör kararıdır; uygulama
+> paleti değişirse site artık kendiliğinden izlemez. Panel (`/admin`) bu
+> değişiklikten etkilenmez. Güncel değerler aşağıdaki §0'dadır; §1-§4'te
+> onlarla çelişen eski porselen değerleri tarihçedir.
 >
 > Nöbetçi testler: `tests/brand-theme.test.ts` (paletin kaymasını engeller) ve
 > `tests/contrast.test.ts` (okunabilirliği engeller). Önceki (Köşk) palet §9'da.
+
+---
+
+## 0. Kafe-perakende düzeni (5 Kas 2026) - güncel değerler
+
+| Token                  | Değer                 | Rol                                                                 |
+| ---------------------- | --------------------- | ------------------------------------------------------------------- |
+| `--bg`                 | `#f2f0eb`             | Sıcak krem sayfa zemini (saf beyaz zemin yok).                      |
+| `--bg-stone`           | `#edebe9`             | Seramik: bölge ayırıcı, çökük yüzey.                                |
+| `--bg-warm`            | `#f9f8f6`             | Beyaza yakın içerik bandı.                                          |
+| `--bg-cream`           | `#faf6ee`             | Ödül bölümlerinin altın-krem yıkaması.                              |
+| `--surface`            | `#ffffff`             | Kart, modal, başlık çubuğu.                                         |
+| `--green-brand`        | `#1d6d56`             | Logo yeşili: başlık, yeşil metin, bağlantı, üst etiket (`--green`). |
+| `--green-cta`          | `#1f7a5c`             | Her dolu eylem düğmesi ve yüzen sipariş düğmesi (beyaz 5.25:1).     |
+| `--green-house`        | `#173f35`             | Koyu bant: özellik bantları, footer, ödül paneli (`--bg-espresso`). |
+| `--green-uplift`       | `#2a5a4d`             | Koyu bandın içindeki kart ve süsler.                                |
+| `--green-light`        | `#d5e8df`             | Açık nane yıkaması.                                                 |
+| `--gold-soft`          | `#cba258`             | **Yalnız ödül**: damga, kademe, ödül düğmesi.                       |
+| `--ink` / `--ink-soft` | `#211f1d` / `#5c5955` | %87 ve %58 siyahın krem üstündeki karşılığı; saf siyah metin yok.   |
+| `--rose`               | `#c82014`             | Hata ve "son adet".                                                 |
+| `--accent`             | `#9d2543`             | Logonun bordosu, ekran başına bir imza; yeşille üst üste yazılmaz.  |
+
+- **Yazı:** tek ses Poppins (`--headline` de ona çözülür; Gabarito
+  emekli). Hiyerarşi ağırlık ve renkle: başlıklar 600, ana başlık yeşil;
+  izleme `--tracking: -0.01em`; gövde 16px / 1.5. Ödül bloğunun başlığı tek
+  bağlam değişimidir: `--reward-serif` (yalnız sistem serifleri, indirilen
+  yazı tipi yok); alışveriş akışında serif yok.
+- **Düğme:** 50px hap, 1px kendi renginde kenar, gölgesiz, basınca
+  `scale(0.95)`, `all 0.2s ease`. Birincil dolu (CTA yeşil), birincil
+  çerçeveli (yeşil kenar), siyah dolu (sepet, dönüşüm), koyu çerçeveli
+  (ikincil), koyu bantta beyaz dolu + beyaz çerçeveli.
+- **Yüzey:** kart 12px, alan 4px, gölge katmanlı ve siyah-alfa
+  (`--shadow-card`, `--shadow-nav`, `--shadow-frap`); cam ve bulanıklık
+  yok (`--glass-blur: none`), degrade dolgu yok - yüzeyler düz renk blokları.
+  Ürün görselinin arkası sahnenin en açık tonunda düz bir blok
+  (`sceneBackground`), hero'da içecek kendi renginde bir blokta durur.
+- **Başlık çubuğu:** düz beyaz, üç katmanlı gölge, yükseklik 64 · 72 · 83 ·
+  99 px, bağlantılar logonun yanında sola dizili, etkin bağlantının altında
+  CTA yeşili çubuk, sağda çerçeveli hesap düğmesi ve siyah sepet hapı.
+- **Yüzen sipariş düğmesi** (`.frap`): sağ altta 56px yeşil daire, sepeti
+  açar, sayfanın en yüksek gölgesi; telefonda (sekme çubuğu sepeti taşır) ve
+  `/odeme`'de yok.
+- **Kapsam dışı (eski palette kaldı):** e-posta şablonları, bağlantı
+  önizleme kartları, JSON-LD ikonları ve PayNkolay köprüsü - logo yeşili
+  `#1d6d56` ortak olduğu için marka tutarlı kalır; taşınmaları ayrı iştir.
 
 ---
 
@@ -532,21 +581,22 @@ yazısı ve bu belgedeki kurallar değişmedi.
 
 ## 9. Geçmiş
 
-| Tarih       | Karar                                                                                                                                                                                                                                  |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2 Eyl 2026  | Site paleti uygulamanınkine eşitlendi.                                                                                                                                                                                                 |
-| 5 Eyl 2026  | Köşk yeniden tasarımı: beyaz zemin, ev yeşili `#143d2b`.                                                                                                                                                                               |
-| 6 Eyl 2026  | Referans tasarım: Montserrat, 8px dikdörtgen düğme.                                                                                                                                                                                    |
-| 7 Eyl 2026  | Tricolore: vurgu bordo `#84233c` / `#4a0f1e` / `#f6e9ec`.                                                                                                                                                                              |
-| 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                                                                                                |
-| 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af.                                                                      |
-| 11 Eki 2026 | **Tek ses Poppins** (operatör): Inter kalktı, gövde de Poppins; 300-800 altı kesim, gösterim anlarında 800. Anasayfa: slayt başına kendi metni, manifesto bandı, canlı açık/kapalı, çizilen oklar. Dök oyunu Cormorant yerine Poppins. |
-| 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır. |
-| 17 Eki 2026 | **Çizimler ve karaoke** (operatör): anasayfada karaoke bandı ve dördüncü hero slaytı (mikrofon kesimi), sadakat bloğunda damga baskısı, fotoğrafı olmayan yerlere elle çizilmiş SVG'ler ve `<PageHero art>` (§6.1).                    |
-| 21 Eki 2026 | **Admin paneli AkmanOS** (operatör): panel lafmaliyet'in açık temasını ve Geist'i aldı (yukarıda "Admin paneli görünümü"); müşteri sitesinin paleti ve yazısı değişmedi. |
-| 21 Eki 2026 | **Admin paneli yumuşatıldı** (operatör, akşam): zinc yerine sıcak taş, sıcak siyah mürekkep, menü gruplarına beş pastel renk, etkin satır siyah değil grubunun rengi; müşteri sitesi değişmedi. |
-| 22 Eki 2026 | **Admin paneli Innex** (operatör: "İnnexe geç"): gri zemin üstünde iki beyaz kart, Inter, mavi birincil, sakin kenar çubuğu, Innex bileşenleri (`docs/ADMIN-INNEX.md`); AkmanOS teması lafmaliyet'te kaldı, müşteri sitesi değişmedi. |
-| 23 Eki 2026 | **Admin paneli Innex düzenleri** (operatör: "İnnex + diğer yerleri en profesyonel şekilde yap"): KPI şeridi ve referanslar, üç bölgeli sipariş, karaoke rezervasyonu ve müşteri sayfaları, tek satırlık liste araç çubuğu, karaoke takvimi ve doluluk, rapor dönem karşılaştırması ve grafiği değiştiren kart sekmeleri, ürün ve menü hızlı bakış çekmecesi, Faturalar sayacı ve satır adımı, izin tablosu ve son giriş; müşteri sitesi değişmedi. |
+| Tarih       | Karar                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2 Eyl 2026  | Site paleti uygulamanınkine eşitlendi.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 5 Eyl 2026  | Köşk yeniden tasarımı: beyaz zemin, ev yeşili `#143d2b`.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 6 Eyl 2026  | Referans tasarım: Montserrat, 8px dikdörtgen düğme.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 7 Eyl 2026  | Tricolore: vurgu bordo `#84233c` / `#4a0f1e` / `#f6e9ec`.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 23 Eyl 2026 | Uygulama kendi paletine geçti (karar 149); site almadı.                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 25 Eyl 2026 | **Site uygulamayı izler** (karar 31, seçenek c): porselen `#f7f3ed`, yeşil `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`, Poppins + Inter, cam, kapsül. Logo L'Af.                                                                                                                                                                                                                                                                                                         |
+| 11 Eki 2026 | **Tek ses Poppins** (operatör): Inter kalktı, gövde de Poppins; 300-800 altı kesim, gösterim anlarında 800. Anasayfa: slayt başına kendi metni, manifesto bandı, canlı açık/kapalı, çizilen oklar. Dök oyunu Cormorant yerine Poppins.                                                                                                                                                                                                                                    |
+| 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır.                                                                                                                                                                    |
+| 17 Eki 2026 | **Çizimler ve karaoke** (operatör): anasayfada karaoke bandı ve dördüncü hero slaytı (mikrofon kesimi), sadakat bloğunda damga baskısı, fotoğrafı olmayan yerlere elle çizilmiş SVG'ler ve `<PageHero art>` (§6.1).                                                                                                                                                                                                                                                       |
+| 21 Eki 2026 | **Admin paneli AkmanOS** (operatör): panel lafmaliyet'in açık temasını ve Geist'i aldı (yukarıda "Admin paneli görünümü"); müşteri sitesinin paleti ve yazısı değişmedi.                                                                                                                                                                                                                                                                                                  |
+| 21 Eki 2026 | **Admin paneli yumuşatıldı** (operatör, akşam): zinc yerine sıcak taş, sıcak siyah mürekkep, menü gruplarına beş pastel renk, etkin satır siyah değil grubunun rengi; müşteri sitesi değişmedi.                                                                                                                                                                                                                                                                           |
+| 22 Eki 2026 | **Admin paneli Innex** (operatör: "İnnexe geç"): gri zemin üstünde iki beyaz kart, Inter, mavi birincil, sakin kenar çubuğu, Innex bileşenleri (`docs/ADMIN-INNEX.md`); AkmanOS teması lafmaliyet'te kaldı, müşteri sitesi değişmedi.                                                                                                                                                                                                                                     |
+| 23 Eki 2026 | **Admin paneli Innex düzenleri** (operatör: "İnnex + diğer yerleri en profesyonel şekilde yap"): KPI şeridi ve referanslar, üç bölgeli sipariş, karaoke rezervasyonu ve müşteri sayfaları, tek satırlık liste araç çubuğu, karaoke takvimi ve doluluk, rapor dönem karşılaştırması ve grafiği değiştiren kart sekmeleri, ürün ve menü hızlı bakış çekmecesi, Faturalar sayacı ve satır adımı, izin tablosu ve son giriş; müşteri sitesi değişmedi.                        |
+| 5 Kas 2026  | **Kafe-perakende düzeni** (operatör: "starbucks tarzı istiyorum ... ama panel değil"): krem zemin `#f2f0eb`, logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56`, cta `#1f7a5c`, house `#173f35`, uplift `#2a5a4d`), pirinç `#cba258` yalnız ödülde, tek ses Poppins (Gabarito emekli), 12px kart, katmanlı siyah-alfa gölge, cam ve degrade yok, 0.95 basış, yüzen sipariş düğmesi, koyu yeşil footer. lafmobil porseleninden bilinçli ayrışma (§0); panel değişmedi. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

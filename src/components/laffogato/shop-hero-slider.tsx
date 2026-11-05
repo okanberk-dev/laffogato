@@ -184,14 +184,18 @@ export function Slide({
     ? isLight
       ? "linear-gradient(to right, rgba(12,59,45,0.5), rgba(12,59,45,0.22) 60%, rgba(12,59,45,0.5))"
       : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
-    : isLight
-      ? "linear-gradient(135deg, var(--brand) 0%, var(--bg-espresso-deep) 100%)"
-      : "linear-gradient(135deg, #f3f5f2 0%, #e7eae7 100%)";
+    : // No photo: a solid colour block - the house green band, or the
+      // ceramic cream (5 Kas 2026: colour-block, no gradient fills).
+      isLight
+      ? "var(--green-house)"
+      : "var(--bg-stone)";
 
   const words = slide.title.trim().split(/\s+/);
   const lead = words.slice(0, -1).join(" ");
   const accent = words.length > 1 ? words[words.length - 1] : null;
-  const accentColor = isLight ? "var(--gold-soft)" : "var(--gold-deep)";
+  // Brass is kept for the reward moments, so the accent word is the mint on
+  // the green band and the brand green on the light one.
+  const accentColor = isLight ? "var(--green-mint)" : "var(--green)";
 
   return (
     <article

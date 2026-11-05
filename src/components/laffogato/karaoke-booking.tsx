@@ -691,7 +691,7 @@ export function KaraokeBooking({
       )}
       <button
         type="submit"
-        className="btn btn-gold karaoke-pay"
+        className="btn btn-primary karaoke-pay"
         // `state.checkout`: the booking exists and the browser is on its way
         // to the card page; a second press would book the hour again.
         disabled={!selectionValid || pending || !!state.checkout}
@@ -1121,7 +1121,7 @@ export function KaraokeBooking({
                   </p>
                   <a
                     href={`/uye/giris?next=${encodeURIComponent(backHere)}`}
-                    className="btn btn-gold"
+                    className="btn btn-primary"
                   >
                     Giriş yap ve rezerve et
                   </a>

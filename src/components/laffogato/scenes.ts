@@ -60,33 +60,10 @@ export function sceneForHue(hue: string | undefined | null): SceneKey {
 }
 
 /**
- * The halo as a CSS background, over the porcelain ground: a soft radial
- * core high in the frame (where the product's body sits), its ring, and the
- * floor band the product stands on. Alphas follow the app's `lit` strength
- * (0.45) for the core so small text on the card's glass keeps its contrast.
+ * The product's backdrop as a CSS background: a flat colour block in the
+ * scene's palest tone - clean product photography on a solid wash, never a
+ * glow (the café-retail system is colour-block throughout, 5 Kas 2026).
  */
-export function sceneBackground(key: SceneKey, ground = "#f7f3ed"): string {
-  const s = SCENES[key];
-  const layers = [
-    `radial-gradient(60% 55% at 50% 40%, ${hex(s.core, 0.62)} 0%, ${hex(s.mid, 0.5)} 42%, ${hex(s.edge, 0)} 78%)`,
-  ];
-  if (s.core2) {
-    layers.push(
-      `radial-gradient(38% 34% at 72% 30%, ${hex(s.core2, 0.55)} 0%, ${hex(s.core2, 0)} 100%)`,
-    );
-  }
-  layers.push(
-    `linear-gradient(to top, ${hex(s.floor, 0.85)} 0%, ${hex(s.floor, 0)} 34%)`,
-    `linear-gradient(180deg, ${s.edge} 0%, ${ground} 100%)`,
-  );
-  return layers.join(", ");
-}
-
-/** #rrggbb + alpha → rgba(). */
-function hex(color: string, alpha: number): string {
-  const h = color.replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+export function sceneBackground(key: SceneKey): string {
+  return SCENES[key].edge;
 }

@@ -48,7 +48,18 @@ const SITE_BORDO = ["#9D2543", "#520F1F", "#F9E6EA"] as const;
 const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /**
- * The site's palette is the app's porcelain, since 25 Eyl 2026.
+ * The site's palette is café retail, since 5 Kas 2026.
+ *
+ * Operator instruction, 5 Kas 2026: "sitenin görselini ... starbucks tarzı
+ * istiyorum ... ama panel değil". A warm cream canvas (#F2F0EB), white
+ * cards, a four-tier green system derived from the logo green (brand
+ * #1D6D56 for headings and green text, cta #1F7A5C for filled actions, house
+ * #173F35 for bands and the footer, uplift #2A5A4D for accents), brass
+ * (#CBA258) for the reward moments only, black-alpha layered shadows and a
+ * single Poppins voice. That diverges from lafmobil's porcelain (below) by
+ * the operator's decision, recorded in docs/BRAND.md.
+ *
+ * Before that:
  *
  * Operator instruction, 25 Eyl 2026: "lafmobil reposu mobil uygulamanın
  * reposu ve tasarımı apple'a uygun, sen de site tasarımını buna uygun olarak
@@ -72,12 +83,43 @@ const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
  * mail block below).
  * Contrast is a separate guard in contrast.test.ts.
  */
-describe("palette follows the app's porcelain", () => {
-  it("paints the app's structure green", () => {
+describe("palette is café retail on the logo's green", () => {
+  it("gives each of the four greens one role", () => {
+    // brand: headings, green text, the logo; cta: filled actions; house:
+    // the deep bands and the footer; uplift: accents inside the band.
     expect(css).toContain("--brand: #1d6d56");
-    expect(css).toContain("--bg-espresso: #1d6d56");
-    expect(css).toContain("--matcha: #1d6d56");
     expect(css).toContain("--green: #1d6d56");
+    expect(css).toContain("--matcha: #1d6d56");
+    expect(css).toContain("--green-brand: #1d6d56");
+    expect(css).toContain("--green-cta: #1f7a5c");
+    expect(css).toContain("--green-house: #173f35");
+    expect(css).toContain("--green-uplift: #2a5a4d");
+    expect(css).toContain("--bg-espresso: #173f35");
+    // The filled action is the CTA green, the footer the house green.
+    const rule = (selector: string) => {
+      const at = cssCode.indexOf(`\n${selector} {`);
+      expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
+      return cssCode.slice(at, cssCode.indexOf("\n}", at));
+    };
+    expect(rule(".btn-primary")).toContain("background: var(--green-cta);");
+    expect(rule(".footer")).toContain("background: var(--green-house);");
+  });
+
+  it("is colour-block: solid bands, layered shadows, pills that press to 0.95", () => {
+    expect(css).toContain("--press-scale: 0.95;");
+    expect(css).toContain("--r-card: 12px;");
+    expect(css).toContain("--r-btn: 50px;");
+    expect(css).toContain("--glass-blur: none;");
+    expect(css).toContain(
+      "--shadow-card: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.24);",
+    );
+    // The floating order button.
+    expect(cssCode).toMatch(
+      /\n\.frap \{[^}]*width: 56px;[^}]*background: var\(--green-cta\);/,
+    );
+    expect(cssCode).toMatch(
+      /\n\.frap \{[^}]*box-shadow: var\(--shadow-frap\);/,
+    );
   });
 
   it("uses the app's bordo as the accent", () => {
@@ -87,9 +129,9 @@ describe("palette follows the app's porcelain", () => {
   });
 
   it("keeps brass as a fill and a darker gold for text", () => {
-    // The app's brass (#E8C877) is a surface: ink sits on it, it never
-    // carries text on porcelain. goldFg #765923 is the text gold.
-    expect(css).toContain("--gold-soft: #e8c877");
+    // Brass (#CBA258) is the reward fill: ink sits on it, it never carries
+    // text on the canvas. #765923 is the text gold.
+    expect(css).toContain("--gold-soft: #cba258");
     expect(css).toContain("--gold: #765923");
   });
 
@@ -174,52 +216,56 @@ describe("palette follows the app's porcelain", () => {
     for (const hex of SITE_BORDO) expect(css).toContain(hex.toLowerCase());
   });
 
-  it("sits on the app's porcelain, with white kept for cards", () => {
-    expect(css).toContain("--bg: #f7f3ed");
-    expect(css).toContain("--bg-warm: #fbf8f4");
+  it("sits on a warm cream canvas, with white kept for cards", () => {
+    expect(css).toContain("--bg: #f2f0eb");
+    expect(css).toContain("--bg-stone: #edebe9");
     expect(css).toContain("--surface: #ffffff");
-    // The retired grounds: the app's old canvas and the heritage köşk cream.
+    // The retired grounds: the app's porcelain, its old canvas and the
+    // heritage köşk cream.
+    expect(cssCode).not.toContain("#f7f3ed");
     expect(css).not.toContain("#f9f8f7");
     expect(css).not.toContain("#f7f3ea");
   });
 
-  it("is not Starbucks' own green - the theme is derived, not copied", () => {
-    expect(css).not.toContain("#00754a");
-    expect(css).not.toContain("#005c3a");
+  it("is not Starbucks' own green - the style is borrowed, the colours derived", () => {
+    // The structure follows a coffee-retail flagship; the greens come from
+    // L'Affogato's logo, never from another brand's storefront.
+    for (const hex of ["#00754a", "#005c3a", "#006241", "#1e3932", "#2b5148"]) {
+      expect(css.toLowerCase(), `${hex} is someone else's green`).not.toContain(
+        hex,
+      );
+    }
   });
 
-  it("tints its shadows with the app's warm earth", () => {
-    // lafmobil shadows are #3B2A1E (59,42,30) at no more than 12 %. Every
-    // earlier shadow colour - the espresso brown, the app's older dark green
-    // and the Köşk house green - is gone.
-    expect(css).toContain("rgba(59, 42, 30,");
+  it("layers black-alpha shadows, never the retired tints", () => {
+    // Two or three low-alpha black shadows per elevation. Every earlier
+    // shadow colour - the app's warm earth, the espresso brown, the app's
+    // older dark green and the Köşk house green - is gone.
+    expect(cssCode).toContain("rgba(0, 0, 0, 0.24)");
+    expect(cssCode).not.toContain("rgba(59, 42, 30,");
     expect(css).not.toContain("rgba(20, 61, 43,");
     expect(css).not.toContain("rgba(74, 52, 22,");
     expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("speaks in two voices - Poppins reads, Gabarito heads - and no retired one", () => {
-    // Operator, 11 Eki 2026: "sitede poppins fontu olsun"; 14 Eki 2026:
-    // "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs
-    // kullan". Biennale needs a licence; Gabarito (OFL) stands in for it on
-    // the headlines, and Poppins keeps the text and the controls.
+  it("speaks in one voice - Poppins, tracked tight - and no retired one", () => {
+    // Operator, 11 Eki 2026: "sitede poppins fontu olsun". The café-retail
+    // restyle (5 Kas 2026) sets headlines in the same face as the text, so
+    // the hierarchy is weight and colour; Gabarito (14 Eki 2026) is retired.
     const layout = read("src/app/layout.tsx");
-    expect(layout).toMatch(
-      /import \{ Gabarito, Poppins \} from "next\/font\/google"/,
-    );
+    expect(layout).toMatch(/import \{ Poppins \} from "next\/font\/google"/);
     expect(layout).toMatch(
       /weight: \["300", "400", "500", "600", "700", "800"\]/,
     );
-    expect(layout).toMatch(
-      /weight: \["600", "700", "800"\],\n\s*variable: "--font-headline"/,
-    );
+    expect(layout).not.toMatch(/\bGabarito\(/);
+    expect(layout).not.toContain("--font-headline");
     expect(css).toContain('"Poppins"');
-    // Every historical token resolves to the reading voice...
+    // Every historical token resolves to the one voice, the headline too.
     expect(cssCode).toContain("--sans: var(--display);");
-    // ...and the headline voice falls back to it, never to the system font.
-    expect(cssCode).toContain(
-      '--headline: var(--font-headline), "Gabarito", var(--display);',
-    );
+    expect(cssCode).toContain("--headline: var(--display);");
+    expect(cssCode).toContain("--tracking: -0.01em;");
+    // The reward serif is system faces only - nothing is downloaded for it.
+    expect(cssCode).toMatch(/--reward-serif: "Iowan Old Style"[^;]*serif;/);
     const rule = (selector: string) => {
       const at = cssCode.indexOf(`\n${selector} {`);
       expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
@@ -271,9 +317,9 @@ describe("palette follows the app's porcelain", () => {
  */
 describe("surfaces outside globals.css follow the same palette", () => {
   it("installs the PWA on the site's ground and chrome, matching layout.tsx", () => {
-    expect(manifest).toContain('background_color: "#f7f3ed"');
-    expect(manifest).toContain('theme_color: "#fbf8f4"');
-    expect(read("src/app/layout.tsx")).toContain('themeColor: "#fbf8f4"');
+    expect(manifest).toContain('background_color: "#f2f0eb"');
+    expect(manifest).toContain('theme_color: "#ffffff"');
+    expect(read("src/app/layout.tsx")).toContain('themeColor: "#ffffff"');
     for (const hex of ["#FBF4E6", "#2C1D11", "#f9f8f7", "#12291f", "#143d2b"]) {
       expect(manifest, `${hex} belongs to a retired palette`).not.toContain(
         hex,
