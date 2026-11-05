@@ -8,6 +8,7 @@ import { accountMenuStateAction, logoutAction } from "@/app/uye/actions";
 import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
+import { OTHER_BRANCHES } from "@/lib/seo/branches";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 import { addressLines } from "@/lib/utils/format";
@@ -1103,6 +1104,14 @@ export function Footer({ navigate, settings }: FooterProps) {
                   </span>
                 ))}
               </li>
+              {/* The other branches (src/lib/seo/branches.ts): one line each,
+                  to their card on /ziyaret. The column above stays the Tuzla
+                  köşk's, which is the one the app and the shop serve. */}
+              {OTHER_BRANCHES.map((b) => (
+                <li key={b.id} className="footer-branch">
+                  <a href={`/ziyaret#${b.id}`}>Yeni: {b.name} açıldı</a>
+                </li>
+              ))}
             </ul>
             {/* The handle is the same on every network, so it is written once
                 above the pills: a visitor who wants to find the account from

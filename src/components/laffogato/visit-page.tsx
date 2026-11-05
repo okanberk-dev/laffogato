@@ -3,6 +3,13 @@
 import Image from "next/image";
 import { useMemo, Fragment } from "react";
 
+import {
+  OTHER_BRANCHES,
+  branchAddressLines,
+  branchMapUrl,
+  branchTel,
+  type SiteBranch,
+} from "@/lib/seo/branches";
 import { SITE } from "@/lib/seo/site";
 import { priceLabel } from "@/lib/utils/format";
 
@@ -371,6 +378,10 @@ export function PageVisit({ visit, settings }: PageProps) {
         </div>
       </section>
 
+      {OTHER_BRANCHES.map((b) => (
+        <BranchSection key={b.id} branch={b} />
+      ))}
+
       <section className="section">
         <div className="wrap-wide">
           <SectionHead
@@ -674,5 +685,71 @@ function MapSketch() {
         strokeWidth="3"
       />
     </svg>
+  );
+}
+
+/**
+ * Another branch of the house (src/lib/seo/branches.ts): its name, that it
+ * opened, and only the facts that are known. Until the address is entered the
+ * card says it follows; a phone, hours or map link appear the day they exist.
+ * The last line keeps the app honest: it orders to the Tuzla köşk only.
+ */
+function BranchSection({ branch }: { branch: SiteBranch }) {
+  const lines = branchAddressLines(branch);
+  const tel = branchTel(branch);
+  const mapUrl = branchMapUrl(branch);
+  const titleId = `${branch.id}-title`;
+  return (
+    <section id={branch.id} className="section" aria-labelledby={titleId}>
+      <div className="wrap">
+        <div className="branch-card reveal">
+          <p className="branch-badge">
+            <span className="branch-badge-dot" aria-hidden="true" />
+            Yeni şubemiz açıldı
+          </p>
+          <h2 id={titleId} className="branch-title">
+            {branch.name}
+          </h2>
+          {lines.length > 0 ? (
+            <address className="branch-address">
+              {lines.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </address>
+          ) : (
+            <p className="branch-text">
+              Marina şubemiz kapılarını açtı. Adresi, çalışma saatleri ve
+              telefonu çok yakında bu sayfada.
+            </p>
+          )}
+          {branch.hoursLabel || tel ? (
+            <p className="branch-facts">
+              {branch.hoursLabel ? (
+                <span className="tabular">{branch.hoursLabel}</span>
+              ) : null}
+              {tel ? (
+                <a href={`tel:${tel}`} className="tabular">
+                  {branch.phone}
+                </a>
+              ) : null}
+            </p>
+          ) : null}
+          {mapUrl ? (
+            <a
+              className="branch-map"
+              href={mapUrl}
+              target="_blank"
+              rel="noopener"
+            >
+              Haritada gör <span className="arrow">→</span>
+            </a>
+          ) : null}
+          <p className="branch-note">
+            Uygulamadan verilen siparişler, masadaki QR ile sipariş ve karaoke
+            odası Tuzla köşkü içindir.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }

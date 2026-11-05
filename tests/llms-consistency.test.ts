@@ -24,6 +24,16 @@ const FILES = ["llms.txt", "llms-full.txt"].map((name) => ({
 }));
 
 describe("llms.txt tutarlılığı - asistanlara giden veri koddaki gerçekle aynı", () => {
+  it("Marina açıldıktan sonra 'tek şube' demez, Marina'yı anar", () => {
+    // 5 Kas 2026: L'Affogato Marina açıldı (src/lib/seo/branches.ts). İki
+    // dosya da Tuzla'yı "İtalya dışındaki tek şube" diye anlatıyordu.
+    for (const file of ["public/llms.txt", "public/llms-full.txt"]) {
+      const text = readFileSync(file, "utf8");
+      expect(text, file).not.toMatch(/tek L'Affogato/);
+      expect(text, file).toContain("L'Affogato Marina");
+    }
+  });
+
   it("kanonik telefonu içerir, eskisini içermez", () => {
     for (const f of FILES) {
       expect(f.text, f.name).toContain(LEGAL_ENTITY.phone);

@@ -612,8 +612,9 @@ export function PageHome({
       {/* The app ─────────────────────────────────────────────── */}
       {/* The site's door into lafmobil: ordering, the stamp card and the
           counter code live there. Store buttons come from
-          NEXT_PUBLIC_APP_STORE_URL / _PLAY_STORE_URL; until both are set the
-          block says "yakında" instead of linking nowhere. */}
+          src/lib/mobile/app-store.ts (App Store live, Google Play from
+          NEXT_PUBLIC_PLAY_STORE_URL); a listing that does not exist yet is a
+          "yakında" line instead of a link to nowhere. */}
       <section className="home-section" id="uygulama">
         <div className="wrap">
           <div className="app-block reveal">

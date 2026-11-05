@@ -10,9 +10,11 @@ import { loadAppProps } from "@/lib/seo/app-props";
 export const dynamic = "force-dynamic";
 
 /**
- * `/masa/<code>` - what a table's printed QR opens in a browser. The app does
- * not claim this URL yet (AASA, Android): it will with the release that ships
- * its table screen (docs/API-MOBILE.md §22).
+ * `/masa/<code>` - what a table's printed QR opens in a browser. On an iPhone
+ * with the app the association hands the URL to the app instead (AASA
+ * `/masa/*` since 5 Kas 2026; Android's `/masa/` prefix ships with its first
+ * Play build, docs/API-MOBILE.md §22), so this page is for a guest without
+ * the app: the banner says to order from it, or to ask the staff.
  *
  * The menu, view-only as on /menu, under a banner naming the table. An unknown,
  * retired or rotated code still gets the menu, with a neutral line - never a

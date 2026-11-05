@@ -1602,7 +1602,82 @@ summary:focus-visible,
 .app-links {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
+}
+
+/* /ziyaret: another branch of the house (visit-page.tsx BranchSection,
+   src/lib/seo/branches.ts). The table strip's card language. */
+.branch-card {
+  border-radius: 24px;
+  border: 1px solid var(--ink-line);
+  background: var(--surface);
+  box-shadow: var(--rim), var(--shadow-glass);
+  padding: clamp(20px, 3.4vw, 40px) clamp(18px, 3.6vw, 44px);
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+}
+.branch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: start;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--glass-control);
+  border: 1px solid var(--ink-line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+}
+.branch-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.branch-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.1;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.branch-address {
+  display: grid;
+  font-style: normal;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.branch-text,
+.branch-note {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+.branch-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink);
+}
+.branch-map {
+  justify-self: start;
+  font-weight: 600;
+  color: var(--green);
+}
+.branch-note {
+  margin-top: 6px;
+  font-size: 13px;
 }
 
 /* /masa/[code]: the table strip above the view-only menu (table-banner.tsx). */
@@ -4213,6 +4288,13 @@ summary:focus-visible,
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+/* "Yeni: L'Affogato Marina açıldı" under the hours (chrome.tsx). */
+.footer-contact-col .footer-branch {
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 600;
 }
 /* The company's identity under the social pills: small print, the same
    mint as the column titles for the labels. */
