@@ -12,7 +12,11 @@ for p in .claude-design src/app/admin/design-lab src/app/admin/design-preview; d
   [ -e "$p" ] && left+=("$p")
 done
 
+# The lab's temporary Tailwind source line (SKILL.md "Lab rotası").
+grep -q "DESIGN-LAB TEMP" src/app/globals.css 2>/dev/null &&
+  left+=("src/app/globals.css (geçici @source satırı)")
+
 [ ${#left[@]} -eq 0 ] && exit 0
 
-printf '{"systemMessage":"[design-lab] Lab dosyaları duruyor: %s. Lab bitince ya da iptal edilince silinir."}\n' "${left[*]}"
+printf '{"systemMessage":"[design-lab] Lab dosyaları duruyor: %s. Lab bitince ya da iptal edilince silinir; hiçbiri commit edilmez."}\n' "${left[*]}"
 exit 0
