@@ -162,6 +162,8 @@ describe("toMobileMenuItem (contract §1)", () => {
         "vessel",
         // 17 Eki 2026, additive: the KDV rate inside the price.
         "taxRatePct",
+        // 5 Kas 2026, additive: the option groups the drink offers.
+        "optionGroups",
       ].sort(),
     );
     expect(out).not.toHaveProperty("updatedAt");

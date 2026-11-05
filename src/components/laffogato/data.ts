@@ -799,7 +799,7 @@ export const MENU: Record<string, MenuCategory> = {
       },
       {
         name: "Alternatif Süt",
-        desc: "Yulaf, badem veya laktozsuz süt seçeneği.",
+        desc: "Badem sütü; laktozsuz süt fark olmadan.",
         price: "25₺",
         hue: "cream",
         // Its stock photo showed something else (docs/MENU-PHOTOS.md).

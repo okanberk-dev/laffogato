@@ -16,6 +16,12 @@ import { z } from "zod";
  * was shown no warning at all (lafmobil rule 4).
  */
 
+/**
+ * Every milk id an order line may carry. "oat" stays here only as history:
+ * it was sold until 5 Kas 2026 and old orders, receipts and the panel's sales
+ * counts name it. It is no longer OFFERED (`CUSTOMIZATION.milks`), so a new
+ * line that asks for it is refused by `resolveOptionPricing`.
+ */
 export const MILK_IDS = ["normal", "lactose-free", "oat", "almond"] as const;
 export const ROAST_IDS = ["intense", "light"] as const;
 export const SYRUP_IDS = ["none", "vanilla", "caramel", "hazelnut"] as const;
@@ -57,10 +63,11 @@ export interface Customization {
 }
 
 export const CUSTOMIZATION: Customization = {
+  // Three milks (operator, 5 Kas 2026: "çok fazla süt seçeneği var;
+  // laktozsuz, badem, normal"). Oat left the menu that day.
   milks: [
     { id: "normal", label: "Normal", priceMinor: 0, allergens: [] },
     { id: "lactose-free", label: "Laktozsuz", priceMinor: 0, allergens: [] },
-    { id: "oat", label: "Yulaf", priceMinor: 2500, allergens: [] },
     { id: "almond", label: "Badem", priceMinor: 2500, allergens: ["nuts"] },
   ],
   roasts: [
@@ -146,6 +153,78 @@ export function isCustomizableCategory(
   categoryKey: string | undefined,
 ): boolean {
   return !NON_CUSTOMIZABLE_CATEGORIES.includes(categoryKey ?? "");
+}
+
+/**
+ * Which option groups a drink offers (operator, 5 Kas 2026: "diğer
+ * ürünlerde de seçenekleri azaltabilirsin"). Until then every customizable
+ * drink drew every group, so a soda offered milk, a roast and an extra shot.
+ *
+ * Sent on every `/menu` item as `optionGroups` (additive, §1). It narrows
+ * what the app DRAWS; it does not narrow what an order may carry: an app
+ * build from before it draws every group, and its lines are priced exactly
+ * as before (`resolveOptionPricing`), so nothing a member already has in a
+ * basket is refused because of it.
+ *
+ * By category, with a handful of drinks narrowed by name where the category
+ * is wider than the cup (an espresso takes no milk; Turkish coffee only
+ * sugar). The name rule is a refinement, not a dependency: a renamed drink
+ * falls back to its category's groups. A category this table does not know
+ * keeps every group, so a new one is never stripped by accident.
+ */
+export const OPTION_GROUPS = [
+  "milk",
+  "roast",
+  "sugar",
+  "syrup",
+  "extraShot",
+] as const;
+export type OptionGroup = (typeof OPTION_GROUPS)[number];
+
+const ESPRESSO_DRINK: readonly OptionGroup[] = OPTION_GROUPS;
+
+export const CATEGORY_OPTION_GROUPS: Readonly<
+  Record<string, readonly OptionGroup[]>
+> = {
+  espresso: ESPRESSO_DRINK,
+  "ice-coffee": ESPRESSO_DRINK,
+  matcha: ["milk", "sugar", "syrup"],
+  frappe: ["milk", "sugar", "syrup"],
+  hot: ["milk", "sugar"],
+  "ice-tea": ["sugar"],
+  smoothie: [],
+  frozen: [],
+  cold: [],
+};
+
+/** Keyed by the lower-cased Turkish name (`turkishLower`). */
+export const ITEM_OPTION_GROUPS: Readonly<
+  Record<string, readonly OptionGroup[]>
+> = {
+  espresso: ["roast", "sugar", "extraShot"],
+  americano: ["roast", "sugar", "syrup", "extraShot"],
+  "buzlu americano": ["roast", "sugar", "syrup", "extraShot"],
+  "türk kahvesi": ["sugar"],
+  "filtre kahve": ["milk", "sugar"],
+  "cold brew": ["milk", "sugar", "syrup"],
+  "buzlu chai": ["milk", "sugar"],
+  çay: ["sugar"],
+};
+
+function turkishLower(name: string): string {
+  return name.trim().toLocaleLowerCase("tr-TR").replace(/\s+/g, " ");
+}
+
+/** The groups a menu item offers, in `OPTION_GROUPS` order; [] = none. */
+export function optionGroupsFor(
+  categoryKey: string | undefined,
+  name: string,
+): OptionGroup[] {
+  if (!isCustomizableCategory(categoryKey)) return [];
+  const own = ITEM_OPTION_GROUPS[turkishLower(name)];
+  const groups =
+    own ?? CATEGORY_OPTION_GROUPS[categoryKey ?? ""] ?? OPTION_GROUPS;
+  return OPTION_GROUPS.filter((g) => groups.includes(g));
 }
 
 export const orderItemSizeSchema = z.enum(ORDER_ITEM_SIZES, {

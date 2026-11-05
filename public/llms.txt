@@ -107,7 +107,7 @@ Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L b
 ## Diyet ve Alerjen
 
 - Süt içermeyen: Frozen serisi (çilek/ahududu/çarkıfelek/ananas), L'Af Limon, Cool Lime
-- Alternatif süt: Yulaf, badem veya laktozsuz — 25₺ fark ile her sütlü içecekte
+- Alternatif süt: laktozsuz (fark yok) veya badem (25₺ fark), sütlü içeceklerde
 - Fındık: Toffeenut Latte, L'Af Antep Fıstığı ve Koska Fındık fındık/kuruyemiş içerir
 - Süt: Yerel Tuzla mandırasından günlük taze
 - Kahve: Bologna'da Mancuso ailesi tarafından haftalık kavrulur

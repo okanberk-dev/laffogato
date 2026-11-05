@@ -44,6 +44,7 @@ import {
   type HappyHourDays,
   type MobileAppConfig,
 } from "./app-config";
+import { optionGroupsFor, type OptionGroup } from "./customization";
 
 /**
  * The two lines §10 promises: street, then town.
@@ -244,6 +245,13 @@ export interface MobileMenuItem extends MobileScene {
    * `nuts` stay as they are.
    */
   allergens?: MenuAllergen[];
+  /**
+   * The option groups the drink offers (`optionGroupsFor`): what the app's
+   * customize screen draws. [] = none (the app adds it straight to the
+   * basket). Additive (5 Kas 2026, §1); it narrows the screen, never what an
+   * order may carry.
+   */
+  optionGroups: OptionGroup[];
 }
 
 export interface MobileMenuCategory {
@@ -289,6 +297,7 @@ export function toMobileMenuItem(
     ...toMobileScene(it, image !== null),
     taxRatePct: menuItemTaxRate(it, rates),
     ...mobileAllergens(it.allergens),
+    optionGroups: optionGroupsFor(it.categoryKey, it.name),
   };
 }
 

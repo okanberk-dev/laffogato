@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   CUSTOMIZATION,
+  OPTION_GROUPS,
   lineOptionsSchema,
+  optionGroupsFor,
   orderItemSizeSchema,
   resolveOptionPricing,
   UnknownOptionError,
@@ -13,7 +15,6 @@ describe("CUSTOMIZATION constant (docs/API-MOBILE.md §1)", () => {
     expect(CUSTOMIZATION.milks).toEqual([
       { id: "normal", label: "Normal", priceMinor: 0, allergens: [] },
       { id: "lactose-free", label: "Laktozsuz", priceMinor: 0, allergens: [] },
-      { id: "oat", label: "Yulaf", priceMinor: 2500, allergens: [] },
       { id: "almond", label: "Badem", priceMinor: 2500, allergens: ["nuts"] },
     ]);
     expect(CUSTOMIZATION.roasts).toEqual([
@@ -49,7 +50,20 @@ describe("CUSTOMIZATION constant (docs/API-MOBILE.md §1)", () => {
     expect(
       resolveOptionPricing({ milk: "almond", syrup: "hazelnut" }).allergens,
     ).toEqual(["nuts"]);
-    expect(resolveOptionPricing({ milk: "oat" }).allergens).toEqual([]);
+    expect(resolveOptionPricing({ milk: "lactose-free" }).allergens).toEqual([]);
+  });
+
+  it("no longer offers or prices the oat milk (operator, 5 Kas 2026)", () => {
+    // Three milks: normal, lactose-free, almond. "oat" stays a known id for
+    // the orders that carry it, but a new line asking for it is refused.
+    expect(CUSTOMIZATION.milks.map((m) => m.id)).toEqual([
+      "normal",
+      "lactose-free",
+      "almond",
+    ]);
+    expect(() => resolveOptionPricing({ milk: "oat" })).toThrow(
+      UnknownOptionError,
+    );
   });
 
   it("uses integer minor units everywhere", () => {
@@ -63,10 +77,10 @@ describe("CUSTOMIZATION constant (docs/API-MOBILE.md §1)", () => {
 });
 
 describe("resolveOptionPricing", () => {
-  it("prices the contract example: M · yulaf · +1 shot", () => {
+  it("prices the contract example: M · badem · +1 shot", () => {
     const r = resolveOptionPricing(
       {
-        milk: "oat",
+        milk: "almond",
         roast: "intense",
         sugar: 0,
         syrup: "none",
@@ -75,9 +89,9 @@ describe("resolveOptionPricing", () => {
       },
       "M",
     );
-    expect(r.detail).toBe("M · yulaf · +1 shot");
+    expect(r.detail).toBe("M · badem · +1 shot");
     expect(r.extraMinor).toBe(2500 + 5000);
-    expect(r.allergens).toEqual([]);
+    expect(r.allergens).toEqual(["nuts"]);
   });
 
   it("is free and silent for a plain drink", () => {
@@ -165,5 +179,37 @@ describe("orderItemSizeSchema", () => {
     expect(orderItemSizeSchema.parse("M")).toBe("M");
     expect(orderItemSizeSchema.parse("single")).toBe("single");
     expect(orderItemSizeSchema.safeParse("S").success).toBe(false);
+  });
+});
+
+describe("optionGroupsFor - what a drink offers (5 Kas 2026)", () => {
+  it("keeps every group on an espresso drink and none on a cold one", () => {
+    expect(optionGroupsFor("espresso", "Latte")).toEqual([...OPTION_GROUPS]);
+    expect(optionGroupsFor("cold", "Soda")).toEqual([]);
+    expect(optionGroupsFor("smoothie", "Mango")).toEqual([]);
+    expect(optionGroupsFor("frozen", "Çilek")).toEqual([]);
+  });
+
+  it("narrows the cup where the category is wider", () => {
+    expect(optionGroupsFor("espresso", "Espresso")).toEqual([
+      "roast",
+      "sugar",
+      "extraShot",
+    ]);
+    expect(optionGroupsFor("espresso", "Türk Kahvesi")).toEqual(["sugar"]);
+    expect(optionGroupsFor("hot", "Çay")).toEqual(["sugar"]);
+    expect(optionGroupsFor("hot", "Salep")).toEqual(["milk", "sugar"]);
+    expect(optionGroupsFor("matcha", "Matcha Latte")).toEqual([
+      "milk",
+      "sugar",
+      "syrup",
+    ]);
+  });
+
+  it("offers nothing on a dessert and everything in a category it does not know", () => {
+    expect(optionGroupsFor("dessert", "Tiramisu")).toEqual([]);
+    expect(optionGroupsFor("yeni-kategori", "Yeni İçecek")).toEqual([
+      ...OPTION_GROUPS,
+    ]);
   });
 });

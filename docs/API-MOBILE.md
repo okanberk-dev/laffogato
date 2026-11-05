@@ -94,6 +94,8 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "taxRatePct": 10,
           // 18 Eki 2026, eklemeli: TGK Ek-1 alerjen grupları; girilmemişse alan yok (aşağı bak)
           "allergens": ["sut"],
+          // 5 Kas 2026, eklemeli: içeceğin sunduğu seçenek grupları; [] = hiçbiri (aşağı bak)
+          "optionGroups": ["milk", "roast", "sugar", "syrup", "extraShot"],
         },
       ],
     },
@@ -103,7 +105,9 @@ zaten varsa o satır kullanılır (**tek üyelik**).
     "milks": [
       { "id": "normal", "label": "Normal", "priceMinor": 0, "allergens": [] },
       { "id": "lactose-free", "label": "Laktozsuz", "priceMinor": 0, "allergens": [] },
-      { "id": "oat", "label": "Yulaf", "priceMinor": 2500, "allergens": [] },
+      // "oat" (Yulaf) 5 Kas 2026'da kalktı: yeni satırda reddedilir, eski
+      // siparişlerde "oat" kimliği durur (yalnız ekleme kuralı veriyi değil
+      // alanı korur; uygulama süt listesini her zaman buradan okur).
       { "id": "almond", "label": "Badem", "priceMinor": 2500, "allergens": ["nuts"] },
     ],
     "roasts": [
@@ -263,6 +267,30 @@ seçer; operatör seçimi elle değiştirebilir. Üç alan, menü kaleminde ve m
 - Mevcut fotoğraflar için `scripts/backfill-backdrops.mjs` (varsayılan kuru
   koşu, `--apply` ile yazar, elle seçilmiş satırlara dokunmaz).
 - Eski sürümler üç alanı da okumaz; bir şey kırılmaz.
+
+### `optionGroups` - içeceğin sunduğu seçenekler (5 Kas 2026, yalnız ekleme)
+
+Operatör (5 Kas 2026): _"çok fazla süt seçeneği var ... diğer ürünlerde de
+seçenekleri azaltabilirsin"_. O güne kadar özelleştirilebilen her içecek
+bütün grupları çiziyordu: sodada süt, kavurma ve ekstra shot çıkıyordu.
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `optionGroups` | string[] | `OPTION_GROUPS` sırasıyla `"milk"`, `"roast"`, `"sugar"`, `"syrup"`, `"extraShot"` içinden kalemin sunduğu gruplar. `[]` = hiçbiri: uygulama özelleştirme ekranını açmaz, kalemi doğrudan sepete ekler. |
+
+- Kural `src/lib/mobile/customization.ts` `optionGroupsFor`: kategoriye göre
+  (`espresso` ve `ice-coffee` hepsi; `matcha`, `frappe` süt, şeker, şurup;
+  `hot` süt, şeker; `ice-tea` şeker; `smoothie`, `frozen`, `cold` hiçbiri;
+  `dessert`, `snack`, `extras` hiçbiri), birkaç içecek adıyla daraltılır
+  (Espresso: kavurma, şeker, ekstra shot; Türk Kahvesi ve Çay: şeker;
+  Americano: süt yok; Filtre Kahve: süt, şeker). Tanınmayan bir kategori
+  bütün grupları alır.
+- Yalnız **çizimi** daraltır, siparişi değil: bu alanı okumayan eski bir
+  sürüm bütün grupları çizer ve satırı eskisi gibi fiyatlanır. Sunucu bir
+  satırdaki seçeneği gruba göre reddetmez.
+- Süt listesi aynı gün üçe indi (Normal, Laktozsuz, Badem); yulaflı yeni
+  satır `Bilinmeyen seçenek` ile reddedilir. Uygulama sepetteki satırı
+  menü yenilenince varsayılan süte çevirir (`cart/sync.ts`).
 
 ### `taxRatePct` - KDV oranı (17 Eki 2026, yalnız ekleme)
 
@@ -512,7 +540,7 @@ stale-while-revalidate=300` (stok bayrağı taşır); `GET /bootstrap` `300 / 36
   "tableCode": "",                         // yalnız fulfillment "table": masadaki QR'ın kodu (opsiyonel, varsayılan "", en fazla 16 karakter; 15 Eki 2026)
   "lines": [
     { "menuItemId": "mnu-0007", "qty": 1, "size": "M",            // cafe satırı; size: "M" | "L" | "single"
-      "options": { "milk": "oat", "roast": "intense", "sugar": 0, "syrup": "none", "extraShot": true, "note": "" } },
+      "options": { "milk": "almond", "roast": "intense", "sugar": 0, "syrup": "none", "extraShot": true, "note": "" } },
     { "productId": "prd-0001", "variantId": "var-…", "qty": 1, "note": "Öğütüm: Espresso" }  // shop satırı
   ],
   "address": { "id": "adr-…" } | { "title": "Evim", "fullName": "…", "phone": "…", "city": "İstanbul", "district": "Tuzla", "neighbourhood": "Postane Mah.", "line": "…", "note": "Kapı kodu 4821" } | null,  // pickup'ta null
@@ -717,7 +745,7 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
                 { "key": "on_the_way", "label": "Kuryede", "at": null, "done": false },   // pickup: "Hazır - gel al"
                 { "key": "delivered", "label": "Kapında", "at": null, "done": false } ],
   "channel": "app", "kind": "cafe", "fulfillment": "delivery",
-  "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … },
+  "items": [ { "name": "Cappuccino", "detail": "M · badem · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … },
                "taxRatePct": 10 } ],   // 17 Eki 2026, yalnız ekleme: satış anındaki KDV oranı; eski siparişte null
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim - …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",

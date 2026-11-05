@@ -198,7 +198,7 @@ Her içeceğe eklenebilir.
 
 - **Şurup** — 50₺. Dilediğiniz içeceğe ilave aroma şurubu.
 - **Ekstra Shot** — 50₺. İçeceğinize ek espresso shot.
-- **Alternatif Süt** — 25₺. Yulaf, badem veya laktozsuz süt seçeneği.
+- **Alternatif Süt** — 25₺. Badem sütü; laktozsuz süt fark olmadan.
 
 ---
 
@@ -270,7 +270,7 @@ Cevap: Her gün 09:00 - 02:00; kapanış ertesi sabaha sarkar. Tüm yıl açık.
 Cevap: Bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiği; evin imza içeceği, 280₺. Matcha sevenler için Matcha Affogato da menüde: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺.
 
 **Soru: Vegan veya glutensiz seçeneğiniz var mı?**
-Cevap: Sütlü içecekler 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanır. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındıklı kalemler menüde işaretlidir.
+Cevap: Sütlü içecekler laktozsuz sütle (fark yok) ya da 25₺ fark ile badem sütüyle hazırlanır. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındıklı kalemler menüde işaretlidir.
 
 **Soru: Matcha bar'da hangi çay kullanılıyor?**
 Cevap: Ceremonial grade matcha; her bardak siparişten sonra çırpılır, premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Çilekli Matcha 245₺, Matcha Affogato 245₺.

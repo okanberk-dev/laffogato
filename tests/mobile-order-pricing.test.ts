@@ -45,19 +45,19 @@ const CFG = {
 describe("priceCafeLine", () => {
   it("prices M from the menu row plus the option surcharges", () => {
     const r = priceCafeLine(cappuccino, "M", {
-      milk: "oat",
+      milk: "almond",
       syrup: "hazelnut",
       extraShot: true,
       sugar: 1,
     });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    // 195,00 + yulaf 25,00 + fındık 50,00 + shot 50,00
+    // 195,00 + badem 25,00 + fındık 50,00 + shot 50,00
     expect(r.unitPriceMinor).toBe(32000);
     expect(r.size).toBe("M");
-    expect(r.detail).toBe("M · yulaf · fındık şurubu · 1 şeker · +1 shot");
+    expect(r.detail).toBe("M · badem · fındık şurubu · 1 şeker · +1 shot");
     expect(r.options).toEqual({
-      milk: "oat",
+      milk: "almond",
       roast: "intense",
       sugar: 1,
       syrup: "hazelnut",
@@ -129,7 +129,7 @@ describe("priceCafeLine - categories that take no customisation (W1-08)", () => 
     categoryKey: "dessert",
   };
   const loaded = {
-    milk: "oat",
+    milk: "almond",
     syrup: "hazelnut",
     extraShot: true,
     sugar: 2,
@@ -152,7 +152,7 @@ describe("priceCafeLine - categories that take no customisation (W1-08)", () => 
         note: "",
       });
       // No nut warning from a hazelnut syrup that was never poured.
-      expect(r.detail).not.toMatch(/fındık|yulaf|shot|şeker/);
+      expect(r.detail).not.toMatch(/fındık|badem|shot|şeker/);
     }
   });
 
@@ -164,7 +164,7 @@ describe("priceCafeLine - categories that take no customisation (W1-08)", () => 
     );
     const legacy = priceCafeLine(affogato, "single", loaded);
     for (const r of [drink, legacy]) {
-      expect(r.ok && r.options.milk).toBe("oat");
+      expect(r.ok && r.options.milk).toBe("almond");
     }
   });
 });
