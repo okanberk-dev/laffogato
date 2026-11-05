@@ -196,7 +196,11 @@ describe("the day reaches all three routes", () => {
       address: "",
       courierFeeMinor: 5500,
       pickupReadyMinutes: 15,
-      mobileApp: { loyalty: { stampTarget: 8 } },
+      // Real settings always carry `ordering` (normalizeMobileAppConfig).
+      mobileApp: {
+        loyalty: { stampTarget: 8 },
+        ordering: { deliveryEnabled: false },
+      },
       shippingFreeThresholdMinor: 50000,
       heroImageUrl: "",
       weeklyHours: Object.fromEntries(
@@ -209,6 +213,8 @@ describe("the day reaches all three routes", () => {
     };
     const { appProps } = await loadAppProps({ withShopHero: false });
     expect(appProps.settings.menuPricesEffectiveDate).toBe("2026-10-18");
+    // The panel's courier switch rides along (5 Kas 2026: pickup only).
+    expect(appProps.settings.courierEnabled).toBe(false);
   });
 
   it("the category page passes it from its own settings read", () => {
