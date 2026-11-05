@@ -1,3 +1,4 @@
+import { aasaPaths } from "@/lib/mobile/app-links";
 import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const runtime = "nodejs";
@@ -22,53 +23,14 @@ export const dynamic = "force-dynamic";
  * Content type is `application/json` with no extension on the path; that is
  * the spec, and Apple's fetcher is strict about it.
  */
-const PATHS = [
-  // A path belongs here only when a real laffogato.net URL under it opens an
-  // app screen that can actually render THAT url. `NOT` entries come first:
-  // iOS takes the first match, and the panel and the API must stay in the
-  // browser.
-  //
-  // What is deliberately absent, and why:
-  //
-  //   /uye/*     the app has no member routes at all - no `uye` directory in
-  //              its router - so every "hesabım", verification and reset link
-  //              an iPhone opened landed on its not-found screen. It is also
-  //              what keeps /uye/yeni-sifre in a browser, where a recovery
-  //              fragment can be read.
-  //   /menu/*    the site's URLs there are CATEGORIES (/menu/kahveler) and the
-  //              app's route is /menu/[id], an item id. The app would look up
-  //              a drink called "kahveler" and find nothing.
-  //   /magaza/*  same shape mismatch, twice: categories, plus the product page
-  //              at /magaza/urun/<slug>, which is two segments where the app's
-  //              /magaza/[id] takes one - so it does not match at all.
-  //   /siparis/* the site serves no such page; the order screen is reached by
-  //              the app's own `laffogato://siparis/<id>` return from checkout,
-  //              which is a custom scheme and needs no association.
-  //   /davet/*   neither side has it: the site 404s and the app's davet.tsx
-  //              takes no code parameter.
-  //
-  // Claiming a URL the site does not serve is not harmless. The association is
-  // cached for days, so the app intercepts a link, cannot render it, and the
-  // member cannot get to the web version either.
-  "NOT /admin/*",
-  "NOT /api/*",
-  "NOT /uye/*",
-  "/karaoke",
-  "/kampanyalar",
-  "/masa/*",
-  "/ziyaret",
-  // /masa/* (table QR, claimed 5 Kas 2026): every released iOS build (1.1.0
-  // and later; 1.0.0 never reached the store) has the app's masa/[kod]
-  // screen, so a printed table card scanned with the iPhone camera opens the
-  // app at that table, and the guest orders and pays from the app
-  // (docs/API-MOBILE.md §22). Without the app the same URL stays the web
-  // menu. Android's pathPrefix "/masa/" is in lafmobil's app.json and ships
-  // with its first Play build.
-];
+// The paths are src/lib/mobile/app-links.ts's: one list for this route and
+// its tests, with the ones that need a newer app gated on the panel's
+// minimum supported version.
 
 export async function GET() {
   const { mobileApp } = await getSiteSettings();
   const { appleTeamId, bundleId } = mobileApp.store;
+  const paths = aasaPaths(mobileApp.minSupportedAppVersion);
 
   if (!appleTeamId || !bundleId) {
     // Nothing to associate yet. 404 rather than an empty `details` array: an
@@ -82,7 +44,7 @@ export async function GET() {
 
   const body = {
     applinks: {
-      details: [{ appID: `${appleTeamId}.${bundleId}`, paths: PATHS }],
+      details: [{ appID: `${appleTeamId}.${bundleId}`, paths }],
     },
     // Lets the app offer the member's saved laffogato.net password on the
     // sign-in screen instead of making them type it again.

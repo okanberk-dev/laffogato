@@ -323,6 +323,25 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                tasarım tarifi)
 ```
 
+## Kayıt doğrulaması uygulamada, seçenekler ve fiyat tazeliği (5 Kas 2026)
+
+- **Doğrulama bağlantısı:** Supabase "Confirm signup" şablonu
+  (`docs/email/supabase-confirm-signup.html`, panele elle yapıştırılır)
+  `https://laffogato.net/uygulama/dogrula?token_hash=…&type=email`'e gider ve
+  6 haneli kodu yazar. Site sayfası (`src/app/uygulama/dogrula/`) jetonu
+  proxy'de çereze taşır, düğmeyle (POST) doğrular, kimseyi içeri almaz.
+  AASA `/uygulama/*`'ı yalnız panelin en düşük sürümü 1.1.1 olunca talep eder
+  (`src/lib/mobile/app-links.ts`; 1.1.0'da o ekran yok). Uygulama tarafı
+  lafmobil `docs/AUTH.md` §5d.
+- **Seçenekler:** süt üç (Normal, Laktozsuz, Badem; yulaf kalktı, "oat"
+  kimliği eski siparişler için tanınır ama yeni satırda reddedilir). Menü
+  kalemi `optionGroups` taşır (`optionGroupsFor`, sözleşme §1): soda, smoothie
+  ve frozen'da hiçbir seçenek, espressoda süt yok. Yalnız çizimi daraltır,
+  siparişi reddetmez.
+- **Fiyat tazeliği:** fiyatın tek kaynağı `menu_items`; site paneli,
+  lafmaliyet ve LafPOS oraya yazar. Uygulama menüyü 5 dakika tutar (1 saat
+  değil), CDN penceresiyle birlikte en kötü ~15 dakika.
+
 ## Marina şubesi: yalnız sitede (5 Kas 2026)
 
 Operatör: _"Laffogato Marina şubesi ... açıldı olarak göster"_, kapsam

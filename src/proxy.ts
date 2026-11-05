@@ -20,6 +20,13 @@ import {
   adminCookieOptions,
 } from "@/lib/admin/session-cookie";
 import {
+  EMAIL_LINK_COOKIE,
+  EMAIL_LINK_COOKIE_MAX_AGE_SECONDS,
+  EMAIL_LINK_PATH,
+  encodeEmailLink,
+  parseEmailLink,
+} from "@/lib/customer/email-link";
+import {
   RESET_PATH,
   RESET_TOKEN_COOKIE,
   RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
@@ -124,6 +131,38 @@ export async function proxy(request: NextRequest) {
         path: RESET_PATH,
         maxAge: RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
       });
+    }
+    return moved;
+  }
+
+  // The sign-up mail's confirmation link (lib/customer/email-link.ts): the
+  // same move, so the page that loads GTM never has the token in `location`.
+  // Page views only: the page's button posts a Server Action to the bare path.
+  if (
+    path === EMAIL_LINK_PATH &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    request.nextUrl.searchParams.has("token_hash")
+  ) {
+    const link = parseEmailLink(
+      request.nextUrl.searchParams.get("token_hash"),
+      request.nextUrl.searchParams.get("type"),
+    );
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("token_hash");
+    url.searchParams.delete("type");
+    const moved = NextResponse.redirect(url, 303);
+    if (link) {
+      moved.cookies.set({
+        name: EMAIL_LINK_COOKIE,
+        value: encodeEmailLink(link),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: EMAIL_LINK_PATH,
+        maxAge: EMAIL_LINK_COOKIE_MAX_AGE_SECONDS,
+      });
+    } else {
+      moved.cookies.delete({ name: EMAIL_LINK_COOKIE, path: EMAIL_LINK_PATH });
     }
     return moved;
   }

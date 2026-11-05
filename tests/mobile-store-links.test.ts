@@ -7,6 +7,11 @@ import {
   normalizeMobileAppConfig,
   toBootstrapApp,
 } from "@/lib/mobile/app-config";
+import {
+  EMAIL_LINK_APP_VERSION,
+  aasaPaths,
+  aasaPathsAtLatest,
+} from "@/lib/mobile/app-links";
 import { LIVE_APP_STORE_URL } from "@/lib/mobile/app-store";
 
 /**
@@ -165,11 +170,6 @@ function sameClaim(path: string): string {
 }
 
 describe("the paths the app is allowed to intercept", () => {
-  const AASA = readFileSync(
-    "src/app/.well-known/apple-app-site-association/route.ts",
-    "utf8",
-  );
-
   /**
    * A claimed path is a promise that a laffogato.net URL under it opens an app
    * screen which can render THAT url. Four of them were promises the code
@@ -189,21 +189,28 @@ describe("the paths the app is allowed to intercept", () => {
     "/siparis/*",
     "/davet/*",
   ];
+  const route = readFileSync(
+    "src/app/.well-known/apple-app-site-association/route.ts",
+    "utf8",
+  );
 
   it("does not claim a path whose URL shape the app cannot render", () => {
-    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
+    const claimed = aasaPathsAtLatest();
     expect(claimed.length).toBeGreaterThan(0);
     for (const path of NEVER_CLAIMED) {
       expect(claimed).not.toContain(path);
     }
   });
 
-  it("still keeps the panel and the API out of the app", () => {
-    expect(AASA).toContain('"NOT /admin/*"');
-    expect(AASA).toContain('"NOT /api/*"');
-    // /uye/yeni-sifre must stay in a browser: the recovery session arrives in
-    // a URL fragment, which is not a thing the app is handed.
-    expect(AASA).toContain('"NOT /uye/*"');
+  it("still keeps the panel and the API out of the app, before anything is claimed", () => {
+    const paths = aasaPaths("9.9.9");
+    expect(paths.slice(0, 3)).toEqual([
+      "NOT /admin/*",
+      "NOT /api/*",
+      "NOT /uye/*",
+    ]);
+    // The route publishes exactly this list, for the panel's minimum version.
+    expect(route).toContain("aasaPaths(mobileApp.minSupportedAppVersion)");
   });
 
   it("claims the table QR path, now that every released app can open it", () => {
@@ -211,8 +218,19 @@ describe("the paths the app is allowed to intercept", () => {
     // 1.0.0 never reached the store, so a printed card opens the app at its
     // table (§22). Exactly the subtree: a bare "/masa" would also take the
     // web page's own path, which has no app screen.
-    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
+    const claimed = aasaPaths("1.0.0");
     expect(claimed.filter((p) => p.startsWith("/masa"))).toEqual(["/masa/*"]);
+  });
+
+  it("claims the confirmation link only once every supported app has its screen", () => {
+    // uygulama/dogrula ships in 1.1.1. While the panel still supports older
+    // builds, the sign-up mail's link stays the site's page, which confirms
+    // on a button press; raising "En düşük sürüm" to 1.1.1 hands it to the app.
+    expect(EMAIL_LINK_APP_VERSION).toBe("1.1.1");
+    expect(aasaPaths("1.0.0")).not.toContain("/uygulama/*");
+    expect(aasaPaths("1.1.0")).not.toContain("/uygulama/*");
+    expect(aasaPaths("1.1.1")).toContain("/uygulama/*");
+    expect(aasaPaths("1.2.0")).toContain("/uygulama/*");
   });
 
   it("compares iOS wildcards and Android prefixes as the same claim", () => {
@@ -230,9 +248,11 @@ describe("the paths the app is allowed to intercept", () => {
         (d: { pathPrefix?: string }) => sameClaim(d.pathPrefix ?? ""),
       ),
     );
-    const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) =>
-      sameClaim(m[1]),
-    );
+    // Android has no association to gate: the app build that lists a prefix
+    // is the build that has its screen, so it lists every claim at once.
+    const claimed = aasaPathsAtLatest()
+      .filter((p) => !p.startsWith("NOT "))
+      .map(sameClaim);
     expect([...prefixes].sort()).toEqual(claimed.sort());
     // And no bare host claim, which would take the whole domain regardless.
     for (const entry of config.expo.android.intentFilters[0].data) {

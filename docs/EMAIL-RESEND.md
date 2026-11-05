@@ -153,7 +153,16 @@ Supabase Dashboard → proje → **Authentication → Emails → SMTP Settings**
 Ardından **Authentication → Emails → Templates**. Dört şablonun Türkçe ve marka
 uyumlu hâli bu depoda duruyor; içeriği olduğu gibi yapıştır:
 
-- `docs/email/supabase-confirm-signup.html` → _Confirm signup_
+- `docs/email/supabase-confirm-signup.html` → _Confirm signup_ (**5 Kas
+  2026'da değişti, yeniden yapıştır**: düğme artık
+  `https://laffogato.net/uygulama/dogrula?token_hash={{ .TokenHash }}&type=email`
+  adresine gider ve altında 6 haneli `{{ .Token }}` yazar. iPhone'da
+  uygulama 1.1.1 ve sonrası bu adresi uygulamada açıp üyeyi içeri alır
+  (en düşük sürüm 1.1.1 olunca, `src/lib/mobile/app-links.ts`); bilgisayar
+  ya da uygulamasız telefon `/uygulama/dogrula` sayfasında düğmeyle
+  doğrular; kod uygulamanın "E-postanı doğrula" ekranına yazılır.
+  Yapıştırdıktan sonra bir test adresiyle uygulamadan kayıt ol, gelen
+  e-postadaki düğmeyi ve kodu dene.)
 - `docs/email/supabase-reset-password.html` → _Reset Password_
 - `docs/email/supabase-change-email.html` → _Change Email Address_
 - `docs/email/supabase-magic-link.html` → _Magic Link_ (14 Eki 2026,
