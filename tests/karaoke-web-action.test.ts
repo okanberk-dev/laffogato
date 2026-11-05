@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CONSENT_COOKIE, CONSENT_VERSION } from "@/lib/consent/cookie";
 
@@ -119,7 +119,19 @@ async function submit(fields: Record<string, string>) {
   }
 }
 
+// The fixtures book 30 Ekim 2026. The guest's link cookie lives until the
+// booking ends, so without a pinned clock the two cookie tests started
+// failing on 31 Ekim 2026 (maxAge <= 0, no cookie). The day before the
+// booking, Istanbul noon.
+const NOW = new Date("2026-10-29T12:00:00+03:00");
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   h.bookKaraoke.mockReset();
   h.customer = {
     id: "cus-1",

@@ -561,9 +561,9 @@ Kurallar:
   üretilmiş bir QR vardır: `https://laffogato.net/masa/<kod>` (kod 10 karakter Crockford
   base32, rastgele; masanın adı panelde verilir, §22). Uygulama kodu `GET /tables/{code}` ile
   doğrular (§22) ve siparişi `"kind": "cafe"`, `"fulfillment": "table"`, `"tableCode": "<kod>"`
-  ile verir. Bağlantıyı uygulamanın açması (AASA `/masa/*`, Android `pathPrefix` `/masa/`)
-  **henüz açık değil**: site bu yolu, masa ekranı olan uygulama sürümüyle birlikte talep eder
-  (§22).
+  ile verir. Bağlantıyı uygulamanın açması: iOS'ta **açık** (5 Kas 2026, AASA `/masa/*`;
+  masa ekranı olan 1.1.0 App Store'da), Android'de `pathPrefix` `/masa/` uygulamanın
+  `app.json`'ında, ilk Google Play derlemesiyle gelir (§22).
   Kurallar:
   - `table` yalnız `kind: "cafe"` ile; mağaza sepeti → **400** `invalid_body`.
   - `address` **null** olmalı (gönderilirse **400** `invalid_body`, "Masaya siparişte adres
@@ -2321,12 +2321,15 @@ bir kodu vardır: 10 karakter Crockford base32 (`0-9`, `I L O U` hariç büyük 
 50 bit, tahmin edilemez ve sıralı değildir. QR'ın içeriği her zaman
 `https://laffogato.net/masa/<kod>`'dur (apex alan adı, sabit). Site bu adreste
 menüyü (salt görüntüleme), masanın adını ve uygulama bağlantılarını gösterir.
-**Evrensel bağlantı henüz yok (16 Eki 2026):** AASA `/masa/*`'ı talep etmez, çünkü
-yayındaki hiçbir uygulama sürümünde `/masa/<kod>` ekranı yok; talep edilse iPhone'da
-uygulaması kurulu misafir bulunamadı ekranına düşer ve web menüsüne de ulaşamaz.
-Masa ekranı olan lafmobil sürümü yayınlanınca site AASA'ya `/masa/*`'ı, uygulama
-Android `intentFilters`'a `pathPrefix: "/masa/"`'ı aynı adımda ekler. O zamana kadar
-web sayfası da "uygulamadan sipariş ver" demez; siparişi bir görevliye yönlendirir. Masa silinmez, **pasifleştirilir**; basılı kart
+**Evrensel bağlantı (5 Kas 2026):** masa ekranı olan lafmobil 1.1.0 App Store'da
+(operatör, 5 Kas 2026; 1.0.0 mağazaya hiç çıkmadı, yani yayındaki her iOS sürümünde
+`/masa/<kod>` ekranı var). Site AASA'da `/masa/*`'ı talep eder: uygulaması kurulu bir
+iPhone basılı kartı kamerayla okutunca uygulamanın `masa/[kod]` ekranı o masayla açılır.
+Uygulama Android `intentFilters`'a `pathPrefix: "/masa/"`'ı ekledi; ilk Google Play
+derlemesiyle gelir. Uygulaması olmayan misafir web sayfasına düşer: sayfa masanın adını,
+"siparişini uygulamadan ver" cümlesini, mağaza düğmelerini (App Store; Google Play yakında)
+ve "uygulaman yoksa bir görevliye sorabilirsin" satırını gösterir. Site masaya sipariş
+almaz (16 Eki 2026'dan beri aynı). Masa silinmez, **pasifleştirilir**; basılı kart
 çalındı ya da kötüye kullanıldıysa panel **kodu yeniler** ve eski QR anında
 çalışmaz olur.
 

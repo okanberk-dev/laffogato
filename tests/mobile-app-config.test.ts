@@ -259,7 +259,10 @@ describe("toBootstrapApp", () => {
     // Only the listing URLs cross the wire. The signing identifiers are the
     // website's own business - it publishes the two `.well-known` documents,
     // and the app can do nothing with its own fingerprint.
-    expect(app.store).toEqual({ appStoreUrl: "", playStoreUrl: "" });
+    expect(app.store).toEqual({
+      appStoreUrl: "https://apps.apple.com/tr/app/id6823861367",
+      playStoreUrl: "",
+    });
     expect(app.store).not.toHaveProperty("appleTeamId");
     expect(app.store).not.toHaveProperty("androidSha256");
     expect(app.loyalty).toEqual({

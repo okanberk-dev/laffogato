@@ -323,6 +323,19 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                tasarım tarifi)
 ```
 
+## Marina şubesi: yalnız sitede (5 Kas 2026)
+
+Operatör: _"Laffogato Marina şubesi ... açıldı olarak göster"_, kapsam
+**yalnız site**. Kayıt `src/lib/seo/branches.ts` (`MARINA_BRANCH`, kimliği
+lafmaliyet'in şube kütüğüyle aynı: `marina`); `/ziyaret`'te kart ve footer'da
+bir satır. Adres, telefon ve saat o gün hiçbir yerde yoktu: alanlar boş, boş
+alan basılmaz, adres girilene kadar harita bağlantısı ve JSON-LD yok
+(`tests/site-branches.test.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
+yalnız Tuzla köşküne hizmet eder; kart bunu yazar. Hukuk metinlerinde 12 belge
+(ÖBF ve MSS dahil) hâlâ "tek şube bulunduğundan konuma bağlı bir işlev yoktur"
+der: düzeltilmesi onay sürümünü (`LEGAL_UPDATED`) taşır, ayrı bir hukuk
+revizyonudur ve operatörün onayını bekler.
+
 ## Masalar (QR) ve "yeni sipariş" e-postası (15 Eki 2026)
 
 - **Masa = ad + rastgele kod.** `public.cafe_tables`; kod 10 karakter Crockford
@@ -338,9 +351,12 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   Herkese açık arama (`GET /api/mobile/v1/tables/{code}`, `/masa/[code]`, sipariş
   yolu) yalnız `{code, name}` verir; bulunamayan kod üye + IP (oturum yoksa IP)
   başına sayılır (`table-lookup`). Sözleşme: `docs/API-MOBILE.md` §3 ve §22.
-  AASA `/masa/*` **talep etmez** ve `/masa` sayfası "uygulamadan sipariş ver"
-  demez: masa ekranı olan lafmobil sürümü yayınlanınca ikisi birlikte açılır.
-  Kod yenilenince eski kart hemen masadan kaldırılmalı.
+  **5 Kas 2026'dan beri** (lafmobil 1.1.0 App Store'da, masa ekranıyla) AASA
+  `/masa/*`'ı talep eder: uygulaması kurulu iPhone kartı kamerayla okutunca
+  uygulama o masayla açılır; uygulaması olmayana `/masa` sayfası "siparişini
+  uygulamadan ver" der (`table-banner.tsx`). Android `/masa/` öneki lafmobil
+  `app.json`'ında, ilk Play derlemesiyle gelir. Kod yenilenince eski kart
+  hemen masadan kaldırılmalı.
 - **LafPOS'un bastığı kart** (28 Eki 2026): kasa masa kodunu kendisi üretir ve
   imzalı `PUT /api/panel/tables` ile buraya yazar (`importCafeTables`: yeni
   kod eklenir, var olanın adı ve etkinliği güncellenir, listede olmayan masaya

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LIVE_APP_STORE_URL } from "./app-store";
 import { STAMP_MIN_ORDER_MINOR, STAMP_STEP_MINOR } from "./loyalty-core";
 
 /**
@@ -301,12 +302,17 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     mapsQuery: "L'Affogato, Atatürk Cad. No: 28, 34940 Tuzla, İstanbul",
   },
   store: {
-    // Empty until the listings exist. The gate hides its store button rather
-    // than offering one that opens nothing, and the two .well-known routes
-    // answer 404 rather than publishing an association nobody can honour.
-    appStoreUrl: "",
+    // The iOS app is on the App Store (1.1.0, operator, 5 Kas 2026): its
+    // listing and its Apple team are facts now, not guesses, so they are the
+    // defaults. The panel still overrides both. Google Play stays empty until
+    // its listing exists: the gate hides its store button rather than
+    // offering one that opens nothing, and assetlinks.json answers 404 rather
+    // than publishing an association nobody can honour.
+    appStoreUrl: LIVE_APP_STORE_URL,
     playStoreUrl: "",
-    appleTeamId: "",
+    // The individual developer account's team (docs/STORE-RELEASE.md in
+    // lafmobil), the prefix of the app's App ID.
+    appleTeamId: "CBTKNY3LFC",
     bundleId: "com.laffogato.app",
     androidSha256: [],
   },
@@ -374,7 +380,8 @@ const semver = z
  * `https` only, and only the two real hosts: this value ends up in a
  * `Linking.openURL` on a screen the member cannot get past, so an operator
  * typo must degrade to "no button" rather than to "opens something else".
- * Empty is a legitimate answer and the default - there is no listing yet.
+ * Empty is a legitimate answer for Google Play (no listing yet); the App Store
+ * field falls back to the live listing (`LIVE_APP_STORE_URL`).
  */
 const STORE_HOSTS = ["apps.apple.com", "play.google.com"] as const;
 
@@ -542,7 +549,11 @@ const configSchema = z.object({
     mapsQuery: text(L.venueMapsQueryMax, D.venue.mapsQuery),
   }).catch(() => ({ ...D.venue })),
   store: section({
-    appStoreUrl: storeUrl,
+    // A panel row saved while the field was empty (or with a typo) holds ""
+    // or junk; the live listing stands in for it, so neither the forced-update
+    // screen nor the panel's own warning says "there is no store" while there
+    // is one.
+    appStoreUrl: storeUrl.transform((v) => v || D.store.appStoreUrl),
     playStoreUrl: storeUrl,
     appleTeamId: z
       .string()

@@ -55,12 +55,15 @@ const PATHS = [
   "NOT /uye/*",
   "/karaoke",
   "/kampanyalar",
+  "/masa/*",
   "/ziyaret",
-  // NOT YET /masa/* (table QR, 15 Eki 2026): no released app has a screen
-  // for /masa/<code>, so claiming it would land every iPhone with the app on
-  // its not-found screen and keep the guest off the web menu (see above).
-  // It is added together with the lafmobil release that ships the table
-  // screen and Android's pathPrefix "/masa/" (docs/API-MOBILE.md §22).
+  // /masa/* (table QR, claimed 5 Kas 2026): every released iOS build (1.1.0
+  // and later; 1.0.0 never reached the store) has the app's masa/[kod]
+  // screen, so a printed table card scanned with the iPhone camera opens the
+  // app at that table, and the guest orders and pays from the app
+  // (docs/API-MOBILE.md §22). Without the app the same URL stays the web
+  // menu. Android's pathPrefix "/masa/" is in lafmobil's app.json and ships
+  // with its first Play build.
 ];
 
 export async function GET() {

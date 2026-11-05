@@ -95,10 +95,10 @@ describe("Sürüm ve bakım asks before closing the app (D26)", () => {
     expect(updateSettings).not.toHaveBeenCalled();
     expect(asked.confirm?.keys).toEqual(["version:2.0.0"]);
     expect(asked.confirm?.phrase).toBe("2.0.0");
-    // No store address yet: the forced-update screen has no way out.
-    expect(asked.confirm?.lines.join(" ")).toMatch(
-      /App Store ve Google Play adresi boş/,
-    );
+    // The App Store listing is live (5 Kas 2026); Google Play's is not, so
+    // an Android phone on the forced-update screen has no way out.
+    expect(asked.confirm?.lines.join(" ")).toMatch(/Google Play adresi boş/);
+    expect(asked.confirm?.lines.join(" ")).not.toMatch(/App Store/);
 
     // A yes given for another version does not carry over.
     const stale = await actions.saveVersionAction(

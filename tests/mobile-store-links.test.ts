@@ -7,6 +7,7 @@ import {
   normalizeMobileAppConfig,
   toBootstrapApp,
 } from "@/lib/mobile/app-config";
+import { LIVE_APP_STORE_URL } from "@/lib/mobile/app-store";
 
 /**
  * Store listings and deep-link identifiers.
@@ -25,12 +26,23 @@ const store = (over: Record<string, unknown>) =>
   normalizeMobileAppConfig({ store: over }).store;
 
 describe("store settings", () => {
-  it("starts empty rather than guessing a listing", () => {
+  it("knows the live iOS listing and team, and guesses nothing for Android", () => {
+    // 1.1.0 is on the App Store (operator, 5 Kas 2026): the listing and the
+    // team are facts. Google Play has no listing and no signing key yet.
     const d = DEFAULT_MOBILE_APP_CONFIG.store;
-    expect(d.appStoreUrl).toBe("");
+    expect(d.appStoreUrl).toBe(LIVE_APP_STORE_URL);
+    expect(d.appStoreUrl).toBe("https://apps.apple.com/tr/app/id6823861367");
     expect(d.playStoreUrl).toBe("");
-    expect(d.appleTeamId).toBe("");
+    expect(d.appleTeamId).toBe("CBTKNY3LFC");
     expect(d.androidSha256).toEqual([]);
+  });
+
+  it("reads an emptied App Store field as the live listing", () => {
+    // A panel row saved while the field was empty keeps "". The forced-update
+    // screen must still find the store, and the panel must not warn about a
+    // listing that exists.
+    expect(store({ appStoreUrl: "" }).appStoreUrl).toBe(LIVE_APP_STORE_URL);
+    expect(store({ playStoreUrl: "" }).playStoreUrl).toBe("");
   });
 
   it("keeps a real listing URL", () => {
@@ -54,7 +66,8 @@ describe("store settings", () => {
       "javascript:alert(1)",
       "not a url at all",
     ]) {
-      expect(store({ appStoreUrl: bad }).appStoreUrl).toBe("");
+      expect(store({ appStoreUrl: bad }).appStoreUrl).toBe(LIVE_APP_STORE_URL);
+      expect(store({ playStoreUrl: bad }).playStoreUrl).toBe("");
     }
   });
 
@@ -75,9 +88,11 @@ describe("store settings", () => {
   });
 
   it("refuses an Apple Team ID that is not one", () => {
-    expect(store({ appleTeamId: "ABCDE1234" }).appleTeamId).toBe(""); // 9 chars
+    const team = DEFAULT_MOBILE_APP_CONFIG.store.appleTeamId;
+    expect(store({ appleTeamId: "ABCDE1234" }).appleTeamId).toBe(team); // 9 chars
     expect(store({ appleTeamId: "abcde12345" }).appleTeamId).toBe("ABCDE12345");
-    expect(store({ appleTeamId: "ABCDE-12345" }).appleTeamId).toBe("");
+    expect(store({ appleTeamId: "ABCDE-12345" }).appleTeamId).toBe(team);
+    expect(store({ appleTeamId: "" }).appleTeamId).toBe(team);
   });
 
   it("keeps the default package name when given nonsense", () => {
@@ -133,7 +148,7 @@ describe("what the app is told", () => {
       }),
       true,
     ).store;
-    expect(before.appStoreUrl).toBe("");
+    expect(before.appStoreUrl).toBe(LIVE_APP_STORE_URL);
     expect(after.appStoreUrl).toBe(
       "https://apps.apple.com/tr/app/laffogato/id9",
     );
@@ -191,12 +206,13 @@ describe("the paths the app is allowed to intercept", () => {
     expect(AASA).toContain('"NOT /uye/*"');
   });
 
-  it("does not claim the table QR path before an app can open it", () => {
-    // No released app has a /masa/<code> screen yet; an iPhone with the app
-    // would open its not-found screen instead of the web menu. Flip this
-    // with the lafmobil release that ships the table screen (§22).
+  it("claims the table QR path, now that every released app can open it", () => {
+    // lafmobil 1.1.0 (App Store, 5 Kas 2026) has the masa/[kod] screen and
+    // 1.0.0 never reached the store, so a printed card opens the app at its
+    // table (§22). Exactly the subtree: a bare "/masa" would also take the
+    // web page's own path, which has no app screen.
     const claimed = [...AASA.matchAll(/^\s+"(\/[^"]*)",$/gm)].map((m) => m[1]);
-    expect(claimed.filter((p) => p.startsWith("/masa"))).toEqual([]);
+    expect(claimed.filter((p) => p.startsWith("/masa"))).toEqual(["/masa/*"]);
   });
 
   it("compares iOS wildcards and Android prefixes as the same claim", () => {
