@@ -28,12 +28,17 @@ describe("rehber fotoğrafları", () => {
       expect(existsSync(`public${img.src}`), img.src).toBe(true);
       expect(img.width / img.height).toBeCloseTo(1.5, 2);
       expect(img.alt.length, `${g.slug} alt`).toBeGreaterThan(25);
-      // A stock photograph names its photographer and links the photo.
-      if (img.credit) {
-        expect(img.credit.source).toBe("Unsplash");
+      // A stock photograph names its photographer and links the photo:
+      // Unsplash with its profile, a public-domain (CC0) one with its page.
+      if (img.credit?.source === "Unsplash") {
         expect(img.credit.url).toMatch(/^https:\/\/unsplash\.com\/@/);
         expect(img.credit.photoUrl).toMatch(
           /^https:\/\/unsplash\.com\/photos\//,
+        );
+      } else if (img.credit) {
+        expect(img.credit.license).toBe("CC0 1.0");
+        expect(img.credit.photoUrl).toMatch(
+          /^https:\/\/(commons\.wikimedia\.org|www\.rawpixel\.com)\//,
         );
       }
     }
@@ -121,7 +126,10 @@ describe("menüden rehbere", () => {
       "san-sebastian-cheesecake",
     );
     expect(menuItemGuide("Cortado")).toBe("espresso-cesitleri");
-    expect(menuItemGuide("Brownie")).toBeNull();
+    expect(menuItemGuide("Brownie")).toBe("brownie-tarifi");
+    expect(menuItemGuide("Çilek Magnolia")).toBe("magnolia-tarifi");
+    expect(menuItemGuide("Lotus Magnolia")).toBe("magnolia-tarifi");
+    expect(menuItemGuide("Cookie Aşkı (Dondurmalı)")).toBeNull();
     expect(menuItemGuide("Karamel Latte")).toBeNull();
   });
 

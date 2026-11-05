@@ -16,6 +16,8 @@ const MENU_GUIDE_RULES: ReadonlyArray<readonly [RegExp, string]> = [
   [/chai/i, "chai-tea-latte"],
   [/matcha/i, "matcha-nedir"],
   [/san sebastian/i, "san-sebastian-cheesecake"],
+  [/magnolia/i, "magnolia-tarifi"],
+  [/^brownie$/i, "brownie-tarifi"],
   [
     /^(Espresso|Doppio|Ristretto|Cortado|Flat White|Cappuccino|Caffè Latte|Latte|Americano|Macchiato)$/i,
     "espresso-cesitleri",

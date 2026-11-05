@@ -108,7 +108,8 @@ export default async function GuidePage({
                   >
                     {guide.image.credit.name}
                   </a>
-                  , Unsplash
+                  {guide.image.credit.source !== guide.image.credit.name &&
+                    `, ${guide.image.credit.source}`}
                 </>
               ) : (
                 <>Fotoğraf: {"L'Affogato"}, Tuzla</>

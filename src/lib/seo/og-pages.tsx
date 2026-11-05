@@ -86,6 +86,10 @@ const GUIDE_PICTURES: Record<string, () => Promise<Uint8Array>> = {
     readFile(join(process.cwd(), "public/rehber/spanish-latte-nedir.webp")),
   "chai-tea-latte": () =>
     readFile(join(process.cwd(), "public/rehber/chai-tea-latte.webp")),
+  "magnolia-tarifi": () =>
+    readFile(join(process.cwd(), "public/rehber/magnolia-tarifi.webp")),
+  "brownie-tarifi": () =>
+    readFile(join(process.cwd(), "public/rehber/brownie-tarifi.webp")),
 };
 
 async function photoArt(

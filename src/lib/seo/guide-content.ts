@@ -10,9 +10,11 @@
  * ya da elle düzenleyip `npm test` ile doğrulayın.
  */
 
+import { BROWNIE_GUIDE } from "./guide-content-brownie-tarifi";
 import { CHAI_LATTE_GUIDE } from "./guide-content-chai-tea-latte";
 import { COLD_BREW_GUIDE } from "./guide-content-cold-brew-nedir";
 import { FRAPPE_GUIDE } from "./guide-content-frappe-nedir";
+import { MAGNOLIA_GUIDE } from "./guide-content-magnolia-tarifi";
 import { SPANISH_LATTE_GUIDE } from "./guide-content-spanish-latte-nedir";
 import { TIRAMISU_GUIDE } from "./guide-content-tiramisu-tarifi";
 import { YENILEBILIR_BARDAK_GUIDE } from "./guide-content-yenilebilir-kahve-fincani";
@@ -66,7 +68,15 @@ export interface GuideImage {
   alt: string;
   width: number;
   height: number;
-  credit?: { name: string; url: string; source: "Unsplash"; photoUrl: string };
+  credit?:
+    | { name: string; url: string; source: "Unsplash"; photoUrl: string }
+    | {
+        /** A public-domain (CC0) photograph from another library. */
+        name: string;
+        source: "Wikimedia Commons" | "rawpixel";
+        license: "CC0 1.0";
+        photoUrl: string;
+      };
 }
 
 export const GUIDE_CONTENT: GuideSource[] = [
@@ -1507,6 +1517,40 @@ export const GUIDE_CONTENT: GuideSource[] = [
         source: "Unsplash",
         photoUrl:
           "https://unsplash.com/photos/a-cup-of-coffee-sitting-on-top-of-a-table-hT_xR7_1YH8",
+      },
+    },
+  },
+  // 5 Kas 2026: two dessert recipes for dishes on the menu (brownie and the
+  // three magnolias). The photographs are the menu's public-domain (CC0)
+  // stock pictures (docs/MENU-PHOTOS.md), cut to 3:2 and credited as such.
+  {
+    ...BROWNIE_GUIDE,
+    image: {
+      src: "/rehber/brownie-tarifi.webp",
+      alt: "Beyaz tabakta çikolata sosuyla süslenmiş, ıslak dokulu bir dilim brownie",
+      width: 1200,
+      height: 800,
+      credit: {
+        name: "rawpixel",
+        source: "rawpixel",
+        license: "CC0 1.0",
+        photoUrl:
+          "https://www.rawpixel.com/image/3338459/free-photo-image-chocolate-cake-animal",
+      },
+    },
+  },
+  {
+    ...MAGNOLIA_GUIDE,
+    image: {
+      src: "/rehber/magnolia-tarifi.webp",
+      alt: "Turuncu kaselerde bisküvi kırığı ve bütün bisküviyle süslenmiş muzlu puding, magnolianın ilk hali",
+      width: 1200,
+      height: 800,
+      credit: {
+        name: "Alabama Extension",
+        source: "Wikimedia Commons",
+        license: "CC0 1.0",
+        photoUrl: "https://commons.wikimedia.org/w/index.php?curid=102658496",
       },
     },
   },

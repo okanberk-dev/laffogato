@@ -17,4 +17,6 @@ export const GUIDE_LINKS = [
   { slug: "san-sebastian-cheesecake", title: "San Sebastian cheesecake" },
   { slug: "spanish-latte-nedir", title: "Spanish latte nedir?" },
   { slug: "chai-tea-latte", title: "Chai tea latte nedir?" },
+  { slug: "magnolia-tarifi", title: "Magnolia tarifi" },
+  { slug: "brownie-tarifi", title: "Brownie tarifi" },
 ] as const;

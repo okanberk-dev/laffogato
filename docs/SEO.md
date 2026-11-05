@@ -155,21 +155,26 @@ Eat the cup.") ana sayfanın ve kendi kartı olmayan her sayfanın (`/hukuk`,
 Sitenin en büyük kaçırılmış fırsatı, markanın kendi terimlerinin Türkiye'de
 yüksek hacimli ve **düşük zorlukta** olmasıydı. `/rehber` bu boşluğu kapatır.
 
-| Sayfa                       | Hedef küme                                                                         | Aylık hacim | KD    |
-| --------------------------- | ---------------------------------------------------------------------------------- | ----------- | ----- |
-| `affogato-nedir`            | affogato · **dondurmalı kahve** · affogato nedir/tarifi/nasıl yapılır/nasıl okunur | ~27.000     | 10-27 |
-| `matcha-nedir`              | matcha nedir · matcha latte · matcha faydaları · matcha nasıl yapılır              | ~53.000     | 13-25 |
-| `espresso-cesitleri`        | flat white · türk kahvesi · cortado · espresso nedir                               | ~78.000     | 14-38 |
-| `san-sebastian-cheesecake`  | san sebastian cheesecake                                                           | ~18.000     | 20    |
-| `yenilebilir-kahve-fincani` | **yenilebilir bardak** (320) · yenilebilir kahve fincanı (210) · bardak yapımı     | ~600        | 28-30 |
-| `tiramisu-tarifi`           | tiramisu (135.000) · tiramisu tarifi (74.000) · kedi dili tiramisu (22.200)        | ~200.000    | 25-39 |
-| `cold-brew-nedir`           | cold brew (18.100) · cold brew nedir (3.600) · nasıl yapılır / tarifi (2.400)      | ~28.000     | 14-28 |
-| `frappe-nedir`              | frappe (18.100) · frappe nedir (5.400) · nasıl yapılır (1.900) · tarifi (1.300)    | ~28.000     | 13-26 |
-| `spanish-latte-nedir`       | spanish latte (6.600) · spanish latte nedir (5.400) · tarifi · içeriği · iced      | ~14.000     | 15-19 |
-| `chai-tea-latte`            | chai tea latte (8.100) · chai latte (1.600) · tarifi (1.300) · içindekiler         | ~13.000     | 12-21 |
+| Sayfa                       | Hedef küme                                                                         | Aylık hacim  | KD    |
+| --------------------------- | ---------------------------------------------------------------------------------- | ------------ | ----- |
+| `affogato-nedir`            | affogato · **dondurmalı kahve** · affogato nedir/tarifi/nasıl yapılır/nasıl okunur | ~27.000      | 10-27 |
+| `matcha-nedir`              | matcha nedir · matcha latte · matcha faydaları · matcha nasıl yapılır              | ~53.000      | 13-25 |
+| `espresso-cesitleri`        | flat white · türk kahvesi · cortado · espresso nedir                               | ~78.000      | 14-38 |
+| `san-sebastian-cheesecake`  | san sebastian cheesecake                                                           | ~18.000      | 20    |
+| `yenilebilir-kahve-fincani` | **yenilebilir bardak** (320) · yenilebilir kahve fincanı (210) · bardak yapımı     | ~600         | 28-30 |
+| `tiramisu-tarifi`           | tiramisu (135.000) · tiramisu tarifi (74.000) · kedi dili tiramisu (22.200)        | ~200.000     | 25-39 |
+| `cold-brew-nedir`           | cold brew (18.100) · cold brew nedir (3.600) · nasıl yapılır / tarifi (2.400)      | ~28.000      | 14-28 |
+| `frappe-nedir`              | frappe (18.100) · frappe nedir (5.400) · nasıl yapılır (1.900) · tarifi (1.300)    | ~28.000      | 13-26 |
+| `spanish-latte-nedir`       | spanish latte (6.600) · spanish latte nedir (5.400) · tarifi · içeriği · iced      | ~14.000      | 15-19 |
+| `chai-tea-latte`            | chai tea latte (8.100) · chai latte (1.600) · tarifi (1.300) · içindekiler         | ~13.000      | 12-21 |
+| `magnolia-tarifi`           | magnolia tarifi · magnolia tatlısı · çilekli / muzlu / lotus magnolia              | doğrulanmadı | -     |
+| `brownie-tarifi`            | brownie tarifi · brownie · ıslak brownie · browni · kaç derecede pişer             | doğrulanmadı | -     |
 
-Semrush, TR veritabanı; ilk beşi Eylül 2026, son beşi 25 Ekim 2026'da
-ölçüldü.
+Semrush, TR veritabanı; ilk beşi Eylül 2026, sonraki beşi 25 Ekim 2026'da
+ölçüldü. **Magnolia ve brownie** (5 Kas 2026, operatörün isteğiyle) Semrush'a
+erişim olmayan bir oturumda açıldı: ikisi de menüde satılan tatlılar ve genel
+olarak çok aranan tarifler, ama hacim ve zorluk henüz ölçülmedi. Ölçülünce
+bu tabloya ve `guides.ts` başındaki listeye yazılmalı.
 
 **Neden bunlar:** hepsi menüde gerçekten olan bir ürüne bağlanıyor. Satmadığımız
 bir şey için içerik üretmiyoruz - arama trafiği ile ticari niyet arasında bağ
@@ -214,6 +219,10 @@ kurulamayan sayfa, sıralansa bile işe yaramaz.
   License" taşıyan (Unsplash+ olmayan) fotoğraflardan seçildi; lisans
   ticari kullanıma ve düzenlemeye izin veriyor, ad zorunlu değil ama
   sayfada fotoğrafçının adı ve fotoğrafın bağlantısı yazılı (`credit`).
+- Unsplash dışında yalnız kamu malı (CC0) fotoğraf: menünün kendi stok
+  fotoğrafları (`docs/MENU-PHOTOS.md`) bunlardır. Sayfa ve dosya yine
+  fotoğrafçıyı ve kaynağı yazar, "L'Affogato" değil
+  (`--cc0 "Ad" --source "Wikimedia Commons"`; brownie ve magnolia, 5 Kas 2026).
 - Hepsi aynı ev görünümünden geçer, kimin çektiği fark etmez:
   `npm run seo:photo -- <fotoğraf> <slug> [--unsplash "Ad Soyad"] [--crop sol,üst,genişlik,yükseklik]`
   (`scripts/guide-photo.mjs`). Dikkat noktasına göre 3:2 kırpma, 1600 x 1067

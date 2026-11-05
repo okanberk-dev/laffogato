@@ -14,7 +14,6 @@ import { HomeHeroSlider } from "./home-hero-slider";
 import { HomeKaraoke } from "./home-karaoke";
 import { Illustration } from "./illustration";
 import { karaokeDoorLine } from "./karaoke-today";
-import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
 import { ROUTE_PATHS, type Route } from "./route-paths";
@@ -748,17 +747,6 @@ export function PageHome({
           </div>
         </div>
       </section>
-
-      {/* The 3D cup, demoted to a toy low on the page. */}
-      {/* "Gerçeğini sipariş et" goes to the app block: cafe drinks are
-          ordered in the app, not from the web menu. */}
-      <PourModule
-        onOrder={() =>
-          document
-            .getElementById("uygulama")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-        }
-      />
 
       {/* Visit ───────────────────────────────────────────────── */}
       <section className="home-section home-section-last band-cream">

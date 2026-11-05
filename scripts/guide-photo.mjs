@@ -10,6 +10,8 @@
  *
  *   node scripts/guide-photo.mjs <photo> <slug>                        our own photograph
  *   node scripts/guide-photo.mjs <photo> <slug> --unsplash "Ad Soyad"  a stock photograph
+ *   node scripts/guide-photo.mjs <photo> <slug> --cc0 "Ad Soyad" --source "Wikimedia Commons"
+ *                                              a public-domain (CC0) photograph from elsewhere
  *   node scripts/guide-photo.mjs <photo> <slug> --crop left,top,width,height
  *
  * Writes public/rehber/<slug>.webp: 1600 x 1067, or 1200 x 800 when the
@@ -23,7 +25,7 @@ const CREAM = [1, 0.965, 0.905];
 
 function usage() {
   console.error(
-    'usage: node scripts/guide-photo.mjs <photo> <slug> [--unsplash "Ad Soyad"] [--crop left,top,width,height]',
+    'usage: node scripts/guide-photo.mjs <photo> <slug> [--unsplash "Ad Soyad" | --cc0 "Ad Soyad" --source "Kaynak"] [--crop left,top,width,height]',
   );
   process.exit(1);
 }
@@ -32,11 +34,15 @@ function parseArgs(argv) {
   const [input, slug, ...rest] = argv;
   if (!input || !slug || !/^[a-z0-9-]+$/.test(slug)) usage();
   let unsplash = null;
+  let cc0 = null;
+  let source = null;
   let crop = null;
   for (let i = 0; i < rest.length; i += 2) {
     const value = rest[i + 1];
     if (!value) usage();
     if (rest[i] === "--unsplash") unsplash = value;
+    else if (rest[i] === "--cc0") cc0 = value;
+    else if (rest[i] === "--source") source = value;
     else if (rest[i] === "--crop") {
       const n = value.split(",").map(Number);
       if (n.length !== 4 || n.some((x) => !Number.isInteger(x) || x < 0))
@@ -44,7 +50,25 @@ function parseArgs(argv) {
       crop = { left: n[0], top: n[1], width: n[2], height: n[3] };
     } else usage();
   }
-  return { input, slug, unsplash, crop };
+  if ((cc0 && !source) || (source && !cc0) || (cc0 && unsplash)) usage();
+  // A CC0 photograph is credited the same way an Unsplash one is: the
+  // photographer and where it came from, never "L'Affogato".
+  const stock = unsplash
+    ? {
+        name: unsplash,
+        source: "Unsplash",
+        license: "Unsplash License",
+        web: "https://unsplash.com/license",
+      }
+    : cc0
+      ? {
+          name: cc0,
+          source,
+          license: "CC0 1.0",
+          web: "https://creativecommons.org/publicdomain/zero/1.0/",
+        }
+      : null;
+  return { input, slug, stock, crop };
 }
 
 const smoothstep = (e0, e1, x) => {
@@ -87,9 +111,11 @@ const esc = (s) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-function xmp(unsplash) {
-  const creator = unsplash ?? "L'Affogato";
-  const credit = unsplash ? `${unsplash} / Unsplash` : "L'Affogato, Tuzla";
+function xmp(stock) {
+  const creator = stock?.name ?? "L'Affogato";
+  const credit = stock
+    ? `${stock.name} / ${stock.source}`
+    : "L'Affogato, Tuzla";
   return [
     '<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>',
     '<x:xmpmeta xmlns:x="adobe:ns:meta/">',
@@ -98,13 +124,13 @@ function xmp(unsplash) {
     '    xmlns:dc="http://purl.org/dc/elements/1.1/"',
     '    xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"',
     '    xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/"',
-    unsplash
-      ? `    photoshop:Credit="${esc(credit)}"\n    xmpRights:WebStatement="https://unsplash.com/license">`
+    stock
+      ? `    photoshop:Credit="${esc(credit)}"\n    xmpRights:WebStatement="${esc(stock.web)}">`
       : `    photoshop:Credit="${esc(credit)}">`,
     `   <dc:creator><rdf:Seq><rdf:li>${esc(creator)}</rdf:li></rdf:Seq></dc:creator>`,
-    ...(unsplash
+    ...(stock
       ? [
-          '   <dc:rights><rdf:Alt><rdf:li xml:lang="x-default">Unsplash License</rdf:li></rdf:Alt></dc:rights>',
+          `   <dc:rights><rdf:Alt><rdf:li xml:lang="x-default">${esc(stock.license)}</rdf:li></rdf:Alt></dc:rights>`,
         ]
       : []),
     "  </rdf:Description>",
@@ -115,7 +141,7 @@ function xmp(unsplash) {
 }
 
 async function main() {
-  const { input, slug, unsplash, crop } = parseArgs(process.argv.slice(2));
+  const { input, slug, stock, crop } = parseArgs(process.argv.slice(2));
   let img = sharp(input).rotate();
   if (crop) img = img.extract(crop);
   const sourceWidth = crop?.width ?? (await sharp(input).metadata()).width;
@@ -134,7 +160,7 @@ async function main() {
     raw: { width: info.width, height: info.height, channels: info.channels },
   })
     .sharpen({ sigma: 0.6 })
-    .withXmp(xmp(unsplash))
+    .withXmp(xmp(stock))
     .webp({ quality: 80, effort: 6 })
     .toFile(file);
   console.log(

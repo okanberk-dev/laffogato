@@ -17,6 +17,8 @@
  *   frappe-nedir              ~28.000/ay  (frappe 18.1k · nedir 5.4k · nasıl yapılır 1.9k)
  *   spanish-latte-nedir       ~14.000/ay  (spanish latte 6.6k · nedir 5.4k)
  *   chai-tea-latte            ~13.000/ay  (chai tea latte 8.1k · chai latte 1.6k)
+ *   magnolia-tarifi           doğrulanmadı (5 Kas 2026; Semrush erişimi yoktu)
+ *   brownie-tarifi            doğrulanmadı (5 Kas 2026; Semrush erişimi yoktu)
  *
  * Content lives in `guide-content.ts` as plain data so it can move to the
  * database later without touching the route.
@@ -81,6 +83,8 @@ const ORDER = [
   "san-sebastian-cheesecake",
   "spanish-latte-nedir",
   "chai-tea-latte",
+  "magnolia-tarifi",
+  "brownie-tarifi",
 ];
 
 function rank(slug: string): number {

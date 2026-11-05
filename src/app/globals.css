@@ -4158,19 +4158,20 @@ summary:focus-visible,
   box-shadow: var(--shadow-frap);
 }
 .app-float--push {
-  top: clamp(20px, 7%, 48px);
-  left: clamp(12px, 5%, 40px);
-  width: min(300px, 64%);
+  top: clamp(24px, 8%, 56px);
+  left: clamp(16px, 7%, 56px);
+  width: min(232px, 52%);
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px;
   align-items: start;
-  padding: 12px 14px;
+  padding: 9px 11px;
+  border-radius: 14px;
 }
 .app-float-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
 }
 .app-float-text {
   display: grid;
@@ -4181,7 +4182,7 @@ summary:focus-visible,
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--ink-mute);
 }
@@ -4189,13 +4190,13 @@ summary:focus-visible,
   font-weight: 500;
 }
 .app-float-title {
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ink);
 }
 .app-float-body {
-  font-size: 12.5px;
-  line-height: 1.4;
+  font-size: 11.5px;
+  line-height: 1.35;
   color: var(--ink-soft);
 }
 .app-float--stamps {
@@ -4243,7 +4244,12 @@ summary:focus-visible,
   animation: app-phone-back-in 0.9s var(--ease-spring) 0.2s both;
 }
 .app-block.will-reveal.is-in .app-float--push {
-  animation: app-float-in 0.6s var(--ease-spring) 0.55s both;
+  animation:
+    app-push-drop 0.7s var(--ease-spring) 0.6s both,
+    app-push-nudge 0.5s ease-in-out 1.6s 2;
+}
+.app-block.will-reveal.is-in .app-float-icon {
+  animation: app-icon-ping 0.6s var(--ease-out) 1.4s 2;
 }
 .app-block.will-reveal.is-in .app-float--stamps {
   animation: app-float-in 0.6s var(--ease-spring) 0.75s both;
@@ -4260,16 +4266,150 @@ summary:focus-visible,
     transform: translate(-22%, 10%) rotate(-3deg) scale(0.9);
   }
 }
+/* The push arrives the way iOS shows one: it drops from above and
+   settles, then nudges twice and rests - all over in about three seconds. */
+@keyframes app-push-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(4px) scale(1.01);
+  }
+}
+@keyframes app-push-nudge {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes app-icon-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(31, 122, 92, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(31, 122, 92, 0);
+  }
+}
 @keyframes app-float-in {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.97);
   }
 }
+/* The last filled stamp lands like a press once the cards are in. */
+.app-block.will-reveal.is-in .app-float-stamps i.on:last-of-type {
+  animation: app-stamp-press 0.5s var(--ease-spring) 1.3s both;
+}
+@keyframes app-stamp-press {
+  from {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .app-block .app-phone,
-  .app-block .app-float {
+  .app-block .app-float,
+  .app-block .app-float-icon,
+  .app-block .app-float-stamps i {
     animation: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Entrances (5 Kas 2026) - one-time, under a second, never looping
+
+   A page arrives instead of appearing: the page hero's copy rises in
+   order and its drawing settles; menu and shop cards rise in a short
+   stagger (the first eight only, so a long list never waits on itself);
+   the sign-in card, the 404 and the floating order button arrive with
+   the page. Nothing here runs under reduced motion, and nothing hides
+   content before JS: these are CSS animations that start from a visible
+   end state's neighbour and finish within a second.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .page-hero-kicker,
+  .page-hero-title,
+  .page-hero-lede {
+    animation: lf-rise 0.6s var(--ease-spring) backwards;
+  }
+  .page-hero-title {
+    animation-delay: 0.06s;
+  }
+  .page-hero-lede {
+    animation-delay: 0.12s;
+  }
+  .page-hero-art {
+    animation: lf-settle 0.8s var(--ease-spring) 0.15s backwards;
+  }
+  .menu-grid > *,
+  .shop-grid-3 > * {
+    animation: lf-rise 0.5s var(--ease-spring) backwards;
+  }
+  .menu-grid > :nth-child(2),
+  .shop-grid-3 > :nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  .menu-grid > :nth-child(3),
+  .shop-grid-3 > :nth-child(3) {
+    animation-delay: 0.08s;
+  }
+  .menu-grid > :nth-child(4),
+  .shop-grid-3 > :nth-child(4) {
+    animation-delay: 0.12s;
+  }
+  .menu-grid > :nth-child(5),
+  .shop-grid-3 > :nth-child(5) {
+    animation-delay: 0.16s;
+  }
+  .menu-grid > :nth-child(6),
+  .shop-grid-3 > :nth-child(6) {
+    animation-delay: 0.2s;
+  }
+  .menu-grid > :nth-child(7),
+  .shop-grid-3 > :nth-child(7) {
+    animation-delay: 0.24s;
+  }
+  .menu-grid > :nth-child(n + 8),
+  .shop-grid-3 > :nth-child(n + 8) {
+    animation-delay: 0.28s;
+  }
+  .auth-split,
+  .nf-hero--split {
+    animation: lf-rise 0.6s var(--ease-spring) backwards;
+  }
+  .auth-join-perks li {
+    animation: lf-rise 0.5s var(--ease-spring) backwards;
+  }
+  .auth-join-perks li:nth-child(1) {
+    animation-delay: 0.25s;
+  }
+  .auth-join-perks li:nth-child(2) {
+    animation-delay: 0.35s;
+  }
+  .auth-join-perks li:nth-child(3) {
+    animation-delay: 0.45s;
+  }
+  .frap {
+    animation: lf-pop 0.5s var(--ease-spring) 0.6s backwards;
+  }
+}
+@keyframes lf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes lf-settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px) rotate(-2deg) scale(0.96);
+  }
+}
+@keyframes lf-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
   }
 }
 .app-phone--front {
@@ -4293,9 +4433,9 @@ summary:focus-visible,
     padding: 96px 16px 104px;
   }
   .app-float--push {
-    top: 16px;
+    top: 20px;
     left: 16px;
-    width: min(290px, calc(100% - 32px));
+    width: min(236px, calc(100% - 32px));
   }
   .app-float--stamps {
     right: 16px;
@@ -10415,92 +10555,6 @@ select {
   .search-body {
     animation: none;
   }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Pour module - the interactive 3D cup, low on the home page
-
-   Was a full `100svh` hero above everything else; the Köşk redesign makes it
-   a bordered card sitting between the loyalty block and the visit block. The
-   whole "clear the fixed tab bar / leave a sliver of the next section showing"
-   apparatus that the hero needed went with it - a 300px card in the middle of
-   a page has nothing to trap anyone in.
-   ───────────────────────────────────────────────────────────── */
-.pour-module {
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-card);
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
-  background: var(--glass);
-  box-shadow: var(--shadow-glass);
-}
-.pour-module-copy {
-  padding: clamp(24px, 3.4vw, 52px);
-  display: grid;
-  align-content: center;
-  gap: 14px;
-}
-.pour-module-title {
-  margin: 0;
-  font-family: var(--headline);
-  font-size: clamp(26px, 2.8vw, 38px);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
-.pour-module-copy p {
-  margin: 0;
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  max-width: 42ch;
-}
-.pour-module-cta {
-  justify-self: start;
-}
-/* The caramel scene's light behind the cup (the app's affogato family). */
-.pour-module-stage-wrap {
-  position: relative;
-  min-height: 320px;
-  background:
-    radial-gradient(
-      55% 60% at 50% 45%,
-      rgba(253, 175, 109, 0.35) 0%,
-      rgba(255, 207, 168, 0.25) 45%,
-      rgba(253, 230, 213, 0) 80%
-    ),
-    linear-gradient(180deg, #fde6d5 0%, #f2f0eb 100%);
-}
-.pour-module-stage {
-  position: absolute;
-  inset: 8px;
-}
-.pour-module-stage affogato-pour {
-  display: block;
-  width: 100%;
-  height: 100%;
-  /* Let the card's wash show through the WebGL canvas. */
-  background: transparent;
-}
-/* The widget owns its own canvas and sets `touch-action` on it from inside the
-   bundle. Three.js OrbitControls, which it is built on, sets `none` on
-   connect - and `none` over a card in mid-page means a thumb dragging across
-   it cannot scroll the page. Pinned here so a rebuild of the vendored bundle
-   cannot take vertical panning away again; `pan-y` still leaves the widget its
-   horizontal drag and its taps. */
-.pour-module-stage affogato-pour,
-.pour-module-stage affogato-pour canvas {
-  touch-action: pan-y !important;
-}
-.pour-module-loading {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink-mute);
 }
 
 /* ============================================================
