@@ -21,13 +21,19 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
 
-/** Packages the storefront must never pull into the browser. */
+/**
+ * Packages the storefront must never pull into a first-load bundle. three.js
+ * is allowed in the browser only through `import()` (the home page's valley,
+ * home-valley.tsx -> valley-scene.ts, fetched after load and idle); a static
+ * import would put ~135 KB gzip in front of the home page's first paint.
+ */
 const DENIED = [
   "zod",
   "pg",
   "bcryptjs",
   "server-only",
   "@supabase/supabase-js",
+  "three",
 ];
 
 function walk(dir: string, out: string[] = []): string[] {
