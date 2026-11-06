@@ -11,6 +11,7 @@ import { priceLabel } from "@/lib/utils/format";
 
 import { HomeAppIntro } from "./home-app-intro";
 import { HomeHeroSlider } from "./home-hero-slider";
+import { HomeValley } from "./home-valley";
 import { HomeKaraoke } from "./home-karaoke";
 import { HomeTakeHome, pickTakeHomeProduct } from "./home-take-home";
 import { Illustration } from "./illustration";
@@ -265,6 +266,11 @@ export function PageHome({
         L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
         mağaza, karaoke ve ziyaret bilgileri
       </h1>
+
+      {/* The first screen: the night valley of coffee under the name
+          (three.js, loaded after the page; the type is server-rendered).
+          The operator's slides follow directly below it. */}
+      <HomeValley onMenu={() => onSlideAction("menu")} />
 
       <HomeHeroSlider
         slides={homeSlides}

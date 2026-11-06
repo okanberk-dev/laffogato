@@ -633,12 +633,15 @@ describe("the slider with the panel's slides", () => {
     expect(html).toContain(`--scene-core:${SCENES.spice.core}`);
   });
 
-  it("loads only the first photo eagerly, and the rest lazily", () => {
+  it("loads its photos lazily: the valley above it is the first screen", () => {
+    // Since 6 Kas 2026 the slider is the band under the coffee valley
+    // (home-valley.tsx), whose server-rendered name is the page's largest
+    // paint; no drink here may compete with it for the first bytes.
     const html = draw(panel);
     const stage = html.slice(html.indexOf('class="hero-x-stage"'));
-    expect(stage).toMatch(
-      /<img[^>]*fetchpriority="high"[^>]*loading="eager"|<img[^>]*loading="eager"[^>]*fetchpriority="high"/i,
-    );
+    expect(stage).toMatch(/<img[^>]*loading="lazy"/i);
+    expect(html).not.toMatch(/fetchpriority="high"/i);
+    expect(html).not.toMatch(/loading="eager"/i);
     // The upload's thumbnail is a plain lazy <img>, not next/image.
     expect(html).toMatch(
       /<img src="\/gorsel\/ana-hero\/p2\?v=abcdefabcdef" alt="" width="581" height="942" loading="lazy"/,

@@ -29,13 +29,14 @@ const SWIPE_PX = 44;
 /**
  * The home hero: the app's product stage, at browser scale.
  *
- * Since 6 Kas 2026 (owner's brief: an oversized name over a full-bleed
- * photograph, a serif line, a dark grade) the stage stands on the köşk's
- * night front: "L'Affogato" across the width, the slide's drink in front
- * of it, the slide's words and buttons below. The slides, their order and
- * every control are unchanged; only the ground moved. No 3D (the 3D cup
- * was dropped on purpose, 382c4867): a slow zoom on the photo (CSS, off
- * under reduced motion) is all the motion the ground has.
+ * Since 6 Kas 2026 the stage stands on the köşk's night front, the slide's
+ * words and buttons on the left, its drink on the right. The name, the
+ * house's serif line and the three.js coffee valley are the screen above
+ * (home-valley.tsx, owner's brief of the same day); this band follows it
+ * as the night continues, so the photograph is no longer the page's
+ * largest paint and loads lazily. The slides, their order and every
+ * control are unchanged. A slow zoom on the photo (CSS, off under reduced
+ * motion) is all the motion the ground has.
  *
  * lafmobil draws a product on porcelain in a pastel halo of its own colour,
  * with a soft floor under it and the name beside it in Poppins (DESIGN-GLASS
@@ -127,26 +128,15 @@ export function HomeHeroSlider({
     <section className="hero-x" aria-label="Öne çıkanlar" data-ground="dark">
       {/* The night: the köşk's front at dusk, full bleed, graded down to
           the espresso ground so every word over it clears AA (globals.css
-          .hero-x-bg). The page's largest paint, so it is preloaded. */}
+          .hero-x-bg). Below the valley's first screen, so it loads lazily. */}
       <div className="hero-x-bg" aria-hidden="true">
         <Image
           className="hero-x-bg-photo"
           src="/photos/facade-night.webp"
           alt=""
           fill
-          preload
-          loading="eager"
-          fetchPriority="high"
           sizes="100vw"
         />
-      </div>
-      {/* The masthead: the name across the whole width, the slide's drink
-          standing in front of it. The name is already the page's sr-only
-          h1, so it is not read twice. */}
-      <div className="hero-x-masthead">
-        <p className="hero-x-name" aria-hidden="true">
-          L&apos;Affogato
-        </p>
       </div>
       <div className="wrap-wide">
         <div
@@ -186,10 +176,6 @@ export function HomeHeroSlider({
           }
         >
           <div className="hero-x-copy">
-            {/* The house's line, in serif, over every slide. */}
-            <p className="hero-x-tagline">
-              Bologna 1897&apos;den Tuzla&apos;ya, iki yüz yıllık bir köşkte.
-            </p>
             {slide.kicker && <p className="hero-x-kicker">{slide.kicker}</p>}
             <h2 className="hero-x-title" key={`t-${at}`}>
               <span>{slide.title[0]}</span>
@@ -296,7 +282,7 @@ export function HomeHeroSlider({
                 "Hero görsel URL", an arbitrary host next/image would need a
                 wildcard remotePattern for - that one stays a plain <img>.
                 Keyed on the photo so a slide change remounts the image and
-                replays the rise; the first drink is the LCP element. */}
+                replays the rise. Below the valley's first screen: lazy. */}
             {isLocalStatic(photo) ? (
               <Image
                 className="hero-x-photo"
@@ -306,8 +292,6 @@ export function HomeHeroSlider({
                 width={581}
                 height={942}
                 sizes="(max-width: 760px) 60vw, 440px"
-                loading={at === 0 ? "eager" : "lazy"}
-                fetchPriority={at === 0 ? "high" : "auto"}
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
@@ -316,8 +300,7 @@ export function HomeHeroSlider({
                 key={photo}
                 src={photo}
                 alt={slide.alt}
-                loading={at === 0 ? "eager" : "lazy"}
-                fetchPriority={at === 0 ? "high" : "auto"}
+                loading="lazy"
                 width={581}
                 height={942}
               />
