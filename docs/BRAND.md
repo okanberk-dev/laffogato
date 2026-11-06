@@ -383,6 +383,7 @@ radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 | `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                                            |
 | `.auth-page` / `.auth-card`    | `/uye/*` giriş sayfaları | Porselen üzerinde tek cam kart, başında L'Af.                                 |
 | `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı).                  |
+| `.valley` (`home-valley.tsx`)  | Anasayfanın ilk ekranı   | Gece kahve vadisi (three.js) önünde "L'Affogato", iki satır, menü oku, ipucu.  |
 | `.home-intro`                  | Anasayfa, hero'nun altı  | Panelin "Hero üst etiket" + "Hero açıklama" metni: ilk cümle 800, devamı 300. |
 | `.hero-x-status`               | Anasayfa hero'su         | Canlı "Şu an açık · Kapanış 02:00"; /ziyaret'in saat satırıyla aynı kaynak.   |
 | `.home-karaoke`                | Anasayfa, girişin altı   | Karaoke bandı: oda çizimi, panelin değerleri, bugünün boş saatleri.           |
@@ -487,6 +488,13 @@ ve her çizimin yerini tutar.
   `prefers-reduced-motion` altında hiç başlamaz. Noktalar kaldırıldı: küçük
   resimler kontroldür.
 - Hero'daki canlı "açık" noktası iki halka atar ve durur (4 sn, WCAG 2.2.2).
+- Anasayfanın ilk ekranı, kahve vadisi (`valley-scene.ts`, three.js), sitede
+  beş saniyeden uzun süren tek harekettir: kamera sıralar boyunca kendi
+  kendine ilerler. Bu yüzden sol altta bir durdur düğmesi taşır (WCAG
+  2.2.2); ekran dışındayken ve sekme arka plandayken hiç çizilmez,
+  `prefers-reduced-motion` altında tek bir durgun karedir. Sayfanın
+  kaydırmasını tutmaz; imleç noktaları iter, menü okunun üstüne gelince
+  vadi durur ve çiçekler havalanır.
 - Anasayfanın karaoke bandı `.reveal` ile gelirken oda çiziminin üstünden
   bir kez ışık geçer (1.5 sn); sadakat bloğunun iki dolu damgası sırayla
   basılır (1.3 → 1 ve genişleyip sönen bir pirinç halka, yarım saniye, bir
@@ -607,6 +615,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 23 Eki 2026 | **Admin paneli Innex düzenleri** (operatör: "İnnex + diğer yerleri en profesyonel şekilde yap"): KPI şeridi ve referanslar, üç bölgeli sipariş, karaoke rezervasyonu ve müşteri sayfaları, tek satırlık liste araç çubuğu, karaoke takvimi ve doluluk, rapor dönem karşılaştırması ve grafiği değiştiren kart sekmeleri, ürün ve menü hızlı bakış çekmecesi, Faturalar sayacı ve satır adımı, izin tablosu ve son giriş; müşteri sitesi değişmedi.                        |
 | 5 Kas 2026  | **Kafe-perakende düzeni** (operatör: "starbucks tarzı istiyorum ... ama panel değil"): krem zemin `#f2f0eb`, logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56`, cta `#1f7a5c`, house `#173f35`, uplift `#2a5a4d`), pirinç `#cba258` yalnız ödülde, tek ses Poppins (Gabarito emekli), 12px kart, katmanlı siyah-alfa gölge, cam ve degrade yok, 0.95 basış, yüzen sipariş düğmesi, koyu yeşil footer. lafmobil porseleninden bilinçli ayrışma (§0); panel değişmedi. |
 | 6 Kas 2026  | **Gece footer** (sahibin brifi: resimli CTA bandı + koyu footer): ev yeşili gökyüzünde köşk silueti ve buharı samanyoluna dönen fincan, altında `--night` `#181412` espresso zemin, durum hapları, dört sütun (telefonda katlanır). Footer artık ev yeşili değil; ev yeşili bant rengi olarak kalır. |
+| 6 Kas 2026  | **Kahve vadisi** (sahibin brifi: gece vadisi, three.js, "kahve çekirdekleri kullanabilirsin"): anasayfanın ilk ekranı sıra sıra kahve fidanlarının gece vadisi (beş yapraklı beyaz kahve çiçekleri, birkaç bordo kiraz, yerde ışıyan çekirdekler, yıldızlar, ışık hüzmeleri), önünde Poppins 600 sıkı "L'Affogato", serif iki satır, yuvarlak menü oku ve "Kaydır ve keşfet". Yazılar sunucuda çizilir ve WebGL'i beklemez; three.js yükten ve boş andan sonra ayrı bir parçayla gelir, WebGL yoksa CSS gece zemini kalır. Renkler `.valley`'nin `--valley-*` jetonlarından (yalnız ışık). Panel slaytları hemen altında, köşkün gece fotoğrafındaki bantta; ad ve serif satır vadiye taşındı. |
 | 6 Kas 2026  | **Ana sayfa ve başlık** (sahibin brifleri): hero köşkün gece fotoğrafında, tam genişlikte "L'Affogato" ve önünde slaydın içeceği, sistem serifiyle bir satır, `--night`'a inen ve hiçbir yerde %66'nın altına düşmeyen karartma (slaytlar ve panel akışı aynı); "Evde L'Affogato" (mağazadan bir paket kahve, canlı üründen); uygulama bölümü (çizilmiş telefon, üç fayda kartı, `--bg-cream`); başlıkta Menü, Mağaza ve Ziyaret tam genişlikte açılan panel, kaydırınca krem bar; 404'te bahçede tabela; ödeme sayfalarında küçük ödeme çizimi. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları

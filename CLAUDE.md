@@ -275,6 +275,10 @@ src/
       visuals.tsx            → SVG illüstrasyonlar + HUES yüzey paleti
       product-detail.tsx     → Ürün detay (PDP)
       shop-hero-slider.tsx   → Mağaza hero karuseli
+      home-valley.tsx        → Anasayfanın ilk ekranı: gece kahve vadisi;
+                               three.js yalnız `import()` ile, yükten ve
+                               boş andan sonra (valley-scene.ts +
+                               valley-shaders.ts; home-valley testi)
       reveal-motion.tsx      → Scroll reveal gözlemcisi
       data.ts                → Statik seed (MENU, PRODUCTS, LOCATION, ...)
     admin/                   → Admin form primitives + liste/form bileşenleri
@@ -785,7 +789,11 @@ durum bozulmaya uygundur.
   değerleri sessizce AA altına düşürdüğü için eklendi.
 - **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
   `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
-  altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez.
+  altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez. Anasayfanın
+  kahve vadisi (6 Kas 2026, three.js) tek sürekli harekettir: durdur
+  düğmesi, ekran dışında ve gizli sekmede çizim yok, azaltılmış harekette
+  tek kare, WebGL yoksa CSS zemini. `three` statik import edilmez
+  (`tests/client-bundle-weight.test.ts`).
 - **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
   Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
   `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart
