@@ -43,6 +43,7 @@ import {
   ringMotif,
   ringMotifLength,
   titleWithAlerts,
+  toCallAlert,
   toOrderAlert,
   type OrderAlert,
   type OrderAlertRow,
@@ -78,6 +79,9 @@ vi.mock("next/link", () => ({
 vi.mock("@/app/admin/siparisler/actions", () => ({
   transitionOrderAction: vi.fn(),
   openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
+}));
+vi.mock("@/app/admin/siparisler/call-actions", () => ({
+  ackTableCallAction: vi.fn(async () => ({ ok: true, message: "" })),
 }));
 
 const NOW = Date.parse("2026-10-18T18:00:00.000Z");
@@ -1035,6 +1039,24 @@ function panel(over: Partial<Parameters<typeof OrderAlertPanel>[0]> = {}) {
 }
 
 describe("the card stack", () => {
+  it("shows a table call as Masa 4 · Su istiyor with Gördüm only (6 Kas 2026)", () => {
+    const call = toCallAlert({
+      id: "tcl-0123456789abcdef",
+      tableCode: "T4",
+      tableName: "4",
+      reason: "water",
+      createdAt: new Date(NOW - 60_000).toISOString(),
+      ackedAt: "",
+    });
+    const html = panel({ alerts: displayedAlerts(null, [call]) });
+    expect(html).toContain("Masa 4 · Su istiyor");
+    expect(html).toContain('data-call="water"');
+    expect(html).toContain("Gördüm");
+    expect(html).not.toContain("Hazırlamaya başla");
+    expect(html).not.toContain("Siparişi aç");
+    expect(html).not.toContain("#0");
+  });
+
   it("shows each order with Hazırlamaya başla, Siparişi aç and Gördüm", () => {
     const html = panel();
     expect(html).toContain('aria-label="Yeni siparişler"');
@@ -1423,5 +1445,31 @@ describe("the cursor", () => {
     f.receiveShared([fresh], false);
     f.receiveUnchanged(new Date(NOW + 5 * 60 * 60_000).toISOString());
     expect(f.getSnapshot().pending.map((a) => a.id)).toEqual(["ord-new"]);
+  });
+
+  it("drops a table call after its fifteen minutes on a nothing-changed answer (6 Kas 2026)", () => {
+    const { env } = harness();
+    const c = new OrderAlertController(env);
+    c.setLeader(true);
+    const order = alert({ id: "ord-new" });
+    const call = toCallAlert({
+      id: "tcl-0123456789abcdef",
+      tableCode: "T4",
+      tableName: "4",
+      reason: "water",
+      createdAt: new Date(NOW - 60_000).toISOString(),
+      ackedAt: "",
+    });
+    c.receive([order, call]);
+    // Calls first in the stack.
+    expect(c.getSnapshot().pending.map((a) => a.id)).toEqual([
+      "tcl-0123456789abcdef",
+      "ord-new",
+    ]);
+    c.receiveUnchanged(new Date(NOW + 10 * 60_000).toISOString());
+    expect(c.getSnapshot().pending).toHaveLength(2);
+    // Sixteen minutes after the call: it stops, the order rings on.
+    c.receiveUnchanged(new Date(NOW + 15 * 60_000).toISOString());
+    expect(c.getSnapshot().pending.map((a) => a.id)).toEqual(["ord-new"]);
   });
 });

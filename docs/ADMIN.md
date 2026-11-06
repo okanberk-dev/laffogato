@@ -17,6 +17,18 @@ manual`, onu giren zaten tezgâhta) ve ödeneli **4 saatten** eski siparişler
 (dünden unutulan bir sipariş panel her açıldığında çalmasın). Kural tek yerde:
 `src/lib/admin/order-alerts-core.ts` (`ringsForOrder`).
 
+**Masadan garson çağrısı (6 Kas 2026).** Uygulamadaki "Garson çağır"
+(garson, su ya da peçete; `docs/API-MOBILE.md` §22.1) aynı zille çalar,
+yığında en üstte: "Masa 4 · Su istiyor". Kartta tek düğme var, **Gördüm**:
+çağrıyı yanıtlar (yalnız bu tarayıcıyı susturmaz), çağrı köşkün bar
+ekranından ve öbür panellerden de düşer, üyenin uygulaması "gördük" der.
+Yanıtlanmayan çağrı 15 dakika sonra kendiliğinden susar. Açık çağrılar
+Siparişler sayfasının üstünde "Masa çağrıları" listesinde de durur, satır
+satır "Gördüm" ile. Anahtar: Mobil › Uygulama ayarları › Sipariş ›
+"Masadan garson çağırma açık" (masaya sipariş de açık olmalı). Kural:
+`src/lib/admin/table-calls-core.ts`, eylem
+`src/app/admin/siparisler/call-actions.ts`.
+
 **Kimde.** Siparişler bölümü olan roller: Sahip, Yönetici, Personel. Kasa
 sayfası (`/admin/kasa`) dahil her panel sayfasında üst çubuktaki zil
 düğmesiyle gelir. Kasiyer rolünde yoktur (sipariş listesini göremez). Mobil

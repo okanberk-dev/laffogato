@@ -410,6 +410,18 @@ değişmedi (seçeneğin kapalı olması metni yanlış yapmaz).
   uygulamadan ver" der (`table-banner.tsx`). Android `/masa/` öneki lafmobil
   `app.json`'ında, ilk Play derlemesiyle gelir. Kod yenilenince eski kart
   hemen masadan kaldırılmalı.
+- **Masadan garson çağırma** (6 Kas 2026): uygulamadaki "Garson çağır"
+  (`waiter` / `water` / `napkin`) `POST /api/mobile/v1/tables/{code}/calls`
+  ile `table_calls`'a yazılır (masa kodu ve adı anlık görüntü, üyenin
+  e-postası yalnız sitede; 30 gün sonra imha, hesap kapanınca anonim).
+  Aynı masanın aynı sebepli açık çağrısı (15 dakika) yenisini açmaz; üye
+  dakikada 1, saatte 10 çağrı (`table-call`, `table-call-hour`). Yazım
+  `live:orders`'ı düşürür: sitenin sipariş zili "Masa 4 · Su istiyor" diye
+  çalar, `/admin/siparisler` üstte "Masa çağrıları" gösterir, bar ekranı
+  `GET /api/panel/orders` `calls`'tan alır ve imzalı `POST
+  /api/panel/calls/ack` ile yanıtlar. Anahtar: Uygulama ayarları › Sipariş
+  (`tableCallsEnabled`, `tableEnabled` ile birlikte). Sözleşme
+  `docs/API-MOBILE.md` §22.1, panel `docs/PANEL-ORDERS.md` "Masa çağrıları".
 - **LafPOS'un bastığı kart** (28 Eki 2026): kasa masa kodunu kendisi üretir ve
   imzalı `PUT /api/panel/tables` ile buraya yazar (`importCafeTables`: yeni
   kod eklenir, var olanın adı ve etkinliği güncellenir, listede olmayan masaya

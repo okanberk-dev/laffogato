@@ -1,5 +1,6 @@
 // Client-safe (no server-only): the panel's new-order alert. Which orders
-// ring, what the counter card and the desktop notification say, how a
+// (and, since 6 Kas 2026, which table calls) ring, what the counter card and
+// the desktop notification say, how a
 // "Gördüm" is remembered across tabs, and the ring itself as numbers. The
 // route (`/admin/siparisler/uyari`) and the client (order-alerts.tsx) both
 // read this one file, so the rule cannot drift between what the server
@@ -15,7 +16,15 @@ import {
   orderTable,
 } from "./order-channel";
 import { canAccess, type AdminRole } from "./roles";
-import { tableLabel } from "./table-calls-core";
+import {
+  TABLE_CALL_LIST_MAX,
+  TABLE_CALL_REASON_LABELS,
+  isTableCallReason,
+  tableCallRings,
+  tableLabel,
+  type TableCallReason,
+  type TableCallRow,
+} from "./table-calls-core";
 
 /** Where the alert polls. A route handler, not a page: it answers JSON. */
 export const ORDER_ALERT_PATH = "/admin/siparisler/uyari";
@@ -117,6 +126,12 @@ export interface OrderAlert {
   moreItems: number;
   totalMinor: number;
   paidAt: string;
+  /**
+   * A table call ("Garson çağır", 6 Kas 2026), not an order: `id` is the
+   * call's (`tcl-...`), `paidAt` when it was made, `orderNo` 0 and no
+   * items. Absent on an order.
+   */
+  call?: TableCallReason;
 }
 
 /**
@@ -199,6 +214,40 @@ export function toOrderAlert(order: OrderAlertRow): OrderAlert {
     totalMinor: order.totalMinor,
     paidAt: order.paidAt ?? "",
   };
+}
+
+/**
+ * A table call as an alert: "Masa 4", rung like a table order, answered
+ * with "Gördüm" (which answers the call itself, not only this browser).
+ */
+export function toCallAlert(call: TableCallRow): OrderAlert {
+  return {
+    id: call.id,
+    orderNo: 0,
+    label: tableLabel({ code: call.tableCode, name: call.tableName }),
+    table: true,
+    itemCount: 0,
+    items: [],
+    moreItems: 0,
+    totalMinor: 0,
+    paidAt: call.createdAt,
+    call: call.reason,
+  };
+}
+
+/**
+ * The table calls that ring: unanswered and under fifteen minutes old
+ * (table-calls-core.ts), newest first, at most TABLE_CALL_LIST_MAX.
+ */
+export function buildCallAlerts(
+  calls: readonly TableCallRow[],
+  nowMs: number,
+): OrderAlert[] {
+  return calls
+    .filter((c) => !c.ackedAt && tableCallRings(Date.parse(c.createdAt), nowMs))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, TABLE_CALL_LIST_MAX)
+    .map(toCallAlert);
 }
 
 /** The route's answer: the orders that ring, newest first, at most the limit. */
@@ -339,6 +388,17 @@ export function stillRinging(paidAtMs: number, nowMs: number): boolean {
 }
 
 /**
+ * Whether an alert the browser holds still rings at `nowMs`: an order for
+ * the order window, a table call for its fifteen minutes. What a "nothing
+ * changed" answer keeps (order-alert-controller.ts): an unanswered call
+ * stops on its own when its time is up, with no write to say so.
+ */
+export function alertStillRinging(alert: OrderAlert, nowMs: number): boolean {
+  const at = Date.parse(alert.paidAt);
+  return alert.call ? tableCallRings(at, nowMs) : stillRinging(at, nowMs);
+}
+
+/**
  * May the route answer "nothing changed" without reading the orders or the
  * account? Only when the cursor was handed to this session, the marker is
  * readable and is the one the last full answer was read under (no order and
@@ -379,17 +439,25 @@ export function orderAlertTime(iso: string): string {
   return Number.isFinite(t) ? CLOCK.format(new Date(t)) : "";
 }
 
-/** The card stack's order: table orders first, each group newest first. */
+/**
+ * The card stack's order: table calls first (a guest is waving), then
+ * table orders, each group newest first.
+ */
 export function alertDisplayOrder(alerts: readonly OrderAlert[]): OrderAlert[] {
   return [...alerts].sort(
     (a, b) =>
+      Number(Boolean(b.call)) - Number(Boolean(a.call)) ||
       Number(b.table) - Number(a.table) ||
       Date.parse(b.paidAt) - Date.parse(a.paidAt),
   );
 }
 
-/** "Yeni masa siparişi", "Yeni gel-al siparişi", "Yeni kafe siparişi". */
+/**
+ * "Yeni masa siparişi", "Yeni gel-al siparişi", "Yeni kafe siparişi"; a
+ * table call says what the table wants ("Su istiyor").
+ */
 export function orderAlertHeading(alert: OrderAlert): string {
+  if (alert.call) return TABLE_CALL_REASON_LABELS[alert.call];
   if (alert.table) return "Yeni masa siparişi";
   if (alert.label === ORDER_FULFILLMENT_LABELS.pickup) {
     return "Yeni gel-al siparişi";
@@ -397,16 +465,24 @@ export function orderAlertHeading(alert: OrderAlert): string {
   return "Yeni kafe siparişi";
 }
 
-/** The desktop notification's title: "Yeni masa siparişi · Masa 4". */
+/**
+ * The desktop notification's title: "Yeni masa siparişi · Masa 4"; a table
+ * call "Masa 4 · Su istiyor".
+ */
 export function notificationTitle(alert: OrderAlert): string {
   const heading = orderAlertHeading(alert);
+  if (alert.call) return `${alert.label} · ${heading}`;
   return alert.label === ORDER_FULFILLMENT_LABELS.pickup
     ? heading
     : `${heading} · ${alert.label}`;
 }
 
-/** "#10234 · 3 ürün · ₺185,00". */
+/** "#10234 · 3 ürün · ₺185,00"; a table call "Masa çağrısı · 21:05". */
 export function notificationBody(alert: OrderAlert): string {
+  if (alert.call) {
+    const time = orderAlertTime(alert.paidAt);
+    return time ? `Masa çağrısı · ${time}` : "Masa çağrısı";
+  }
   return `#${alert.orderNo} · ${alert.itemCount} ürün · ${formatTRYMinor(alert.totalMinor)}`;
 }
 
@@ -508,6 +584,7 @@ function readAlert(v: unknown): OrderAlert | null {
     moreItems: isNum(a.moreItems) ? a.moreItems : 0,
     totalMinor: isNum(a.totalMinor) ? a.totalMinor : 0,
     paidAt: isStr(a.paidAt) ? a.paidAt : "",
+    ...(isTableCallReason(a.call) ? { call: a.call } : {}),
   };
 }
 

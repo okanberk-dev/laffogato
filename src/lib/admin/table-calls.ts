@@ -9,6 +9,8 @@ import {
   TABLE_CALL_LIST_MAX,
   isTableCallReason,
   tableCallsOpenSince,
+  toPanelTableCalls,
+  type PanelTableCall,
   type TableCallReason,
   type TableCallRow,
 } from "./table-calls-core";
@@ -120,6 +122,16 @@ export async function listOpenTableCalls(
   return rowsOf(data);
 }
 
+/**
+ * The open calls as Siparişler's "Masa çağrıları" list shows them: the
+ * bar screen's whitelist (table, reason, time), oldest first, no guest.
+ */
+export async function listOpenTableCallsForPanel(
+  now: Date = new Date(),
+): Promise<PanelTableCall[]> {
+  return toPanelTableCalls(await listOpenTableCalls(now), now.getTime());
+}
+
 export type TableCallAck =
   | { ok: true; call: TableCallRow; already: boolean }
   | { ok: false; reason: "not_found" };
@@ -148,4 +160,28 @@ export async function ackTableCall(
   const current = await getTableCall(id);
   if (!current) return { ok: false, reason: "not_found" };
   return { ok: true, call: current, already: true };
+}
+
+/**
+ * "Gördüm" from this site's panel (the order alert's card, the "Masa
+ * çağrıları" list): `ackedBy` is "admin:<name>", the panel account's name,
+ * or its e-mail when the account has none (the env-credentialed owner).
+ */
+export async function ackTableCallAsAdmin(
+  id: string,
+  adminEmail: string,
+  now: Date = new Date(),
+): Promise<TableCallAck> {
+  return ackTableCall(id, `admin:${await adminName(adminEmail)}`, now);
+}
+
+async function adminName(email: string): Promise<string> {
+  const { data, error } = await getDb()
+    .from(TABLES.adminUsers)
+    .select("name")
+    .eq("email", email.trim().toLowerCase())
+    .maybeSingle();
+  if (error) return email;
+  const name = String((data as { name?: unknown } | null)?.name ?? "").trim();
+  return name || email;
 }

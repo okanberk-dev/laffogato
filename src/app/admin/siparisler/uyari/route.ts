@@ -13,6 +13,7 @@ import {
 } from "@/lib/admin/change-marker";
 import {
   ORDER_ALERT_LIMIT,
+  buildCallAlerts,
   buildOrderAlerts,
   formatOrderAlertCursor,
   mayAnswerUnchanged,
@@ -25,6 +26,7 @@ import {
 import { sessionBinding } from "@/lib/admin/poll-binding";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings, listOrderAlertRows } from "@/lib/admin/store";
+import { listOpenTableCalls } from "@/lib/admin/table-calls";
 import { getVenueStatus } from "@/lib/mobile/venue";
 
 export const runtime = "nodejs";
@@ -34,7 +36,10 @@ const NO_STORE = { "Cache-Control": "private, no-store" } as const;
 
 /**
  * `GET /admin/siparisler/uyari` - the paid cafe orders the panel's new-order
- * alert rings for (order-alerts-core.ts), newest first, at most twenty.
+ * alert rings for (order-alerts-core.ts), newest first, at most twenty; and
+ * since 6 Kas 2026 the open table calls ("Masa 4 · Su istiyor", no guest),
+ * first. A call or its answer moves the same change marker as an order
+ * (`table_calls` expires `live:orders`).
  *
  * Every open panel tab's leader asks every ten seconds, from a Worker, so
  * the answer carries only what the counter needs to start: the order id and
@@ -140,7 +145,11 @@ export async function GET(request: Request) {
       orderAlertsSince(now),
       ORDER_ALERT_LIMIT,
     );
-    const alerts = buildOrderAlerts(rows, now);
+    const calls = await listOpenTableCalls(new Date(now));
+    const alerts = [
+      ...buildCallAlerts(calls, now),
+      ...buildOrderAlerts(rows, now),
+    ];
     return Response.json(
       {
         now: new Date(now).toISOString(),

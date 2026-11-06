@@ -35,8 +35,13 @@ import {
   stripAlertTitle,
   titleWithAlerts,
   toOrderAlert,
+  alertStillRinging,
+  buildCallAlerts,
+  orderAlertHeading,
+  toCallAlert,
   type OrderAlertRow,
 } from "@/lib/admin/order-alerts-core";
+import type { TableCallRow } from "@/lib/admin/table-calls-core";
 
 /**
  * The panel's new-order alert, as rules: which orders ring (a paid cafe
@@ -532,5 +537,87 @@ describe('the cursor: answering "nothing changed" without the database', () => {
     expect(parseUnchangedPayload({ alerts: [] })).toBeNull();
     expect(parseUnchangedPayload({ unchanged: 1 })).toBeNull();
     expect(parseUnchangedPayload(null)).toBeNull();
+  });
+});
+
+describe("table calls in the alert (6 Kas 2026)", () => {
+  function callRow(over: Partial<TableCallRow> = {}): TableCallRow {
+    return {
+      id: "tcl-0123456789abcdef",
+      tableCode: "K7Q2M9X4TB",
+      tableName: "4",
+      reason: "water",
+      customerEmail: "eda@example.com",
+      createdAt: minutesAgo(2),
+      ackedAt: "",
+      ackedBy: "",
+      ...over,
+    };
+  }
+
+  it("rings open calls only, newest first, as table alerts with no guest", () => {
+    const alerts = buildCallAlerts(
+      [
+        callRow({ id: "tcl-a", createdAt: minutesAgo(10) }),
+        callRow({ id: "tcl-b", createdAt: minutesAgo(1), reason: "napkin" }),
+        callRow({ id: "tcl-old", createdAt: minutesAgo(16) }),
+        callRow({ id: "tcl-done", ackedAt: minutesAgo(1) }),
+      ],
+      NOW,
+    );
+    expect(alerts.map((a) => a.id)).toEqual(["tcl-b", "tcl-a"]);
+    expect(alerts[0]).toEqual({
+      id: "tcl-b",
+      orderNo: 0,
+      label: "Masa 4",
+      table: true,
+      itemCount: 0,
+      items: [],
+      moreItems: 0,
+      totalMinor: 0,
+      paidAt: minutesAgo(1),
+      call: "napkin",
+    });
+    expect(JSON.stringify(alerts)).not.toContain("eda@example.com");
+  });
+
+  it("says what the table wants, on the card and in the notification", () => {
+    const call = toCallAlert(callRow());
+    expect(orderAlertHeading(call)).toBe("Su istiyor");
+    expect(notificationTitle(call)).toBe("Masa 4 · Su istiyor");
+    expect(notificationBody(call)).toBe(
+      `Masa çağrısı · ${orderAlertTime(minutesAgo(2))}`,
+    );
+    expect(orderAlertHeading(toCallAlert(callRow({ reason: "waiter" })))).toBe(
+      "Garson çağırıyor",
+    );
+    expect(orderAlertHeading(toCallAlert(callRow({ reason: "napkin" })))).toBe(
+      "Peçete istiyor",
+    );
+    // A call rings at the table order's full level.
+    expect(ringLevel([call])).toBe(1);
+  });
+
+  it("stops ringing after fifteen minutes; an order keeps its four hours", () => {
+    const call = toCallAlert(callRow({ createdAt: minutesAgo(2) }));
+    expect(alertStillRinging(call, NOW)).toBe(true);
+    expect(alertStillRinging(call, NOW + 13 * 60_000)).toBe(false);
+    const order = toOrderAlert(row({ paidAt: minutesAgo(2) }));
+    expect(alertStillRinging(order, NOW + 13 * 60_000)).toBe(true);
+  });
+
+  it("puts calls first in the stack and keeps call through the poll payload", () => {
+    const call = toCallAlert(callRow({ createdAt: minutesAgo(5) }));
+    const order = toOrderAlert(row({ paidAt: minutesAgo(1) }));
+    expect(alertDisplayOrder([order, call]).map((a) => a.id)).toEqual([
+      call.id,
+      order.id,
+    ]);
+    const parsed = parseOrderAlertPayload({
+      now: "",
+      alerts: [call, { ...call, id: "tcl-x", call: "coffee" }],
+    });
+    expect(parsed?.alerts[0].call).toBe("water");
+    expect(parsed?.alerts[1]).not.toHaveProperty("call");
   });
 });

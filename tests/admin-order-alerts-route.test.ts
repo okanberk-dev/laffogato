@@ -45,6 +45,10 @@ vi.mock("next/headers", () => ({
 const listOrderAlertRows = vi.hoisted(() => vi.fn());
 const getSettings = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/admin/store", () => ({ listOrderAlertRows, getSettings }));
+const listOpenTableCalls = vi.hoisted(() =>
+  vi.fn(async (): Promise<unknown[]> => []),
+);
+vi.mock("@/lib/admin/table-calls", () => ({ listOpenTableCalls }));
 const venue = vi.hoisted(() => ({ override: "auto" as string, open: true }));
 vi.mock("@/lib/mobile/venue", () => ({
   getVenueStatus: vi.fn(async () => ({ manualOverride: venue.override })),
@@ -103,6 +107,8 @@ beforeEach(() => {
   marker.busy.mockResolvedValue(true);
   listOrderAlertRows.mockReset();
   listOrderAlertRows.mockResolvedValue([dbRow()]);
+  listOpenTableCalls.mockReset();
+  listOpenTableCalls.mockResolvedValue([]);
   getSettings.mockReset();
   getSettings.mockResolvedValue({ weeklyHours: {} });
   venue.open = true;
@@ -168,6 +174,52 @@ describe("the answer", () => {
       4 * 3600_000 - 1000,
     );
     expect(before - Date.parse(since)).toBeLessThanOrEqual(4 * 3600_000 + 1000);
+  });
+
+  it("rings an open table call first, as Masa 4 · Su istiyor, with no guest (6 Kas 2026)", async () => {
+    session.value = { email: "v@laffogato.net", role: "staff" };
+    const createdAt = new Date(Date.now() - 60_000).toISOString();
+    listOpenTableCalls.mockResolvedValue([
+      {
+        id: "tcl-0123456789abcdef",
+        tableCode: "K7Q2M9X4TB",
+        tableName: "4",
+        reason: "water",
+        customerEmail: "eda@example.com",
+        createdAt,
+        ackedAt: "",
+        ackedBy: "",
+      },
+      {
+        // Older than fifteen minutes: no longer rings.
+        id: "tcl-zzzzzzzzzzzzzzzz",
+        tableCode: "K7Q2M9X4TB",
+        tableName: "4",
+        reason: "waiter",
+        createdAt: new Date(Date.now() - 20 * 60_000).toISOString(),
+        ackedAt: "",
+      },
+    ]);
+    const res = await GET(req());
+    const text = await res.clone().text();
+    const body = (await res.json()) as { alerts: Record<string, unknown>[] };
+    expect(body.alerts.map((a) => a.id)).toEqual([
+      "tcl-0123456789abcdef",
+      "ord-7",
+    ]);
+    expect(body.alerts[0]).toEqual({
+      id: "tcl-0123456789abcdef",
+      orderNo: 0,
+      label: "Masa 4",
+      table: true,
+      itemCount: 0,
+      items: [],
+      moreItems: 0,
+      totalMinor: 0,
+      paidAt: createdAt,
+      call: "water",
+    });
+    expect(text).not.toContain("eda@example.com");
   });
 
   it("carries no customer details, even when a row has them", async () => {

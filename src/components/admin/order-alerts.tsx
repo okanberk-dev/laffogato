@@ -13,6 +13,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { transitionOrderAction } from "@/app/admin/siparisler/actions";
+import { ackTableCallAction } from "@/app/admin/siparisler/call-actions";
 import {
   ORDER_ALERT_ACK_KEY,
   ORDER_ALERT_PATH,
@@ -28,6 +29,7 @@ import {
   type AlertPermission,
   type OrderAlert,
 } from "@/lib/admin/order-alerts-core";
+import { isTableCallId } from "@/lib/admin/table-calls-core";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import {
@@ -77,6 +79,11 @@ import { adminPortalRoot, useToast } from "./ui/toast";
  *   tab title.
  * - One tab per browser polls and rings (Web Locks); every tab shows the
  *   cards. "Gördüm" in any tab is "Gördüm" in all of them.
+ *
+ * - A table call ("Garson çağır" from the app, 6 Kas 2026) rings the same
+ *   way, first in the stack: "Masa 4 · Su istiyor". Its "Gördüm" answers
+ *   the call itself (`ackTableCallAction`): it leaves the bar screen and
+ *   every other panel, and the guest's app reads it as seen.
  *
  * Chrome must stay open with the panel in some tab: there is no push when
  * the browser is closed (that needs a service worker and Web Push).
@@ -395,7 +402,10 @@ export function OrderAlerts({
       }
     };
     const { engine: started, stop } = startEngine(onSnapshot, (id) =>
-      routerRef.current.push(`/admin/siparisler/${id}`),
+      // A table call has no page of its own: the list on Siparişler.
+      routerRef.current.push(
+        isTableCallId(id) ? "/admin/siparisler" : `/admin/siparisler/${id}`,
+      ),
     );
     engine.current = started;
     return () => {
@@ -465,6 +475,40 @@ export function OrderAlerts({
 
   const acknowledge = (id: string) =>
     engine.current?.controller.acknowledge(id);
+
+  /**
+   * "Gördüm" on a table call: this browser stops at once, the call itself
+   * is answered on the server (every screen drops it). A refusal is a
+   * toast: the card is gone here, the call still rings elsewhere.
+   */
+  const answerCall = async (id: string) => {
+    engine.current?.controller.acknowledge(id);
+    const fd = new FormData();
+    fd.set("id", id);
+    try {
+      const res = await ackTableCallAction(null, fd);
+      if (res.ok) {
+        announceAdminChange();
+        engine.current?.pollNow();
+      } else {
+        toast.fromResult(res);
+      }
+    } catch {
+      toast.fromResult({
+        ok: false,
+        error:
+          "Çağrı yanıtlanamadı. Siparişler'deki Masa çağrıları listesinden tekrar dene.",
+      });
+    }
+  };
+
+  /** "Tümünü gördüm": the calls are answered on the server too. */
+  const acknowledgeAll = () => {
+    for (const a of snap.pending) {
+      if (a.call) void answerCall(a.id);
+    }
+    engine.current?.controller.acknowledgeAll();
+  };
 
   const startPreparing = async (id: string) => {
     if (busyId) return;
@@ -613,8 +657,10 @@ export function OrderAlerts({
               mayStartPreparing={mayStartPreparing}
               busyId={busyId}
               errors={errors}
-              onAck={acknowledge}
-              onAckAll={() => engine.current?.controller.acknowledgeAll()}
+              onAck={(id) =>
+                isTableCallId(id) ? void answerCall(id) : acknowledge(id)
+              }
+              onAckAll={acknowledgeAll}
               onStart={(id) => void startPreparing(id)}
               onUnlock={() => unlockThen()}
             />,
@@ -678,8 +724,8 @@ export function OrderAlertMenu({
     >
       <p className="font-semibold">Yeni sipariş uyarısı</p>
       <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
-        Ödenen masa ve gel-al siparişlerinde çalar, biri &quot;Gördüm&quot;
-        diyene ya da hazırlamaya başlayana kadar.
+        Ödenen masa ve gel-al siparişlerinde ve masadan garson çağrılarında
+        çalar, biri &quot;Gördüm&quot; diyene ya da hazırlamaya başlayana kadar.
       </p>
       <div className="mt-3 flex flex-col gap-2">
         <button
@@ -830,16 +876,24 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
         <ul className="mt-1 flex flex-col gap-2">
           {alerts.map(({ alert: a, done }) => (
             <li key={a.id}>
-              <OrderAlertCard
-                alert={a}
-                done={done}
-                mayStart={props.mayStartPreparing}
-                busy={props.busyId === a.id}
-                disabled={done || props.busyId !== null}
-                error={props.errors[a.id]}
-                onAck={() => props.onAck(a.id)}
-                onStart={() => props.onStart(a.id)}
-              />
+              {a.call ? (
+                <CallAlertCard
+                  alert={a}
+                  done={done}
+                  onAck={() => props.onAck(a.id)}
+                />
+              ) : (
+                <OrderAlertCard
+                  alert={a}
+                  done={done}
+                  mayStart={props.mayStartPreparing}
+                  busy={props.busyId === a.id}
+                  disabled={done || props.busyId !== null}
+                  error={props.errors[a.id]}
+                  onAck={() => props.onAck(a.id)}
+                  onStart={() => props.onStart(a.id)}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -851,6 +905,66 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
 function itemsLine(alert: OrderAlert): ReactNode {
   const shown = alert.items.join(", ");
   return alert.moreItems > 0 ? `${shown} +${alert.moreItems}` : shown;
+}
+
+/** A table call's card: the table, what it wants, when, and "Gördüm". */
+function CallAlertCard({
+  alert,
+  done,
+  onAck,
+}: {
+  alert: OrderAlert;
+  done: boolean;
+  onAck: () => void;
+}) {
+  const heading = orderAlertHeading(alert);
+  return (
+    <article
+      aria-label={`${done ? "Görüldü" : "Masa çağrısı"}: ${alert.label}, ${heading}`}
+      data-done={done ? "" : undefined}
+      data-call={alert.call}
+      className={`rounded-lg border border-l-4 bg-[var(--admin-surface)] p-3 shadow-sm ${
+        done
+          ? "border-[var(--admin-border)] border-l-[var(--admin-border-strong)] opacity-60"
+          : "border-[var(--admin-border)] border-l-[var(--admin-danger)]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--admin-accent-ink)]">
+            <span
+              aria-hidden="true"
+              className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                done
+                  ? "bg-[var(--admin-text-mute)]"
+                  : "bg-[var(--admin-danger)] motion-safe:animate-pulse"
+              }`}
+            />
+            {done ? "Görüldü" : "Masa çağrısı"}
+          </p>
+          <p className="truncate text-xl leading-tight font-semibold">
+            {alert.label} · {heading}
+          </p>
+        </div>
+        <span
+          className="shrink-0 pt-0.5 text-xs text-[var(--admin-text-soft)]"
+          style={NUMERIC_STYLE}
+        >
+          {orderAlertTime(alert.paidAt)}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onAck}
+          disabled={done}
+          className={`${BUTTON.primary} w-full`}
+        >
+          Gördüm
+        </button>
+      </div>
+    </article>
+  );
 }
 
 function OrderAlertCard({

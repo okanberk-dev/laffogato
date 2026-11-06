@@ -61,6 +61,10 @@ vi.mock("@/lib/admin/auth", () => ({
 vi.mock("@/lib/admin/audit", () => ({
   listOrderAuditLogs: vi.fn(async () => []),
 }));
+// "Masa çağrıları" on Siparişler (6 Kas 2026): none open here.
+vi.mock("@/lib/admin/table-calls", () => ({
+  listOpenTableCallsForPanel: vi.fn(async () => []),
+}));
 vi.mock("@/lib/admin/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin/store")>()),
   getOrder: vi.fn(async () => h.order),

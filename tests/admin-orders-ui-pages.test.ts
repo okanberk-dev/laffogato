@@ -65,6 +65,11 @@ vi.mock("@/lib/admin/audit", () => ({
     return [];
   }),
 }));
+// "Masa çağrıları" on Siparişler (6 Kas 2026): none open unless a test says.
+const openCalls = vi.hoisted(() => ({ rows: [] as unknown[] }));
+vi.mock("@/lib/admin/table-calls", () => ({
+  listOpenTableCallsForPanel: vi.fn(async () => openCalls.rows),
+}));
 vi.mock("@/lib/admin/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin/store")>()),
   getOrder: vi.fn(async () => h.order),
@@ -155,6 +160,7 @@ const detailPage = (await import("@/app/admin/siparisler/[id]/page")).default;
 const listPage = (await import("@/app/admin/siparisler/page")).default;
 const newOrderPage = (await import("@/app/admin/siparisler/yeni/page")).default;
 const { OrdersList } = await import("@/components/admin/orders-list");
+const { TableCallList } = await import("@/components/admin/table-call-list");
 
 beforeEach(() => {
   h.role = "staff";
@@ -163,6 +169,7 @@ beforeEach(() => {
   h.noticesFail = false;
   h.auditFail = false;
   h.passed = [];
+  openCalls.rows = [];
 });
 
 async function listProps(sp: Record<string, string>) {
@@ -302,5 +309,31 @@ describe("the new-order page with no product on sale (ORD-22 empty state)", () =
     expect(html).toContain("Aktif ürün yok.");
     expect(html).not.toContain("/admin/urunler/yeni");
     expect(html).toContain("Ürün eklemesi için bir yöneticiye haber ver.");
+  });
+});
+
+describe("Masa çağrıları on top of the list (6 Kas 2026)", () => {
+  it("hands the open calls to the list: the table, the reason, the time", async () => {
+    const at = new Date().toISOString();
+    openCalls.rows = [
+      {
+        id: "tcl-aaaaaaaaaaaaaaaa",
+        tableCode: "AAAAAAAAAA",
+        label: "Masa Bahçe 2",
+        reason: "waiter",
+        createdAt: at,
+      },
+    ];
+    const tree = await listPage({ searchParams: Promise.resolve({}) });
+    const list = elements(tree).find((e) => e.type === TableCallList);
+    expect(list).toBeDefined();
+    expect((list!.props as { calls: unknown[] }).calls).toEqual([
+      {
+        id: "tcl-aaaaaaaaaaaaaaaa",
+        label: "Masa Bahçe 2",
+        reason: "waiter",
+        createdAt: at,
+      },
+    ]);
   });
 });

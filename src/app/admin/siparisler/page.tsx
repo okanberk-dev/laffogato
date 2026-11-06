@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/admin/forms";
 import { OrdersList, type OrderListRow } from "@/components/admin/orders-list";
 import { SoundToggle } from "@/components/admin/sound-toggle";
+import { TableCallList } from "@/components/admin/table-call-list";
 import {
   BUTTON,
   FilterBar,
@@ -37,6 +38,7 @@ import {
   listOrderMoney,
   listOrdersFiltered,
 } from "@/lib/admin/store";
+import { listOpenTableCallsForPanel } from "@/lib/admin/table-calls";
 
 export const metadata = { title: "Admin · Siparişler" };
 export const dynamic = "force-dynamic";
@@ -63,7 +65,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
     await searchParams,
   );
   const parsed = parseOrderListParams(view);
-  const [page, counts] = await Promise.all([
+  const [page, counts, openCalls] = await Promise.all([
     listOrdersFiltered({
       query: parsed.query,
       sort: {
@@ -74,6 +76,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       pageSize: ORDER_LIST_PAGE_SIZE,
     }),
     countOrdersByStatus(withoutStatuses(parsed.query)),
+    // "Masa çağrıları" (6 Kas 2026): open table calls, the guest left out.
+    listOpenTableCallsForPanel(),
   ]);
   // A page past the end (a stale link, the last order of page 3
   // cancelled away) goes to the last page: it said "Bu süzgece uyan sipariş
@@ -162,6 +166,15 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
             </a>
           ) : undefined
         }
+      />
+
+      <TableCallList
+        calls={openCalls.map((c) => ({
+          id: c.id,
+          label: c.label,
+          reason: c.reason,
+          createdAt: c.createdAt,
+        }))}
       />
 
       <StatusTabs

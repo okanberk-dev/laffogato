@@ -93,6 +93,10 @@ vi.mock("next/headers", () => ({
   }),
 }));
 const db = vi.hoisted(() => ({ rows: [] as unknown[], reads: 0 }));
+// Table calls (6 Kas 2026) ride on the same marker; none open here.
+vi.mock("@/lib/admin/table-calls", () => ({
+  listOpenTableCalls: vi.fn(async () => []),
+}));
 vi.mock("@/lib/admin/store", () => ({
   listOrderAlertRows: vi.fn(async () => {
     db.reads += 1;
