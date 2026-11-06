@@ -276,13 +276,14 @@ describe("the courier switch (Mobil → Ayarlar → Kurye)", () => {
   });
 
   it("the home page's order lines name the courier only while it runs", async () => {
-    const { appFeatures, orderDoorSub } =
-      await import("@/components/laffogato/home-page");
-    expect(appFeatures(6, false)[0].body).toBe(
-      "gel-al, kafe menüsünün tamamı.",
-    );
+    const { orderDoorSub } = await import("@/components/laffogato/home-page");
+    // The app section's cards (home-app-intro.tsx since 6 Kas 2026).
+    const { appBenefits } =
+      await import("@/components/laffogato/home-app-intro");
+    expect(appBenefits(6, false)[0].body).not.toContain("kurye");
+    expect(appBenefits(6, false)[0].body).toContain("gel-al");
     expect(orderDoorSub(false, "55 ₺")).toBe("Uygulamadan sipariş ver");
-    expect(appFeatures(6, true)[0].body).toContain("Tuzla içi kurye");
+    expect(appBenefits(6, true)[0].body).toContain("Tuzla içi kurye");
     expect(orderDoorSub(true, "55 ₺")).toBe(
       "Uygulamadan; Tuzla içi kurye 55 ₺",
     );

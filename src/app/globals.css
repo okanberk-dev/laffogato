@@ -3992,115 +3992,11 @@ summary:focus-visible,
   color: #ffffff;
 }
 
-/* App block ─── the phones, the store button ─────────────────
-   The home hero's split again (5 Kas 2026): the copy on white, and beside
-   it a solid house-green block where two real screens are held up - the
-   home screen in front, Kampanyalar behind it at an angle - as whole
-   devices with a black bezel and side buttons, never cropped. */
-
-.app-block {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: stretch;
-  padding: 0;
-  border-radius: var(--r-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
-.app-block-copy {
-  padding: clamp(28px, 4.4vw, 64px);
-  display: grid;
-  align-content: center;
-  gap: 14px;
-  justify-items: start;
-}
-.app-block-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 15px;
-  box-shadow: var(--shadow-md);
-}
-.app-block-list {
-  list-style: none;
-  margin: 6px 0 8px;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-.app-block-list li {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  font-size: 15.5px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-.app-block-list li strong {
-  color: var(--ink);
-  font-weight: 600;
-}
-.app-block-tick {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: var(--green-wash);
-  color: var(--green);
-  margin-top: 1px;
-}
-.app-block-tick svg {
-  width: 12px;
-  height: 12px;
-}
-
-/* The stage: the house green, with one uplift disc behind the devices. */
-.app-stage {
-  --phone-w: clamp(196px, 17vw, 248px);
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: clamp(500px, 46vw, 660px);
-  padding: clamp(40px, 5vw, 72px) 24px;
-  background: var(--green-house);
-  overflow: hidden;
-  isolation: isolate;
-}
-/* A thin ring outside the disc: depth by line, not by glow. */
-.app-stage-ring {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: calc(var(--phone-w) * 3);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: -1;
-}
-.app-stage::before {
-  z-index: -1;
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: calc(var(--phone-w) * 2.3);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: var(--green-uplift);
-}
-.app-phones {
-  position: relative;
-  display: grid;
-}
-/* A device: a black bezel ~3.5 % of its width, corners ~16 %, a thin
-   titanium edge, and the volume and side buttons on its flanks. The
-   screenshot already carries the status bar and the Dynamic Island. */
+/* The device frame the account page shows the app's home screen in
+   (src/app/uye/hesap/page.tsx, `.account-app-stage .app-phone`): a black
+   bezel ~3.5 % of its width, corners ~16 %, a thin titanium edge, and the
+   volume and side buttons on its flanks. The screenshot already carries the
+   status bar and the Dynamic Island. */
 .app-phone {
   grid-area: 1 / 1;
   position: relative;
@@ -4143,194 +4039,346 @@ summary:focus-visible,
   border-radius: calc(var(--phone-w) * 0.13);
   /* The glass meets the bezel with a hairline, as a real screen does. */
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
-  opacity: 1;
-  transition: opacity 0.3s ease-in;
-}
-/* The shadow the pair casts on the stage. */
-.app-floor {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--phone-w) * -0.12);
-  width: calc(var(--phone-w) * 1.9);
-  height: calc(var(--phone-w) * 0.16);
-  translate: -50% 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    rgba(0, 0, 0, 0.32) 0%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  z-index: 0;
 }
 
-/* Two white cards floating over the stage: the pickup push and the stamp
-   card. White on the house green, the card radius, the layered lift of
-   the floating order button. */
-.app-float {
-  position: absolute;
-  z-index: 3;
-  background: var(--surface);
-  color: var(--ink);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-frap);
+/* ─────────────────────────────────────────────────────────────
+   Home - the app (#uygulama, home-app-intro.tsx)
+
+   Owner's brief, 6 Kas 2026: the copy beside a phone, three benefit cards
+   under them, on a warm cream ground. The page's cream is the brass-cream
+   wash (--bg-cream); the accents are the bordo (eyebrow, the cards'
+   icons on --accent-soft) and the brass of the stamp card, the reward
+   moment. The phone's screen is drawn in the app's language - a warm
+   ground, white cards, the logo green, the brass stamps - with the site's
+   tokens nearest to the app's (lafmobil's porcelain hex is kept off this
+   stylesheet by tests/brand-theme.test.ts).
+   ───────────────────────────────────────────────────────────── */
+
+.app-intro-band {
+  padding: clamp(56px, 7vw, 104px) 0;
+  background: var(--bg-cream);
+  border-top: 1px solid var(--ink-line);
 }
-.app-float--push {
-  top: clamp(24px, 8%, 56px);
-  left: clamp(16px, 7%, 56px);
-  width: min(232px, 52%);
+.app-intro {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr);
-  gap: 8px;
-  align-items: start;
-  padding: 9px 11px;
-  border-radius: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
 }
-.app-float-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
+@media (min-width: 900px) {
+  .app-intro {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(40px, 6vw, 96px);
+  }
 }
-.app-float-text {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-.app-float-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10.5px;
+.app-intro-eyebrow {
+  margin: 0;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--ink-mute);
+  letter-spacing: var(--tracking);
+  color: var(--accent);
 }
-.app-float-meta span:last-child {
-  font-weight: 500;
-}
-.app-float-title {
-  font-size: 12.5px;
-  font-weight: 600;
+.app-intro-title {
+  margin: 12px 0 0;
+  font-family: var(--headline);
+  font-size: clamp(32px, 4.2vw, 54px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   color: var(--ink);
+  text-wrap: balance;
 }
-.app-float-body {
-  font-size: 11.5px;
-  line-height: 1.35;
+.app-intro-title .script {
+  color: var(--script-ink, var(--accent));
+}
+.app-intro-text {
+  margin: 18px 0 0;
+  max-width: 34rem;
+  font-size: clamp(16px, 1.4vw, 18px);
+  line-height: 1.6;
   color: var(--ink-soft);
 }
-.app-float--stamps {
-  right: clamp(12px, 5%, 40px);
-  bottom: clamp(20px, 8%, 52px);
+.app-intro-links {
+  margin-top: 28px;
+}
+.app-intro-note {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-mute);
+}
+
+/* The drawn phone, on a bordo-soft disc. */
+.apm {
+  position: relative;
+  justify-self: center;
+  width: min(300px, 78vw);
+  isolation: isolate;
+}
+.apm::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: 128%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--accent-soft);
+}
+.apm::after {
+  content: "";
+  position: absolute;
+  right: -14%;
+  top: 12%;
+  z-index: -1;
+  width: 22%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  opacity: 0.55;
+}
+.apm-frame {
+  aspect-ratio: 9 / 19.5;
+  padding: 9px;
+  border-radius: 44px;
+  background: var(--ink);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.24),
+    0 28px 56px rgba(0, 0, 0, 0.22);
+}
+.apm-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: 10px 12px 0;
+  border-radius: 36px;
+  background: var(--bg-cream);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.apm-island {
+  align-self: center;
+  width: 32%;
+  height: 22px;
+  margin-bottom: 12px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+}
+.apm-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 12px;
+}
+.apm-chip {
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--green-light);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green-brand);
+}
+.apm-hello {
+  margin: 0 4px 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.apm-hello strong {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--headline);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--green-brand);
+}
+.apm-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.apm-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 16px 16px 16px 6px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.apm-card strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.apm-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+/* The member's own message: their order, in the logo green. */
+.apm-card--me {
+  align-self: flex-end;
+  border-radius: 16px 16px 6px 16px;
+  background: var(--green-brand);
+  color: #ffffff;
+}
+.apm-card--me .apm-sub {
+  color: var(--green-mint);
+}
+.apm-card--status,
+.apm-card--mode {
+  max-width: 100%;
+}
+.apm-grow {
+  flex: 1;
+}
+.apm-ico {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.apm-live {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green-cta);
+  box-shadow: 0 0 0 0 rgba(31, 122, 92, 0.4);
+  animation: apm-live 2.4s ease-out infinite;
+}
+.apm-steps {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+}
+.apm-steps i {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-line-strong);
+}
+.apm-steps i.on {
+  background: var(--green-brand);
+}
+/* The stamp card: the reward moment, so brass. */
+.apm-stamp {
   display: grid;
   gap: 8px;
-  padding: 14px 16px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
-.app-float-kicker {
-  font-size: 12px;
+.apm-stamp-head {
+  display: flex;
+  justify-content: space-between;
   font-weight: 600;
+}
+.apm-stamp-head strong {
   color: var(--gold);
 }
-.app-float-stamps {
+.apm-stamp-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
-.app-float-stamps i {
+.apm-stamp-row i {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1.5px dashed var(--ink-quiet);
+  border: 1.5px dashed var(--gold-light);
 }
-/* A filled stamp: brass with a check - the reward voice, the one place on
-   this block gold appears. */
-.app-float-stamps i.on {
+.apm-stamp-row i.on {
   border: 0;
-  background: var(--gold-soft)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e2113' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12.5 4 4 8-9'/%3E%3C/svg%3E")
-    center / 13px no-repeat;
+  background: var(--gold-soft);
 }
-.app-float-note {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--ink-soft);
+.apm-tabbar {
+  display: flex;
+  justify-content: space-around;
+  margin: auto -12px 0;
+  padding: 12px 0 20px;
+  border-top: 1px solid var(--ink-line);
+  background: var(--surface);
 }
-
-/* Arrival, once, when the block scrolls in (.reveal): the phones rise, the
-   cards follow. Under reduced motion everything simply sits there. */
-.app-block.will-reveal.is-in .app-phone--front {
-  animation: app-phone-front-in 0.8s var(--ease-spring) 0.1s both;
+.apm-tabbar i {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--ink-line-strong);
 }
-.app-block.will-reveal.is-in .app-phone--back {
-  animation: app-phone-back-in 0.9s var(--ease-spring) 0.2s both;
+.apm-tabbar i.on {
+  background: var(--green-brand);
 }
-.app-block.will-reveal.is-in .app-float--push {
-  animation:
-    app-push-drop 0.7s var(--ease-spring) 0.6s both,
-    app-push-nudge 0.5s ease-in-out 1.6s 2;
-}
-.app-block.will-reveal.is-in .app-float-icon {
-  animation: app-icon-ping 0.6s var(--ease-out) 1.4s 2;
-}
-.app-block.will-reveal.is-in .app-float--stamps {
-  animation: app-float-in 0.6s var(--ease-spring) 0.75s both;
-}
-@keyframes app-phone-front-in {
-  from {
-    opacity: 0;
-    transform: translate(22%, 8%);
-  }
-}
-@keyframes app-phone-back-in {
-  from {
-    opacity: 0;
-    transform: translate(-22%, 10%) rotate(-3deg) scale(0.9);
-  }
-}
-/* The push arrives the way iOS shows one: it drops from above and
-   settles, then nudges twice and rests - all over in about three seconds. */
-@keyframes app-push-drop {
-  from {
-    opacity: 0;
-    transform: translateY(-28px) scale(0.94);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(4px) scale(1.01);
-  }
-}
-@keyframes app-push-nudge {
-  50% {
-    transform: translateY(-3px);
-  }
-}
-@keyframes app-icon-ping {
-  0% {
-    box-shadow: 0 0 0 0 rgba(31, 122, 92, 0.45);
-  }
-  100% {
+@keyframes apm-live {
+  70% {
     box-shadow: 0 0 0 8px rgba(31, 122, 92, 0);
   }
-}
-@keyframes app-float-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.97);
-  }
-}
-/* The last filled stamp lands like a press once the cards are in. */
-.app-block.will-reveal.is-in .app-float-stamps i.on:last-of-type {
-  animation: app-stamp-press 0.5s var(--ease-spring) 1.3s both;
-}
-@keyframes app-stamp-press {
-  from {
-    opacity: 0;
-    transform: scale(1.5);
+  100% {
+    box-shadow: 0 0 0 0 rgba(31, 122, 92, 0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-block .app-phone,
-  .app-block .app-float,
-  .app-block .app-float-icon,
-  .app-block .app-float-stamps i {
-    animation: none !important;
+  .apm-live {
+    animation: none;
   }
+}
+
+/* The three benefits. */
+.app-benefits {
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin: clamp(48px, 6vw, 80px) 0 0;
+  padding: 0;
+}
+@media (min-width: 760px) {
+  .app-benefits {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.app-benefit {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 24px;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.app-benefit-ico {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.app-benefit h3 {
+  margin: 4px 0 0;
+  font-family: var(--headline);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--ink);
+}
+.app-benefit p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-soft);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -4429,37 +4477,6 @@ summary:focus-visible,
     transform: scale(0.6);
   }
 }
-.app-phone--front {
-  z-index: 2;
-  transform: translateX(22%);
-}
-.app-phone--back {
-  z-index: 1;
-  transform: translate(-30%, 3%) rotate(-8deg) scale(0.9);
-}
-.app-phone--back img {
-  filter: brightness(0.94);
-}
-@media (max-width: 860px) {
-  .app-block {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .app-stage {
-    --phone-w: clamp(150px, 40vw, 210px);
-    min-height: 0;
-    padding: 96px 16px 104px;
-  }
-  .app-float--push {
-    top: 20px;
-    left: 16px;
-    width: min(236px, calc(100% - 32px));
-  }
-  .app-float--stamps {
-    right: 16px;
-    bottom: 16px;
-  }
-}
-
 /* Visit block ───────────────────────────────────────────────── */
 
 .visit-photo {
@@ -12785,8 +12802,7 @@ button.kw-progress-cell:hover .kw-progress-label {
   display: grid;
   justify-items: start;
 }
-/* The small device on an uplift disc (the home page's .app-stage in
-   miniature): the whole phone, never cropped. */
+/* The small device on an uplift disc: the whole phone, never cropped. */
 .account-app-stage {
   --phone-w: 128px;
   position: relative;

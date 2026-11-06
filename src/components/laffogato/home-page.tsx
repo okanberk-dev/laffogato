@@ -9,7 +9,7 @@ import { STAMP_TARGET } from "@/lib/mobile/loyalty-core";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
-import { AppStoreLinks } from "./app-links";
+import { HomeAppIntro } from "./home-app-intro";
 import { HomeHeroSlider } from "./home-hero-slider";
 import { HomeKaraoke } from "./home-karaoke";
 import { HomeTakeHome, pickTakeHomeProduct } from "./home-take-home";
@@ -27,35 +27,6 @@ import {
 import { splitLead } from "./split-lead";
 import { useKaraokeToday } from "./use-karaoke-today";
 import { useOpenStatus } from "./use-open-status";
-
-/**
- * What the app does that the site does not - the reasons to install it. The
- * courier is named only while Mobil → Ayarlar offers it (operator, 5 Kas
- * 2026: "kurye olmasın şimdilik"), so the page never promises what the
- * checkout would refuse.
- */
-export function appFeatures(stampTarget: number, courierEnabled: boolean) {
-  return [
-    {
-      title: "Siparişini ver",
-      body: courierEnabled
-        ? "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı."
-        : "gel-al, kafe menüsünün tamamı.",
-    },
-    {
-      title: "Damga kartın",
-      body: `140 TL'den itibaren başlayan her 320 TL bir damga, ${stampTarget} damgada bir içecek bizden.`,
-    },
-    {
-      title: "Kasa kodu",
-      body: "kasada tek okutmayla damga ve ödül.",
-    },
-    {
-      title: "Karaoke ve kampanyalar",
-      body: "odanı ayırt, köşkte olanları ilk sen gör.",
-    },
-  ];
-}
 
 /** The order door's second line: the courier and its fee while it runs. */
 export function orderDoorSub(courierEnabled: boolean, courierFee: string) {
@@ -638,126 +609,10 @@ export function PageHome({
       </section>
 
       {/* The app ─────────────────────────────────────────────── */}
-      {/* The site's door into lafmobil: ordering, the stamp card and the
-          counter code live there. Store buttons come from
-          src/lib/mobile/app-store.ts (App Store live; no Android app for
-          now, operator 5 Kas 2026, so nothing promises one). */}
-      <section className="home-section" id="uygulama">
-        <div className="wrap">
-          <div className="app-block reveal">
-            <div className="app-block-copy">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/app-icon-192.png"
-                alt=""
-                width={64}
-                height={64}
-                loading="lazy"
-                decoding="async"
-                className="app-block-icon"
-              />
-              <div className="eyebrow">L’Affogato uygulaması</div>
-              <h2 className="h2">Köşk, cebinde</h2>
-              <ul className="app-block-list">
-                {appFeatures(stampTarget, courierEnabled).map((f) => (
-                  <li key={f.title}>
-                    <span className="app-block-tick" aria-hidden="true">
-                      <svg viewBox="0 0 12 12" fill="none">
-                        <path
-                          d="m2.5 6.2 2.2 2.2 4.8-5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                    <span>
-                      <strong>{f.title}</strong> - {f.body}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <AppStoreLinks />
-            </div>
-            {/* Two real screens, held up on a house-green block: the home
-                screen in front, Kampanyalar behind it at an angle - whole
-                devices, never cropped. Around them, two things the app
-                really does, drawn as white cards: the pickup push (its
-                exact words, src/lib/mobile/order-stage-text.ts) and the
-                stamp card at the panel's own target. */}
-            <div className="app-stage" aria-hidden="true">
-              <span className="app-stage-ring" />
-              <div className="app-phones">
-                <div className="app-phone app-phone--back">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/brand/app-screen-campaigns.webp"
-                    alt=""
-                    width={600}
-                    height={1300}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-                <div className="app-phone app-phone--front">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/brand/app-screen-home.webp"
-                    alt=""
-                    width={600}
-                    height={1300}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-                <span className="app-floor" />
-              </div>
-
-              <div className="app-float app-float--push">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/brand/app-icon-192.png"
-                  alt=""
-                  width={36}
-                  height={36}
-                  loading="lazy"
-                  decoding="async"
-                  className="app-float-icon"
-                />
-                <span className="app-float-text">
-                  <span className="app-float-meta">
-                    <span>L&apos;Affogato</span>
-                    <span>şimdi</span>
-                  </span>
-                  <span className="app-float-title">Siparişin hazır</span>
-                  <span className="app-float-body">
-                    #10248 numaralı siparişin hazır, tezgâhta seni bekliyor.
-                  </span>
-                </span>
-              </div>
-
-              <div className="app-float app-float--stamps">
-                <span className="app-float-kicker">Damga kartın</span>
-                <span className="app-float-stamps">
-                  {Array.from({ length: stampTarget }, (_, i) => (
-                    <i
-                      key={i}
-                      className={
-                        i < Math.min(4, stampTarget - 1) ? "on" : undefined
-                      }
-                    />
-                  ))}
-                </span>
-                <span className="app-float-note">
-                  {Math.max(stampTarget - Math.min(4, stampTarget - 1), 1)}{" "}
-                  damga sonra içecek bizden
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* The site's door into lafmobil (home-app-intro.tsx): the copy and
+          the store button beside a drawn phone, three benefit cards under
+          them. */}
+      <HomeAppIntro stampTarget={stampTarget} courierEnabled={courierEnabled} />
 
       {/* Visit ───────────────────────────────────────────────── */}
       <section className="home-section home-section-last band-cream">
