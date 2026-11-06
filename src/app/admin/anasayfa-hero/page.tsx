@@ -93,7 +93,7 @@ export default async function AdminHomeHeroPage() {
     <PageShell width="list">
       <PageHeader
         title="Slaytlar"
-        description="Ana sayfanın en üstünde dönen kampanya ve ürün slaytları."
+        description="Anasayfanın kampanya ve ürün slaytları."
         help={
           <p>
             Kaydettiğin değişiklik siteye hemen yansır. Varsayılan slaytları içe
@@ -105,6 +105,17 @@ export default async function AdminHomeHeroPage() {
         menu={importButton}
       />
 
+      {/* 6 Kas 2026: the home page opens on the coffee valley and draws no
+          slides. The list, its data and every action still work, so the
+          slides can come back without re-entering them; this line keeps
+          the operator from editing them and wondering where they went. */}
+      <Card className="mb-4">
+        <p className="text-sm text-[var(--admin-text)]" role="note">
+          Bu slaytlar şu an anasayfada gösterilmiyor; anasayfanın girişi kahve
+          vadisi.
+        </p>
+      </Card>
+
       <Card className="mb-4">
         <p className="text-sm text-[var(--admin-text-soft)]" role="status">
           {live.size === 0 ? (
@@ -112,13 +123,14 @@ export default async function AdminHomeHeroPage() {
               <strong className="text-[var(--admin-text)]">
                 Şu an yayında slayt yok:
               </strong>{" "}
-              sitede yerleşik dört varsayılan slayt dönüyor. Onları düzenlemek
-              için ⋯ menüsünden &quot;Varsayılanları içe aktar&quot;a bas.
+              geri açıldığında yerleşik dört varsayılan slayt döner. Onları
+              düzenlemek için ⋯ menüsünden &quot;Varsayılanları içe
+              aktar&quot;a bas.
             </>
           ) : (
             <>
               <strong className="text-[var(--admin-text)]">
-                Sitede {live.size} slayt dönüyor.
+                {live.size} slayt yayında.
               </strong>{" "}
               Sıradaki ilk {MAX_LIVE_HOME_SLIDES} yayındaki slayt gösterilir.
               Hiçbiri yayında olmazsa site yerleşik slaytlara döner.

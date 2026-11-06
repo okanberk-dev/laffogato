@@ -2089,30 +2089,45 @@ summary:focus-visible,
    leave one gap between them rather than two. `.section` (padding on both
    edges) is still right for pages whose sections alternate grounds. */
 /* Home valley ───────────────────────────────────────────────────
-   Owner's brief, 6 Kas 2026: the first screen is a night valley of coffee,
-   drawn live with three.js (home-valley.tsx, valley-scene.ts) - blossoms,
-   cherries and glowing beans in rows on rolling hills, a camera drifting
-   through them - with the name over it, a two-line caption, a round arrow
-   to the menu and a scroll hint. The type is server-rendered and never
-   waits for the canvas; the canvas fades in behind it once its first frame
-   is drawn (`data-gl="ready"`). Without WebGL the CSS ground below stays.
+   Owner's briefs, 6 Kas 2026 (two rounds): the home page opens on a night valley
+   of coffee, drawn live with three.js (home-valley.tsx, valley-scene.ts):
+   roasted beans first - on the ground, tumbling through the air, a few
+   drifting close and soft - with white blossoms, green leaves and bordo
+   cherries on the plants, under the brand's wordmark, a two-line caption,
+   a round arrow to the menu, the live open/closed line and a scroll hint.
+   It is the whole entrance: the operator's slides are not drawn. The type
+   is server-rendered and never waits for the canvas; the canvas fades in
+   behind it once its first frame is drawn (`data-gl="ready"`). Without
+   WebGL the CSS ground below stays.
 
-   The --valley-* values are the scene's pigments, read by the canvas from
-   this rule: light, never text or control colours. Contrast is held by the
-   type, not the scene: the caption and the arrow sit in a quiet zone where
-   the canvas dims every point to 30 % and a night scrim lies under them,
-   and the name is display-size cream with a night halo. */
+   Colour is the brand's three: deep greens for the night, a bordo glow on
+   the horizon and in the light, white for the blossoms and every word.
+   Brass is only the tiny glint on a bean. The --valley-* values are the
+   scene's pigments, read by the canvas from this rule: light, never text
+   or control colours.
+
+   Contrast is held by the type, not the scene: the small type sits in a
+   quiet zone where the canvas dims every point to 22 % and a deep green
+   scrim lies under it (white over two stacked blossoms at the scrim's
+   edge still reads 6:1); the wordmark has a milder zone of its own. */
 .valley {
-  --valley-sky: var(--night);
-  --valley-horizon: var(--accent-deep);
-  --valley-blossom: var(--night-ink);
-  --valley-blossom-heart: var(--gold-light);
-  --valley-bean: var(--gold-soft);
-  --valley-bean-glow: var(--gold-light);
+  --valley-sky: var(--bg-espresso-deep);
+  --valley-ground: var(--green-house);
+  --valley-horizon: var(--accent);
+  --valley-ray: var(--accent-soft);
+  --valley-blossom: var(--surface);
+  --valley-blossom-heart: var(--green-light);
+  --valley-leaf: var(--green-brand);
+  --valley-leaf-light: var(--green-light);
   --valley-cherry: var(--accent);
   --valley-cherry-light: var(--accent-soft);
-  --valley-dust: var(--gold-light);
-  --valley-ray: var(--night-ink);
+  --valley-bean: var(--gold-deep);
+  --valley-bean-glint: var(--gold-soft);
+  --valley-shine: var(--surface);
+  --valley-dust: var(--green-mint);
+  --valley-star: var(--surface);
+  --valley-ink: var(--ink-on-dark);
+  --valley-ink-soft: var(--green-mint);
   --valley-edge: clamp(20px, 4vh, 36px);
   --script-ink: var(--accent-on-dark);
   position: relative;
@@ -2122,22 +2137,17 @@ summary:focus-visible,
   place-items: center;
   min-height: calc(100svh - var(--header-h));
   padding: clamp(56px, 9vh, 112px) var(--gutter) clamp(120px, 17vh, 176px);
-  color: var(--night-ink);
+  color: var(--valley-ink);
   text-align: center;
-  /* The ground before (or without) the canvas: the same night, the same
-     low warm horizon. */
+  /* The ground before (or without) the canvas: the same green night, the
+     same bordo glow low on the horizon. */
   background:
     radial-gradient(
-      90% 50% at 50% 60%,
-      color-mix(in srgb, var(--accent-deep) 40%, transparent),
+      90% 42% at 50% 34%,
+      color-mix(in srgb, var(--accent) 26%, transparent),
       transparent 72%
     ),
-    radial-gradient(
-      55% 30% at 50% 62%,
-      color-mix(in srgb, var(--gold-soft) 9%, transparent),
-      transparent 70%
-    ),
-    var(--night);
+    linear-gradient(var(--bg-espresso-deep) 30%, var(--green-house));
 }
 .valley-gl {
   position: absolute;
@@ -2154,45 +2164,70 @@ summary:focus-visible,
 .valley[data-gl="ready"] .valley-canvas {
   opacity: 1;
 }
-/* The foot melts into the slider band's night below. */
+/* The foot settles into the green night before the page's next section. */
 .valley::after {
   content: "";
   position: absolute;
   inset: auto 0 0;
   z-index: -1;
   height: 24%;
-  background: linear-gradient(transparent, var(--night));
+  background: linear-gradient(transparent, var(--bg-espresso-deep));
   pointer-events: none;
 }
 .valley-copy {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: clamp(16px, 3vh, 30px);
+  gap: clamp(18px, 3.4vh, 34px);
   min-width: 0;
 }
-/* The name, oversized and tight: the site's one voice (Poppins) at
-   SemiBold, tracked in until the letters nearly touch. */
-.valley-name {
-  /* The tight line height leaves the g's descender outside the box: room
-     for it, so it never meets the caption. */
-  margin: 0 0 0.1em;
-  font-family: var(--headline);
-  font-size: min(17.5vw, 250px);
-  font-weight: 600;
-  line-height: 0.9;
-  letter-spacing: -0.065em;
-  white-space: nowrap;
-  color: var(--night-ink);
-  text-shadow: 0 0 28px color-mix(in srgb, var(--night) 55%, transparent);
+/* The brand's wordmark (docs/BRAND.md §5.1): the app's own "L'Affogato"
+   mask, never redrawn or stretched, in white running to cream, with a soft
+   white glow and a deep shadow that lifts it off the blossoms. It arrives
+   with a wipe from the left (the first letter already showing); under
+   reduced motion it simply stands. */
+.valley-mark {
+  position: relative;
+  width: min(74vw, 940px);
+  aspect-ratio: 2280 / 565;
+  filter: drop-shadow(
+      0 0 22px color-mix(in srgb, var(--surface) 30%, transparent)
+    )
+    drop-shadow(
+      0 8px 30px color-mix(in srgb, var(--bg-espresso-deep) 90%, transparent)
+    );
+}
+.valley-wordmark {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--surface) 38%, var(--night-ink));
+  -webkit-mask:
+    url(/brand/laffogato-wordmark.svg) center / contain no-repeat,
+    linear-gradient(90deg, black 40%, transparent 60%) 0 0 / 250% 100% no-repeat;
+  -webkit-mask-composite: source-in;
+  mask:
+    url(/brand/laffogato-wordmark.svg) center / contain no-repeat,
+    linear-gradient(90deg, black 40%, transparent 60%) 0 0 / 250% 100% no-repeat;
+  mask-composite: intersect;
+  animation: valley-wipe 1.8s var(--ease-out) both;
+}
+@keyframes valley-wipe {
+  from {
+    -webkit-mask-position:
+      center,
+      76% 0;
+    mask-position:
+      center,
+      76% 0;
+  }
 }
 .valley-quiet {
   position: relative;
   display: grid;
   justify-items: center;
-  gap: clamp(18px, 3vh, 28px);
+  gap: clamp(16px, 2.6vh, 24px);
 }
-/* The night under the small type: with the canvas's quiet zone, the
+/* The green night under the small type: with the canvas's quiet zone, the
    caption reads at AA over any frame. */
 .valley-quiet::before {
   content: "";
@@ -2201,7 +2236,7 @@ summary:focus-visible,
   z-index: -1;
   background: radial-gradient(
     closest-side,
-    color-mix(in srgb, var(--night) 70%, transparent),
+    color-mix(in srgb, var(--bg-espresso-deep) 74%, transparent),
     transparent
   );
   pointer-events: none;
@@ -2213,10 +2248,10 @@ summary:focus-visible,
   font-size: clamp(18px, 1.6vw, 23px);
   font-style: italic;
   line-height: 1.45;
-  color: var(--night-ink);
+  color: var(--valley-ink);
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.55),
-    0 0 18px var(--night);
+    0 0 18px var(--bg-espresso-deep);
 }
 /* The round arrow to the menu. Hovering or focusing it stills the valley
    and lifts every blossom and bean into the air (valley-scene.ts). */
@@ -2229,7 +2264,7 @@ summary:focus-visible,
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--night-ink);
+  color: var(--valley-ink);
   text-decoration: none;
   border-radius: var(--r-pill);
 }
@@ -2239,8 +2274,8 @@ summary:focus-visible,
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  border: 1.5px solid var(--night-ink);
-  background: color-mix(in srgb, var(--night) 40%, transparent);
+  border: 1.5px solid var(--valley-ink);
+  background: color-mix(in srgb, var(--bg-espresso-deep) 45%, transparent);
   transition:
     background-color 0.35s var(--ease-out),
     color 0.35s var(--ease-out),
@@ -2251,8 +2286,8 @@ summary:focus-visible,
 }
 .valley-go:hover .valley-go-ring,
 .valley-go:focus-visible .valley-go-ring {
-  background: var(--night-ink);
-  color: var(--night);
+  background: var(--valley-ink);
+  color: var(--bg-espresso-deep);
   transform: scale(1.06);
 }
 .valley-go:hover svg,
@@ -2264,11 +2299,61 @@ summary:focus-visible,
 }
 .valley-go:focus-visible .valley-go-ring {
   box-shadow:
-    0 0 0 3px var(--night),
-    0 0 0 5px var(--night-ink);
+    0 0 0 3px var(--bg-espresso-deep),
+    0 0 0 5px var(--valley-ink);
 }
 .valley-go-label {
-  text-shadow: 0 0 14px var(--night);
+  text-shadow: 0 0 14px var(--bg-espresso-deep);
+}
+/* "Şu an açık · Kapanış 02:00", moved here from the slider band: live,
+   opening the visit page. The state is in the dot - the pale green when
+   open, a dim white when closed, never red. */
+.valley-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 32px;
+  padding: 0 6px;
+  font-size: 13.5px;
+  line-height: 1.3;
+  color: var(--valley-ink-soft);
+  text-shadow: 0 0 12px var(--bg-espresso-deep);
+  border-radius: var(--r-pill);
+}
+.valley-status strong {
+  font-weight: 600;
+  color: var(--valley-ink);
+}
+.valley-status:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.valley-status:focus-visible {
+  outline: 2px solid var(--valley-ink);
+  outline-offset: 2px;
+}
+.valley-status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-light);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--green-light) 18%, transparent);
+  /* Two slow rings and it settles (WCAG 2.2.2). */
+  animation: valley-live 2s var(--ease-out) 2;
+}
+.valley-status.is-closed .valley-status-dot {
+  background: var(--ink-on-dark-soft);
+  box-shadow: none;
+  animation: none;
+}
+@keyframes valley-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green-light) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
 }
 /* "Kaydır ve keşfet": the line under it runs three times and rests. */
 .valley-hint {
@@ -2287,15 +2372,15 @@ summary:focus-visible,
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: var(--night-ink-soft);
+  color: var(--valley-ink-soft);
   cursor: pointer;
 }
 .valley-hint:hover {
-  color: var(--night-ink);
+  color: var(--valley-ink);
 }
 .valley-hint:focus-visible,
 .valley-pause:focus-visible {
-  outline: 2px solid var(--night-ink);
+  outline: 2px solid var(--valley-ink);
   outline-offset: 2px;
 }
 .valley-hint-line {
@@ -2303,7 +2388,7 @@ summary:focus-visible,
   width: 1px;
   height: 34px;
   overflow: hidden;
-  background: var(--night-line);
+  background: color-mix(in srgb, var(--valley-ink) 22%, transparent);
 }
 .valley-hint-line::after {
   content: "";
@@ -2312,7 +2397,7 @@ summary:focus-visible,
   top: 0;
   width: 1px;
   height: 12px;
-  background: var(--night-ink);
+  background: var(--valley-ink);
   transform: translateY(-12px);
   animation: valley-hint 1.6s var(--ease-out) 1.4s 3;
 }
@@ -2321,7 +2406,7 @@ summary:focus-visible,
     transform: translateY(34px);
   }
 }
-/* Until the scene's first frame: one cream dot, breathing. */
+/* Until the scene's first frame: one white dot, breathing. */
 .valley-loader {
   position: absolute;
   left: 50%;
@@ -2330,7 +2415,7 @@ summary:focus-visible,
   height: 8px;
   margin-left: -4px;
   border-radius: 50%;
-  background: var(--night-ink);
+  background: var(--valley-ink);
   opacity: 0;
   transition: opacity 0.5s var(--ease-out);
   pointer-events: none;
@@ -2355,28 +2440,28 @@ summary:focus-visible,
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 1px solid var(--night-line);
-  background: color-mix(in srgb, var(--night) 60%, transparent);
-  color: var(--night-ink-soft);
+  border: 1px solid color-mix(in srgb, var(--valley-ink) 28%, transparent);
+  background: color-mix(in srgb, var(--bg-espresso-deep) 60%, transparent);
+  color: var(--valley-ink-soft);
   cursor: pointer;
   transition:
     color 0.2s,
     border-color 0.2s;
 }
 .valley-pause:hover {
-  color: var(--night-ink);
-  border-color: var(--night-ink-mute);
+  color: var(--valley-ink);
+  border-color: var(--valley-ink-soft);
 }
 .valley[data-gl="ready"] .valley-pause {
   display: grid;
 }
-/* The small type arrives once the name is up. */
+/* The small type arrives once the wordmark is up. */
 .valley-quiet,
 .valley-hint {
-  animation: valley-in 0.9s var(--ease-out) 0.25s both;
+  animation: valley-in 0.9s var(--ease-out) 0.35s both;
 }
 .valley-hint {
-  animation-delay: 0.6s;
+  animation-delay: 0.7s;
 }
 @keyframes valley-in {
   from {
@@ -2385,9 +2470,11 @@ summary:focus-visible,
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .valley-wordmark,
   .valley-quiet,
   .valley-hint,
   .valley-hint-line::after,
+  .valley-status-dot,
   .valley[data-gl="loading"] .valley-loader {
     animation: none;
   }
@@ -2405,485 +2492,12 @@ summary:focus-visible,
     );
     padding-bottom: calc(var(--bottom-nav-h) + 112px);
   }
-  .valley-name {
-    font-size: 19.5vw;
+  .valley-mark {
+    width: 86vw;
   }
   .valley-go-ring {
     width: 58px;
     height: 58px;
-  }
-}
-
-/* Home hero ─────────────────────────────────────────────────────
-   The app's product stage (DESIGN-GLASS §4.4, §13.8): porcelain, a pastel
-   halo in the drink's own colour, two soft spheres, a floor band and the
-   cast shadow the drink stands on. The scene's four colours arrive as custom
-   properties from the slide (home-hero-slider.tsx), so the light changes
-   with the drink. */
-
-/* Owner's brief, 6 Kas 2026: a full-bleed photograph in a dark grade. The
-   ground is the köşk's night front, graded down to --night; the bordo
-   deepens one corner, the way the reference keeps one dark accent. Over it
-   the slider is the same split as before (copy left, the slide's drink
-   right), now on no card. The name and the serif line moved up into the
-   valley's first screen (.valley, the same day); this band follows it.
-
-   The grade opens at full --night, so the band continues the valley's
-   night above it without a seam.
-
-   Contrast is held by the grade, not by the photo: the overlay never drops
-   below 66 % --night anywhere (a pure white pixel under it still reads
-   5.0:1 against --night-ink, AA at any size) and is 80 % and more under
-   the copy (8.3:1). */
-.hero-x {
-  --script-ink: var(--accent-on-dark);
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: clamp(40px, 6vw, 88px) 0 clamp(28px, 4vw, 56px);
-  color: var(--night-ink);
-  background: var(--night);
-  /* "Kaydır ve keşfet" scrolls here: clear the sticky bar. */
-  scroll-margin-top: var(--header-h);
-}
-.hero-x-bg {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-}
-.hero-x-bg-photo {
-  object-fit: cover;
-  object-position: 50% 42%;
-  animation: hero-x-drift 28s ease-in-out infinite alternate;
-}
-.hero-x-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      70% 60% at 0% 100%,
-      color-mix(in srgb, var(--accent-deep) 55%, transparent),
-      transparent 70%
-    ),
-    linear-gradient(
-      180deg,
-      var(--night) 0%,
-      color-mix(in srgb, var(--night) 72%, transparent) 16%,
-      color-mix(in srgb, var(--night) 66%, transparent) 36%,
-      color-mix(in srgb, var(--night) 80%, transparent) 58%,
-      color-mix(in srgb, var(--night) 94%, transparent) 100%
-    );
-}
-/* A slow push in on the photograph, and back. */
-@keyframes hero-x-drift {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.08);
-  }
-}
-/* The slider's split, on no card: copy left, the drink right. */
-.hero-x-frame {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
-  align-items: end;
-  gap: clamp(16px, 3vw, 48px);
-  padding: 0;
-}
-.hero-x-frame > .hero-x-copy {
-  padding: clamp(20px, 3vw, 40px) 0 0 clamp(4px, 2vw, 32px);
-}
-
-.hero-x-copy {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  gap: 16px;
-  align-content: center;
-  justify-items: start;
-}
-.hero-x-kicker {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--green-mint);
-}
-.hero-x-kicker::before,
-.page-hero-kicker::before {
-  content: "";
-  width: 24px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--tricolore);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-}
-.hero-x-title {
-  margin: 0;
-  display: grid;
-  font-family: var(--headline);
-  font-size: clamp(38px, 4.4vw, 66px);
-  /* SemiBold in white on the night: the display role carries the screen
-     by weight and colour, not by an ExtraBold squeeze. */
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  animation: hero-x-copy-in 0.6s var(--ease-spring) both;
-}
-@keyframes hero-x-copy-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.hero-x-text {
-  margin: 4px 0 0;
-  max-width: 46ch;
-  font-size: clamp(16px, 1.25vw, 18px);
-  line-height: 1.6;
-  color: var(--night-ink-soft);
-}
-.hero-x-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-/* The quieter action on the night: white outline, white label. */
-.hero-x-actions .btn-ghost {
-  color: #ffffff;
-  border-color: #ffffff;
-}
-.hero-x-actions .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* "Şu an açık · Kapanış 02:00" - live, beside the buttons, opening the visit
-   page. Quiet ink with the state in the dot: the success green when open,
-   quiet ink when closed - never red, the same rule as /ziyaret's line. */
-.hero-x-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  margin-left: 6px;
-  padding: 0 4px;
-  font-size: 14px;
-  line-height: 1.3;
-  color: var(--night-ink-soft);
-  border-radius: var(--r-pill);
-}
-.hero-x-status strong {
-  font-weight: 600;
-  color: var(--night-ink);
-  transition: color 0.2s;
-}
-.hero-x-status:hover strong {
-  color: var(--green-mint);
-}
-.hero-x-status:focus-visible {
-  outline: none;
-  box-shadow: var(--ring);
-}
-.hero-x-status-dot {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--green-light);
-  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.16);
-  /* Two slow rings and it settles: a live signal, not a blinking one
-     (WCAG 2.2.2 - every motion on the site is over within five seconds). */
-  animation: hero-x-live 2s var(--ease-out) 2;
-}
-.hero-x-status.is-closed .hero-x-status-dot {
-  background: var(--ink-quiet);
-  box-shadow: 0 0 0 4px rgba(135, 125, 116, 0.18);
-  animation: none;
-}
-@keyframes hero-x-live {
-  0% {
-    box-shadow: 0 0 0 0 rgba(29, 109, 86, 0.42);
-  }
-  100% {
-    box-shadow: 0 0 0 10px rgba(29, 109, 86, 0);
-  }
-}
-
-/* Thumbnails: glass tiles; the selected one is opaque white with the
-   two-tone rim and the lift shadow (the app's selected state, §13.10). */
-/* One column per slide: the slider sets `--thumbs` from the slides it draws
-   (the panel's, /admin/anasayfa-hero, or the bundled HOME_SLIDES). */
-.hero-x-thumbs {
-  list-style: none;
-  margin: clamp(18px, 2.6vw, 36px) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(var(--thumbs, 3), minmax(0, 1fr));
-  gap: 10px;
-  width: min(100%, 480px);
-}
-.hero-x-thumb {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 10px 8px 10px;
-  border-radius: var(--r-card);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--night-line);
-  box-shadow: none;
-  cursor: pointer;
-  overflow: hidden;
-  transition:
-    background-color 0.25s,
-    box-shadow 0.25s,
-    border-color 0.25s,
-    transform 0.2s var(--ease-spring);
-}
-.hero-x-thumb:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-.hero-x-thumb:active {
-  transform: scale(var(--press-scale));
-}
-.hero-x-thumb.on {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: var(--night-ink-mute);
-  box-shadow: none;
-}
-.hero-x-thumb-light {
-  position: absolute;
-  inset: 8px 8px 30px;
-  border-radius: var(--r-md);
-  opacity: 0.9;
-}
-.hero-x-thumb img {
-  position: relative;
-  display: block;
-  width: 58%;
-  height: auto;
-  aspect-ratio: 581 / 942;
-  object-fit: contain;
-  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18));
-  transition: transform 0.35s var(--ease-spring);
-}
-.hero-x-thumb:hover img,
-.hero-x-thumb.on img {
-  transform: translateY(-2px) scale(1.03);
-}
-.hero-x-thumb-name {
-  position: relative;
-  /* A panel slide's title can carry a word longer than the thumbnail
-     ("kampanyası"): it breaks instead of being clipped by the card. */
-  max-width: 100%;
-  overflow-wrap: break-word;
-  font-family: var(--display);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--night-ink-soft);
-  text-align: center;
-  line-height: 1.2;
-}
-.hero-x-thumb.on .hero-x-thumb-name {
-  color: var(--night-ink);
-  font-weight: 600;
-}
-/* The autoplay's clock. It runs along the selected thumbnail's foot for
-   --autoplay-ms and its animationend advances the slide, so pausing the
-   animation (pointer or focus in the hero, a hidden tab) pauses the carousel
-   exactly where it stands. Rendered only while autoplay is on. */
-.hero-x-thumb-progress {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 5px;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--green-light);
-  transform-origin: left center;
-  transform: scaleX(0);
-  animation: hero-x-progress var(--autoplay-ms, 7s) linear forwards;
-}
-.hero-x-frame[data-autoplay="paused"] .hero-x-thumb-progress {
-  animation-play-state: paused;
-}
-@keyframes hero-x-progress {
-  to {
-    transform: scaleX(1);
-  }
-}
-
-/* Stage ─────────────────────────────────────────────────────────── */
-
-.hero-x-stage {
-  position: relative;
-  z-index: 1;
-  align-self: start;
-  --stage: clamp(340px, 38vw, 580px);
-  min-height: var(--stage);
-  display: grid;
-  place-items: center;
-}
-/* The drink's own light, faint, behind it on the night; the glassy spheres
-   stay out. */
-.hero-x-sphere {
-  display: none;
-}
-/* The halo: the family's core at the drink's body, its ring, melting into
-   the porcelain - drawn large and soft, the app's `halo` beam. */
-.hero-x-halo {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: calc(var(--stage) * 1.15);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    var(--scene-core) 0%,
-    var(--scene-mid) 45%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  opacity: 0.32;
-  filter: blur(6px);
-  transition: background 0.6s var(--ease-out);
-}
-/* Two spheres, the scene's props: a big one behind and left, a small one
-   in front and right - glassy, lit from the top left. */
-.hero-x-sphere {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 32% 28%,
-    rgba(255, 255, 255, 0.95) 0%,
-    var(--scene-mid) 38%,
-    var(--scene-core) 100%
-  );
-  box-shadow: 0 18px 30px -12px rgba(0, 0, 0, 0.25);
-  opacity: 0.9;
-}
-.hero-x-sphere.a {
-  width: calc(var(--stage) * 0.2);
-  aspect-ratio: 1;
-  left: 8%;
-  top: 22%;
-}
-.hero-x-sphere.b {
-  width: calc(var(--stage) * 0.11);
-  aspect-ratio: 1;
-  right: 10%;
-  bottom: 22%;
-}
-.hero-x-floor {
-  position: absolute;
-  left: 50%;
-  bottom: 9%;
-  width: calc(var(--stage) * 0.62);
-  height: calc(var(--stage) * 0.09);
-  translate: -50% 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    closest-side,
-    rgba(0, 0, 0, 0.22) 0%,
-    rgba(0, 0, 0, 0) 100%
-  );
-}
-.hero-x-photo {
-  position: relative;
-  height: calc(var(--stage) * 0.92);
-  width: auto;
-  /* A cut-out is far narrower than the stage, so this never binds for the
-     bundled slides. A panel upload can be a wide campaign picture: at the
-     stage's height it ran past the frame and was cut off, so it is held to
-     the stage's width and letterboxed instead. */
-  max-width: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 30px 34px rgba(0, 0, 0, 0.22));
-  animation: hero-x-rise 0.7s var(--ease-spring) both;
-}
-@keyframes hero-x-rise {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-x-photo,
-  .hero-x-title,
-  .hero-x-status-dot,
-  .hero-x-bg-photo {
-    animation: none;
-  }
-}
-
-@media (max-width: 900px) {
-  .hero-x-frame {
-    grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
-    gap: 4px;
-    padding: 0;
-  }
-  .hero-x-frame > .hero-x-copy {
-    padding: 8px clamp(4px, 3vw, 24px) 0;
-  }
-  .hero-x-copy {
-    order: 2;
-    justify-items: center;
-    text-align: center;
-  }
-  .hero-x-title {
-    font-size: clamp(38px, 11vw, 60px);
-  }
-  .hero-x-actions {
-    justify-content: center;
-  }
-  .hero-x-stage {
-    order: 1;
-    /* Bounded by the screen's height as well as its width: on a phone the
-       drink and both buttons should fit one view above the floating tab
-       bar once the band is scrolled to. */
-    --stage: clamp(190px, min(54vw, 28vh), 380px);
-  }
-  .hero-x-thumbs {
-    width: 100%;
-    max-width: 420px;
-  }
-  .hero-x-status {
-    margin-left: 0;
-  }
-}
-/* A phone shows each slide's first sentence; the rest is on the menu. */
-@media (max-width: 520px) {
-  .hero-x-text-more {
-    display: none;
-  }
-  /* Five or six slides leave a thumbnail too narrow for its name: the
-     picture stays, the name is still each button's aria-label. */
-  .hero-x-thumbs[data-dense] .hero-x-thumb-name {
-    display: none;
   }
 }
 
@@ -3442,10 +3056,6 @@ summary:focus-visible,
   z-index: 0;
   pointer-events: none;
 }
-/* The home hero's watermark hook, kept for anything that still uses it. */
-.hero-x-watermark {
-  display: none;
-}
 .page-hero-back {
   margin-top: 4px;
   font-size: 14px;
@@ -3478,6 +3088,14 @@ summary:focus-visible,
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--green);
+}
+.page-hero-kicker::before {
+  content: "";
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tricolore);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 .page-hero-title {
   margin: 0;

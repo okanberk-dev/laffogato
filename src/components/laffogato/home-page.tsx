@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
 import { useMemo, useRef, Fragment } from "react";
 import Image from "next/image";
 
@@ -10,13 +8,12 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
 import { HomeAppIntro } from "./home-app-intro";
-import { HomeHeroSlider } from "./home-hero-slider";
 import { HomeValley } from "./home-valley";
 import { HomeKaraoke } from "./home-karaoke";
 import { HomeTakeHome, pickTakeHomeProduct } from "./home-take-home";
 import { Illustration } from "./illustration";
 import { karaokeDoorLine } from "./karaoke-today";
-import { MENU, LOCATION, type HomeSlideAction } from "./data";
+import { MENU, LOCATION } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
@@ -50,12 +47,9 @@ export function PageHome({
   content,
   visit,
   settings,
-  heroImageUrl,
-  homeSlides,
   karaoke,
   products,
 }: PageProps) {
-  const router = useRouter();
   // Operator-editable at /admin/ayarlar; the phone already reads it from
   // bootstrap, so the web quoting a constant was the odd one out.
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
@@ -136,32 +130,6 @@ export function PageHome({
       "(prefers-reduced-motion: reduce)",
     ).matches;
     el.scrollBy({ left: dir * 306, behavior: reduced ? "auto" : "smooth" });
-  };
-
-  const onSlideAction = (action: HomeSlideAction) => {
-    switch (action) {
-      case "menu":
-        navigate("menu");
-        break;
-      case "seasonMenu":
-        // The Strawberry Aşkı trio lives in the matcha bar.
-        router.push("/menu/matcha");
-        break;
-      case "signature":
-        // The L'Affogato itself is a cafe menu item, not a shop product, so
-        // "see the product" means its menu category.
-        router.push("/menu/espresso");
-        break;
-      case "story":
-        navigate("story");
-        break;
-      case "visit":
-        navigate("visit");
-        break;
-      case "karaoke":
-        router.push("/karaoke");
-        break;
-    }
   };
 
   const go = (r: Route) => (e: React.MouseEvent) => {
@@ -257,27 +225,23 @@ export function PageHome({
 
   return (
     <div className="page" data-screen-label="01 Home">
-      {/* The page's one h1. The hero's three slide titles rotate, so none of
-          them can hold it - an h1 that changes every seven seconds is worse
-          for a screen reader than no h1, and a slider-led home page with no
-          h1 at all is what the audit found. Visually hidden; it names the
+      {/* The page's one h1. The valley shows the name as the brand's
+          wordmark (a picture, aria-hidden), and a home page with no h1 at
+          all is what the audit found. Visually hidden; it names the
           business and what it does, which is what the heading is for. */}
       <h1 className="sr-only">
         L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
         mağaza, karaoke ve ziyaret bilgileri
       </h1>
 
-      {/* The first screen: the night valley of coffee under the name
+      {/* The first screen: the night valley of coffee under the wordmark
           (three.js, loaded after the page; the type is server-rendered).
-          The operator's slides follow directly below it. */}
-      <HomeValley onMenu={() => onSlideAction("menu")} />
-
-      <HomeHeroSlider
-        slides={homeSlides}
-        onAction={onSlideAction}
-        heroImageUrl={heroImageUrl}
+          Since 6 Kas 2026 it is the whole entrance: the operator's slides
+          (/admin/anasayfa-hero) are not on the page. */}
+      <HomeValley
         hours={hours}
-        karaoke={karaoke}
+        onMenu={() => navigate("menu")}
+        onVisit={() => navigate("visit")}
       />
 
       {/* The statement - who we are, in one paragraph, set large: the first

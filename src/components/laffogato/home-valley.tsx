@@ -1,18 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 
+import { cx } from "./cx";
 import { ROUTE_PATHS } from "./route-paths";
+import { openStatusDetail, useOpenStatus } from "./use-open-status";
 import type { ValleyHandle } from "./valley-scene";
+
+/**
+ * The brand's wordmark as an alpha mask: "L'Affogato" with the bean
+ * apostrophe, traced to a smoothed vector path from the app's
+ * logo-wordmark.png (lafmobil assets/brand) so its edges stay clean at hero
+ * size. CSS paints it (white to cream).
+ */
+const WORDMARK = "/brand/laffogato-wordmark.svg";
 
 /**
  * The home page's first screen: a night valley of coffee, drawn live with
  * three.js behind the name (owner's brief, 6 Kas 2026: a glowing night
  * valley in the hero, made for a coffee house, "kahve çekirdekleri
- * kullanabilirsin").
+ * kullanabilirsin"; second round the same day: beans first, the brand's wordmark, green,
+ * bordo and white).
  *
- * The words never wait for the scene. The name, the caption, the arrow to
- * the menu and the scroll hint are server-rendered over a CSS night ground;
+ * The words never wait for the scene. The wordmark, the caption, the arrow
+ * to the menu, the live open/closed line and the scroll hint are
+ * server-rendered over a CSS night ground (the wordmark's mask is
+ * preloaded);
  * the canvas is created only after the page has loaded and gone idle, and
  * only where WebGL 2 runs without a performance caveat. three.js and the
  * scene arrive through `import()` (valley-scene.ts), a chunk of their own
@@ -24,15 +38,31 @@ import type { ValleyHandle } from "./valley-scene";
  * pointer, no dispersal. Otherwise it drifts until the visitor pauses it
  * (the pause control, WCAG 2.2.2), scrolls it out of view or hides the tab.
  *
- * The operator's slides (/admin/anasayfa-hero) are not here: they follow
- * directly below as the slider band (home-hero-slider.tsx), unchanged in
- * data and controls. This screen carries the house, not a campaign.
+ * Since 6 Kas 2026 this screen is the home page's whole entrance: the
+ * operator's slides (/admin/anasayfa-hero) are not drawn, and that page
+ * says so. The open/closed line moved here from the slider band.
  */
-export function HomeValley({ onMenu }: { onMenu: () => void }) {
+export function HomeValley({
+  hours,
+  onMenu,
+  onVisit,
+}: {
+  /** Opening-hours rows (the visit block's), for the live open/closed line. */
+  hours?: ReadonlyArray<readonly [string, string]>;
+  onMenu: () => void;
+  onVisit: () => void;
+}) {
+  // A CSS mask is fetched in CORS mode, so the preload must be too, or the
+  // browser fetches the file twice.
+  preload(WORDMARK, {
+    as: "image",
+    crossOrigin: "anonymous",
+    fetchPriority: "high",
+  });
   const stageRef = useRef<HTMLElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const quietRef = useRef<HTMLDivElement>(null);
-  const nameRef = useRef<HTMLParagraphElement>(null);
+  const nameRef = useRef<HTMLDivElement>(null);
   const handle = useRef<ValleyHandle | null>(null);
   const [paused, setPaused] = useState(false);
 
@@ -63,7 +93,7 @@ export function HomeValley({ onMenu }: { onMenu: () => void }) {
       const context = canvas.getContext("webgl2", {
         alpha: false,
         antialias: false,
-        depth: false,
+        depth: true,
         stencil: false,
         premultipliedAlpha: true,
         powerPreference: "low-power",
@@ -135,10 +165,11 @@ export function HomeValley({ onMenu }: { onMenu: () => void }) {
     >
       <div ref={hostRef} className="valley-gl" aria-hidden="true" />
       <div className="valley-copy">
-        {/* The name is already the page's sr-only h1: not read twice. */}
-        <p ref={nameRef} className="valley-name" aria-hidden="true">
-          L&apos;Affogato
-        </p>
+        {/* The brand's wordmark, a picture of the name the page's sr-only
+            h1 already says: not read twice. */}
+        <div ref={nameRef} className="valley-mark" aria-hidden="true">
+          <span className="valley-wordmark" />
+        </div>
         <div ref={quietRef} className="valley-quiet">
           <p className="valley-caption">
             <span>Bologna 1897&apos;den Tuzla&apos;ya,</span>
@@ -172,6 +203,7 @@ export function HomeValley({ onMenu }: { onMenu: () => void }) {
             </span>
             <span className="valley-go-label">Menüyü keşfet</span>
           </a>
+          <ValleyStatus hours={hours} onVisit={onVisit} />
         </div>
       </div>
 
@@ -216,5 +248,41 @@ export function HomeValley({ onMenu }: { onMenu: () => void }) {
         </svg>
       </button>
     </section>
+  );
+}
+
+/**
+ * "Şu an açık · Kapanış 02:00" under the arrow - the one fact a café's front
+ * page owes someone deciding whether to come now. Read live on the visitor's
+ * clock in the köşk's time zone, from the same rows as the hours on
+ * /ziyaret, and nothing at all until the browser has answered. It opens the
+ * visit page.
+ */
+function ValleyStatus({
+  hours,
+  onVisit,
+}: {
+  hours?: ReadonlyArray<readonly [string, string]>;
+  onVisit: () => void;
+}) {
+  const st = useOpenStatus(hours);
+  if (!st) return null;
+  const detail = openStatusDetail(st);
+  return (
+    <a
+      href={ROUTE_PATHS.visit}
+      className={cx("valley-status", st.open ? "is-open" : "is-closed")}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        onVisit();
+      }}
+    >
+      <span className="valley-status-dot" aria-hidden="true" />
+      <span>
+        <strong>{st.open ? "Şu an açık" : "Şu an kapalı"}</strong>
+        {detail && <span className="valley-status-detail"> · {detail}</span>}
+      </span>
+    </a>
   );
 }

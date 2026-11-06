@@ -283,7 +283,6 @@ describe("palette is café retail on the logo's green", () => {
       ".h1",
       ".h2",
       ".h3",
-      ".hero-x-title",
       ".section-title",
       ".stat-n",
       ".pdp-title",

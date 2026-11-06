@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { createElement } from "react";
@@ -19,7 +19,6 @@ const read = (rel: string) => readFileSync(rel, "utf8");
 const CSS = read("src/app/globals.css");
 const VALLEY = read("src/components/laffogato/home-valley.tsx");
 const SCENE = read("src/components/laffogato/valley-scene.ts");
-const SLIDER = read("src/components/laffogato/home-hero-slider.tsx");
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -83,8 +82,11 @@ describe("the scene is a good guest", () => {
     for (const call of [
       "renderer.dispose()",
       "renderer.forceContextLoss()",
-      "field.geometry.dispose()",
-      "pointsMaterial.dispose()",
+      "light.geometry.dispose()",
+      "things.geometry.dispose()",
+      "lightMaterial.dispose()",
+      "coreMaterial.dispose()",
+      "fringeMaterial.dispose()",
       "resized.disconnect()",
       "seen.disconnect()",
     ]) {
@@ -115,7 +117,7 @@ describe("the scene is a good guest", () => {
 
 describe("the type is the page's, not the canvas's", () => {
   const html = renderToStaticMarkup(
-    createElement(HomeValley, { onMenu: () => {} }),
+    createElement(HomeValley, { onMenu: () => {}, onVisit: () => {} }),
   );
 
   it("server-renders the name, the caption, the arrow and the hint", () => {
@@ -134,7 +136,10 @@ describe("the type is the page's, not the canvas's", () => {
   });
 
   it("never fades the name in: it is the largest paint", () => {
-    expect(rule(".valley-name")).not.toMatch(/animation|opacity/);
+    // The wordmark arrives with a mask wipe, its first letter already
+    // showing; it is never transparent, so it paints at once (LCP).
+    expect(rule(".valley-wordmark")).not.toMatch(/opacity/);
+    expect(rule("@keyframes valley-wipe")).not.toMatch(/opacity/);
   });
 
   it("shows the canvas, the loader and the pause control only in their state", () => {
@@ -152,9 +157,13 @@ describe("the type is the page's, not the canvas's", () => {
   it("paints the scene from the palette's tokens", () => {
     const body = rule(".valley");
     for (const token of [
-      "--valley-sky: var(--night);",
-      "--valley-blossom: var(--night-ink);",
-      "--valley-bean: var(--gold-soft);",
+      // Green, bordo and white (owner, 6 Kas 2026); brass only on beans.
+      "--valley-sky: var(--bg-espresso-deep);",
+      "--valley-ground: var(--green-house);",
+      "--valley-horizon: var(--accent);",
+      "--valley-blossom: var(--surface);",
+      "--valley-leaf: var(--green-brand);",
+      "--valley-bean: var(--gold-deep);",
       "--valley-cherry: var(--accent);",
     ]) {
       expect(body).toContain(token);
@@ -163,16 +172,11 @@ describe("the type is the page's, not the canvas's", () => {
   });
 });
 
-describe("the slider band below it", () => {
-  it("no longer preloads the köşk photograph: the valley's name is the LCP", () => {
-    expect(SLIDER).toContain('src="/photos/facade-night.webp"');
-    expect(SLIDER).not.toMatch(/\bpreload\b\s*$/m);
-    expect(SLIDER).not.toContain('fetchPriority="high"');
-  });
-
-  it("keeps every slide control and the operator's data flow", () => {
-    expect(SLIDER).toContain('"--thumbs": slides.length');
-    expect(SLIDER).toContain("splitLead(slideText(slide.text, karaoke))");
-    expect(SLIDER).toContain("<HeroStatus hours={hours}");
+describe("no slider band below it", () => {
+  it("draws the valley as the whole entrance (6 Kas 2026)", () => {
+    expect(existsSync("src/components/laffogato/home-hero-slider.tsx")).toBe(false);
+    const home = read("src/components/laffogato/home-page.tsx");
+    expect(home).not.toContain("HomeHeroSlider");
+    expect(CSS).not.toMatch(/\n\.hero-x[-\w]* \{/);
   });
 });

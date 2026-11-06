@@ -7,7 +7,6 @@
  */
 
 import type {
-  HomeSlide,
   MenuCategory,
   PRESS as SEED_PRESS,
   Product,
@@ -60,13 +59,6 @@ export interface PageProps {
   storyTimeline?: typeof STORY.heritage;
   /** Admin-managed editable copy (key → value); undefined ise inline fallback. */
   content?: Record<string, string>;
-  /** Ayarlar → "Hero görsel URL"; boşsa tasarımın kendi yüzeyi kullanılır. */
-  heroImageUrl?: string;
-  /**
-   * The home hero's slides from /admin/anasayfa-hero. Undefined: the bundled
-   * HOME_SLIDES (data.ts). Only `/` passes it.
-   */
-  homeSlides?: HomeSlide[];
   /** Visit page contact block from admin settings; undefined ise LOCATION seed. */
   visit?: {
     addressLines: string[];

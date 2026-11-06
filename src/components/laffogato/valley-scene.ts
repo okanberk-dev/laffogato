@@ -6,6 +6,7 @@ import {
   Color,
   CustomBlending,
   Mesh,
+  NormalBlending,
   OneFactor,
   OneMinusSrcAlphaFactor,
   PerspectiveCamera,
@@ -23,10 +24,12 @@ import {
 import {
   DUST_FRAGMENT,
   DUST_VERTEX,
-  POINTS_FRAGMENT,
-  POINTS_VERTEX,
+  FIELD_FRAGMENT,
+  FIELD_VERTEX,
   QUAD_VERTEX,
   SKY_FRAGMENT,
+  SOLID_FRAGMENT,
+  SOLID_VERTEX,
   VEIL_FRAGMENT,
 } from "./valley-shaders";
 
@@ -34,13 +37,16 @@ import {
  * The home page's coffee valley (owner's brief, 6 Kas 2026: a night valley
  * of glowing coffee in the hero, "kahve çekirdekleri kullanabilirsin").
  *
- * A dark valley of coffee plants in rows, seen from a camera that drifts
- * forward along a closed curve and comes round again without a seam:
- * thousands of point sprites on a rolling heightfield - white five-petal
- * coffee blossoms on the plants, a few deep red cherries among them,
- * roasted beans glowing on the ground like lanterns, and the soil's dim
- * glints that give the hills their shape. Dust drifts in the air, slow
- * shafts of light fall from above, a vignette closes the frame.
+ * A green night valley of coffee plants in rows, seen from a camera that
+ * drifts forward along a closed curve and comes round again without a
+ * seam: some 31,000 point sprites on a rolling heightfield (a third on a
+ * phone). Roasted beans read first (6 Kas 2026, "kahve çekirdekleri ön
+ * planda"): thousands on the ground, and a few hundred falling slowly
+ * through the air round the camera, tumbling, the nearest large and out of
+ * focus. On the plants: green leaves, white five-petal coffee blossoms and
+ * bordo cherries; the soil's dim glints give the hills their shape. Faint
+ * stars, a bordo glow on the horizon and in the slow shafts of light, dust
+ * in the air, a vignette.
  *
  * Original work: the plants, the sprites (drawn in valley-shaders.ts) and
  * the motion are this file's own; nothing is fetched.
@@ -125,28 +131,100 @@ function seeded(seed: number): () => number {
   };
 }
 
-const KIND = { soil: 0, blossom: 1, bean: 2, cherry: 3 } as const;
+/** The additive light's kinds (FIELD_*) and the solid things' (SOLID_*). */
+const LIGHT = { soil: 0, blossom: 1 } as const;
+const THING = { leaf: 0, cherry: 1, bean: 2 } as const;
 
-interface Field {
+interface Layer {
   geometry: BufferGeometry;
   count: number;
 }
 
+/** Points collected in planting order, then shuffled into a geometry. */
+class Planting {
+  private pos: number[] = [];
+  private kind: number[] = [];
+  private size: number[] = [];
+  private air: number[] = [];
+  constructor(private readonly rand: () => number) {}
+
+  add(x: number, y: number, z: number, k: number, s: number, air = 0) {
+    this.pos.push(x, y, z);
+    this.kind.push(k);
+    this.size.push(s);
+    this.air.push(air);
+  }
+
+  /**
+   * The order is shuffled, so drawing only the first part (the slow-device
+   * fallback) still covers the whole valley evenly.
+   */
+  build(): Layer {
+    const { rand } = this;
+    const count = this.kind.length;
+    const order = Array.from({ length: count }, (_, i) => i);
+    for (let i = count - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    const position = new Float32Array(count * 3);
+    const aKind = new Float32Array(count);
+    const aAir = new Float32Array(count);
+    const aSize = new Float32Array(count);
+    const aRot = new Float32Array(count);
+    const aSeed = new Float32Array(count);
+    const aSpin = new Float32Array(count);
+    const aDir = new Float32Array(count * 3);
+    order.forEach((from, to) => {
+      position[to * 3] = this.pos[from * 3];
+      position[to * 3 + 1] = this.pos[from * 3 + 1];
+      position[to * 3 + 2] = this.pos[from * 3 + 2];
+      aKind[to] = this.kind[from];
+      aAir[to] = this.air[from];
+      aSize[to] = this.size[from];
+      aRot[to] = rand() * Math.PI * 2;
+      aSeed[to] = rand();
+      // A bean in the air turns over every few seconds, either way round.
+      aSpin[to] = this.air[from] ? (0.35 + rand() * 0.7) * (rand() < 0.5 ? -1 : 1) : 0;
+      // Where the point floats off to: any way round, a little up.
+      const turn = rand() * Math.PI * 2;
+      const up = rand() * 0.6;
+      const flat = Math.sqrt(1 - up * up);
+      aDir[to * 3] = Math.cos(turn) * flat;
+      aDir[to * 3 + 1] = up;
+      aDir[to * 3 + 2] = Math.sin(turn) * flat;
+    });
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new BufferAttribute(position, 3));
+    geometry.setAttribute("aKind", new BufferAttribute(aKind, 1));
+    geometry.setAttribute("aAir", new BufferAttribute(aAir, 1));
+    geometry.setAttribute("aSize", new BufferAttribute(aSize, 1));
+    geometry.setAttribute("aRot", new BufferAttribute(aRot, 1));
+    geometry.setAttribute("aSeed", new BufferAttribute(aSeed, 1));
+    geometry.setAttribute("aSpin", new BufferAttribute(aSpin, 1));
+    geometry.setAttribute("aDir", new BufferAttribute(aDir, 3));
+    return { geometry, count };
+  }
+}
+
 /**
- * Plants the valley: shrubs in rows on both sides of the lane, each with a
- * spray of blossoms and sometimes a few cherries; beans on the ground, some
- * floating; and the soil's glints out to the hills. The order is shuffled,
- * so drawing only the first part (the slow-device fallback) still covers the
- * whole valley evenly.
+ * Plants the valley: shrubs in rows on both sides of the camera's path,
+ * each with leaves, a spray of blossoms and sometimes a few cherries; beans
+ * on the ground; beans in the air; and the soil's glints out to the hills.
+ * Returns the two layers: the light (additive) and the things (solid).
  */
-function plantValley(curve: CatmullRomCurve3, lite: boolean): Field {
+function plantValley(
+  curve: CatmullRomCurve3,
+  lite: boolean,
+): { light: Layer; things: Layer } {
   const rand = seeded(1897);
-  const share = lite ? 1 / 3 : 1;
   // A phone draws a third of the points over a narrower valley, so the
   // field it sees is as full as a desktop's.
+  const share = lite ? 1 / 3 : 1;
   const spread = lite ? 12 : 23;
-  const shrubs = Math.round(2400 * share);
-  const beans = Math.round(2600 * share);
+  const shrubs = Math.round(2000 * share);
+  const groundBeans = Math.round(4200 * share);
+  const airBeans = Math.round(320 * share);
   const soil = Math.round(4200 * share);
 
   const SAMPLES = 1024;
@@ -159,15 +237,6 @@ function plantValley(curve: CatmullRomCurve3, lite: boolean): Field {
     ahead.push(t);
     side.push(new Vector3(-t.z, 0, t.x));
   }
-
-  const pos: number[] = [];
-  const kind: number[] = [];
-  const size: number[] = [];
-  const add = (x: number, y: number, z: number, k: number, s: number) => {
-    pos.push(x, y, z);
-    kind.push(k);
-    size.push(s);
-  };
   const spot = (lateral: number, jitter: number) => {
     const i = Math.floor(rand() * SAMPLES);
     const c = along[i];
@@ -179,83 +248,64 @@ function plantValley(curve: CatmullRomCurve3, lite: boolean): Field {
     return { x, z, y: ground(x, z) + wall(lateral) };
   };
 
+  const light = new Planting(rand);
+  const things = new Planting(rand);
+
   for (let s = 0; s < shrubs; s++) {
     // Rows across the valley, closer together near the camera's path; the
-    // camera flies over them, so blossoms grow towards it and pass beneath.
+    // camera flies over them, so the plants grow towards it and pass
+    // beneath.
     const reach = (rand() < 0.5 ? -1 : 1) * spread * Math.pow(rand(), 1.15);
     const lateral = Math.round(reach / 2) * 2 + (rand() - 0.5) * 0.5;
     const base = spot(lateral, 1.2);
-    const blossoms = 5 + Math.floor(rand() * 5);
+    // Leaves frame the beans and blossoms, never outweigh them.
+    const leaves = 3 + Math.floor(rand() * 2);
+    for (let l = 0; l < leaves; l++) {
+      things.add(
+        base.x + (rand() - 0.5) * 1.2,
+        base.y + 0.1 + rand() * 1.0,
+        base.z + (rand() - 0.5) * 1.2,
+        THING.leaf,
+        0.3 + rand() * 0.12,
+      );
+    }
+    const blossoms = 4 + Math.floor(rand() * 4);
     for (let b = 0; b < blossoms; b++) {
-      add(
+      light.add(
         base.x + (rand() - 0.5) * 1.1,
         base.y + 0.15 + rand() * 1.05,
         base.z + (rand() - 0.5) * 1.1,
-        KIND.blossom,
+        LIGHT.blossom,
         0.3 + rand() * 0.2,
       );
     }
     if (rand() < 0.35) {
       const cherries = 1 + Math.floor(rand() * 3);
       for (let c = 0; c < cherries; c++) {
-        add(
+        things.add(
           base.x + (rand() - 0.5) * 0.8,
           base.y + 0.2 + rand() * 0.8,
           base.z + (rand() - 0.5) * 0.8,
-          KIND.cherry,
+          THING.cherry,
           0.21 + rand() * 0.08,
         );
       }
     }
   }
-  for (let b = 0; b < beans; b++) {
+  for (let b = 0; b < groundBeans; b++) {
     const p = spot((rand() * 2 - 1) * (spread + 1), 1);
-    const floating = rand() < 0.12 ? 0.6 + rand() * 2.6 : 0;
-    add(p.x, p.y + 0.06 + floating, p.z, KIND.bean, 0.2 + rand() * 0.1);
+    things.add(p.x, p.y + 0.08, p.z, THING.bean, 0.3 + rand() * 0.12);
+  }
+  // Beans in the air: a unit-box seed; the shader wraps it round the
+  // camera (uBox), so they are always about it.
+  for (let b = 0; b < airBeans; b++) {
+    things.add(rand(), rand(), rand(), THING.bean, 0.28 + rand() * 0.22, 1);
   }
   for (let g = 0; g < soil; g++) {
     const p = spot((rand() * 2 - 1) * (spread + 3), 1);
-    add(p.x, p.y + 0.02, p.z, KIND.soil, 0.07 + rand() * 0.06);
+    light.add(p.x, p.y + 0.02, p.z, LIGHT.soil, 0.07 + rand() * 0.06);
   }
-
-  const count = kind.length;
-  const order = Array.from({ length: count }, (_, i) => i);
-  for (let i = count - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [order[i], order[j]] = [order[j], order[i]];
-  }
-
-  const position = new Float32Array(count * 3);
-  const aKind = new Float32Array(count);
-  const aSize = new Float32Array(count);
-  const aRot = new Float32Array(count);
-  const aSeed = new Float32Array(count);
-  const aDir = new Float32Array(count * 3);
-  order.forEach((from, to) => {
-    position[to * 3] = pos[from * 3];
-    position[to * 3 + 1] = pos[from * 3 + 1];
-    position[to * 3 + 2] = pos[from * 3 + 2];
-    aKind[to] = kind[from];
-    aSize[to] = size[from];
-    aRot[to] = rand() * Math.PI * 2;
-    aSeed[to] = rand();
-    // Where the point floats off to: any way round, a little up.
-    const turn = rand() * Math.PI * 2;
-    const up = rand() * 0.6;
-    const flat = Math.sqrt(1 - up * up);
-    aDir[to * 3] = Math.cos(turn) * flat;
-    aDir[to * 3 + 1] = up;
-    aDir[to * 3 + 2] = Math.sin(turn) * flat;
-  });
-
-  const geometry = new BufferGeometry();
-  geometry.setAttribute("position", new BufferAttribute(position, 3));
-  geometry.setAttribute("aKind", new BufferAttribute(aKind, 1));
-  geometry.setAttribute("aSize", new BufferAttribute(aSize, 1));
-  geometry.setAttribute("aRot", new BufferAttribute(aRot, 1));
-  geometry.setAttribute("aSeed", new BufferAttribute(aSeed, 1));
-  geometry.setAttribute("aDir", new BufferAttribute(aDir, 3));
-  return { geometry, count };
+  return { light: light.build(), things: things.build() };
 }
 
 /** A CSS colour token of the stage, as sRGB components for a shader. */
@@ -275,7 +325,7 @@ export function startValley(options: ValleyOptions): ValleyHandle {
     context: context as unknown as WebGLRenderingContext,
     alpha: false,
     antialias: false,
-    depth: false,
+    depth: true,
     stencil: false,
     premultipliedAlpha: true,
     powerPreference: "low-power",
@@ -286,15 +336,20 @@ export function startValley(options: ValleyOptions): ValleyHandle {
   const style = getComputedStyle(stage);
   const palette = {
     sky: token(style, "--valley-sky"),
+    ground: token(style, "--valley-ground"),
     horizon: token(style, "--valley-horizon"),
-    glow: token(style, "--valley-bean-glow"),
+    ray: token(style, "--valley-ray"),
+    star: token(style, "--valley-star"),
     blossom: token(style, "--valley-blossom"),
     heart: token(style, "--valley-blossom-heart"),
-    bean: token(style, "--valley-bean"),
+    leaf: token(style, "--valley-leaf"),
+    leafLight: token(style, "--valley-leaf-light"),
     cherry: token(style, "--valley-cherry"),
     cherryLight: token(style, "--valley-cherry-light"),
+    bean: token(style, "--valley-bean"),
+    glint: token(style, "--valley-bean-glint"),
+    shine: token(style, "--valley-shine"),
     dust: token(style, "--valley-dust"),
-    ray: token(style, "--valley-ray"),
   };
   renderer.setClearColor(
     new Color().setRGB(palette.sky.x, palette.sky.y, palette.sky.z),
@@ -322,9 +377,9 @@ export function startValley(options: ValleyOptions): ValleyHandle {
     fragmentShader: SKY_FRAGMENT,
     uniforms: {
       uSky: { value: palette.sky },
+      uGround: { value: palette.ground },
       uHorizon: { value: palette.horizon },
-      uGlow: { value: palette.glow },
-      uStar: { value: palette.ray },
+      uStar: { value: palette.star },
       uHorizonY: { value: 0.6 },
       uTime: { value: 0 },
       uCells: { value: 70 },
@@ -339,43 +394,89 @@ export function startValley(options: ValleyOptions): ValleyHandle {
   sky.renderOrder = -10;
   scene.add(sky);
 
-  // The valley.
-  const field = plantValley(curve, lite);
+  // The valley: the light (blossoms, soil) and the things (leaves,
+  // cherries, beans on the ground and in the air).
+  const { light, things } = plantValley(curve, lite);
   const pointer = new Vector2(0, -2);
   const quietRect = new Vector4(2, 2, 2, 2);
   const nameRect = new Vector4(2, 2, 2, 2);
-  const pointsMaterial = new ShaderMaterial({
-    vertexShader: POINTS_VERTEX,
-    fragmentShader: POINTS_FRAGMENT,
+  const camAt = new Vector3();
+  // One set of uniform objects shared by every valley material, so a frame
+  // writes each value once.
+  const shared = {
+    uTime: { value: 0 },
+    uPxScale: { value: 600 },
+    uMaxPoint: { value: 160 },
+    uDisperse: { value: 0 },
+    uPointer: { value: pointer },
+    uPointerAmt: { value: 0 },
+    uAspect: { value: 1 },
+    uQuiet: { value: quietRect },
+    uQuietDim: { value: 0.22 },
+    uName: { value: nameRect },
+    uNameDim: { value: 0.6 },
+  };
+  const lightMaterial = new ShaderMaterial({
+    vertexShader: FIELD_VERTEX,
+    fragmentShader: FIELD_FRAGMENT,
     uniforms: {
-      uTime: { value: 0 },
-      uPxScale: { value: 600 },
-      uMaxPoint: { value: 160 },
-      uDisperse: { value: 0 },
-      uPointer: { value: pointer },
-      uPointerAmt: { value: 0 },
-      uAspect: { value: 1 },
-      uQuiet: { value: quietRect },
-      uQuietDim: { value: 0.3 },
-      uName: { value: nameRect },
-      uNameDim: { value: 0.6 },
+      ...shared,
       uBlossom: { value: palette.blossom },
       uHeart: { value: palette.heart },
-      uBean: { value: palette.bean },
-      uBeanGlow: { value: palette.glow },
-      uCherry: { value: palette.cherry },
-      uCherryLight: { value: palette.cherryLight },
       uDust: { value: palette.dust },
     },
     transparent: true,
     blending: AdditiveBlending,
     premultipliedAlpha: true,
-    depthTest: false,
+    depthTest: true,
     depthWrite: false,
   });
-  const valley = new Points(field.geometry, pointsMaterial);
-  valley.frustumCulled = false;
-  scene.add(valley);
+  const thingUniforms = {
+    ...shared,
+    uCam: { value: camAt },
+    uBox: { value: new Vector3(24, 10, 24) },
+    uBean: { value: palette.bean },
+    uGlint: { value: palette.glint },
+    uShine: { value: palette.shine },
+    uRim: { value: palette.horizon },
+    uCherry: { value: palette.cherry },
+    uCherryLight: { value: palette.cherryLight },
+    uLeaf: { value: palette.leaf },
+    uLeafLight: { value: palette.leafLight },
+  };
+  // The things twice: the opaque core first (writes depth), then the soft
+  // fringe and everything translucent over it.
+  const coreMaterial = new ShaderMaterial({
+    vertexShader: SOLID_VERTEX,
+    fragmentShader: SOLID_FRAGMENT,
+    uniforms: thingUniforms,
+    defines: { PASS: 0 },
+    transparent: false,
+    blending: NormalBlending,
+    depthTest: true,
+    depthWrite: true,
+  });
+  const fringeMaterial = new ShaderMaterial({
+    vertexShader: SOLID_VERTEX,
+    fragmentShader: SOLID_FRAGMENT,
+    uniforms: thingUniforms,
+    defines: { PASS: 1 },
+    transparent: true,
+    blending: NormalBlending,
+    premultipliedAlpha: true,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const thingCores = new Points(things.geometry, coreMaterial);
+  const thingFringes = new Points(things.geometry, fringeMaterial);
+  const lights = new Points(light.geometry, lightMaterial);
+  thingCores.renderOrder = 0;
+  thingFringes.renderOrder = 1;
+  lights.renderOrder = 2;
+  for (const layer of [thingCores, thingFringes, lights]) {
+    layer.frustumCulled = false;
+    scene.add(layer);
+  }
 
   // Dust in the air round the camera.
   const motes = lite ? 160 : 420;
@@ -404,12 +505,12 @@ export function startValley(options: ValleyOptions): ValleyHandle {
     transparent: true,
     blending: AdditiveBlending,
     premultipliedAlpha: true,
-    depthTest: false,
+    depthTest: true,
     depthWrite: false,
   });
   const dust = new Points(dustGeometry, dustMaterial);
   dust.frustumCulled = false;
-  dust.renderOrder = 1;
+  dust.renderOrder = 3;
   scene.add(dust);
 
   // The rays and the vignette, drawn last.
@@ -418,6 +519,7 @@ export function startValley(options: ValleyOptions): ValleyHandle {
     fragmentShader: VEIL_FRAGMENT,
     uniforms: {
       uRay: { value: palette.ray },
+      uWarm: { value: palette.horizon },
       uTime: { value: 0 },
       uAspect: { value: 1 },
     },
@@ -453,13 +555,13 @@ export function startValley(options: ValleyOptions): ValleyHandle {
     camera.updateProjectionMatrix();
     const pxScale =
       (height * pixelRatio) / (2 * Math.tan((fov * Math.PI) / 360));
-    pointsMaterial.uniforms.uPxScale.value = pxScale;
+    shared.uPxScale.value = pxScale;
     dustMaterial.uniforms.uPxScale.value = pxScale;
-    pointsMaterial.uniforms.uMaxPoint.value = Math.min(
+    shared.uMaxPoint.value = Math.min(
       glMaxPoint || 64,
       150 * pixelRatio,
     );
-    pointsMaterial.uniforms.uAspect.value = width / height;
+    shared.uAspect.value = width / height;
     skyMaterial.uniforms.uRes.value.set(
       width * pixelRatio,
       height * pixelRatio,
@@ -525,6 +627,7 @@ export function startValley(options: ValleyOptions): ValleyHandle {
       Math.max(0.2, horizon),
     );
     dustMaterial.uniforms.uCam.value.copy(here);
+    camAt.copy(here);
     const facing = Math.atan2(there.x - here.x, there.z - here.z);
     if (!Number.isNaN(heading)) {
       let delta = facing - heading;
@@ -563,9 +666,9 @@ export function startValley(options: ValleyOptions): ValleyHandle {
     );
     scroll += (scrolled - scroll) * ease(4);
 
-    pointsMaterial.uniforms.uTime.value = time;
-    pointsMaterial.uniforms.uDisperse.value = disperse;
-    pointsMaterial.uniforms.uPointerAmt.value = pointerAmt;
+    shared.uTime.value = time;
+    shared.uDisperse.value = disperse;
+    shared.uPointerAmt.value = pointerAmt;
     dustMaterial.uniforms.uTime.value = time;
     veilMaterial.uniforms.uTime.value = time;
     skyMaterial.uniforms.uTime.value = time;
@@ -607,7 +710,8 @@ export function startValley(options: ValleyOptions): ValleyHandle {
       pixelRatio = 1;
       measure();
     } else {
-      field.geometry.setDrawRange(0, Math.floor(field.count * 0.5));
+      light.geometry.setDrawRange(0, Math.floor(light.count * 0.5));
+      things.geometry.setDrawRange(0, Math.floor(things.count * 0.5));
     }
   };
 
@@ -732,10 +836,13 @@ export function startValley(options: ValleyOptions): ValleyHandle {
       stage.removeEventListener("pointerleave", onLeave);
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onLost);
-      field.geometry.dispose();
+      light.geometry.dispose();
+      things.geometry.dispose();
       dustGeometry.dispose();
       quad.dispose();
-      pointsMaterial.dispose();
+      lightMaterial.dispose();
+      coreMaterial.dispose();
+      fringeMaterial.dispose();
       dustMaterial.dispose();
       skyMaterial.dispose();
       veilMaterial.dispose();

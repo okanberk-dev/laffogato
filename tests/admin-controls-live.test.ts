@@ -59,9 +59,13 @@ describe("admin content fields are read somewhere", () => {
   );
 });
 
-describe("the hero image setting reaches a component", () => {
+describe("the hero image setting reaches a component, or says it does not", () => {
   // Its only consumer was deleted once already; the settings form, the loader
   // and the prop chain all survived, so an operator kept writing a dead field.
+  //
+  // Since 6 Kas 2026 the home page opens on the coffee valley and draws no
+  // slides, so the setting has no consumer on purpose. Then the field itself
+  // must say so, the way /admin/anasayfa-hero does.
   it("is used by a component, not just declared and threaded through", () => {
     const uses = FILES.filter(
       (f) => !REGISTRY.some((r) => f.includes(r)) && f.endsWith(".tsx"),
@@ -76,10 +80,21 @@ describe("the hero image setting reaches a component", () => {
         return mentions >= 2;
       });
 
+    if (uses.length > 0) return;
+    const form = readFileSync(
+      join(SRC, "app", "admin", "ayarlar", "settings-form.tsx"),
+      "utf8",
+    );
+    const slides = readFileSync(
+      join(SRC, "app", "admin", "anasayfa-hero", "page.tsx"),
+      "utf8",
+    );
     expect(
-      uses.length,
+      form.includes("Anasayfa slaytları şu an gösterilmiyor") &&
+        slides.includes("Bu slaytlar şu an anasayfada gösterilmiyor"),
       "settings.heroImageUrl is loaded and passed down, but no component actually " +
-        "uses it - the panel's 'Hero görsel URL' field would be writing to nothing.",
-    ).toBeGreaterThan(0);
+        "uses it - the panel's 'Hero görsel URL' field would be writing to nothing " +
+        "without saying so.",
+    ).toBe(true);
   });
 });

@@ -361,7 +361,8 @@ describe("list pages", () => {
     ]);
     expect(html).toContain("Yayından kaldır");
     expect(html).toContain("Yayına al");
-    expect(html).toContain("Sitede 1 slayt dönüyor.");
+    expect(html).toContain("1 slayt yayında.");
+    expect(html).toContain("Bu slaytlar şu an anasayfada gösterilmiyor");
   });
 
   it("bülten: Pasifleştir and Sil both ask first", async () => {

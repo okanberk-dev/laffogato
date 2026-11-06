@@ -16,7 +16,6 @@ import { contentDefaults } from "@/lib/admin/content-fields";
 
 const read = (rel: string) => readFileSync(rel, "utf8");
 const CSS = read("src/app/globals.css");
-const SLIDER = read("src/components/laffogato/home-hero-slider.tsx");
 const HOME = read("src/components/laffogato/home-page.tsx");
 const POUR = read("public/laffogato-pour.js");
 
@@ -83,17 +82,10 @@ describe("openStatusDetail", () => {
 });
 
 describe("home hero", () => {
-  it("lets every slide speak for its own drink", () => {
-    // The panel's brand paragraph used to replace the first slide's kicker
-    // and text: an espresso-and-waffle-cup line under a strawberry matcha.
-    expect(SLIDER).not.toContain("home.hero.lede");
-    expect(SLIDER).not.toContain("home.hero.eyebrow");
-    expect(SLIDER).toContain("{slide.kicker}");
-    // The karaoke slide's text takes the room's size and closing hour from
-    // the panel (data.ts `slideText`); the words are still the slide's own.
-    expect(SLIDER).toContain("splitLead(slideText(slide.text, karaoke))");
-  });
-
+  // Since 6 Kas 2026 the home page opens on the coffee valley alone: the
+  // operator's drinks band (home-hero-slider.tsx) is gone, its slides stay
+  // in the panel (home-hero-slides.test.ts). The valley's own guards live in
+  // home-valley.test.ts.
   it("puts the panel's hero copy in the statement band under the hero", () => {
     expect(HOME).toContain('content?.["home.hero.eyebrow"]');
     expect(HOME).toContain('content?.["home.hero.lede"]');
@@ -102,32 +94,10 @@ describe("home hero", () => {
     expect(rule(".home-intro-lead")).toMatch(/font-weight: 600;/);
   });
 
-  it("advances on the progress line's end, so a pause cannot drift", () => {
-    expect(SLIDER).not.toMatch(/setInterval/);
-    expect(SLIDER).toMatch(/onAnimationEnd=/);
-    expect(CSS).toMatch(
-      /\.hero-x-frame\[data-autoplay="paused"\] \.hero-x-thumb-progress \{\n\s*animation-play-state: paused;/,
-    );
-  });
-
-  it("never autoplays under reduced motion, and starts off on the server", () => {
-    expect(SLIDER).toMatch(
-      /useClientValue\(\s*\(\) =>\s*window\.matchMedia\?\.\("\(prefers-reduced-motion: reduce\)"\)\.matches \?\? false,\s*true,\s*\)/,
-    );
-    // `many`: a lone slide (the panel may publish one) has no clock at all.
-    expect(SLIDER).toMatch(/const autoplay = many && !reduced && !stopped;/);
-  });
-
-  it("shows only the first sentence on a phone", () => {
-    expect(CSS).toMatch(
-      /@media \(max-width: 520px\) \{\n\s*\.hero-x-text-more \{\n\s*display: none;/,
-    );
-  });
-
   it("keeps its live status motion under five seconds (WCAG 2.2.2)", () => {
     // Two 2 s rings and it settles - never `infinite`.
-    expect(rule(".hero-x-status-dot")).toMatch(
-      /animation: hero-x-live 2s var\(--ease-out\) 2;/,
+    expect(rule(".valley-status-dot")).toMatch(
+      /animation: valley-live 2s var\(--ease-out\) 2;/,
     );
   });
 });
@@ -149,7 +119,6 @@ describe("the rest of the landing page", () => {
   it("sets the hero titles and the figures in SemiBold - weight, not size, carries the hierarchy", () => {
     // Café-retail restyle, 5 Kas 2026: display moments are 600 in one face;
     // an ExtraBold squeeze is the look this replaced.
-    expect(rule(".hero-x-title")).toMatch(/font-weight: 600;/);
     expect(rule(".h-display")).toMatch(/font-weight: 600;/);
     expect(rule(".stat-n")).toMatch(/font-weight: 600;/);
   });

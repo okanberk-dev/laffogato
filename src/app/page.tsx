@@ -58,10 +58,12 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
+  // No `withHomeHero`: the panel's home slides are not on the page while
+  // the coffee valley opens it (home-valley.tsx), so they are not read.
   const [
     { cart, item, available, hesap },
     { settings, menu, products, appProps, contact },
-  ] = await Promise.all([searchParams, loadAppProps({ withHomeHero: true })]);
+  ] = await Promise.all([searchParams, loadAppProps()]);
 
   // The site's old self-service deletion landed here, and its `/?hesap=`
   // links are still out there (the page now sends a request instead).
@@ -98,7 +100,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         {...appProps}
         notice={notice}
         seoSlot={<SeoContent faq={FAQ} contact={contact} />}
-        // The karaoke band and hero slide say what the panel says: the room's
+        // The karaoke band says what the panel says: the room's
         // size, hours, price and the top tier's discount (presentation only;
         // the booking re-reads every one of them on the server).
         karaoke={{

@@ -1,11 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { HOME_SLIDES, type HomeSlide } from "@/components/laffogato/data";
-import { HomeHeroSlider } from "@/components/laffogato/home-hero-slider";
+import { HOME_SLIDES } from "@/components/laffogato/data";
 import { SCENES } from "@/components/laffogato/scenes";
 import {
   HOME_HERO_BUNDLED_IMAGES,
@@ -151,11 +148,11 @@ describe("a slide's picture", () => {
 });
 
 describe("the action codes and scenes the panel offers", () => {
-  it("are all handled by the home page and all drawable", () => {
-    const home = read("src/components/laffogato/home-page.tsx");
-    for (const a of HOME_SLIDE_ACTIONS) {
-      expect(home, a).toContain(`case "${a}":`);
-    }
+  it("are all drawable", () => {
+    // Since 6 Kas 2026 the home page draws no slides (the coffee valley is
+    // its whole entrance), so no page handles the actions; the panel keeps
+    // offering them for the day the slides come back.
+    expect(HOME_SLIDE_ACTIONS.length).toBeGreaterThan(0);
     for (const k of HOME_HERO_SCENES) expect(SCENES[k], k).toBeDefined();
   });
 
@@ -573,129 +570,6 @@ describe("the panel's writes", () => {
 
 // ─── The slider ─────────────────────────────────────────────────────────
 
-const FACTS = {
-  capacity: 8,
-  hourlyMinor: 90_000,
-  closeHour: 24,
-  rubyDiscountPct: 15,
-  rubyLabel: "RUBY",
-  prepay: true,
-};
-
-const draw = (slides?: HomeSlide[], heroImageUrl?: string) =>
-  renderToStaticMarkup(
-    createElement(HomeHeroSlider, {
-      slides,
-      onAction: () => {},
-      karaoke: FACTS,
-      heroImageUrl,
-    }),
-  );
-
-describe("the slider with the panel's slides", () => {
-  const panel: HomeSlide[] = [
-    toHomeSlide(
-      row({
-        id: "p1",
-        body: "Oda {kapasite} kişilik. Gece {kapanis} kadar senin.",
-      }),
-      "/menu/matcha-latte-cut.webp",
-    ),
-    toHomeSlide(
-      row({
-        id: "p2",
-        titleLine1: "Instagram",
-        titleLine2: "",
-        primaryHref: "https://www.instagram.com/laffogato/",
-        secondaryLabel: "",
-        secondaryAction: "",
-      }),
-      "/gorsel/ana-hero/p2?v=abcdefabcdef",
-    ),
-  ];
-
-  it("draws the first slide: its words, its buttons, its light", () => {
-    const html = draw(panel);
-    expect(html).toContain('<p class="hero-x-kicker">Ekim kampanyası</p>');
-    expect(html).toMatch(
-      /<h2 class="hero-x-title"><span>Sonbahar<\/span><span>Menüsü<\/span><\/h2>/,
-    );
-    // {kapasite} / {kapanis} filled from the panel's karaoke settings.
-    expect(html).toContain("Oda 8 kişilik.");
-    expect(html).toContain("Gece 24:00’e kadar senin.");
-    // A same-site link is a link, an action stays a button.
-    expect(html).toMatch(
-      /<a class="btn btn-lg btn-primary" href="\/kampanyalar">Kampanyalar<\/a>/,
-    );
-    expect(html).toMatch(
-      /<button type="button" class="btn btn-lg btn-ghost">Tüm menü<\/button>/,
-    );
-    expect(html).toContain(`--scene-core:${SCENES.spice.core}`);
-  });
-
-  it("loads its photos lazily: the valley above it is the first screen", () => {
-    // Since 6 Kas 2026 the slider is the band under the coffee valley
-    // (home-valley.tsx), whose server-rendered name is the page's largest
-    // paint; no drink here may compete with it for the first bytes.
-    const html = draw(panel);
-    const stage = html.slice(html.indexOf('class="hero-x-stage"'));
-    expect(stage).toMatch(/<img[^>]*loading="lazy"/i);
-    expect(html).not.toMatch(/fetchpriority="high"/i);
-    expect(html).not.toMatch(/loading="eager"/i);
-    // The upload's thumbnail is a plain lazy <img>, not next/image.
-    expect(html).toMatch(
-      /<img src="\/gorsel\/ana-hero\/p2\?v=abcdefabcdef" alt="" width="581" height="942" loading="lazy"/,
-    );
-  });
-
-  it("names every slide in its thumbnail row, one column each", () => {
-    const html = draw(panel);
-    expect(html).toContain('aria-label="1. slayt: Sonbahar Menüsü"');
-    expect(html).toContain('aria-label="2. slayt: Instagram"');
-    expect(html).toContain("--thumbs:2");
-    expect(html).toContain('aria-roledescription="karusel"');
-    // Server render and reduced motion: no clock running.
-    expect(html).not.toContain("hero-x-thumb-progress");
-  });
-
-  it("draws a lone slide without thumbnails or a carousel role", () => {
-    const html = draw([panel[1]]);
-    expect(html).not.toContain("hero-x-thumbs");
-    expect(html).not.toContain("aria-roledescription");
-    expect(html).toMatch(
-      /<h2 class="hero-x-title"><span>Instagram<\/span><\/h2>/,
-    );
-    expect(html).toMatch(
-      /<a class="btn btn-lg btn-primary" href="https:\/\/www\.instagram\.com\/laffogato\/" rel="noopener noreferrer">Kampanyalar<\/a>/,
-    );
-  });
-
-  it("holds a wide upload inside the stage instead of cutting it off", () => {
-    // The photo is set to the stage's height. A cut-out is far narrower than
-    // the stage, but a 16:9 campaign picture at that height ran past the
-    // frame (overflow: hidden) and lost its right side.
-    const css = read("src/app/globals.css");
-    const rule = /\.hero-x-photo \{([^}]*)\}/.exec(css)?.[1] ?? "";
-    expect(rule).toMatch(/height: calc\(var\(--stage\) \* 0\.92\);/);
-    expect(rule).toMatch(/max-width: 100%;/);
-    expect(rule).toMatch(/object-fit: contain;/);
-    expect(rule).not.toMatch(/max-width: none/);
-  });
-
-  it("falls back to the bundled slides with nothing from the panel", () => {
-    for (const html of [draw(undefined), draw([])]) {
-      expect(html).toContain(
-        `<p class="hero-x-kicker">${HOME_SLIDES[0].kicker}</p>`,
-      );
-      expect(html).toContain(`--thumbs:${HOME_SLIDES.length}`);
-    }
-    // "Hero görsel URL" still replaces the first bundled photo.
-    expect(draw(undefined, "https://cdn.example.com/hero.webp")).toContain(
-      'src="https://cdn.example.com/hero.webp"',
-    );
-  });
-});
-
 describe("the home page's shortcuts", () => {
   const home = read("src/components/laffogato/home-page.tsx");
 
@@ -720,9 +594,8 @@ describe("the home page's shortcuts", () => {
     expect(props).toMatch(
       /heroImageUrl:\s*homeHero\?\.fromPanel\s*\?\s*undefined\s*:\s*settings\.heroImageUrl \|\| undefined/,
     );
-    expect(read("src/app/page.tsx")).toContain(
-      "loadAppProps({ withHomeHero: true })",
-    );
+    // The home page does not read the slides while the valley opens it.
+    expect(read("src/app/page.tsx")).not.toContain("withHomeHero: true");
     // Ayarlar says so too: the field used to promise the whole hero, so an
     // operator with panel slides changed it and saw nothing happen.
     const settingsForm = read("src/app/admin/ayarlar/settings-form.tsx");

@@ -342,7 +342,7 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
             // Since the home hero moved to /admin/anasayfa-hero this only
             // reaches the bundled slides (app-props.ts): say so, or the
             // operator changes it and sees nothing happen.
-            hint="Opsiyonel, https:// ile başlayan bir görsel adresi. Anasayfa slaytlarında yayında slayt yokken yerleşik ilk slaytın görselini değiştirir. Panelden eklediğin slaytlar kendi görselini kullanır; onları İçerik → Anasayfa slaytları'ndan düzenle."
+            hint="Opsiyonel, https:// ile başlayan bir görsel adresi. Anasayfa slaytlarında yayında slayt yokken yerleşik ilk slaytın görselini değiştirir. Panelden eklediğin slaytlar kendi görselini kullanır; onları İçerik → Anasayfa slaytları'ndan düzenle. Anasayfa slaytları şu an gösterilmiyor (anasayfanın girişi kahve vadisi), bu görsel de görünmez."
           >
             <TextInput
               name="heroImageUrl"
