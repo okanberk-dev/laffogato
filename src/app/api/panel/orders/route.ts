@@ -4,6 +4,8 @@ import {
   countPanelAwaitingPaymentOrders,
   listPanelOpenOrderRows,
 } from "@/lib/admin/store";
+import { listOpenTableCalls } from "@/lib/admin/table-calls";
+import { toPanelTableCalls } from "@/lib/admin/table-calls-core";
 import {
   PANEL_ORDERS_MAX,
   PANEL_ORDERS_VERSION,
@@ -46,6 +48,12 @@ import {
  * it is above zero, so a payment whose ping was lost still reaches the bar
  * within minutes.
  *
+ * Beside them, `calls` (added 6 Kas 2026; an older reader ignores it,
+ * `version` stays 1): the open table calls ("Garson çağır" from the app,
+ * src/lib/admin/table-calls-core.ts), oldest first, `{id, tableCode, label,
+ * reason, createdAt}` and nothing about the guest; always present, `[]`
+ * when none. The bar screen answers one with `POST /api/panel/calls/ack`.
+ *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
 
@@ -78,6 +86,7 @@ export async function GET(request: Request) {
   const limit = PANEL_ORDERS_MAX + 1;
   let rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
   let awaiting: number;
+  let calls: Awaited<ReturnType<typeof listOpenTableCalls>>;
   try {
     // The count first, then the list, one after the other: an order only
     // goes from waiting to paid, so one paid in between is in the list (at
@@ -93,6 +102,7 @@ export async function GET(request: Request) {
       limit,
       panelOrdersLiveSince(now),
     );
+    calls = await listOpenTableCalls(now);
   } catch (err) {
     console.error("[panel-orders] orders could not be read", err);
     return NextResponse.json(
@@ -117,6 +127,7 @@ export async function GET(request: Request) {
         orders.length <= PANEL_ORDERS_MAX,
       orders: orders.slice(0, PANEL_ORDERS_MAX),
       awaitingPayment: panelAwaitingPaymentCount(awaiting),
+      calls: toPanelTableCalls(calls, now.getTime()),
     },
     { headers: NO_STORE },
   );

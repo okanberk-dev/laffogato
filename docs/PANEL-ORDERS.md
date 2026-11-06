@@ -112,7 +112,16 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
          "path": "/admin/siparisler/ord-0042"
        }
      ],
-     "awaitingPayment": 0
+     "awaitingPayment": 0,
+     "calls": [
+       {
+         "id": "tcl-3f9a0c4b7d2e1a68",
+         "tableCode": "K7Q2M9X4TB",
+         "label": "Masa 4",
+         "reason": "water",
+         "createdAt": "2026-11-06T18:02:11.000Z"
+       }
+     ]
    }
    ```
 
@@ -168,6 +177,10 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
      siparişi kısa bir süre sık çeker (aşağıda "Panel ne zaman çeker").
      Site: `countPanelAwaitingPaymentOrders`, `panelAwaitingPaymentSince`,
      `isBarScreenOrder`.
+   - `calls` (6 Kas 2026, sonradan eklendi; eski panel ve LafPOS yok sayar,
+     `version` 1 kalır): masadan açık garson çağrıları, en eskisi önce.
+     Alan her yanıtta vardır, çağrı yoksa `[]`. Ayrıntı aşağıda "Masa
+     çağrıları".
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |
@@ -187,7 +200,8 @@ bunu taşır). Soyad, e-posta, telefon, adres, kurye notu (kapı kodu: kurye
 siparişinin notu hiç gitmez), ödeme referansı **asla** gitmez: alanlar
 beyaz listeyle tek tek kurulur (`toPanelOrder`), tabloya sonradan eklenen
 bir sütun kendiliğinden sızamaz. `awaitingPayment` yalnız bir sayıdır:
-ödeme bekleyen siparişin hiçbir alanı gitmez. `tests/panel-orders-feed.test.ts`
+ödeme bekleyen siparişin hiçbir alanı gitmez. `calls` yalnız masayı ve
+isteği taşır: çağıran üyenin adı ve e-postası gitmez (`toPanelTableCalls`). `tests/panel-orders-feed.test.ts`
 ve `tests/db-integration-panel-feeds.test.ts` tutar.
 
 ## Panel ne zaman çeker
@@ -256,3 +270,68 @@ listesidir (yalnız ad). Site: `src/app/api/panel/orders/stage/route.ts`,
 `src/lib/panel/orders-stage-core.ts`; `tests/panel-orders-stage.test.ts`
 tutar. Panel: `src/server/actions/site-orders.ts`,
 `src/lib/site-orders/stage{,-request}.ts` (lafmaliyet `docs/SITE-SIPARIS.md`).
+
+## Masa çağrıları: `calls` ve `POST /api/panel/calls/ack` (6 Kas 2026)
+
+Operatör: masadaki üye uygulamadan garson, su ya da peçete isteyebilsin;
+istek sitenin panelinde ve bar ekranında çalsın, biri "Gördüm" diyene kadar
+dursun. Üye tarafı `docs/API-MOBILE.md` §22.1 (`POST
+/api/mobile/v1/tables/{code}/calls`); açık/kapalı anahtarı Uygulama ayarları
+› Sipariş › "Masadan garson çağırma açık" (masaya sipariş de açık olmalı).
+
+**Okuma.** `GET /api/panel/orders`'ın `calls` alanı (yukarıda):
+
+| Alan        | Anlamı                                                                 |
+| ----------- | ---------------------------------------------------------------------- |
+| `id`        | `tcl-` ve 16 rastgele karakter                                          |
+| `tableCode` | Masanın kodu, çağrı anındaki (siparişlerin `tableCode`'u gibi)          |
+| `label`     | "Masa 4": siparişlerin `label`'ıyla aynı kural (`tableLabel`)           |
+| `reason`    | `waiter` (Garson çağırıyor) · `water` (Su istiyor) · `napkin` (Peçete istiyor) |
+| `createdAt` | ISO                                                                    |
+
+Yalnız **açık** çağrılar: yanıtlanmamış ve 15 dakikadan genç; en eskisi
+önce, en çok 50. 15 dakikada kimse yanıtlamazsa çağrı kendiliğinden ekrandan
+düşer (uygulama onu `expired` görür). Aynı masadan aynı sebeple açık çağrı
+varken yeni çağrı açılmaz; site o çağrıyı üyeye geri verir. Çağrının açılması
+ve yanıtlanması `live:orders`'ı düşürür: panele `orders.changed` pingi gider,
+LafPOS'un `/api/pos/orders/version`'ı ilerler, sitenin sipariş zili çalar.
+
+**Yanıtlama.** Bar ekranındaki "Gördüm": imza, anahtar ve başlıklar
+`POST /api/panel/orders/stage`'inkiyle aynı (panel ya da LafPOS kendi
+anahtarıyla); gövde en çok 1 KB, katı JSON, tam olarak iki alan:
+
+```json
+{ "id": "tcl-3f9a0c4b7d2e1a68", "actor": "Selin" }
+```
+
+| Yanıt                                              | Ne zaman                                                                   |
+| -------------------------------------------------- | -------------------------------------------------------------------------- |
+| 200 `{"ok":true,"call":{"id":"tcl-…","status":"acked"}}` | Yanıtlandı; ya da zaten yanıtlanmıştı (burada, sitede ya da tekrar gönderilen istekle): aynı yanıt, ikinci yazım yok |
+| 404 `{"error":"not_found"}`                        | Böyle çağrı yok                                                            |
+| 400 `{"error":"invalid","field"}`                  | Gövde okunamadı, bir alan geçersiz ya da fazladan alan var                 |
+| 401 · 413 · 503                                    | Aşama ucuyla aynı                                                          |
+
+Site çağrıya `ackedAt` ve `ackedBy` yazar: `panel:<actor>` (LafPOS'un
+anahtarıyla `lafpos:<actor>`); sitenin panelinden yanıtlanırsa
+`admin:<ad>`. Yanıtlanmamış ama süresi geçmiş çağrı da yanıtlanabilir.
+
+**İmza vektörü** (iki tarafın testi sabitler; sır ve an diğer vektörlerle
+aynı: `test-secret-0123456789-abcdefghijklmnop`, `1760000000`): `POST
+/api/panel/calls/ack`, gövde
+`{"id":"tcl-3f9a0c4b7d2e1a68","actor":"Selin"}` →
+`cdda6260245ebae291a8a93e3e691144b393b3fb970335a1133e2b439df6d19a`
+(`tests/panel-karaoke-sync-core.test.ts`).
+
+**Sitenin kendi paneli.** Açık çağrı sipariş zilinde yeni sipariş gibi
+çalar ("Masa 4 · Su istiyor", kartta "Gördüm") ve `/admin/siparisler`'in
+üstünde "Masa çağrıları" listesinde durur; "Gördüm" çağrıyı yanıtlar
+(`admin:<ad>`), ekranlardan düşürür.
+
+**Saklama.** `table_calls`, 30 gün sonra günlük imha çalışmasıyla silinir
+(`src/lib/retention.ts`, kural `table-calls`); çağıran üyenin e-postası
+yalnız sitede durur, hesap kapanınca anonimleşir.
+
+Site: `src/app/api/panel/orders/route.ts` (`calls`),
+`src/app/api/panel/calls/ack/route.ts`, `src/lib/panel/calls-ack-core.ts`,
+`src/lib/admin/table-calls{,-core}.ts`; `tests/panel-orders-feed.test.ts`,
+`tests/panel-calls-ack.test.ts` tutar.

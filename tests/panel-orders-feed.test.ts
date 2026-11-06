@@ -454,6 +454,8 @@ const storeMock = vi.hoisted(() => ({
   countPanelAwaitingPaymentOrders: vi.fn(),
 }));
 vi.mock("@/lib/admin/store", () => storeMock);
+const callsMock = vi.hoisted(() => ({ listOpenTableCalls: vi.fn() }));
+vi.mock("@/lib/admin/table-calls", () => callsMock);
 
 const SECRET = "test-secret-0123456789-abcdefghijklmnop";
 
@@ -477,6 +479,8 @@ describe("GET /api/panel/orders", () => {
     ]);
     storeMock.countPanelAwaitingPaymentOrders.mockReset();
     storeMock.countPanelAwaitingPaymentOrders.mockResolvedValue(0);
+    callsMock.listOpenTableCalls.mockReset();
+    callsMock.listOpenTableCalls.mockResolvedValue([]);
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -531,6 +535,7 @@ describe("GET /api/panel/orders", () => {
     // Added to v1: the version stays, an older panel strips the new key.
     expect(Object.keys(body).sort()).toEqual([
       "awaitingPayment",
+      "calls",
       "complete",
       "now",
       "orders",
@@ -571,6 +576,70 @@ describe("GET /api/panel/orders", () => {
   it("answers 0, not a missing field, when nothing waits", async () => {
     const body = await (await get(signedGet("/api/panel/orders"))).json();
     expect(body.awaitingPayment).toBe(0);
+    // No table call either: an empty list, never a missing field.
+    expect(body.calls).toEqual([]);
+  });
+
+  it("sends the open table calls, oldest first, with no guest (6 Kas 2026)", async () => {
+    const ago = (m: number) =>
+      new Date(NOW.getTime() - m * 60_000).toISOString();
+    callsMock.listOpenTableCalls.mockResolvedValue([
+      {
+        id: "tcl-bbbbbbbbbbbbbbbb",
+        tableCode: "K7Q2M9X4TB",
+        tableName: "4",
+        reason: "water",
+        customerEmail: "ayse@example.com",
+        createdAt: ago(2),
+        ackedAt: "",
+        ackedBy: "",
+      },
+      {
+        id: "tcl-aaaaaaaaaaaaaaaa",
+        tableCode: "AAAAAAAAAA",
+        tableName: "Masa 1",
+        reason: "waiter",
+        customerEmail: "ali@example.com",
+        createdAt: ago(9),
+        ackedAt: "",
+        ackedBy: "",
+      },
+      {
+        // Past the fifteen minutes: no longer on the screen.
+        id: "tcl-cccccccccccccccc",
+        tableCode: "AAAAAAAAAA",
+        tableName: "Masa 1",
+        reason: "napkin",
+        createdAt: ago(16),
+        ackedAt: "",
+      },
+    ]);
+    const body = await (await get(signedGet("/api/panel/orders"))).json();
+    expect(body.version).toBe(1);
+    expect(body.calls).toEqual([
+      {
+        id: "tcl-aaaaaaaaaaaaaaaa",
+        tableCode: "AAAAAAAAAA",
+        label: "Masa 1",
+        reason: "waiter",
+        createdAt: ago(9),
+      },
+      {
+        id: "tcl-bbbbbbbbbbbbbbbb",
+        tableCode: "K7Q2M9X4TB",
+        label: "Masa 4",
+        reason: "water",
+        createdAt: ago(2),
+      },
+    ]);
+    expect(JSON.stringify(body.calls)).not.toContain("example.com");
+  });
+
+  it("says the database is down when the calls cannot be read", async () => {
+    callsMock.listOpenTableCalls.mockRejectedValue(new Error("down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await get(signedGet("/api/panel/orders"));
+    expect(res.status).toBe(503);
   });
 
   it("is not complete when the read came back full, whatever it dropped", async () => {
@@ -677,6 +746,8 @@ describe("the ping (orders-ping.ts)", () => {
     expect(tagsForWrite({ table: "orders" })).toContain(TAG_ORDERS);
     expect(tagsForWrite({ fn: "set_order_item_status" })).toContain(TAG_ORDERS);
     expect(tagsForWrite({ table: "menu_items" })).not.toContain(TAG_ORDERS);
+    // A table call made or answered pings the panel too (6 Kas 2026).
+    expect(tagsForWrite({ table: "table_calls" })).toContain(TAG_ORDERS);
     const src = readFileSync("src/lib/db/index.ts", "utf8");
     expect(src).toContain("if (tags.includes(TAG_ORDERS)) pingPanelOrders();");
     expect(src.match(/pingPanelOrders\(/g)).toHaveLength(1);

@@ -141,6 +141,20 @@ describe("signature", () => {
     ).toBe("cc20c85f8eebb2ea76b79c12e3e0b7e327fbca21ebd519148231ee6a9bb69f89");
   });
 
+  it("matches the table-call ack vector the panel is to pin (6 Kas 2026)", () => {
+    // The bar screen's "Gördüm" on a table call (docs/PANEL-ORDERS.md "Masa
+    // çağrıları"), signed like the stage tap: same secret and instant, the
+    // body the bytes the panel builds, `{id, actor}` in that order. The
+    // panel (lafmaliyet) pins the same value; a change on either side turns
+    // every ack into a 401.
+    const ack = new URL("https://laffogato.net/api/panel/calls/ack");
+    const body = JSON.stringify({ id: "tcl-3f9a0c4b7d2e1a68", actor: "Selin" });
+    expect(body).toBe('{"id":"tcl-3f9a0c4b7d2e1a68","actor":"Selin"}');
+    expect(
+      sign(SECRET, { timestamp: TS, method: "POST", url: ack, body }),
+    ).toBe("cdda6260245ebae291a8a93e3e691144b393b3fb970335a1133e2b439df6d19a");
+  });
+
   it("signs the instant, method, path, sorted query and body hash, not the host", () => {
     expect(
       canonicalString({
