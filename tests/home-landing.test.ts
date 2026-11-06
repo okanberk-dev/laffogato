@@ -199,12 +199,21 @@ describe("rows that must give way to the wider face", () => {
     expect(rule(".checkout-promo input")).toMatch(/width: 100%;/);
   });
 
-  it("sizes the footer's card row with shrinkable tracks", () => {
-    expect(rule(".footer-top")).toMatch(
-      /grid-template-columns: minmax\(0, 1\.1fr\) minmax\(0, 1fr\) minmax\(0, 1\.2fr\);/,
+  it("sizes the footer's rows with shrinkable tracks", () => {
+    // The card row (.footer-top) went with the night footer (6 Kas 2026);
+    // the rows that replaced it keep the rule: minmax(0, …), never a bare
+    // `fr` that cannot shrink below the newsletter field.
+    expect(rule(".footer-main")).toMatch(
+      /grid-template-columns: minmax\(0, 1fr\);/,
     );
     expect(CSS).toMatch(
-      /\.footer-top \{\n\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/,
+      /\.footer-main \{\n\s*grid-template-columns: minmax\(0, 1\.15fr\) minmax\(0, 3fr\);/,
+    );
+    expect(rule(".footer-letter")).toMatch(
+      /grid-template-columns: minmax\(0, 1fr\);/,
+    );
+    expect(CSS).toMatch(
+      /\.footer-letter \{\n\s*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1\.1fr\);/,
     );
   });
 

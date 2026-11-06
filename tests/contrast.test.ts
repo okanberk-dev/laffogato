@@ -166,11 +166,35 @@ describe("colour contrast", () => {
       "--bg-espresso",
       "--bg-espresso-deep",
       "--matcha",
+      "--night",
     ]) {
       expect(
         contrast(token("--accent"), token(green)),
         `--accent on ${green} is unreadable`,
       ).toBeLessThan(AA);
+    }
+  });
+
+  it("every night ink clears AA on the night footer and its pills", () => {
+    // The footer's ground and its raised pills and letter card (6 Kas 2026).
+    for (const ground of ["--night", "--night-raise"]) {
+      for (const ink of [
+        "--night-ink",
+        "--night-ink-soft",
+        "--night-ink-mute",
+      ]) {
+        expect(
+          contrast(token(ink), token(ground)),
+          `${ink} on ${ground}`,
+        ).toBeGreaterThanOrEqual(AA);
+      }
+    }
+    // The band's copy sits on the sky: the house green at the bottom of it.
+    for (const ink of ["--night-ink", "--night-ink-soft", "--green-mint"]) {
+      expect(
+        contrast(token(ink), token("--green-house")),
+        `${ink} on the night band`,
+      ).toBeGreaterThanOrEqual(AA);
     }
   });
 

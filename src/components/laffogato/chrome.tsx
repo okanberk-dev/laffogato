@@ -9,16 +9,19 @@ import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 import { OTHER_BRANCHES } from "@/lib/seo/branches";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/mobile/app-store";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 import { addressLines } from "@/lib/utils/format";
 
 import { AppStoreLinks } from "./app-links";
 import { LafMark } from "./brand-mark";
+import { FooterKosk, FooterSky } from "./footer-night";
 import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { SCENES, sceneForHue } from "./scenes";
 import { cx } from "./cx";
+import { useOpenStatus } from "./use-open-status";
 
 export type { Route };
 /** Re-export for legacy importers that still pull `ROUTE_PATHS` from here.
@@ -905,7 +908,12 @@ function BagGlyph() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Footer - the app icon's green, the mark in cream and brass
+   Footer - a night band over the köşk, then the espresso ground
+
+   Owner's brief, 6 Kas 2026: an illustrated call-to-action band above a
+   dark footer with the logo, status pills, link columns and social icons,
+   in the way a coffee-retail flagship lays its footer out. The band is
+   drawn (footer-night.tsx); the ground is `--night`, the ink deepened.
    ───────────────────────────────────────────────────────────── */
 
 export interface FooterSettings {
@@ -969,10 +977,52 @@ export function Footer({ navigate, settings }: FooterProps) {
   const year = new Date().getFullYear();
   return (
     <footer className="footer" data-ground="dark">
+      {/* The night band: the köşk under a dusk sky, a cup's steam turning
+          into the milky way, and the two things to do next. */}
+      <section className="footer-cta" aria-labelledby="footer-cta-title">
+        <FooterSky className="footer-cta-sky" />
+        <div className="footer-cta-inner">
+          <div className="footer-cta-copy">
+            <p className="footer-cta-eyebrow">Tuzla&apos;da, köşkte</p>
+            <h2 id="footer-cta-title" className="footer-cta-title">
+              Bugün hangi lezzeti keşfedeceksin?
+            </h2>
+            <p className="footer-cta-text">
+              Espresso, gelato ve ikisinin buluştuğu affogato. Menüye göz at,
+              uygulamadan siparişini ver, her kahvede damganı topla.
+            </p>
+            <div className="footer-cta-actions">
+              <a
+                className="btn btn-light"
+                href={hrefFor("menu")}
+                onClick={go("menu")}
+              >
+                Menüye göz at
+              </a>
+              {APP_STORE_URL ? (
+                <a
+                  className="btn btn-glass-dark"
+                  href={APP_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Uygulamayı indir
+                  <span className="arrow out" aria-hidden="true">
+                    ↗
+                  </span>
+                </a>
+              ) : null}
+            </div>
+          </div>
+          <FooterKosk className="footer-cta-kosk" />
+        </div>
+      </section>
+
       <div className="footer-inner">
-        {/* The signature: the mark exactly as the app icon draws it, then
-            the two ways to keep in touch - the app and the letter. */}
-        <div className="footer-top">
+        {/* The signature beside the map of the site: the mark, the motto,
+            and three status pills - each house's hours (the köşk's live
+            open/closed once the browser has the time) and the app. */}
+        <div className="footer-main">
           <div className="footer-brand">
             <LafMark tone="cream" label="L'Affogato" className="footer-mark" />
             <p className="footer-motto">İçilir, sonra kupası yenir</p>
@@ -980,78 +1030,55 @@ export function Footer({ navigate, settings }: FooterProps) {
               Bologna 1897&apos;den İstanbul Tuzla&apos;ya - 200 yıllık, restore
               bir köşkte.
             </p>
-          </div>
-
-          <div className="footer-card footer-app">
-            <div className="footer-card-head">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/app-icon-192.png"
-                alt=""
-                width={48}
-                height={48}
-                loading="lazy"
-                decoding="async"
-                className="footer-app-icon"
-              />
-              <div>
-                <h2 className="footer-card-title">L&apos;Affogato cebinde</h2>
-                <p className="footer-card-text">
-                  Damga kartın, kasa kodun ve siparişin tek uygulamada.
-                </p>
-              </div>
-            </div>
-            <AppStoreLinks tone="dark" />
-          </div>
-
-          <div className="footer-card footer-newsletter">
-            <h2 className="footer-card-title">
-              Bir mektup, <span className="script">ayda bir</span>
-            </h2>
-            <p className="footer-card-text">
-              Yeni sezon affogati, Bologna kavurma notları, küçük gelato
-              denemeleri. Hiçbir zaman ayda birden fazla.
-            </p>
-            <NewsletterForm />
-          </div>
-        </div>
-
-        <div className="footer-grid">
-          <div>
-            <h3 className="footer-col-title">Menü</h3>
-            <ul>
-              {MENU_DROPDOWN.map((m) => (
-                <li key={m.slug}>
-                  <a href={`/menu/${m.slug}`}>{m.label}</a>
+            <ul className="footer-badges" aria-label="Şubeler ve uygulama">
+              <li>
+                <KoskBadge hours={hours} href={hrefFor("visit")} />
+              </li>
+              {/* The other branches (src/lib/seo/branches.ts): their hours
+                  only. Marina's days were never given, so no open/closed
+                  word is worked out for it. */}
+              {OTHER_BRANCHES.map((b) => (
+                <li key={b.id}>
+                  <a className="footer-badge" href={`/ziyaret#${b.id}`}>
+                    <span className="footer-badge-dot" aria-hidden="true" />
+                    <span>{b.name.replace(/^L'Affogato\s+/, "")}</span>
+                    {b.hoursLabel ? (
+                      <>
+                        <BadgeSep />
+                        <span className="tabular">{b.hoursLabel}</span>
+                      </>
+                    ) : null}
+                  </a>
                 </li>
               ))}
+              {APP_STORE_URL ? (
+                <li>
+                  <a
+                    className="footer-badge"
+                    href={APP_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <PhoneMark />
+                    <span>iOS uygulaması App Store&apos;da</span>
+                  </a>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+
+          {/* Four columns on a wide screen, four folds on a phone. */}
+          <nav className="footer-grid" aria-label="Site haritası">
+            <FooterColumn id="kesfet" title="Keşfet">
               <li>
                 <a href={hrefFor("menu")} onClick={go("menu")}>
-                  Tüm menü
+                  Menü
                 </a>
               </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="footer-col-title">Mağaza</h3>
-            <ul>
-              {SHOP_DROPDOWN.map((s) => (
-                <li key={s.slug}>
-                  <a href={`/magaza/${s.slug}`}>{s.label}</a>
-                </li>
-              ))}
               <li>
                 <a href={hrefFor("shop")} onClick={go("shop")}>
-                  Tüm mağaza
+                  Mağaza
                 </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="footer-col-title">Köşk</h3>
-            <ul>
-              <li>
-                <a href="/uye/hesap">Üyelik ve ödüller</a>
               </li>
               <li>
                 <a href="/kampanyalar">Kampanyalar</a>
@@ -1065,20 +1092,92 @@ export function Footer({ navigate, settings }: FooterProps) {
                 </a>
               </li>
               <li>
+                <Link href="/rehber">Rehber</Link>
+              </li>
+            </FooterColumn>
+
+            <FooterColumn id="ziyaret" title="Ziyaret">
+              <li>
                 <a href={hrefFor("visit")} onClick={go("visit")}>
-                  Ziyaret
+                  Tuzla köşkü
+                </a>
+              </li>
+              {lines.map((line, i) => (
+                <li key={i} className="footer-note">
+                  {line}
+                </li>
+              ))}
+              {/* Ayarlar → Saatler: one row for a uniform week, one per run
+                  otherwise ("Pzt-Cum", "Cmt-Paz", "Paz Kapalı"). */}
+              <li className="footer-contact-hours">
+                {hours.map(([label, value], i) => (
+                  <span key={i} className="footer-hours-row">
+                    <span>{label}</span>
+                    <span className="tabular">{value}</span>
+                  </span>
+                ))}
+              </li>
+              <li>
+                <a href="/ziyaret#map">Yol tarifi</a>
+              </li>
+              <li>
+                <a href={`tel:${tel}`} className="tabular">
+                  {phone}
                 </a>
               </li>
               <li>
-                <Link href="/rehber">Rehber</Link>
+                <a href={`mailto:${email}`}>{email}</a>
               </li>
-            </ul>
-          </div>
-          {/* Seven documents, not twenty-six; the criterion for each is in
-              src/lib/legal/nav.ts. The rest are one click away. */}
-          <div>
-            <h3 className="footer-col-title">Yasal</h3>
-            <ul>
+              {/* The other branches: one line each, to their card on
+                  /ziyaret. The rows above stay the Tuzla köşk's, which is
+                  the one the app and the shop serve. */}
+              {OTHER_BRANCHES.map((b) => (
+                <li key={b.id} className="footer-branch">
+                  <a href={`/ziyaret#${b.id}`}>Yeni: {b.name} açıldı</a>
+                </li>
+              ))}
+            </FooterColumn>
+
+            <FooterColumn id="uyelik" title="Üyelik">
+              <li className="footer-note">
+                Damga kartın, kasa kodun ve siparişin tek uygulamada.
+              </li>
+              {APP_STORE_URL ? (
+                <li>
+                  <a
+                    href={APP_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    iPhone için App Store
+                  </a>
+                </li>
+              ) : null}
+              {PLAY_STORE_URL ? (
+                <li>
+                  <a
+                    href={PLAY_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Android için Google Play
+                  </a>
+                </li>
+              ) : null}
+              <li>
+                <a href="/uye/hesap">Üyelik ve ödüller</a>
+              </li>
+              <li>
+                <a href="/uye/kayit">Üye ol</a>
+              </li>
+              <li>
+                <a href="/uye/giris">Giriş yap</a>
+              </li>
+            </FooterColumn>
+
+            {/* Seven documents, not twenty-six; the criterion for each is
+                in src/lib/legal/nav.ts. The rest are one click away. */}
+            <FooterColumn id="yasal" title="Kurumsal ve yasal">
               {FOOTER_LEGAL_DOCS.map((d) => (
                 <li key={d.slug}>
                   <Link href={`/hukuk/${d.slug}`}>{d.label}</Link>
@@ -1098,102 +1197,121 @@ export function Footer({ navigate, settings }: FooterProps) {
               <li>
                 <Link href="/hukuk">Tüm belgeler</Link>
               </li>
-            </ul>
-          </div>
-          <div className="footer-contact-col">
-            <h3 className="footer-col-title">İletişim</h3>
+              <li>
+                <Link href="/hukuk/sirket-bilgileri">Şirket bilgileri</Link>
+              </li>
+            </FooterColumn>
+          </nav>
+        </div>
+
+        {/* Every category page keeps a door in the footer, the way the
+            header's dropdowns give one. */}
+        <div className="footer-cats">
+          <div className="footer-cats-row">
+            <h2 className="footer-cats-title">Menüde</h2>
             <ul>
-              {lines.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
-              <li>
-                <a href={`tel:${tel}`} className="tabular">
-                  {phone}
-                </a>
-              </li>
-              <li>
-                <a href={`mailto:${email}`}>{email}</a>
-              </li>
-              {/* Ayarlar → Saatler: one row for a uniform week, one per run
-                  otherwise ("Pzt-Cum", "Cmt-Paz", "Paz Kapalı"). */}
-              <li className="footer-contact-hours">
-                {hours.map(([label, value], i) => (
-                  <span key={i} className="footer-hours-row">
-                    <span>{label}</span>
-                    <span className="tabular">{value}</span>
-                  </span>
-                ))}
-              </li>
-              {/* The other branches (src/lib/seo/branches.ts): one line each,
-                  to their card on /ziyaret. The column above stays the Tuzla
-                  köşk's, which is the one the app and the shop serve. */}
-              {OTHER_BRANCHES.map((b) => (
-                <li key={b.id} className="footer-branch">
-                  <a href={`/ziyaret#${b.id}`}>Yeni: {b.name} açıldı</a>
+              {MENU_DROPDOWN.map((m) => (
+                <li key={m.slug}>
+                  <a href={`/menu/${m.slug}`}>{m.label}</a>
                 </li>
               ))}
+              <li>
+                <a href={hrefFor("menu")} onClick={go("menu")}>
+                  Tüm menü
+                </a>
+              </li>
             </ul>
-            {/* The handle is the same on every network, so it is written once
-                above the pills: a visitor who wants to find the account from
-                a phone's search box needs the name, not a link. */}
-            <div className="footer-social">
-              <span className="footer-social-handle">{SITE.social.handle}</span>
-              <div className="footer-social-links">
-                <a
-                  href={SITE.social.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Instagram
-                </a>
-                <a
-                  href={SITE.social.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  TikTok
-                </a>
-                <a
-                  href={SITE.social.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  YouTube
-                </a>
-              </div>
-            </div>
-            {/* Who runs the site, where it can be reached directly (ETHS
-                Yön. m.5/1, 6563 m.3/1): the title, MERSİS, the registered
-                seat and, once there is one, the KEP address, straight from
-                LEGAL_ENTITY. The chamber and the rules of conduct sit one
-                click away on the company page. */}
-            <dl className="footer-company">
-              <div>
-                <dt>Ticaret unvanı</dt>
-                <dd>{LEGAL_ENTITY.legalName}</dd>
-              </div>
-              <div>
-                <dt>MERSİS</dt>
-                <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
-              </div>
-              <div>
-                <dt>Merkez</dt>
-                <dd>{COMPANY_ADDRESS}</dd>
-              </div>
-              {LEGAL_ENTITY.kep ? (
-                <div>
-                  <dt>KEP</dt>
-                  <dd>{LEGAL_ENTITY.kep}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <Link
-              href="/hukuk/sirket-bilgileri"
-              className="footer-company-link"
-            >
-              Şirket bilgileri
-            </Link>
           </div>
+          <div className="footer-cats-row">
+            <h2 className="footer-cats-title">Mağazada</h2>
+            <ul>
+              {SHOP_DROPDOWN.map((s) => (
+                <li key={s.slug}>
+                  <a href={`/magaza/${s.slug}`}>{s.label}</a>
+                </li>
+              ))}
+              <li>
+                <a href={hrefFor("shop")} onClick={go("shop")}>
+                  Tüm mağaza
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* The monthly letter: a live feature with 6563 consent records
+            behind it. */}
+        <div className="footer-letter">
+          <div>
+            <h2 className="footer-card-title">
+              Bir mektup, <span className="script">ayda bir</span>
+            </h2>
+            <p className="footer-card-text">
+              Yeni sezon affogati, Bologna kavurma notları, küçük gelato
+              denemeleri. Hiçbir zaman ayda birden fazla.
+            </p>
+          </div>
+          <NewsletterForm />
+        </div>
+
+        <div className="footer-bottom">
+          {/* The handle is the same on every network, so it is written once
+              beside the icons: a visitor who wants to find the account from
+              a phone's search box needs the name, not a link. */}
+          <div className="footer-social">
+            <span className="footer-social-handle">{SITE.social.handle}</span>
+            <div className="footer-social-links">
+              <a
+                href={SITE.social.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <SocialGlyph network="instagram" />
+              </a>
+              <a
+                href={SITE.social.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+              >
+                <SocialGlyph network="tiktok" />
+              </a>
+              <a
+                href={SITE.social.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+              >
+                <SocialGlyph network="youtube" />
+              </a>
+            </div>
+          </div>
+          {/* Who runs the site, where it can be reached directly (ETHS
+              Yön. m.5/1, 6563 m.3/1): the title, MERSİS, the registered
+              seat and, once there is one, the KEP address, straight from
+              LEGAL_ENTITY. The chamber and the rules of conduct sit one
+              click away on the company page. */}
+          <dl className="footer-company">
+            <div>
+              <dt>Ticaret unvanı</dt>
+              <dd>{LEGAL_ENTITY.legalName}</dd>
+            </div>
+            <div>
+              <dt>MERSİS</dt>
+              <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
+            </div>
+            <div>
+              <dt>Merkez</dt>
+              <dd>{COMPANY_ADDRESS}</dd>
+            </div>
+            {LEGAL_ENTITY.kep ? (
+              <div>
+                <dt>KEP</dt>
+                <dd>{LEGAL_ENTITY.kep}</dd>
+              </div>
+            ) : null}
+          </dl>
         </div>
 
         <div className="footer-meta">
@@ -1206,6 +1324,155 @@ export function Footer({ navigate, settings }: FooterProps) {
         </div>
       </div>
     </footer>
+  );
+}
+
+/**
+ * One link column. A heading and its list on a wide screen; on a phone the
+ * heading becomes a button that folds the list (only one open at a time
+ * would hide what a visitor just opened, so each folds on its own). The
+ * list is always in the markup, so a crawler and a reader without CSS see
+ * every link.
+ */
+function FooterColumn({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = `footer-col-${id}`;
+  return (
+    <div className="footer-col" data-open={open ? "true" : undefined}>
+      <h2 className="footer-col-title">
+        <span className="footer-col-label">{title}</span>
+        <button
+          type="button"
+          className="footer-col-toggle"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {title}
+          <Chevron className="footer-col-chevron" />
+        </button>
+      </h2>
+      <ul id={listId} className="footer-col-list">
+        {children}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * The köşk's pill: its hours and, once the browser has answered, whether it
+ * is open now - the same `useOpenStatus` the home hero and /ziyaret read, so
+ * the three never disagree. Nothing live is printed on the server (it does
+ * not know when the page will be read), which keeps the footer cacheable.
+ * A week with different days prints no single range here; the rows are in
+ * the Ziyaret column.
+ */
+function KoskBadge({
+  hours,
+  href,
+}: {
+  hours: ReadonlyArray<readonly [string, string]>;
+  href: string;
+}) {
+  const st = useOpenStatus(hours);
+  const range = hours.length === 1 ? hours[0][1] : null;
+  return (
+    <a
+      className="footer-badge"
+      href={href}
+      data-state={st ? (st.open ? "open" : "closed") : undefined}
+    >
+      <span className="footer-badge-dot" aria-hidden="true" />
+      <span>Tuzla Köşk</span>
+      {st ? (
+        <>
+          <BadgeSep />
+          <span>{st.open ? "Açık" : "Kapalı"}</span>
+        </>
+      ) : null}
+      {range ? (
+        <>
+          <BadgeSep />
+          <span className="tabular">{range}</span>
+        </>
+      ) : null}
+    </a>
+  );
+}
+
+function BadgeSep() {
+  return (
+    <span className="footer-badge-sep" aria-hidden="true">
+      ·
+    </span>
+  );
+}
+
+function PhoneMark() {
+  return (
+    <svg
+      className="footer-badge-glyph"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="6.5"
+        y="2.75"
+        width="11"
+        height="18.5"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="12" cy="17.6" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Plain line glyphs in the house stroke, not the networks' artwork. */
+function SocialGlyph({
+  network,
+}: {
+  network: "instagram" | "tiktok" | "youtube";
+}) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {network === "instagram" ? (
+        <>
+          <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.2" cy="6.8" r="0.6" fill="currentColor" />
+        </>
+      ) : network === "tiktok" ? (
+        <path d="M14 3.5v11.25a3.75 3.75 0 1 1-3.75-3.75M14 3.5c.4 2.6 2.2 4.3 5 4.6" />
+      ) : (
+        <>
+          <rect x="2.75" y="5.5" width="18.5" height="13" rx="4" />
+          <path d="m10.25 9.25 4.5 2.75-4.5 2.75Z" fill="currentColor" />
+        </>
+      )}
+    </svg>
   );
 }
 

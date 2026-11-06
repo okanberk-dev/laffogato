@@ -95,14 +95,20 @@ describe("palette is café retail on the logo's green", () => {
     expect(css).toContain("--green-house: #173f35");
     expect(css).toContain("--green-uplift: #2a5a4d");
     expect(css).toContain("--bg-espresso: #173f35");
-    // The filled action is the CTA green, the footer the house green.
+    // The filled action is the CTA green. The footer was the house green
+    // until 6 Kas 2026; the owner's brief made it a night footer: `--night`,
+    // the ink deepened, under an illustrated band whose sky is the house
+    // green. The house green keeps its role as the band colour.
     const rule = (selector: string) => {
       const at = cssCode.indexOf(`\n${selector} {`);
       expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
       return cssCode.slice(at, cssCode.indexOf("\n}", at));
     };
     expect(rule(".btn-primary")).toContain("background: var(--green-cta);");
-    expect(rule(".footer")).toContain("background: var(--green-house);");
+    expect(rule(".footer")).toContain("background: var(--night);");
+    expect(rule(".footer-cta")).toContain("background: var(--green-house);");
+    // An espresso, not a black: --ink's warm cast, deepened.
+    expect(css).toContain("--night: #181412;");
   });
 
   it("is colour-block: solid bands, layered shadows, pills that press to 0.95", () => {

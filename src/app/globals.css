@@ -12,7 +12,7 @@
      ... ama panel değil". The site takes the structure of a coffee-retail
      flagship: a warm cream canvas instead of white, white cards with a
      whisper of shadow, a FOUR-tier green system where each green has one
-     job, a deep house-green band and footer bookending the bright body,
+     job, deep house-green bands and a night footer bookending the body,
      brass kept for the reward moments only, full-pill buttons that press to
      0.95, one sans voice with tight tracking. The greens are derived from
      L'Affogato's own logo green (#1D6D56), not copied from anyone's
@@ -53,8 +53,8 @@
                        (5.46:1 on the canvas);
      - cta    #1F7A5C  a step brighter: every filled call to action and the
                        floating order button (white on it 5.25:1);
-     - house  #173F35  the deep band: feature bands, footer, reward panels
-                       (white on it 11.67:1);
+     - house  #173F35  the deep band: feature bands, reward panels, the
+                       footer's night sky (white on it 11.67:1);
      - uplift #2A5A4D  decorative accents inside the house band.
      --green-light is the pale mint wash (valid-field tint, light utility). */
   --green-brand: #1d6d56;
@@ -65,9 +65,26 @@
   --green-light: #d5e8df;
 
   /* The dark ground. Named "espresso" from the heritage palette; it is the
-     house green band. The deep step sits under it in the footer. */
+     house green band. The deep step is the top of the footer's night sky. */
   --bg-espresso: #173f35;
   --bg-espresso-deep: #0f2b24;
+
+  /* The night footer (owner's brief, 6 Kas 2026: a dark footer under an
+     illustrated night band). Not black: --ink (#211f1d) deepened with its
+     warm cast kept, an espresso the cream body comes to rest on. The house
+     green is still the site's band; in the footer it is the night sky over
+     the köşk (footer-night.tsx), --bg-espresso-deep at the top of it.
+     - --night        the ground (white 18.30:1)
+     - --night-raise  pills and the letter card on it
+     - --night-line   hairlines and pill borders (decoration, never text)
+     - --night-ink / -soft / -mute  text: 16.28 · 10.62 · 6.95 on --night,
+       14.85 · 9.69 · 6.33 on --night-raise (tests/contrast.test.ts). */
+  --night: #181412;
+  --night-raise: #221d1a;
+  --night-line: #3a332e;
+  --night-ink: #f6f1ea;
+  --night-ink-soft: #cdc4b9;
+  --night-ink-mute: #a89e92;
 
   /* Ink - never pure black: 87 % black read on the warm canvas, then the
      58 % secondary. --ink-quiet is glyph-only (3.06:1): chevrons, dividers,
@@ -4523,123 +4540,511 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Footer - the house-green bookend
+   Footer - a night band over the köşk, then the espresso ground
 
-   The page comes to rest on a solid block of the house green - the dark
-   bookend opposite the bright body - with white and 70 %-white text, the
-   L'Af mark in white and its bean in brass. Above the link grid,
-   the two ways to stay close: the app and the monthly letter (a live feature
-   with 6563 consent records behind it).
+   Owner's brief, 6 Kas 2026: an illustrated call-to-action band above a
+   dark footer with the logo, status pills, link columns and social icons -
+   a coffee-retail flagship's footer, in L'Affogato's own colours. The band
+   is the house green as a dusk sky (footer-night.tsx draws it); the footer
+   is `--night`, the ink deepened, with `--night-raise` pills and cards and
+   `--night-line` hairlines. Every text ink on it clears AA (the token
+   comment in :root has the ratios; tests/contrast.test.ts holds them).
    ───────────────────────────────────────────────────────────── */
 
 .footer {
   --script-ink: var(--accent-on-dark);
   position: relative;
   margin-top: clamp(40px, 6vw, 72px);
-  color: #ffffff;
-  background: var(--green-house);
+  color: var(--night-ink);
+  background: var(--night);
   border-radius: 0;
   overflow: hidden;
 }
+
+/* ── The night band ─────────────────────────────────────────── */
+.footer-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* Under the drawing until it paints, and behind it on a very tall band. */
+  background: var(--green-house);
+}
+.footer-cta-sky {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.footer-cta-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  padding: clamp(56px, 9vw, 120px) var(--gutter) 0;
+}
+.footer-cta-copy {
+  max-width: 40rem;
+}
+.footer-cta-eyebrow {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--green-mint);
+}
+.footer-cta-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-size: clamp(32px, 4.2vw, 58px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-wrap: balance;
+}
+.footer-cta-text {
+  margin: 16px 0 0;
+  max-width: 34rem;
+  font-size: clamp(15px, 1.4vw, 17px);
+  line-height: 1.6;
+  color: var(--night-ink-soft);
+}
+.footer-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+/* The köşk stands on the band's floor, which is the footer's top edge: the
+   silhouettes are the footer's own colour, so the two read as one ground. */
+.footer-cta-kosk {
+  display: block;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  margin: 32px 0 0 auto;
+}
+@media (min-width: 900px) {
+  .footer-cta-inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: end;
+    gap: clamp(24px, 4vw, 64px);
+  }
+  .footer-cta-copy {
+    align-self: center;
+    padding-bottom: clamp(48px, 6vw, 96px);
+  }
+  .footer-cta-kosk {
+    justify-self: end;
+    max-width: 780px;
+    margin: 0;
+  }
+}
+
+/* The drawing's inks, all tokens (footer-night.tsx carries no hex). */
+.fn-stop-deep {
+  stop-color: var(--bg-espresso-deep);
+}
+.fn-stop-house {
+  stop-color: var(--green-house);
+}
+.fn-stop-mint {
+  stop-color: var(--green-light);
+}
+.fn-stop-brass {
+  stop-color: var(--gold-soft);
+}
+.fn-stop-cream {
+  stop-color: var(--night-ink);
+}
+.fn-moon {
+  fill: var(--gold-light);
+}
+.fn-stars circle {
+  fill: var(--night-ink);
+}
+.fn-house {
+  fill: var(--night);
+}
+.fn-rim {
+  fill: none;
+  stroke: var(--green-light);
+  stroke-opacity: 0.3;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.fn-win-lit {
+  fill: var(--gold-soft);
+  fill-opacity: 0.9;
+}
+.fn-win-dark {
+  fill: var(--green-house);
+}
+.fn-mullion path {
+  stroke: var(--night);
+  stroke-width: 2;
+}
+.fn-lamp-light {
+  fill: var(--gold-soft);
+}
+.fn-steam {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.fn-cup-rim {
+  fill: none;
+  stroke: var(--gold-soft);
+  stroke-opacity: 0.55;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+/* The only motion: a few stars breathing, the steam rising a little. */
+.fn-twinkle {
+  animation: fn-twinkle 4.5s ease-in-out infinite;
+}
+.fn-steam path {
+  animation: fn-steam 6s ease-in-out infinite alternate;
+}
+.fn-steam path:nth-child(2) {
+  animation-delay: -2s;
+}
+.fn-steam path:nth-child(3) {
+  animation-delay: -4s;
+}
+@keyframes fn-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes fn-steam {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fn-twinkle,
+  .fn-steam path {
+    animation: none;
+  }
+}
+
+/* ── The footer proper ─────────────────────────────────────── */
 .footer-inner {
   max-width: var(--content-wide);
   margin: 0 auto;
   padding: clamp(48px, 6vw, 80px) var(--gutter) 0;
 }
 
-.footer-top {
+/* The mark and the pills beside the map of the site. */
+.footer-main {
   display: grid;
-  /* minmax(0, …): a bare `fr` cannot shrink below its content, and the
-     newsletter row (field + "Abone ol") pushed the pair past a tablet's
-     width once the page set in Poppins. */
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: clamp(20px, 3vw, 40px);
-  align-items: stretch;
-  padding-bottom: clamp(36px, 5vw, 56px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 36px;
+  padding-bottom: clamp(32px, 4vw, 48px);
+}
+@media (min-width: 1024px) {
+  .footer-main {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 3fr);
+    gap: clamp(32px, 4vw, 64px);
+  }
 }
 .footer-brand {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: 14px;
 }
 .footer-mark {
-  --laf-h: 72px;
-  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.18));
+  --laf-h: 64px;
 }
 .footer-motto {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-family: var(--headline);
-  font-size: clamp(22px, 2.2vw, 28px);
+  font-size: clamp(20px, 2vw, 24px);
   font-weight: 600;
   letter-spacing: var(--tracking);
-  line-height: 1.15;
+  line-height: 1.2;
+  color: var(--night-ink);
 }
 .footer-brand-line {
   margin: 0;
   max-width: 34ch;
-  font-size: 15px;
+  font-size: 14.5px;
   line-height: 1.55;
-  color: var(--ink-on-dark-soft);
+  color: var(--night-ink-soft);
 }
 
-/* A card on the house band: the uplift green, flat. */
-.footer-card {
+/* Status pills: a dot, a name, the hours. */
+.footer .footer-badges {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 24px;
-  border-radius: var(--r-lg);
-  background: var(--green-uplift);
-  border: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
-.footer-card-head {
-  display: flex;
-  gap: 14px;
+.footer-badge {
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--night-line);
+  background: var(--night-raise);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--night-ink-soft);
+  white-space: nowrap;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
-.footer-app-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+.footer-badge:hover {
+  border-color: var(--night-ink-mute);
+  color: var(--night-ink);
+}
+.footer-badge-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--night-ink-mute);
+}
+.footer-badge[data-state="open"] .footer-badge-dot {
+  background: var(--green-light);
+  box-shadow: 0 0 0 3px var(--green-uplift);
+}
+.footer-badge-glyph {
+  flex: none;
+}
+.footer-badge-sep {
+  color: var(--night-ink-mute);
+}
+
+/* The link columns: four across a wide screen, folds on a phone. */
+.footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px clamp(20px, 3vw, 40px);
+  }
+}
+@media (min-width: 1200px) {
+  .footer-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.footer .footer-col-title {
+  margin: 0 0 14px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--night-ink);
+}
+.footer-col-toggle {
+  display: none;
+}
+.footer ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.footer-col-list a,
+.footer-linkish {
+  font-size: 14.5px;
+  color: var(--night-ink-soft);
+  transition: color 0.2s;
+}
+.footer-col-list a:hover,
+.footer-linkish:hover {
+  color: var(--night-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer-linkish {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 400;
+  letter-spacing: inherit;
+  text-transform: none;
+  cursor: pointer;
+}
+.footer-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--night-ink-mute);
+}
+.footer-contact-hours {
+  display: grid;
+  gap: 4px;
+  max-width: 17rem;
+  font-size: 14px;
+  color: var(--night-ink-soft);
+}
+.footer-hours-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* "Yeni: L'Affogato Marina açıldı" at the foot of the Ziyaret column. */
+.footer .footer-branch a {
+  font-weight: 600;
+  color: var(--night-ink);
+}
+@media (max-width: 767px) {
+  .footer-col {
+    border-top: 1px solid var(--night-line);
+  }
+  .footer-col:last-child {
+    border-bottom: 1px solid var(--night-line);
+  }
+  .footer .footer-col-title {
+    margin: 0;
+  }
+  .footer-col-label {
+    display: none;
+  }
+  .footer-col-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 52px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--night-ink);
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: var(--tracking);
+    text-transform: none;
+    cursor: pointer;
+  }
+  .footer-col-chevron {
+    transition: transform 0.25s var(--ease-spring);
+  }
+  .footer-col[data-open] .footer-col-chevron {
+    transform: rotate(180deg);
+  }
+  .footer-col:not([data-open]) .footer-col-list {
+    display: none;
+  }
+  .footer-col[data-open] .footer-col-list {
+    padding: 4px 0 20px;
+  }
+}
+
+/* Every menu and shop category, one quiet line each. */
+.footer-cats {
+  display: grid;
+  gap: 12px;
+  padding: 24px 0;
+  border-top: 1px solid var(--night-line);
+}
+.footer-cats-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+}
+.footer .footer-cats-title {
+  min-width: 5.5rem;
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--night-ink);
+}
+.footer .footer-cats ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.footer-cats a {
+  font-size: 13.5px;
+  color: var(--night-ink-mute);
+  transition: color 0.2s;
+}
+.footer-cats a:hover {
+  color: var(--night-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The monthly letter, on the one raised card. */
+.footer-letter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  margin-bottom: clamp(32px, 4vw, 48px);
+  padding: clamp(22px, 3vw, 32px);
+  border-radius: var(--r-card);
+  border: 1px solid var(--night-line);
+  background: var(--night-raise);
+}
+@media (min-width: 900px) {
+  .footer-letter {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: clamp(24px, 4vw, 64px);
+  }
 }
 .footer-card-title {
   margin: 0;
   font-family: var(--headline);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.015em;
-  color: #ffffff;
+  color: var(--night-ink);
 }
 .footer-card-title .script {
   color: var(--gold-soft);
 }
 .footer-card-text {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
+  max-width: 46ch;
   font-size: 14px;
-  line-height: 1.5;
-  color: var(--green-mist);
+  line-height: 1.55;
+  color: var(--night-ink-soft);
 }
 
-/* The newsletter field: one capsule, the brass button inside it. */
+/* The newsletter field: one capsule, the light button inside it. */
 .newsletter-form {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 5px 5px 5px 18px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--night-line);
   transition:
     border-color 0.2s,
     background-color 0.2s;
 }
 .newsletter-form:focus-within {
   border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
 }
 .newsletter-form input {
   flex: 1;
@@ -4652,88 +5057,74 @@ summary:focus-visible,
   font-size: 15px;
 }
 .newsletter-form input::placeholder {
-  color: rgba(230, 239, 233, 0.7);
+  color: var(--night-ink-mute);
 }
 .newsletter-form input:focus-visible {
   outline: none;
   box-shadow: none;
 }
 
-.footer-grid {
+/* The handle and the icons, then who runs the site. */
+.footer-bottom {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) 1.3fr;
-  gap: 28px clamp(20px, 3vw, 40px);
-  padding: clamp(36px, 5vw, 52px) 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  padding: 28px 0;
+  border-top: 1px solid var(--night-line);
 }
-.footer .footer-col-title {
-  margin: 0 0 14px;
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: var(--green-mint);
+@media (min-width: 900px) {
+  .footer-bottom {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(32px, 5vw, 80px);
+  }
 }
-.footer ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-.footer ul a,
-.footer-linkish {
-  font-size: 14.5px;
-  color: rgba(255, 255, 255, 0.9);
-  transition: color 0.2s;
-}
-.footer ul a:hover,
-.footer-linkish:hover {
-  color: #fff;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.footer-linkish {
-  padding: 0;
-  text-align: left;
-  font: inherit;
-  font-size: 14.5px;
-  cursor: pointer;
-}
-.footer-contact-col li {
-  font-size: 14.5px;
-  color: rgba(255, 255, 255, 0.9);
-}
-.footer-contact-col .footer-contact-hours {
-  display: grid;
-  gap: 6px;
-  padding-top: 10px;
-  margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  color: var(--green-mint);
-}
-.footer-hours-row {
+.footer-social {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
 }
-/* "Yeni: L'Affogato Marina açıldı" under the hours (chrome.tsx). */
-.footer-contact-col .footer-branch {
-  padding-top: 10px;
-  margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+.footer-social-handle {
+  font-family: var(--display);
+  font-size: 15px;
   font-weight: 600;
+  color: var(--night-ink);
 }
-/* The company's identity under the social pills: small print, the same
-   mint as the column titles for the labels. */
+.footer-social-links {
+  display: flex;
+  gap: 8px;
+}
+.footer-social-links a {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--night-line);
+  background: var(--night-raise);
+  color: var(--night-ink);
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+.footer-social-links a:hover {
+  border-color: var(--night-ink-mute);
+  background: var(--night-line);
+}
 .footer-company {
-  margin: 20px 0 0;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin: 0;
   display: grid;
   gap: 6px;
   font-size: 12.5px;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--night-ink-soft);
+}
+@media (min-width: 900px) {
+  .footer-company {
+    justify-self: end;
+    max-width: 40rem;
+  }
 }
 .footer-company div {
   display: grid;
@@ -4741,54 +5132,11 @@ summary:focus-visible,
   gap: 8px;
 }
 .footer-company dt {
-  color: var(--green-mint);
+  color: var(--night-ink-mute);
 }
 .footer-company dd {
   margin: 0;
   overflow-wrap: anywhere;
-}
-.footer .footer-company-link {
-  display: inline-block;
-  margin-top: 10px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.footer .footer-company-link:hover {
-  color: #fff;
-}
-.footer-social {
-  margin-top: 20px;
-  display: grid;
-  gap: 10px;
-}
-.footer-social-handle {
-  font-family: var(--display);
-  font-size: 15px;
-  font-weight: 600;
-  color: #ffffff;
-}
-.footer-social-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.footer-social-links a {
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.06);
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  transition: background-color 0.2s;
-}
-.footer-social-links a:hover {
-  background: rgba(255, 255, 255, 0.16);
 }
 
 .footer-meta {
@@ -4798,9 +5146,9 @@ summary:focus-visible,
   gap: 14px;
   flex-wrap: wrap;
   padding: 20px 0 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid var(--night-line);
   font-size: 12.5px;
-  color: rgba(230, 239, 233, 0.8);
+  color: var(--night-ink-mute);
 }
 .footer-meta-pay {
   display: flex;
@@ -4808,32 +5156,7 @@ summary:focus-visible,
   gap: 6px;
   flex-wrap: wrap;
 }
-
-@media (max-width: 1100px) {
-  .footer-top {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .footer-brand {
-    grid-column: 1 / -1;
-  }
-  .footer-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
 @media (max-width: 700px) {
-  .footer {
-    border-radius: 0;
-  }
-  .footer-top {
-    grid-template-columns: 1fr;
-  }
-  .footer-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 28px 20px;
-  }
-  .footer-contact-col {
-    grid-column: 1 / -1;
-  }
   .footer-meta {
     justify-content: center;
     text-align: center;
