@@ -47,6 +47,10 @@ vi.mock("@/lib/admin/store", () => ({
 }));
 vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
 vi.mock("@/lib/admin/cafe-tables", () => cafeTables);
+// The feed's table calls (6 Kas 2026): none open here.
+vi.mock("@/lib/admin/table-calls", () => ({
+  listOpenTableCalls: vi.fn(async () => []),
+}));
 vi.mock("@/lib/mobile/karaoke", () => ({ listReservationsForAdmin }));
 vi.mock("@/lib/customer/coupons", () => ({ couponSourcesForOrders: vi.fn() }));
 vi.mock("@/lib/invoice/store", () => ({
