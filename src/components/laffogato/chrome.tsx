@@ -74,7 +74,7 @@ const SHOP_DROPDOWN: DropdownEntry[] = [
   { slug: "kiler", label: "Kiler", italian: "Dispensa", hue: "matcha" },
 ];
 
-type DropdownKey = "menu" | "shop";
+type DropdownKey = "menu" | "shop" | "visit";
 
 interface LinkEntry {
   href: string;
@@ -96,8 +96,65 @@ const LINKS: LinkEntry[] = [
   { href: "/kampanyalar", label: "Kampanyalar" },
   { href: "/karaoke", label: "Karaoke" },
   { href: "/hikayemiz", label: "Hikayemiz", route: "story" },
-  { href: "/ziyaret", label: "Ziyaret", route: "visit" },
+  { href: "/ziyaret", label: "Ziyaret", route: "visit", dropdown: "visit" },
 ];
+
+/** The "see everything" link at the head of each panel and sheet group. */
+const ALL_LABEL: Record<DropdownKey, string> = {
+  menu: "Tüm menü",
+  shop: "Tüm mağaza",
+  visit: "Adres ve saatler",
+};
+
+/**
+ * Ziyaret's panel: the houses first (the Tuzla köşk and every branch in
+ * src/lib/seo/branches.ts, each to its card on /ziyaret), then what is in
+ * the köşk. Only routes and anchors that exist.
+ */
+const VISIT_BRANCHES: Array<{ href: string; label: string; sub: string }> = [
+  { href: "/ziyaret", label: "Tuzla köşkü", sub: "Postane, Tuzla" },
+  ...OTHER_BRANCHES.map((b) => ({
+    href: `/ziyaret#${b.id}`,
+    label: b.name,
+    sub: b.hoursLabel || "Yeni şube",
+  })),
+];
+const VISIT_MORE: Array<{ href: string; label: string }> = [
+  { href: "/ziyaret#map", label: "Yol tarifi" },
+  { href: "/karaoke", label: "Karaoke odası" },
+  { href: "/hikayemiz", label: "Hikayemiz" },
+  { href: "/rehber", label: "Rehber" },
+];
+
+/**
+ * The card on the right of each panel: one picture and one door. Photos
+ * from public/, words the site already says elsewhere (the home rail's
+ * "Sezon · Strawberry Aşkı", the shop's weekly Bologna roast, the köşk's
+ * address).
+ */
+const PANEL_FEATURE: Record<
+  DropdownKey,
+  { src: string; kicker: string; title: string; href: string }
+> = {
+  menu: {
+    src: "/menu/strawberry-matcha.webp",
+    kicker: "Barda bu sezon",
+    title: "Strawberry Aşkı, matcha barında",
+    href: "/menu/matcha",
+  },
+  shop: {
+    src: "/menu/espresso.webp",
+    kicker: "Evde L'Affogato",
+    title: "Çekirdek kahve, Bologna'da haftalık kavrulur",
+    href: "/magaza/cekirdek",
+  },
+  visit: {
+    src: "/photos/facade-day.webp",
+    kicker: "Tuzla köşkü",
+    title: "200 yıllık köşkte bir masa, bahçede bir fincan",
+    href: "/ziyaret",
+  },
+};
 
 function isActivePath(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
@@ -127,6 +184,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
+  // The panel last shown: it stays in the closing panel while it folds.
+  const [panelKey, setPanelKey] = useState<DropdownKey>("menu");
+  if (openDropdown && openDropdown !== panelKey) setPanelKey(openDropdown);
+  const caretRefs = useRef<Partial<Record<DropdownKey, HTMLButtonElement>>>({});
   const [mobileSection, setMobileSection] = useState<DropdownKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
@@ -164,7 +225,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   useEffect(() => {
     if (!openDropdown) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenDropdown(null);
+      if (e.key !== "Escape") return;
+      // Back to the control that opened it, so the keyboard is not lost.
+      caretRefs.current[openDropdown]?.focus();
+      setOpenDropdown(null);
     };
     const onClick = (e: MouseEvent) => {
       if (!headerRef.current) return;
@@ -256,6 +320,13 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           open && "is-sheet-open",
         )}
         ref={headerRef}
+        onMouseLeave={onHoverClose}
+        onBlur={(e) => {
+          // Tabbing out of the header folds the panel away.
+          const next = e.relatedTarget as Node | null;
+          if (openDropdown && next && !e.currentTarget.contains(next))
+            setOpenDropdown(null);
+        }}
       >
         <nav className="nav" aria-label="Ana gezinme">
           <Link
@@ -267,7 +338,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             <LafMark tone="duo" />
           </Link>
 
-          <div className="nav-center" onMouseLeave={onHoverClose}>
+          <div className="nav-center">
             {LINKS.map((link) => {
               const active = isActivePath(pathname, link.href);
               const key = link.dropdown;
@@ -296,22 +367,17 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                   {key && (
                     <button
                       type="button"
+                      ref={(el) => {
+                        if (el) caretRefs.current[key] = el;
+                      }}
                       className={cx("nav-link-caret-btn", isOpen && "is-open")}
-                      aria-haspopup="true"
                       aria-expanded={isOpen}
-                      aria-label={`${link.label} alt menüsünü ${isOpen ? "kapat" : "aç"}`}
+                      aria-controls="nav-panel"
+                      aria-label={`${link.label} bölümünü ${isOpen ? "kapat" : "aç"}`}
                       onClick={() => setOpenDropdown(isOpen ? null : key)}
                     >
                       <Chevron className="nav-link-caret" />
                     </button>
-                  )}
-                  {key && isOpen && (
-                    <DropdownPanel
-                      kind={key}
-                      title={link.label}
-                      href={link.href}
-                      onClose={() => setOpenDropdown(null)}
-                    />
                   )}
                 </div>
               );
@@ -319,6 +385,19 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           </div>
 
           <div className="nav-right">
+            {/* The app, one tap away on a wide screen (App Store only: no
+                Android app is promised). */}
+            {APP_STORE_URL ? (
+              <a
+                className="nav-app"
+                href={APP_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <PhoneMark />
+                <span>Uygulamayı indir</span>
+              </a>
+            ) : null}
             {/* Minimal: the glyph and one word. Narrow headers keep the
                 glyph alone. ⌘K / Ctrl+K / "/" open it from anywhere. */}
             <button
@@ -360,6 +439,28 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             </button>
           </div>
         </nav>
+
+        {/* The expanding panel: full width under the bar, one per section
+            with sub-links (Menü, Mağaza, Ziyaret). Hover or the caret opens
+            it; Esc, a click outside or tabbing out folds it. It keeps its
+            last content while it folds, inert. */}
+        <div
+          id="nav-panel"
+          className={cx("nav-panel", openDropdown && "open")}
+          inert={!openDropdown}
+          onMouseEnter={() => {
+            if (closeTimerRef.current)
+              window.clearTimeout(closeTimerRef.current);
+          }}
+        >
+          <div className="nav-panel-clip">
+            <NavPanel
+              kind={panelKey}
+              href={LINKS.find((l) => l.dropdown === panelKey)!.href}
+              onClose={() => setOpenDropdown(null)}
+            />
+          </div>
+        </div>
       </header>
 
       {/* The small-screen sheet: an inset grouped list, iOS Settings style -
@@ -382,10 +483,15 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <Chevron className="sheet-chev" dir="right" />
               </Link>
             </li>
-            {(["menu", "shop"] as const).map((key) => {
+            {(["menu", "shop", "visit"] as const).map((key) => {
               const link = LINKS.find((l) => l.dropdown === key)!;
               const expanded = mobileSection === key;
-              const entries = key === "menu" ? MENU_DROPDOWN : SHOP_DROPDOWN;
+              const entries =
+                key === "menu"
+                  ? MENU_DROPDOWN
+                  : key === "shop"
+                    ? SHOP_DROPDOWN
+                    : [];
               return (
                 <li key={key}>
                   <button
@@ -407,8 +513,19 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                         onClick={go(link)}
                         className="sheet-sub-all"
                       >
-                        {key === "menu" ? "Tüm menü" : "Tüm mağaza"}
+                        {ALL_LABEL[key]}
                       </a>
+                      {key === "visit" &&
+                        [...VISIT_BRANCHES.slice(1), VISIT_MORE[0]].map((v) => (
+                          <a
+                            key={v.href}
+                            href={v.href}
+                            onClick={() => setOpen(false)}
+                            className="sheet-sub-link sheet-sub-link--plain"
+                          >
+                            <span className="sheet-sub-label">{v.label}</span>
+                          </a>
+                        ))}
                       {entries.map((entry) => (
                         <a
                           key={entry.slug}
@@ -616,75 +733,152 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Dropdown panel - the glass popover under Menü / Mağaza
+   The expanding panel - full width under the bar (Menü, Mağaza, Ziyaret)
+
+   Owner's brief, 6 Kas 2026: a coffee-retail header whose sections open a
+   wide panel of links in columns with one picture card beside them. A
+   disclosure, not an ARIA menu: plain links in lists, reached with Tab.
    ───────────────────────────────────────────────────────────── */
 
-function DropdownPanel({
+function NavPanel({
   kind,
-  title,
   href,
   onClose,
 }: {
   kind: DropdownKey;
-  title: string;
   href: string;
   onClose: () => void;
 }) {
-  const entries = kind === "menu" ? MENU_DROPDOWN : SHOP_DROPDOWN;
-  const total = kind === "menu" ? MENU_CATEGORY_ROUTES.length : entries.length;
+  const feature = PANEL_FEATURE[kind];
   return (
-    <div
-      className="nav-dropdown"
-      role="menu"
-      aria-label={`${title} alt menüsü`}
-    >
-      <div className="nav-dropdown-inner">
-        <div className="nav-dropdown-head">
-          <span className="nav-dropdown-kicker">
-            {kind === "menu" ? "Il menù" : "La bottega"} · {total} kategori
-          </span>
-          <a href={href} className="link-more" onClick={onClose}>
-            {kind === "menu" ? "Tüm menü" : "Tüm mağaza"}
-          </a>
-        </div>
-        <div className="nav-dropdown-grid">
-          {entries.map((entry) => (
-            <a
-              key={entry.slug}
-              href={`${href}/${entry.slug}`}
-              className="nav-dropdown-item"
-              onClick={onClose}
-              role="menuitem"
-            >
-              <span
-                className="nav-dropdown-swatch"
-                style={swatchStyle(entry.hue)}
-                aria-hidden="true"
-              />
-              <span className="nav-dropdown-text">
-                <span className="nav-dropdown-label">{entry.label}</span>
-                <span className="nav-dropdown-italian">{entry.italian}</span>
-              </span>
-            </a>
-          ))}
-        </div>
-        {kind === "menu" && (
-          <div className="nav-dropdown-more">
-            <span className="nav-dropdown-more-label">Ayrıca</span>
-            {MENU_MORE.map((m) => (
-              <a
-                key={m.slug}
-                href={`/menu/${m.slug}`}
-                className="chip-link"
-                onClick={onClose}
-                role="menuitem"
-              >
-                {m.label}
-              </a>
-            ))}
-          </div>
+    <div className="nav-panel-inner">
+      <div className="nav-panel-cols">
+        {kind === "visit" ? (
+          <>
+            <div className="nav-panel-col">
+              <p className="nav-panel-title">Şubeler</p>
+              <ul>
+                {VISIT_BRANCHES.map((b) => (
+                  <li key={b.href}>
+                    <a
+                      href={b.href}
+                      onClick={onClose}
+                      className="nav-panel-link"
+                    >
+                      <span className="nav-panel-label">{b.label}</span>
+                      <span className="nav-panel-sub">{b.sub}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="nav-panel-col">
+              <p className="nav-panel-title">Köşkte</p>
+              <ul>
+                {VISIT_MORE.map((m) => (
+                  <li key={m.href}>
+                    <a
+                      href={m.href}
+                      onClick={onClose}
+                      className="nav-panel-link"
+                    >
+                      <span className="nav-panel-label">{m.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="nav-panel-col nav-panel-col--wide">
+              <p className="nav-panel-title">
+                {kind === "menu" ? "Il menù" : "La bottega"}
+              </p>
+              <ul className="nav-panel-grid">
+                {(kind === "menu" ? MENU_DROPDOWN : SHOP_DROPDOWN).map(
+                  (entry) => (
+                    <li key={entry.slug}>
+                      <a
+                        href={`${href}/${entry.slug}`}
+                        onClick={onClose}
+                        className="nav-panel-link nav-panel-link--swatch"
+                      >
+                        <span
+                          className="nav-panel-swatch"
+                          style={swatchStyle(entry.hue)}
+                          aria-hidden="true"
+                        />
+                        <span>
+                          <span className="nav-panel-label">{entry.label}</span>
+                          <span className="nav-panel-sub">{entry.italian}</span>
+                        </span>
+                      </a>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
+            <div className="nav-panel-col">
+              <p className="nav-panel-title">
+                {kind === "menu" ? "Ayrıca" : "Alışveriş"}
+              </p>
+              <ul>
+                {kind === "menu"
+                  ? MENU_MORE.map((m) => (
+                      <li key={m.slug}>
+                        <a
+                          href={`/menu/${m.slug}`}
+                          onClick={onClose}
+                          className="nav-panel-link"
+                        >
+                          <span className="nav-panel-label">{m.label}</span>
+                        </a>
+                      </li>
+                    ))
+                  : [
+                      { href: "/kampanyalar", label: "Kampanyalar" },
+                      {
+                        href: "/uye/hesap/siparislerim",
+                        label: "Siparişlerim",
+                      },
+                    ].map((m) => (
+                      <li key={m.href}>
+                        <a
+                          href={m.href}
+                          onClick={onClose}
+                          className="nav-panel-link"
+                        >
+                          <span className="nav-panel-label">{m.label}</span>
+                        </a>
+                      </li>
+                    ))}
+              </ul>
+            </div>
+          </>
         )}
       </div>
+
+      <a href={feature.href} onClick={onClose} className="nav-panel-feature">
+        {/* A small picture from public/; decoration beside its words. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={feature.src}
+          alt=""
+          width={160}
+          height={160}
+          loading="lazy"
+          decoding="async"
+        />
+        <span>
+          <span className="nav-panel-sub">{feature.kicker}</span>
+          <span className="nav-panel-feature-title">{feature.title}</span>
+          <span className="link-more">Keşfet</span>
+        </span>
+      </a>
+      <a href={href} onClick={onClose} className="nav-panel-all link-more">
+        {ALL_LABEL[kind]}
+      </a>
     </div>
   );
 }

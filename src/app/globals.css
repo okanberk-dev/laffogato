@@ -836,6 +836,11 @@ summary:focus-visible,
   box-shadow: var(--shadow-nav);
   transition: background-color 0.25s;
 }
+/* Once the page scrolls under it, the bar takes the brass-cream wash: the
+   porcelain note of the owner's brief (6 Kas 2026), still opaque. */
+.site-header.is-scrolled {
+  background: var(--bg-cream);
+}
 .site-header.is-sheet-open {
   background: var(--surface-sheet);
 }
@@ -1007,123 +1012,184 @@ summary:focus-visible,
   transform: rotate(180deg);
 }
 
-/* The dropdown: a glass popover, real blur (it floats over content). */
-.nav-dropdown {
+/* The expanding panel (chrome.tsx NavPanel). Owner's brief, 6 Kas 2026:
+   a section's links open full width under the bar, in columns, with one
+   picture card - a coffee-retail flagship's header. It overlays the page
+   (absolute under the sticky bar) and unfolds by its height: grid rows
+   from 0fr to 1fr, so no height is measured in script. Still under
+   reduced motion. Desktop only; a phone has the sheet. */
+.nav-panel {
   position: absolute;
-  top: calc(100% + 12px);
-  left: 50%;
-  width: min(560px, 92vw);
-  z-index: 70;
-  transform: translateX(-50%);
-  animation: navDropdownIn 0.28s var(--ease-spring);
-}
-@keyframes navDropdownIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -6px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0) scale(1);
-  }
-}
-/* Invisible hover bridge across the gap from the link. */
-.nav-dropdown::before {
-  content: "";
-  position: absolute;
-  top: -14px;
   left: 0;
   right: 0;
-  height: 16px;
+  top: 100%;
+  z-index: 70;
+  display: grid;
+  grid-template-rows: 0fr;
+  background: var(--surface);
+  box-shadow: none;
+  transition:
+    grid-template-rows 0.32s var(--ease-spring),
+    box-shadow 0.32s;
 }
-.nav-dropdown-inner {
-  background: var(--surface-cool);
-  border: 0;
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-chrome);
-  padding: 16px;
-  color: var(--ink);
+.nav-panel.open {
+  grid-template-rows: 1fr;
+  border-top: 1px solid var(--ink-line);
+  box-shadow: var(--shadow-nav);
 }
-.nav-dropdown-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 2px 6px 12px;
+.nav-panel-clip {
+  min-height: 0;
+  overflow: hidden;
 }
-.nav-dropdown-kicker {
+.nav-panel-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+  gap: 24px clamp(32px, 4vw, 64px);
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  padding: 28px var(--gutter) 32px;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.24s,
+    transform 0.32s var(--ease-spring);
+}
+.nav-panel.open .nav-panel-inner {
+  opacity: 1;
+  transform: none;
+}
+.nav-panel-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 48px);
+}
+.nav-panel-title {
+  margin: 0 0 12px;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-mute);
 }
-.nav-dropdown-grid {
+.nav-panel-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
 }
-.nav-dropdown-item {
+.nav-panel-col ul.nav-panel-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.nav-panel-link {
+  display: block;
+  padding: 8px 10px;
+  margin-left: -10px;
+  border-radius: var(--r-md);
+  color: var(--ink);
+  transition: background-color 0.2s;
+}
+.nav-panel-link:hover {
+  background: var(--bg-stone);
+}
+.nav-panel-link--swatch {
   display: grid;
-  grid-template-columns: 40px 1fr;
+  grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  padding: 10px;
-  border-radius: var(--r-md);
-  background: var(--glass);
-  border: 1px solid transparent;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s,
-    transform 0.2s var(--ease-spring);
 }
-.nav-dropdown-item:hover {
-  background: #fff;
-  border-color: var(--ink-line);
-  box-shadow: var(--shadow-lift);
-}
-.nav-dropdown-item:active {
-  transform: scale(var(--press-scale));
-}
-/* The category's light, drawn as the app draws its sphere. */
-.nav-dropdown-swatch {
-  width: 40px;
-  height: 40px;
+.nav-panel-swatch {
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  box-shadow:
-    inset 0 -2px 4px rgba(0, 0, 0, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.1);
 }
-.nav-dropdown-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.nav-dropdown-label {
+.nav-panel-label {
+  display: block;
   font-family: var(--display);
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  letter-spacing: var(--tracking);
+  line-height: 1.25;
 }
-.nav-dropdown-italian {
+.nav-panel-sub {
+  display: block;
+  margin-top: 2px;
   font-size: 12.5px;
   color: var(--ink-mute);
-  font-style: italic;
 }
-.nav-dropdown-more {
-  display: flex;
-  flex-wrap: wrap;
+.nav-panel-feature {
+  grid-row: span 2;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
-  padding: 14px 6px 2px;
-  margin-top: 10px;
-  border-top: 1px solid var(--ink-line);
+  gap: 16px;
+  align-self: start;
+  padding: 12px;
+  border-radius: var(--r-card);
+  background: var(--bg-cream);
+  color: var(--ink);
+  transition: background-color 0.2s;
 }
-.nav-dropdown-more-label {
-  font-size: 12.5px;
+.nav-panel-feature:hover {
+  background: var(--bg-stone);
+}
+.nav-panel-feature img {
+  width: 112px;
+  height: 112px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+.nav-panel-feature-title {
+  display: block;
+  margin: 4px 0 8px;
+  font-family: var(--headline);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--ink-mute);
-  margin-right: 4px;
+  line-height: 1.3;
+  letter-spacing: var(--tracking);
+  color: var(--green-brand);
+}
+.nav-panel-all {
+  grid-column: 1;
+  justify-self: start;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-panel,
+  .nav-panel-inner {
+    transition: none;
+  }
+}
+@media (max-width: 1080px) {
+  .nav-panel {
+    display: none;
+  }
+}
+
+/* "Uygulamayı indir" beside search, on a wide screen only. */
+.nav-app {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--green-cta);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--green-cta);
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+.nav-app:hover {
+  background: rgba(31, 122, 92, 0.08);
+}
+.nav-app .footer-badge-glyph {
+  width: 16px;
+  height: 16px;
+}
+@media (min-width: 1320px) {
+  .nav-app {
+    display: inline-flex;
+  }
 }
 
 /* A small link capsule - "Frappe", "Smoothie" under the tiles. */
@@ -1485,6 +1551,11 @@ summary:focus-visible,
 }
 .sheet-sub-link:active {
   background: var(--bg-stone);
+}
+/* A Ziyaret row: no swatch, just the name. */
+.sheet-sub-link--plain {
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: 14px;
 }
 .sheet-swatch {
   width: 36px;
