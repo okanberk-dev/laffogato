@@ -116,7 +116,8 @@ iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 **Site görünümü 5 Kas 2026'dan beri kafe-perakende düzeninde (operatör:
 _"starbucks tarzı istiyorum ... ama panel değil"_).** Krem zemin `#f2f0eb`,
 logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56` başlık/metin, cta
-`#1f7a5c` dolu düğme, house `#173f35` bant ve footer, uplift `#2a5a4d`),
+`#1f7a5c` dolu düğme, house `#173f35` bant, uplift `#2a5a4d`; footer 6 Kas
+2026'dan beri gece espressosu `--night` `#181412`, üstünde resimli gece bandı),
 pirinç `#cba258` yalnız ödül anında, tek ses Poppins (Gabarito emekli;
 ödül başlığında sistem serifi), 12px kart, katmanlı siyah-alfa gölge, cam /
 bulanıklık / degrade dolgu yok, düğme 50px hap ve basınca 0.95, sağ altta

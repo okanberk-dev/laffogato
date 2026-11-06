@@ -33,7 +33,8 @@
 | `--surface`            | `#ffffff`             | Kart, modal, başlık çubuğu.                                         |
 | `--green-brand`        | `#1d6d56`             | Logo yeşili: başlık, yeşil metin, bağlantı, üst etiket (`--green`). |
 | `--green-cta`          | `#1f7a5c`             | Her dolu eylem düğmesi ve yüzen sipariş düğmesi (beyaz 5.25:1).     |
-| `--green-house`        | `#173f35`             | Koyu bant: özellik bantları, footer, ödül paneli (`--bg-espresso`). |
+| `--green-house`        | `#173f35`             | Koyu bant: özellik bantları, ödül paneli, footer'daki gece gökyüzü (`--bg-espresso`). |
+| `--night`              | `#181412`             | Footer zemini (6 Kas 2026): `--ink`'in koyulaştırılmış espressosu; `--night-raise` `#221d1a` hap ve kart, `--night-line` `#3a332e` çizgi, metin `--night-ink` / `-soft` / `-mute` (16.28 · 10.62 · 6.95:1). |
 | `--green-uplift`       | `#2a5a4d`             | Koyu bandın içindeki kart ve süsler.                                |
 | `--green-light`        | `#d5e8df`             | Açık nane yıkaması.                                                 |
 | `--gold-soft`          | `#cba258`             | **Yalnız ödül**: damga, kademe, ödül düğmesi.                       |
@@ -61,6 +62,14 @@
 - **Yüzen sipariş düğmesi** (`.frap`): sağ altta 56px yeşil daire, sepeti
   açar, sayfanın en yüksek gölgesi; telefonda (sekme çubuğu sepeti taşır) ve
   `/odeme`'de yok.
+- **Footer (6 Kas 2026, sahibin brifi):** üstte resimli gece bandı
+  (`footer-night.tsx`: ev yeşili gökyüzü, yıldızlar, köşkün silueti, buharı
+  samanyoluna dönen fincan; yalnız token renkleri, hareket
+  `prefers-reduced-motion`'da durur), altında `--night` zemin: logo ve
+  durum hapları (köşkün saati ve tarayıcıda canlı açık/kapalı, Marina'nın
+  saati, App Store), dört sütun (telefonda katlanır), kategori satırı,
+  bülten kartı, sosyal ikonlar, şirket kimliği. Tek degrade bu çizimin
+  içindedir; yüzeyler düz kalır.
 - **Kapsam dışı (eski palette kaldı):** e-posta şablonları, bağlantı
   önizleme kartları, JSON-LD ikonları ve PayNkolay köprüsü - logo yeşili
   `#1d6d56` ortak olduğu için marka tutarlı kalır; taşınmaları ayrı iştir.
@@ -597,6 +606,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 22 Eki 2026 | **Admin paneli Innex** (operatör: "İnnexe geç"): gri zemin üstünde iki beyaz kart, Inter, mavi birincil, sakin kenar çubuğu, Innex bileşenleri (`docs/ADMIN-INNEX.md`); AkmanOS teması lafmaliyet'te kaldı, müşteri sitesi değişmedi.                                                                                                                                                                                                                                     |
 | 23 Eki 2026 | **Admin paneli Innex düzenleri** (operatör: "İnnex + diğer yerleri en profesyonel şekilde yap"): KPI şeridi ve referanslar, üç bölgeli sipariş, karaoke rezervasyonu ve müşteri sayfaları, tek satırlık liste araç çubuğu, karaoke takvimi ve doluluk, rapor dönem karşılaştırması ve grafiği değiştiren kart sekmeleri, ürün ve menü hızlı bakış çekmecesi, Faturalar sayacı ve satır adımı, izin tablosu ve son giriş; müşteri sitesi değişmedi.                        |
 | 5 Kas 2026  | **Kafe-perakende düzeni** (operatör: "starbucks tarzı istiyorum ... ama panel değil"): krem zemin `#f2f0eb`, logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56`, cta `#1f7a5c`, house `#173f35`, uplift `#2a5a4d`), pirinç `#cba258` yalnız ödülde, tek ses Poppins (Gabarito emekli), 12px kart, katmanlı siyah-alfa gölge, cam ve degrade yok, 0.95 basış, yüzen sipariş düğmesi, koyu yeşil footer. lafmobil porseleninden bilinçli ayrışma (§0); panel değişmedi. |
+| 6 Kas 2026  | **Gece footer** (sahibin brifi: resimli CTA bandı + koyu footer): ev yeşili gökyüzünde köşk silueti ve buharı samanyoluna dönen fincan, altında `--night` `#181412` espresso zemin, durum hapları, dört sütun (telefonda katlanır). Footer artık ev yeşili değil; ev yeşili bant rengi olarak kalır. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de
