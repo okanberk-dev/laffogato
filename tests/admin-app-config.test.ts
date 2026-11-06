@@ -13,7 +13,7 @@ import {
  * Mobil → Uygulama ayarları (admin audit CON-03, CON-05, CON-12, CON-20,
  * CON-21, CON-25, CON-27, KAR-02, KAR-12, KAR-17):
  *
- * - the nine tabs post by hand, so a refused save keeps what was typed and
+ * - the ten tabs post by hand, so a refused save keeps what was typed and
  *   the ticked boxes (React reset every `<form action>` on any answer);
  * - every refusal lands under its own field, a reminder's names its row;
  * - maintenance going on and the minimum version going up are not written
@@ -277,6 +277,79 @@ describe("Hatırlatmalar (CON-21)", () => {
   });
 });
 
+describe("Uygulama bölümleri and table calls (6 Kas 2026)", () => {
+  it("writes all twelve sections, an unticked box hidden, and logs the save", async () => {
+    saved = config();
+    const res = await actions.saveSectionsAction(
+      {},
+      form({
+        "section-promoStrip": "on",
+        "section-reorder": "on",
+        "section-offers": "on",
+        "section-categories": "on",
+        "section-newMenu": "on",
+        "section-liveStatus": "on",
+        "section-rewards": "on",
+        "section-venue": "on",
+        // karaoke and shop unticked
+        "section-coffeeMode": "on",
+        "section-campaigns": "on",
+      }),
+    );
+    expect(res.error).toBeUndefined();
+    const patch = updateSettings.mock.calls[0][0] as {
+      mobileApp: MobileAppConfig;
+    };
+    expect(Object.keys(patch.mobileApp.sections)).toHaveLength(12);
+    expect(patch.mobileApp.sections.karaoke).toBe(false);
+    expect(patch.mobileApp.sections.shop).toBe(false);
+    expect(patch.mobileApp.sections.campaigns).toBe(true);
+    // Nothing else moved.
+    expect(patch.mobileApp.ordering).toEqual(saved.ordering);
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "mobile_app_config",
+        entityId: "sections",
+      }),
+    );
+  });
+
+  it("saves the table-call switch with the channels", async () => {
+    saved = config();
+    const res = await actions.saveOrderingAction(
+      {},
+      form({
+        cafeEnabled: "on",
+        tableEnabled: "on",
+        etaMin: "25",
+        etaMax: "35",
+        closedMessage: "Kapalı.",
+      }),
+    );
+    expect(res.error).toBeUndefined();
+    const patch = updateSettings.mock.calls[0][0] as {
+      mobileApp: MobileAppConfig;
+    };
+    expect(patch.mobileApp.ordering.tableEnabled).toBe(true);
+    expect(patch.mobileApp.ordering.tableCallsEnabled).toBe(false);
+  });
+
+  it("draws the section tab with the operator's labels and the help line", () => {
+    const html = renderToStaticMarkup(
+      createElement(AppConfigForm, {
+        config: config(),
+        initialTab: "sections",
+      }),
+    );
+    expect(html).toContain("Uygulama bölümleri");
+    expect(html).toContain("Ana sayfa: Köşk şu an");
+    expect(html).toContain("Kahve Modu");
+    expect(html).toContain('name="section-karaoke"');
+    expect(html).toContain("birkaç dakika içinde uygulamada gizlenir");
+    expect(html).toContain("Masadan garson çağırma açık (masadaki QR ile)");
+  });
+});
+
 describe("tabs in the address (CON-20)", () => {
   it("reads and writes ?bolum=", () => {
     expect(core.parseAppConfigTab("store")).toBe("store");
@@ -315,9 +388,9 @@ describe("the form as the server renders it", () => {
   it("draws ARIA tabs and opens the tab the address names", () => {
     const html = render("store");
     expect(html).toContain('role="tablist"');
-    expect(html.match(/role="tab"/g)).toHaveLength(9);
+    expect(html.match(/role="tab"/g)).toHaveLength(10);
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
-    expect(html.match(/role="tabpanel"/g)).toHaveLength(9);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(10);
     // The selected tab is Mağaza; its panel is the one not hidden.
     const tab = html.match(
       /<button[^>]*aria-selected="true"[^>]*>[\s\S]*?<\/button>/,
@@ -336,7 +409,7 @@ describe("the form as the server renders it", () => {
 
   it("posts by hand: no form action that React would reset", () => {
     const html = render();
-    expect(html.match(/<form /g)).toHaveLength(9);
+    expect(html.match(/<form /g)).toHaveLength(10);
     expect(html).not.toMatch(/<form[^>]*\saction=/);
     const src = readFileSync(
       "src/app/admin/mobil/ayarlar/app-config-form.tsx",

@@ -9,6 +9,7 @@ import { getSettings, updateSettings } from "@/lib/admin/store";
 import { isDbUnreachable } from "@/lib/db/health";
 import {
   APP_CONFIG_LIMITS as L,
+  APP_SECTION_KEYS,
   mergeMobileAppConfig,
   reminderCopyIssue,
   type MobileAppConfig,
@@ -185,6 +186,7 @@ const orderingSchema = z
     deliveryEnabled: z.boolean(),
     pickupEnabled: z.boolean(),
     tableEnabled: z.boolean(),
+    tableCallsEnabled: z.boolean(),
     courierEtaMinutes: z.tuple([etaField, etaField]),
     closedMessage: textField(L.closedMessageMax, "Kapalı mesajı"),
   })
@@ -203,6 +205,7 @@ export async function saveOrderingAction(
     deliveryEnabled: flag(formData, "deliveryEnabled"),
     pickupEnabled: flag(formData, "pickupEnabled"),
     tableEnabled: flag(formData, "tableEnabled"),
+    tableCallsEnabled: flag(formData, "tableCallsEnabled"),
     courierEtaMinutes: [str(formData, "etaMin"), str(formData, "etaMax")],
     closedMessage: str(formData, "closedMessage"),
   });
@@ -395,6 +398,25 @@ export async function saveCampaignCardsAction(
       subscription: flag(formData, "cardSubscription"),
     },
   });
+}
+
+// ─── 6a. Uygulama bölümleri ───────────────────────────────────────────────
+
+/**
+ * Which sections the app shows (`bootstrap.app.sections`). One checkbox per
+ * key, named `section-<key>`; an unticked box is a hidden section. Every
+ * key is written on every save, so the document always holds all twelve.
+ * Recorded in the event log like every section (`saveSection`).
+ */
+export async function saveSectionsAction(
+  _prev: AppConfigState,
+  formData: FormData,
+): Promise<AppConfigState> {
+  await requireRole("mobileApp");
+  const sections = Object.fromEntries(
+    APP_SECTION_KEYS.map((key) => [key, flag(formData, `section-${key}`)]),
+  ) as MobileAppConfig["sections"];
+  return saveSection("sections", { sections });
 }
 
 // ─── 6b. Mutlu saatler ────────────────────────────────────────────────────

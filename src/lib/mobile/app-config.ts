@@ -49,6 +49,13 @@ export interface MobileAppConfig {
      * fulfillment_unavailable. `cafeEnabled` still closes it too.
      */
     tableEnabled: boolean;
+    /**
+     * "Garson çağır" from the table's QR (`POST /tables/{code}/calls`,
+     * 6 Kas 2026). Effective only while `tableEnabled` is on too; either
+     * off → the app hides the button and the server answers 409
+     * calls_unavailable.
+     */
+    tableCallsEnabled: boolean;
     /** Courier ETA window shown before an order is placed, in minutes. */
     courierEtaMinutes: [number, number];
     closedMessage: string;
@@ -77,6 +84,12 @@ export interface MobileAppConfig {
     invite: boolean;
     subscription: boolean;
   };
+  /**
+   * Which parts of the app are shown (6 Kas 2026, "Uygulama bölümleri").
+   * A switch that is off hides that section in the app; it closes nothing
+   * on the website (karaoke and the shop have their own switches there).
+   */
+  sections: AppSections;
   /**
    * The happy hour, and whether it is announced at all.
    *
@@ -133,6 +146,45 @@ export interface MobileAppConfig {
   };
 }
 
+/**
+ * The app's sections the operator may hide (`bootstrap.app.sections`). Keys
+ * in the order the panel lists them; every key is always published.
+ */
+export const APP_SECTION_KEYS = [
+  "promoStrip",
+  "reorder",
+  "offers",
+  "categories",
+  "newMenu",
+  "liveStatus",
+  "rewards",
+  "venue",
+  "karaoke",
+  "shop",
+  "coffeeMode",
+  "campaigns",
+] as const;
+
+export type AppSectionKey = (typeof APP_SECTION_KEYS)[number];
+
+export type AppSections = Record<AppSectionKey, boolean>;
+
+/** What the panel's checkbox for each section says. */
+export const APP_SECTION_LABELS: Record<AppSectionKey, string> = {
+  promoStrip: "Ana sayfa: kampanya şeridi",
+  reorder: "Ana sayfa: Her zamanki (tekrar sipariş)",
+  offers: "Ana sayfa: Teklifler",
+  categories: "Ana sayfa: Kategoriler",
+  newMenu: "Ana sayfa: Yeni menü",
+  liveStatus: "Ana sayfa: Köşk şu an",
+  rewards: "Ana sayfa: Ödül kartı",
+  venue: "Ana sayfa: Köşkten (hikaye ve ziyaret)",
+  karaoke: "Karaoke (ana sayfa kartı, Profil satırı, rezervasyon ekranları)",
+  shop: "Mağaza (Evine götür rafı ve mağaza girişleri)",
+  coffeeMode: "Kahve Modu",
+  campaigns: "Kampanyalar",
+};
+
 /** The `app` object published on bootstrap - everything the app needs, nothing server-only. */
 export interface BootstrapApp {
   minSupportedAppVersion: string;
@@ -166,6 +218,8 @@ export interface BootstrapApp {
   };
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
+  /** Every key of `APP_SECTION_KEYS`, always (6 Kas 2026, additive). */
+  sections: AppSections;
   /**
    * Karar 177: whether fA'L's AI reading is on (`fal-core.ts`
    * `falAiEnabled`). Always false since 27 Oct 2026: fA'L left the app after
@@ -247,6 +301,7 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     deliveryEnabled: true,
     pickupEnabled: true,
     tableEnabled: true,
+    tableCallsEnabled: true,
     courierEtaMinutes: [25, 35],
     closedMessage: "Uygulamadan sipariş şu an kapalı. Köşkte görüşürüz.",
   },
@@ -287,6 +342,10 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
     invite: true,
     subscription: true,
   },
+  // Everything shown until the operator hides something.
+  sections: Object.fromEntries(
+    APP_SECTION_KEYS.map((key) => [key, true]),
+  ) as AppSections,
   happyHour: {
     // The window the café has always run; off until someone says the till
     // will honour it.
@@ -486,6 +545,7 @@ const configSchema = z.object({
     deliveryEnabled: bool(D.ordering.deliveryEnabled),
     pickupEnabled: bool(D.ordering.pickupEnabled),
     tableEnabled: bool(D.ordering.tableEnabled),
+    tableCallsEnabled: bool(D.ordering.tableCallsEnabled),
     courierEtaMinutes: courierEta,
     closedMessage: text(L.closedMessageMax, D.ordering.closedMessage),
   }).catch(() => ({
@@ -531,6 +591,13 @@ const configSchema = z.object({
     invite: bool(D.campaignCards.invite),
     subscription: bool(D.campaignCards.subscription),
   }).catch(() => ({ ...D.campaignCards })),
+  // A document saved before 6 Kas 2026 has no `sections`: every key falls
+  // back to shown, one by one, like every other leaf.
+  sections: section(
+    Object.fromEntries(
+      APP_SECTION_KEYS.map((key) => [key, bool(D.sections[key])]),
+    ) as Record<AppSectionKey, z.ZodCatch<z.ZodBoolean>>,
+  ).catch(() => ({ ...D.sections })),
   happyHour: section({
     enabled: bool(D.happyHour.enabled),
     days: z.enum(L.happyHourDays).catch(D.happyHour.days),
@@ -629,6 +696,7 @@ export function toBootstrapApp(
       items: cfg.reminders.items.map((it) => ({ ...it })),
     },
     campaignCards: { ...cfg.campaignCards },
+    sections: { ...cfg.sections },
     fal: { ai: falAi },
   };
 }

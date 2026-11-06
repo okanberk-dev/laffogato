@@ -1527,6 +1527,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "cafeEnabled": true,                        // false → "Sepete ekle" kapalı; sunucu 409 ordering_closed
       "deliveryEnabled": true, "pickupEnabled": true,   // false → ilgili teslimat seçeneği gizli; sunucu 400 fulfillment_unavailable
       "tableEnabled": true,                       // 15 Eki 2026, yalnız ekleme: masaya sipariş (QR, §3 ve §22). false → uygulama masa seçeneğini gizler; sunucu 400 fulfillment_unavailable. Alan yoksa true say; cafeEnabled yine ana anahtardır
+      "tableCallsEnabled": true,                  // 6 Kas 2026, yalnız ekleme: masadan garson çağırma (§22.1). Yalnız tableEnabled de true iken geçerli; ikisinden biri false → uygulama "Garson çağır"ı gizler, sunucu 409 calls_unavailable. Alan yoksa true say
       "shopEnabled": true,                        // MAĞAZA anahtarı = settings.isShopOpen (/admin/ayarlar). false → kargolu mağaza siparişi kapalı; sunucu 409 shop_closed.
                                                   // Mobil panelin anahtarı DEĞİLDİR: tek gerçeğin ikinci bir kopyası olmasın diye MobileAppConfig'e yazılmaz, yalnız telde görünür.
       "courierEtaMinutes": [25, 35],
@@ -1538,6 +1539,20 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
     },
     "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
+    "sections": {                                 // 6 Kas 2026, yalnız ekleme: hangi bölüm görünür (/admin/mobil/ayarlar → Uygulama bölümleri). Site 12 anahtarın hepsini her zaman boolean yollar; operatör hiç kaydetmediyse hepsi true. false → uygulama o bölümü gizler. Alan ya da anahtar yoksa (eski dağıtım) true say
+      "promoStrip": true,                         // Ana sayfa: kampanya şeridi
+      "reorder": true,                            // Ana sayfa: Her zamanki (tekrar sipariş)
+      "offers": true,                             // Ana sayfa: Teklifler
+      "categories": true,                         // Ana sayfa: Kategoriler
+      "newMenu": true,                            // Ana sayfa: Yeni menü
+      "liveStatus": true,                         // Ana sayfa: Köşk şu an
+      "rewards": true,                            // Ana sayfa: Ödül kartı
+      "venue": true,                              // Ana sayfa: Köşkten (hikaye ve ziyaret)
+      "karaoke": true,                            // Karaoke: ana sayfa kartı, Profil satırı, rezervasyon ekranları
+      "shop": true,                               // Mağaza: Evine götür rafı ve mağaza girişleri
+      "coffeeMode": true,                         // Kahve Modu
+      "campaigns": true                           // Kampanyalar
+    },
     "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20) VE standart sözleşmenin imza ve bildirim kaydı (19 Eki 2026, §20); false iken uygulama yalnız cihazda okur (§20) · 27 Ekim 2026: uygulama karar 330'dan sonra bu uçları (§20) çağırmaz ve app.fal'ı okumaz (App Review 4.3(b)); uçlar v1 gereği yanıt vermeye devam eder, yapay zekâ yolu kapalıdır, POST /fal 503 fal_unavailable döner
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
@@ -1551,6 +1566,13 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
   künyeden gelir (`34940 Tuzla / İstanbul`), böylece posta kodu hep vardır ve
   ilçe iki kez yazılmaz. Adres **vergi levhasındaki** adrestir (tasarımdaki
   "29 Ekim Cad." eskidir).
+- `app.sections` (6 Kas 2026) yalnız **uygulamada görünürlüğü** yönetir: bir
+  bölümü gizlemek sitede hiçbir şeyi kapatmaz. Karaoke rezervasyonunu ve
+  mağazayı kapatan anahtarlar ayrıdır (karaoke kendi ayarları, mağaza
+  `ordering.shopEnabled`); uygulamada gizli bölümün uçları (§2, §7) yanıt
+  vermeye devam eder. Panel değişikliği bootstrap önbelleği yüzünden
+  uygulamaya en geç birkaç dakikada ulaşır. Kaydedilen her değişiklik olay
+  kaydına `mobile_app_config` / `sections` olarak yazılır.
 - `app` **karaoke** kurallarını ve `venue`'yü taşımaz: karaoke alanları
   `GET /karaoke/availability` ile (§7), köşk alanları `venue.*` ile gelir.
 - Uygulama tarafı: `app` ya da yeni `venue` alanları eksik gelirse (eski

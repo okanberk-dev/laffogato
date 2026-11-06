@@ -19,6 +19,8 @@ import {
 import { cx } from "@/components/laffogato/cx";
 import {
   APP_CONFIG_LIMITS as L,
+  APP_SECTION_KEYS,
+  APP_SECTION_LABELS,
   type MobileAppConfig,
   type MobileAppReminder,
 } from "@/lib/mobile/app-config";
@@ -30,6 +32,7 @@ import {
   saveLoyaltyAction,
   saveOrderingAction,
   saveRemindersAction,
+  saveSectionsAction,
   saveStoreAction,
   saveVenueAction,
   saveVersionAction,
@@ -48,7 +51,7 @@ import {
 } from "./app-config-ui";
 
 /**
- * Nine independent forms, one per section of `settings."mobileApp"`, laid
+ * Ten independent forms, one per section of `settings."mobileApp"`, laid
  * out like Ayarlar: each saves only its own section (the action merges it
  * onto the live document), so an operator can tune the courier ETA without
  * re-submitting the reminders. `@/lib/mobile/app-config` is safe to import
@@ -57,7 +60,7 @@ import {
  * The tabs are real tabs (tablist / tab / tabpanel, arrow keys) and the
  * open one is in the address (`?bolum=`), so a reload, the back button and
  * a link from elsewhere land on the same section. Below `sm` they are a
- * select: nine labels in a sideways scroll with a hidden scrollbar showed
+ * select: ten labels in a sideways scroll with a hidden scrollbar showed
  * two of them on a phone and said nothing about the other seven.
  */
 export function AppConfigForm({
@@ -147,7 +150,7 @@ export function AppConfigForm({
       </div>
 
       {/* Hidden, not unmounted.
-          Every field in these nine forms is uncontrolled (`defaultValue` off
+          Every field in these ten forms is uncontrolled (`defaultValue` off
           `config`), so tearing a tab out of the DOM threw away whatever had
           been typed into it and rebuilt it from the saved document on the way
           back - a 280-character bakım duyurusu lost to a glance at the
@@ -178,6 +181,7 @@ const TAB_BODY: Record<AppConfigTabId, (config: MobileAppConfig) => ReactNode> =
     karaoke: (config) => <KaraokeTab config={config} />,
     reminders: (config) => <RemindersTab config={config} />,
     cards: (config) => <CampaignCardsTab config={config} />,
+    sections: (config) => <SectionsTab config={config} />,
     happy: (config) => <HappyHourTab config={config} />,
     venue: (config) => <VenueTab config={config} />,
     store: (config) => <StoreTab config={config} />,
@@ -316,7 +320,16 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
               label="Masaya sipariş açık (masadaki QR ile)"
               defaultChecked={o.tableEnabled}
             />
+            <Checkbox
+              name="tableCallsEnabled"
+              label="Masadan garson çağırma açık (masadaki QR ile)"
+              defaultChecked={o.tableCallsEnabled}
+            />
           </div>
+          <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
+            Garson çağırma yalnız masaya sipariş de açıkken çalışır. Gelen
+            çağrı Siparişler&apos;de ve zil uyarısında görünür.
+          </p>
         </Field>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <ConfigField
@@ -688,6 +701,33 @@ function CampaignCardsTab({ config }: { config: MobileAppConfig }) {
             label="ABONELİK kartı (yalnız eski uygulama sürümleri gösterir)"
             defaultChecked={c.subscription}
           />
+        </div>
+        <SaveBar form={form} />
+      </Section>
+    </ConfigForm>
+  );
+}
+
+// ─── 6a. Uygulama bölümleri ───────────────────────────────────────────────
+
+function SectionsTab({ config }: { config: MobileAppConfig }) {
+  const form = useAppConfigForm(saveSectionsAction);
+  const sections = config.sections;
+  return (
+    <ConfigForm form={form}>
+      <Section
+        title="Uygulama bölümleri"
+        description="İşareti kaldırılan bölüm birkaç dakika içinde uygulamada gizlenir. Uygulamada Karaoke'yi ya da Mağaza'yı gizlemek sitedeki rezervasyonu ya da mağazayı kapatmaz; onların kendi anahtarları var."
+      >
+        <div className="grid gap-1">
+          {APP_SECTION_KEYS.map((key) => (
+            <Checkbox
+              key={key}
+              name={`section-${key}`}
+              label={APP_SECTION_LABELS[key]}
+              defaultChecked={sections[key]}
+            />
+          ))}
         </div>
         <SaveBar form={form} />
       </Section>

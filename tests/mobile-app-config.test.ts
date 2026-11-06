@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  APP_SECTION_KEYS,
+  APP_SECTION_LABELS,
   compareSemver,
   DEFAULT_MOBILE_APP_CONFIG,
   mergeMobileAppConfig,
@@ -100,6 +102,8 @@ describe("normalizeMobileAppConfig", () => {
       pickupEnabled: true,
       // Absent from the stored row (written before table orders): the default.
       tableEnabled: true,
+      // Absent too (written before table calls, 6 Kas 2026): on.
+      tableCallsEnabled: true,
       courierEtaMinutes: [25, 35],
       closedMessage: DEFAULT_MOBILE_APP_CONFIG.ordering.closedMessage,
     });
@@ -249,6 +253,8 @@ describe("toBootstrapApp", () => {
         "loyalty",
         "reminders",
         "campaignCards",
+        // 6 Kas 2026: which app sections the operator shows.
+        "sections",
         "store",
         // Karar 177: fA'L's AI switch, from the environment - off by default.
         "fal",
@@ -346,5 +352,70 @@ describe("mutlu saatler", () => {
       to: "17:00",
       pct: 25,
     });
+  });
+});
+
+describe("app sections (6 Kas 2026)", () => {
+  const ALL = [
+    "promoStrip",
+    "reorder",
+    "offers",
+    "categories",
+    "newMenu",
+    "liveStatus",
+    "rewards",
+    "venue",
+    "karaoke",
+    "shop",
+    "coffeeMode",
+    "campaigns",
+  ];
+
+  it("shows every section until the operator hides one", () => {
+    expect(APP_SECTION_KEYS).toEqual(ALL);
+    const cfg = normalizeMobileAppConfig({});
+    expect(Object.keys(cfg.sections)).toEqual(ALL);
+    expect(Object.values(cfg.sections).every((v) => v === true)).toBe(true);
+    for (const key of APP_SECTION_KEYS) {
+      expect(APP_SECTION_LABELS[key], key).toBeTruthy();
+    }
+  });
+
+  it("keeps a hidden section and falls back leaf by leaf", () => {
+    const cfg = normalizeMobileAppConfig({
+      sections: { karaoke: false, shop: "no", unknown: false },
+    });
+    expect(cfg.sections.karaoke).toBe(false);
+    // A broken leaf falls back to shown; the stray key is not kept.
+    expect(cfg.sections.shop).toBe(true);
+    expect(cfg.sections).not.toHaveProperty("unknown");
+    expect(normalizeMobileAppConfig({ sections: "off" }).sections).toEqual(
+      DEFAULT_MOBILE_APP_CONFIG.sections,
+    );
+  });
+
+  it("publishes all twelve keys as booleans on bootstrap", () => {
+    const cfg = normalizeMobileAppConfig({
+      sections: { coffeeMode: false },
+      ordering: { tableCallsEnabled: false },
+    });
+    const app = toBootstrapApp(cfg, true);
+    expect(Object.keys(app.sections)).toEqual(ALL);
+    expect(app.sections.coffeeMode).toBe(false);
+    expect(app.sections.campaigns).toBe(true);
+    expect(app.ordering.tableCallsEnabled).toBe(false);
+    expect(
+      toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true).ordering
+        .tableCallsEnabled,
+    ).toBe(true);
+  });
+
+  it("saves the section alone, leaving the others as they are", () => {
+    const current = normalizeMobileAppConfig({ ordering: { cafeEnabled: false } });
+    const merged = mergeMobileAppConfig(current, {
+      sections: { ...current.sections, rewards: false },
+    });
+    expect(merged.sections.rewards).toBe(false);
+    expect(merged.ordering.cafeEnabled).toBe(false);
   });
 });

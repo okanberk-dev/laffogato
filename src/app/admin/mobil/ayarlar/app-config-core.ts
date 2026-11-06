@@ -42,6 +42,7 @@ export const APP_CONFIG_TABS = [
   { id: "karaoke", label: "Karaoke kuralları" },
   { id: "reminders", label: "Hatırlatmalar" },
   { id: "cards", label: "Kampanya kartları" },
+  { id: "sections", label: "Uygulama bölümleri" },
   { id: "happy", label: "Mutlu saatler" },
   { id: "venue", label: "Köşk bilgileri" },
   { id: "store", label: "Mağaza ve bağlantılar" },
