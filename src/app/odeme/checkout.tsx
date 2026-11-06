@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { BusyDots } from "@/components/laffogato/busy-dots";
+import { PaymentsArt } from "@/components/laffogato/payments-art";
 import { cx } from "@/components/laffogato/cx";
 import {
   isStaleActionError,
@@ -1070,9 +1071,7 @@ function CheckoutForm({
   if (items.length === 0) {
     return (
       <section className="checkout-empty">
-        <div className="checkout-empty-mark" aria-hidden="true">
-          ✻
-        </div>
+        <PaymentsArt className="checkout-empty-art" />
         <h1 className="h2" style={{ marginBottom: 24 }}>
           Sepetin <span className="script">boş</span>
         </h1>
@@ -1174,6 +1173,9 @@ function CheckoutForm({
       </div>
 
       <aside className="co-side">
+        {/* A small drawing over the summary, on a wide screen only: on a
+            phone the summary and the form come first. */}
+        <PaymentsArt className="co-side-art" />
         {/* Sipariş özeti ------------------------------------------------- */}
         <section className="co-summary" aria-labelledby="co-summary-title">
           <button

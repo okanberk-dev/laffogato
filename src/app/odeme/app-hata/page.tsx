@@ -1,4 +1,5 @@
 import { LafMark } from "@/components/laffogato/brand-mark";
+import { PaymentsArt } from "@/components/laffogato/payments-art";
 import {
   appKaraokeDeepLink,
   appOrderDeepLink,
@@ -40,6 +41,7 @@ export default async function AppPaymentFailedPage({
     <main className="auth-page auth-page--full">
       <div className="auth-card auth-card--center">
         <LafMark tone="duo" height={40} label="L'Affogato" />
+        <PaymentsArt className="app-fail-art" />
         <span
           className="auth-badge auth-badge--fail app-fail-badge"
           aria-hidden="true"

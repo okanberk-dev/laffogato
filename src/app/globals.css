@@ -8728,12 +8728,114 @@ select {
   padding: clamp(48px, 8vw, 88px);
   text-align: center;
 }
-.checkout-empty-mark {
-  font-family: var(--script);
-  color: var(--green);
-  font-size: 56px;
-  line-height: 1;
-  margin-bottom: 14px;
+/* The payments drawing (payments-art.tsx, owner's brief 6 Kas 2026): a
+   card, a phone tapping it, the receipt, a cup and a padlock. Decoration
+   only, small, every colour a token. */
+.pay-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pay-art-disc {
+  fill: var(--bg-cream);
+}
+.pay-art-receipt > path:first-child {
+  fill: var(--surface);
+  stroke: var(--ink-line-strong);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.pay-art-line {
+  fill: none;
+  stroke: var(--ink-line-strong);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.pay-art-card rect:first-child {
+  fill: var(--green-house);
+}
+.pay-art-card-band {
+  fill: var(--green-uplift);
+}
+.pay-art-chip {
+  fill: var(--gold-soft);
+}
+.pay-art-card-line {
+  stroke: var(--green-light);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+.pay-art-phone > rect:first-child {
+  fill: var(--ink);
+}
+.pay-art-screen {
+  fill: var(--surface);
+}
+.pay-art-tick,
+.pay-art-dots {
+  fill: none;
+  stroke: var(--green-cta);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pay-art-waves {
+  fill: none;
+  stroke: var(--green-cta);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.pay-art-cup path,
+.pay-art-cup ellipse {
+  fill: var(--accent);
+}
+.pay-art-handle {
+  fill: none !important;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.pay-art-steam {
+  fill: none;
+  stroke: var(--ink-quiet);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.pay-art-lock rect {
+  fill: var(--gold-soft);
+}
+.pay-art-shackle {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+.pay-art-keyhole {
+  fill: var(--gold-ink);
+}
+/* Empty basket, the success and the failure pages: a small picture over
+   the words. */
+.checkout-empty-art,
+.order-done-art,
+.app-fail-art {
+  width: min(200px, 60vw);
+  margin: 0 auto 14px;
+}
+.app-fail-art {
+  margin-top: 18px;
+}
+/* Over the order summary on a wide screen only; on a phone the summary and
+   the form come first. */
+.co-side-art {
+  display: none;
+}
+@media (min-width: 960px) {
+  .co-side-art {
+    display: block;
+    width: 180px;
+    margin: 0 auto 12px;
+  }
 }
 
 /* Promo block (inside summary) */
