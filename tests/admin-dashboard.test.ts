@@ -69,6 +69,8 @@ afterEach(() => {
   vi.doUnmock("@/lib/admin/auth");
   vi.doUnmock("@/lib/email/health");
   vi.doUnmock("@/lib/admin/karaoke-today");
+  vi.doUnmock("@/lib/admin/table-calls");
+  vi.doUnmock("@/lib/admin/customer-list");
 });
 
 describe("the köşk's clock (SHE-15, KAR-M02)", () => {
@@ -401,7 +403,7 @@ describe("getDashboardStats", () => {
 describe("the dashboard page", () => {
   async function render(
     role: "owner" | "manager" | "staff",
-    opts: { mailThrows?: boolean; mailBad?: boolean } = {},
+    opts: { mailThrows?: boolean; mailBad?: boolean; fourteen?: boolean } = {},
   ) {
     vi.resetModules();
     vi.doMock("next/link", () => ({
@@ -422,23 +424,51 @@ describe("the dashboard page", () => {
         expiresAt: 0,
       })),
     }));
+    // Fourteen days, today last: 1 order of ₺100 a day, the last seven ₺200.
+    const fortnight = Array.from({ length: 14 }, (_, i) => ({
+      bucket: `2026-10-${String(5 + i).padStart(2, "0")}`,
+      label: `${5 + i} Eki`,
+      revenueMinor: i < 7 ? 10_000 : 20_000,
+      orderCount: 1,
+    }));
     const dashboardRevenue = vi.fn(async () => ({
-      buckets: [
-        {
-          bucket: "2026-10-17",
-          label: "17 Eki",
-          revenueMinor: 50_000,
-          orderCount: 2,
-        },
-        {
-          bucket: "2026-10-18",
-          label: "18 Eki",
-          revenueMinor: 12_500,
-          orderCount: 1,
-        },
-      ],
+      buckets: opts.fourteen
+        ? fortnight
+        : [
+            {
+              bucket: "2026-10-17",
+              label: "17 Eki",
+              revenueMinor: 50_000,
+              orderCount: 2,
+            },
+            {
+              bucket: "2026-10-18",
+              label: "18 Eki",
+              revenueMinor: 12_500,
+              orderCount: 1,
+            },
+          ],
       lastWeek: { revenueMinor: 10_000, orderCount: 1 },
     }));
+    // The seven days' mix: the order list's total for each filter.
+    const MIX_TOTALS: Record<string, number> = {
+      app: 3,
+      web: 1,
+      manual: 0,
+      table: 2,
+      pickup: 1,
+      shipping: 1,
+      delivery: 0,
+    };
+    const listOrdersFiltered = vi.fn(
+      async (input: {
+        query: { channel: string | null; fulfillment: string | null };
+      }) => ({
+        orders: [],
+        total:
+          MIX_TOTALS[input.query.channel ?? input.query.fulfillment ?? ""] ?? 0,
+      }),
+    );
     vi.doMock("@/lib/admin/store", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@/lib/admin/store")>()),
       getDashboardStats: vi.fn(async () => ({
@@ -501,7 +531,39 @@ describe("the dashboard page", () => {
         karaokePrepay: true,
       })),
       dashboardRevenue,
+      listOrdersFiltered,
     }));
+    const listOpenTableCallsForPanel = vi.fn(async () => [
+      {
+        id: "call-1",
+        tableCode: "K7Q2M9XW4T",
+        label: "Masa 4",
+        reason: "water" as const,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    vi.doMock("@/lib/admin/table-calls", () => ({
+      listOpenTableCallsForPanel,
+    }));
+    const listCustomerPage = vi.fn(async () => [
+      {
+        email: "zeynep@ornek.com",
+        name: "Zeynep",
+        phone: "",
+        isMember: true,
+        isActive: true,
+        emailVerified: true,
+        memberSince: "2026-10-01T10:00:00.000Z",
+        marketingConsent: false,
+        orderCount: 4,
+        lifetimeValueMinor: 80_000,
+        refundedMinor: 0,
+        lastOrderAt: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+        deletionRequestedAt: "",
+      },
+    ]);
+    vi.doMock("@/lib/admin/customer-list", () => ({ listCustomerPage }));
     vi.doMock("@/lib/email/health", () => ({
       emailHealth: vi.fn(async () => {
         if (opts.mailThrows) throw new Error("settings down");
@@ -522,6 +584,9 @@ describe("the dashboard page", () => {
       text: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "),
       dashboardRevenue,
       loadKaraokeTodayCard,
+      listOrdersFiltered,
+      listOpenTableCallsForPanel,
+      listCustomerPage,
     };
   }
 
@@ -530,6 +595,64 @@ describe("the dashboard page", () => {
     expect(text).not.toMatch(/ciro/i);
     expect(dashboardRevenue).not.toHaveBeenCalled();
     expect(text).toContain("Açık sipariş");
+  });
+
+  it("never reads the seven days' mix or the customers for staff, and shows them the table calls", async () => {
+    const { text, listOrdersFiltered, listCustomerPage } = await render(
+      "staff",
+      { fourteen: true },
+    );
+    expect(listOrdersFiltered).not.toHaveBeenCalled();
+    expect(listCustomerPage).not.toHaveBeenCalled();
+    expect(text).not.toContain("Son 7 gün");
+    expect(text).not.toContain("Zeynep");
+    expect(text).toContain("Masa çağrıları (1)");
+    expect(text).toContain("Masa 4 Su");
+  });
+
+  it("gives owner the seven days against the seven before, cut at this hour (Arc metric cards)", async () => {
+    const { text } = await render("owner", { fourteen: true });
+    // Days 13 to 8 (6 x ₺100) and day 7 up to now (₺100) against 7 x ₺200.
+    expect(text).toContain("Net ciro ↑ %100 artış ₺1.400,00");
+    expect(text).toContain("Önceki 7 gün bu saate kadar ₺700,00");
+    expect(text).toContain("Ortalama sepet ↑ %100 artış ₺200,00");
+    // Without the 14 buckets there is nothing to read them against.
+    const short = await render("owner");
+    expect(short.text).not.toContain("Ortalama sepet");
+  });
+
+  it("counts the seven days' orders by channel and handover with the order list's own filters", async () => {
+    const { html, text, listOrdersFiltered } = await render("manager");
+    expect(listOrdersFiltered).toHaveBeenCalledTimes(7);
+    for (const [input] of listOrdersFiltered.mock.calls) {
+      expect(input.query).toMatchObject({ payment: "counted", statuses: null });
+      expect(input).toMatchObject({ page: 1, pageSize: 1 });
+    }
+    expect(text).toContain("Son 7 gün: kanal ve teslimat");
+    // Uygulama 3 of 4, Web 1; Panelden at 0 draws no row.
+    expect(text).toMatch(/Uygulama 3 %75/);
+    expect(text).toMatch(/Web 1 %25/);
+    expect(text).not.toContain("Panelden");
+    expect(text).toMatch(/Masaya servis 2 %50/);
+    expect(html).toMatch(
+      /href="\/admin\/siparisler\?bas=\d{4}-\d{2}-\d{2}&amp;bit=\d{4}-\d{2}-\d{2}&amp;odeme=sayilan&amp;kanal=app"/,
+    );
+    expect(html).toMatch(/&amp;odeme=sayilan&amp;teslimat=pickup"/);
+  });
+
+  it("lists the customers who moved last for owner and manager, each opening the customer", async () => {
+    const { html, text, listCustomerPage } = await render("manager");
+    expect(listCustomerPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "all",
+        sort: { key: "hareket", dir: "desc" },
+        pageSize: 5,
+      }),
+    );
+    expect(text).toContain("Son hareket eden müşteriler");
+    expect(text).toContain("Zeynep");
+    expect(text).toContain("4 sipariş");
+    expect(html).toContain('href="/admin/musteriler/zeynep%40ornek.com"');
   });
 
   it("shows owner today's net revenue and the 14 days behind it", async () => {

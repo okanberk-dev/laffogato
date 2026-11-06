@@ -518,6 +518,20 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   vakti gelmemiş ön sipariş beklemez, 24 saati geçen (bar ekranının
   düşürdüğü) sayılmaz; 15 dakikayı geçince rakam turuncu. Dikkat isteyen ve Stokta yok
   kendi gerçeğini yazar ("Azalan stokta 3 ürün"); 0'ın altına iş istemez.
+- **Genel bakış'ın panoları (6 Kas 2026, Arc UI)**: şeridin altında sahip ve
+  yöneticiye **Son 7 gün** (net ciro, sipariş, ortalama sepet; önceki 7 gün
+  **bu saate kadar** ile: 13-8. günler tam + 7. gün bu saate kadar,
+  `lastSevenDays`, `dashboardRevenue`'nun aynı okuması). 14 günlük grafiğin
+  altında **kanal ve teslimat** halkaları: Uygulama / Web / Panelden ve
+  Masaya servis / Gel-al / Kargo / Kurye; her parça Siparişler'in kendi
+  süzgeciyle sayılır (`listOrdersFiltered`, "Son 7 gün" + **Raporda
+  sayılan**), satırı saydığı listeyi açar. Yan sütunda açık **masa
+  çağrıları** (Siparişler'in okuması, misafir yok; personel dahil) ve
+  Müşteriler'i açan rollere **son hareket eden müşteriler** (Müşteriler,
+  "Son hareket" sırası). Personel ciroyu ve dökümü görmez, okunmaz da (D1).
+  Halka ve kartlar Arc UI'nin ücretsiz `donut-chart` ve `metric-card`
+  kayıtlarından, `motion`suz sunucuda çizilir (panel yalnız üç arayüz
+  paketi alır): `src/components/admin/arc/`, belirteçleri `--admin-*`.
   Personel ciro görmez, okunmaz da (D1). "Hızlı ekle"nin on iki çipi
   başlıkta tek **Yeni** düğmesine döndü (birden fazla sayfada menü, tekte
   doğrudan bağlantı). Ana sütunda grafik ve son siparişler tablosu (başlığı

@@ -8,6 +8,11 @@ import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-stat
 import { KpiStrip } from "@/components/admin/dashboard/kpi-strip";
 import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
 import { NeonUsageLine } from "@/components/admin/dashboard/neon-status";
+import {
+  OrderMixWidget,
+  type CountedPart,
+} from "@/components/admin/dashboard/order-mix-widget";
+import { RecentCustomersWidget } from "@/components/admin/dashboard/recent-customers-widget";
 import { DashboardNotice } from "@/components/admin/dashboard/notice";
 import { OpenOrdersWidget } from "@/components/admin/dashboard/open-orders-widget";
 import {
@@ -19,16 +24,30 @@ import {
   type RecentOrderRow,
 } from "@/components/admin/dashboard/recent-orders";
 import { RevenueWidget } from "@/components/admin/dashboard/revenue-widget";
+import { TableCallsWidget } from "@/components/admin/dashboard/table-calls-widget";
+import { WeekMetrics } from "@/components/admin/dashboard/week-metrics";
 import type { AdminHue } from "@/components/admin/ui/hues";
 import type { AdminIconName } from "@/components/admin/ui/icons";
 import { settingsTabHref } from "@/app/admin/ayarlar/settings-core";
 import { requireRole } from "@/lib/admin/auth";
 import {
+  CHANNEL_MIX,
+  FULFILLMENT_MIX,
   dashboardDateLabel,
   dashboardGreeting,
   dashboardTiles,
+  lastSevenDayRange,
+  lastSevenDays,
+  mixHref,
+  mixParams,
   stockLinks,
+  type MixPart,
 } from "@/lib/admin/dashboard-core";
+import { listCustomerPage } from "@/lib/admin/customer-list";
+import {
+  CUSTOMER_UNFILTERED,
+  type CustomerListRow,
+} from "@/lib/admin/customer-list-core";
 import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
 import { loadNeonUsage, neonLimit } from "@/lib/admin/neon-usage";
 import {
@@ -37,6 +56,9 @@ import {
   readNeonUsageFor,
 } from "@/lib/admin/neon-usage-core";
 import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
+import { parseOrderListParams } from "@/lib/admin/order-filters";
+import { listOpenTableCallsForPanel } from "@/lib/admin/table-calls";
+import type { PanelTableCall } from "@/lib/admin/table-calls-core";
 import { canAccess, type AdminRole } from "@/lib/admin/roles";
 import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import {
@@ -48,6 +70,7 @@ import {
   getDashboardStats,
   getSettings,
   listOrderMoney,
+  listOrdersFiltered,
   listRecentOrders,
   type AdminOrder,
 } from "@/lib/admin/store";
@@ -112,6 +135,73 @@ async function readInvoiceAlert(
   }
 }
 
+/**
+ * The last seven days' orders by channel and by handover, for the roles
+ * that see the reports: each part is the order list's own filter ("Son 7
+ * gün", "Raporda sayılan"), counted by the list's own read
+ * (`listOrdersFiltered`, one row and its total), so the figure is the list
+ * its row opens. Null when a read fails: the landing page stands.
+ */
+async function readOrderMix(now: Date): Promise<{
+  channel: CountedPart[];
+  fulfillment: CountedPart[];
+  allHref: string;
+} | null> {
+  const range = lastSevenDayRange(now);
+  const counted = async (part: MixPart): Promise<CountedPart> => {
+    const params = mixParams(range, part);
+    const page = await listOrdersFiltered({
+      query: parseOrderListParams(params).query,
+      sort: { column: "orderNo", ascending: false },
+      page: 1,
+      pageSize: 1,
+    });
+    return { ...part, count: page.total, href: mixHref(params) };
+  };
+  try {
+    const [channel, fulfillment] = await Promise.all([
+      Promise.all(CHANNEL_MIX.map(counted)),
+      Promise.all(FULFILLMENT_MIX.map(counted)),
+    ]);
+    return { channel, fulfillment, allHref: mixHref(mixParams(range)) };
+  } catch (err) {
+    console.error("[admin] son 7 günün sipariş dökümü okunamadı", err);
+    return null;
+  }
+}
+
+/**
+ * The open table calls, as Siparişler's "Masa çağrıları" reads them (no
+ * guest). Null when the read fails.
+ */
+async function readTableCalls(now: Date): Promise<PanelTableCall[] | null> {
+  try {
+    return await listOpenTableCallsForPanel(now);
+  } catch (err) {
+    console.error("[admin] masa çağrıları okunamadı", err);
+    return null;
+  }
+}
+
+/**
+ * The five customers who moved last (Müşteriler's own read, sorted by
+ * "Son hareket"), for the roles that open Müşteriler. Null on failure.
+ */
+async function readRecentCustomers(): Promise<CustomerListRow[] | null> {
+  try {
+    return await listCustomerPage({
+      query: CUSTOMER_UNFILTERED,
+      kind: "all",
+      sort: { key: "hareket", dir: "desc" },
+      page: 1,
+      pageSize: 5,
+    });
+  } catch (err) {
+    console.error("[admin] son müşteriler okunamadı", err);
+    return null;
+  }
+}
+
 /** The newest orders with whether money was taken for each. */
 /**
  * Neon's band (src/lib/admin/neon-usage-core.ts), for the owner alone and
@@ -160,9 +250,13 @@ const TILE_HUES: Record<string, AdminHue> = {
 /**
  * The panel's landing page (decision D38; Innex, 22 Eki 2026): one strip of
  * the day's figures, each read against a reference and leading to the list
- * it counts, by role; for owner and manager the last 14 days of revenue;
- * the newest orders under it; beside them the open orders by status,
- * today's karaoke and the shelves running low. A new record starts from the
+ * it counts, by role; for owner and manager the last seven days against
+ * the seven before (Arc metric cards), the last 14 days of revenue and the
+ * seven days' orders by channel and handover (Arc donuts, each row the
+ * order list it counts); the newest orders under it; beside them the open
+ * table calls, the open orders by status, today's karaoke, the shelves
+ * running low and, for the roles that open Müşteriler, the customers who
+ * moved last. A new record starts from the
  * header's "Yeni". Every widget is its own component
  * (components/admin/dashboard), so another screen can reuse it.
  */
@@ -173,6 +267,7 @@ export default async function AdminDashboardPage() {
   const showOrders = canAccess("orders", role);
   const showRevenue = canAccess("reports", role);
   const showStock = canAccess("products", role) || canAccess("stock", role);
+  const showCustomers = canAccess("customers", role);
 
   const settingsRead = getSettings();
   // The karaoke card needs the prepay switch; it waits for the settings and
@@ -202,6 +297,9 @@ export default async function AdminDashboardPage() {
     keepalive,
     iys,
     invoiceAlert,
+    orderMix,
+    tableCalls,
+    customers,
   ] = await Promise.all([
     getDashboardStats(),
     // Five rows, read as five rows: this used to be every order in the
@@ -219,7 +317,16 @@ export default async function AdminDashboardPage() {
     // İYS deadlines, for the roles that run the bulletin (owner, manager).
     canAccess("newsletter", role) ? readIysAttention(now) : null,
     readInvoiceAlert(role, now),
+    // The seven days' order mix is a report: read only for its roles (D1).
+    showRevenue ? readOrderMix(now) : null,
+    // Table calls are the shift's: every role that opens Siparişler.
+    showOrders ? readTableCalls(now) : null,
+    // Customer names only for the roles that open Müşteriler.
+    showCustomers ? readRecentCustomers() : null,
   ]);
+  const week = revenue
+    ? lastSevenDays(revenue.buckets, revenue.lastWeek)
+    : null;
   const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
 
   const today = revenue?.buckets.at(-1);
@@ -364,6 +471,14 @@ export default async function AdminDashboardPage() {
         }))}
       />
 
+      {/* The last seven days against the seven before (owner and manager,
+          from the KPI strip's own read). */}
+      {week ? (
+        <div className="mt-5">
+          <WeekMetrics current={week.current} previous={week.previous} />
+        </div>
+      ) : null}
+
       {/* Two columns from xl only: beside the sidebar at 1024 px the side
           column was 224 px and cut every product name short. Below xl the
           side widgets sit two abreast under the main ones. The main column
@@ -372,9 +487,19 @@ export default async function AdminDashboardPage() {
       <div className="mt-5 grid gap-5 xl:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-5 xl:col-span-2">
           {revenue ? <RevenueWidget buckets={revenue.buckets} /> : null}
+          {orderMix ? (
+            <OrderMixWidget
+              channel={orderMix.channel}
+              fulfillment={orderMix.fulfillment}
+              allHref={orderMix.allHref}
+            />
+          ) : null}
           {showOrders ? <RecentOrders rows={recent} /> : null}
         </div>
         <div className="grid min-w-0 content-start gap-5 md:grid-cols-2 xl:grid-cols-1">
+          {tableCalls ? (
+            <TableCallsWidget calls={tableCalls} now={now} />
+          ) : null}
           {showOrders ? (
             <OpenOrdersWidget openByStatus={stats.openByStatus} />
           ) : null}
@@ -393,6 +518,9 @@ export default async function AdminDashboardPage() {
               productHref={stock.product}
               allHref={stock.all}
             />
+          ) : null}
+          {customers ? (
+            <RecentCustomersWidget rows={customers} now={now} />
           ) : null}
         </div>
       </div>

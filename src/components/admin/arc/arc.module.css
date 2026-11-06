@@ -1,0 +1,234 @@
+/*
+ * Arc UI (https://uiarc.dev, free items `donut-chart` and `metric-card`), ported for the panel without `motion`
+ * (the panel's library rule allows lucide-react, react-aria-components and @internationalized/date only; CLAUDE.md
+ * "Admin arayüz kütüphaneleri"). Arc's tokens live under `.arc` only and read the panel's own `--admin-*` values
+ * (admin/layout.tsx), so the dashboard keeps its Innex look and nothing outside these components changes.
+ */
+.arc {
+  --foreground: var(--admin-text);
+  --text-secondary: var(--admin-text-soft);
+  --text-muted: var(--admin-text-mute);
+  --surface: var(--admin-surface);
+  --surface-muted: var(--admin-panel);
+  --border: var(--admin-border);
+  --success: var(--admin-success);
+  --danger: var(--admin-danger-ink);
+  --radius-surface: 12px;
+  --radius-row: 10px;
+  --font-body: var(--font-admin-sans), ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-2xl: 1.5rem;
+  --tracking-display: -0.02em;
+  --leading-display: 1.15;
+  --leading-body: 1.4;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 0;
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+/* ── metric-card: label and change on top, the figure, a line of context ── */
+.metric {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  padding: 16px 18px;
+  /* Inside a white widget card: the panel's pale well (admin/layout.tsx --admin-surface-2) */
+  background: var(--admin-surface-2);
+}
+.metricTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.metricTop small {
+  display: inline-flex;
+  flex: none;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.metricTop small[data-good="true"] {
+  background: color-mix(in oklab, var(--success) 11%, transparent);
+  color: var(--success);
+}
+.metricTop small[data-good="false"] {
+  background: color-mix(in oklab, var(--danger) 11%, transparent);
+  color: var(--danger);
+}
+.metricValue {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-display);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.metricContext {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-body);
+}
+
+/* ── donut-chart: the ring beside its legend when there is room, above it on a phone ── */
+.donut {
+  container-type: inline-size;
+  margin: 0;
+}
+.donutGrid {
+  display: grid;
+  gap: 16px;
+}
+.donutGrid > * {
+  min-width: 0;
+}
+/* A container query styles the container's children: the grid inside the figure. */
+@container (min-width: 380px) {
+  .donutGrid {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+  }
+}
+.ring {
+  position: relative;
+  max-width: 100%;
+  aspect-ratio: 1;
+  justify-self: center;
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.track {
+  fill: none;
+  stroke: var(--surface-muted);
+}
+.segment {
+  fill: var(--slice);
+  shape-rendering: geometricPrecision;
+  transform-origin: center;
+  animation: arc-sweep 480ms var(--ease-enter) both;
+  animation-delay: calc(var(--order, 0) * 60ms);
+}
+@keyframes arc-sweep {
+  from {
+    opacity: 0;
+    transform: rotate(-14deg) scale(0.96);
+  }
+}
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: calc(var(--inner) - 12px);
+  justify-items: center;
+  gap: 2px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+.centerLabel {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.centerValue {
+  max-width: 100%;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-display);
+  font-variant-numeric: tabular-nums;
+}
+.legend {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: grid;
+  min-height: 40px;
+  grid-template-columns: 10px minmax(0, 1fr) auto 3.25em;
+  align-items: center;
+  column-gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-row);
+  color: var(--foreground);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  text-decoration: none;
+  transition: background-color 160ms var(--ease-standard);
+}
+a.row:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--admin-primary) 40%, transparent);
+  outline-offset: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.row:hover {
+    background: color-mix(in oklab, var(--foreground) 5%, transparent);
+  }
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--slice);
+}
+.rowLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowValue {
+  justify-self: end;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.rowShare {
+  justify-self: end;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .segment {
+    animation: none;
+  }
+  .row {
+    transition: none;
+  }
+}

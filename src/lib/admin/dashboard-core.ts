@@ -5,6 +5,7 @@
 import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
+import { datePresets, type DatePreset } from "./date-presets";
 import { canAccess, type AdminRole } from "./roles";
 import type { AdminTone } from "./tone";
 
@@ -357,4 +358,106 @@ export function karaokeOccupancy(
     capacity,
     pct: capacity > 0 ? Math.round((hours / capacity) * 100) : 0,
   };
+}
+
+// ── The last seven days (owner and manager; Arc cards on the dashboard) ──
+
+/** Net revenue and reportable orders over a stretch of time (store's RevenuePace). */
+export interface PeriodPace {
+  revenueMinor: number;
+  orderCount: number;
+}
+
+/**
+ * The order list's "Son 7 gün" (today and the six days before, on the
+ * köşk's calendar): the range the dashboard's seven-day figures count and
+ * the list their links open.
+ */
+export function lastSevenDayRange(now: Date): DatePreset {
+  const preset = datePresets(now).find((p) => p.id === "last7");
+  if (!preset) throw new Error("last7 preset missing");
+  return preset;
+}
+
+/**
+ * The last seven days against the seven before them, cut at the same clock
+ * time, from `dashboardRevenue`'s one read: the 14 day buckets (today last)
+ * and the same weekday last week up to now. The previous stretch is days
+ * 13 to 8 whole plus day 7 up to this hour, so a Friday morning is not
+ * read against a whole Friday (the KPI strip's own rule). Null unless
+ * there are 14 buckets.
+ */
+export function lastSevenDays(
+  buckets: readonly PeriodPace[],
+  lastWeek: PeriodPace,
+): { current: PeriodPace; previous: PeriodPace } | null {
+  if (buckets.length !== 14) return null;
+  const sum = (rows: readonly PeriodPace[]): PeriodPace =>
+    rows.reduce(
+      (a, b) => ({
+        revenueMinor: a.revenueMinor + b.revenueMinor,
+        orderCount: a.orderCount + b.orderCount,
+      }),
+      { revenueMinor: 0, orderCount: 0 },
+    );
+  return {
+    current: sum(buckets.slice(7)),
+    previous: sum([...buckets.slice(0, 6), lastWeek]),
+  };
+}
+
+/** Net revenue per order; null with no order. */
+export function averageBasket(pace: PeriodPace): number | null {
+  return pace.orderCount > 0
+    ? Math.round(pace.revenueMinor / pace.orderCount)
+    : null;
+}
+
+/** One part of the seven days' order mix: its label and its filter. */
+export interface MixPart {
+  key: string;
+  label: string;
+  /** The order list's own filter for the part (order-filters.ts). */
+  params: Readonly<Record<string, string>>;
+}
+
+/**
+ * Where the orders came from, by the order list's Kanal filter. The three
+ * values split every order once: web and app leave out the panel's own
+ * (manual) orders, which have their own value.
+ */
+export const CHANNEL_MIX: readonly MixPart[] = [
+  { key: "app", label: "Uygulama", params: { kanal: "app" } },
+  { key: "web", label: "Web", params: { kanal: "web" } },
+  { key: "manuel", label: "Panelden", params: { kanal: "manuel" } },
+];
+
+/** How they were handed over, by the list's Teslimat filter (four values, every order once). */
+export const FULFILLMENT_MIX: readonly MixPart[] = [
+  { key: "table", label: "Masaya servis", params: { teslimat: "table" } },
+  { key: "pickup", label: "Gel-al", params: { teslimat: "pickup" } },
+  { key: "shipping", label: "Kargo", params: { teslimat: "shipping" } },
+  { key: "delivery", label: "Kurye", params: { teslimat: "delivery" } },
+];
+
+/**
+ * The order list's search params for a part (or, with no part, the whole):
+ * the range and "Raporda sayılan" (neither cancelled nor awaiting payment,
+ * the revenue buckets' own rule), so a part's count is the list it opens.
+ */
+export function mixParams(
+  range: Pick<DatePreset, "from" | "to">,
+  part?: MixPart,
+): Record<string, string> {
+  return {
+    bas: range.from,
+    bit: range.to,
+    odeme: "sayilan",
+    ...(part?.params ?? {}),
+  };
+}
+
+/** The order list at those params. */
+export function mixHref(params: Record<string, string>): string {
+  return `/admin/siparisler?${new URLSearchParams(params).toString()}`;
 }
