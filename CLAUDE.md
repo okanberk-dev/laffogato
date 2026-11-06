@@ -352,8 +352,10 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   ve frozen'da hiçbir seçenek, espressoda süt yok. Yalnız çizimi daraltır,
   siparişi reddetmez.
 - **Fiyat tazeliği:** fiyatın tek kaynağı `menu_items`; site paneli,
-  lafmaliyet ve LafPOS oraya yazar. Uygulama menüyü 5 dakika tutar (1 saat
-  değil), CDN penceresiyle birlikte en kötü ~15 dakika.
+  lafmaliyet ve LafPOS oraya yazar. 6 Kas 2026'dan beri `/menu` CDN'de 60 +
+  60 sn (`s-maxage=60, stale-while-revalidate=60`) ve uygulama menüyü 2
+  dakika tutar: fiyat ve fotoğraf en kötü ~4 dakikada görünür (sözleşme §1
+  "Tazelik penceresi"; fotoğraf URL'si içerikten damgalı).
 
 ## Marina şubesi: yalnız sitede (5 Kas 2026)
 
