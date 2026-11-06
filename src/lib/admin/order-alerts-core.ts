@@ -15,6 +15,7 @@ import {
   orderTable,
 } from "./order-channel";
 import { canAccess, type AdminRole } from "./roles";
+import { tableLabel } from "./table-calls-core";
 
 /** Where the alert polls. A route handler, not a page: it answers JSON. */
 export const ORDER_ALERT_PATH = "/admin/siparisler/uyari";
@@ -171,12 +172,7 @@ export function orderAlertsSince(nowMs: number): string {
  */
 export function orderAlertLabel(order: OrderAlertRow): string {
   const table = orderTable(order);
-  if (table) {
-    const name = table.name || table.code;
-    return /^masa(?:\s|\d|$)/.test(name.toLocaleLowerCase("tr-TR"))
-      ? name
-      : `Masa ${name}`;
-  }
+  if (table) return tableLabel(table);
   return ORDER_FULFILLMENT_LABELS[orderFulfillment(order)];
 }
 

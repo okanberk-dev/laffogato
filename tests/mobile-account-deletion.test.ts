@@ -58,6 +58,8 @@ describe("account deletion sweeps", () => {
       `${TABLES.falReadings}.customerEmail`,
       // A barista grant would pass to the next holder of the address.
       `${TABLES.staffMembers}.email`,
+      // "Garson çağır" (6 Kas 2026): the call stays, the address goes.
+      `${TABLES.tableCalls}.customerEmail`,
     ]) {
       expect(covered, target).toContain(target);
     }

@@ -110,6 +110,7 @@ export const RETENTION_RULE_LABELS: Record<string, string> = {
   "feature-consents": "Özellik açık rızaları",
   "counter-tokens": "Kasa kodları",
   "push-devices": "Uygulama bildirim jetonları",
+  "table-calls": "Masa çağrıları",
   "karaoke-guest-data": "Karaoke misafir ve iletişim bilgisi",
   "karaoke-reservations": "Karaoke rezervasyonları",
 };

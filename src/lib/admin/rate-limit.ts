@@ -49,7 +49,9 @@ export type AuthPurpose =
   | "karaoke-guest-ip"
   | "account-deletion"
   | "push-device"
-  | "invoice-download";
+  | "invoice-download"
+  | "table-call"
+  | "table-call-hour";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -172,6 +174,14 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // 10 s) is the köşk's for invoicing too. Every download counts: ten per
   // member in five minutes, then five minutes off.
   "invoice-download": 10,
+  // "Garson çağır" from the table (POST /api/mobile/v1/tables/{code}/calls).
+  // Every NEW call counts, keyed on the member (any address): one a minute
+  // (the call that reaches the cap is let through and starts the minute's
+  // lock), ten an hour. Each call rings every panel tab and the bar screen,
+  // so a loop of them is a loud way to bother the staff. Asking again for a
+  // call that is still open answers that call and counts nothing.
+  "table-call": 1,
+  "table-call-hour": 10,
 };
 
 /**
@@ -183,6 +193,8 @@ const WINDOW_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "karaoke-hold": 24 * 60 * 60 * 1000,
   "karaoke-guest-ip": 24 * 60 * 60 * 1000,
   "account-deletion": 24 * 60 * 60 * 1000,
+  "table-call": 60 * 1000,
+  "table-call-hour": 60 * 60 * 1000,
 };
 
 function windowMs(purpose: AuthPurpose): number {
@@ -210,6 +222,8 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "admin-login-ip": 15 * 60 * 1000,
   "customer-login-ip": 15 * 60 * 1000,
   "table-lookup": 15 * 60 * 1000,
+  "table-call": 60 * 1000,
+  "table-call-hour": 60 * 60 * 1000,
 };
 
 function lockoutMs(purpose: AuthPurpose): number {

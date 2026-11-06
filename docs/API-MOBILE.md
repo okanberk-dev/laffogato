@@ -2434,6 +2434,85 @@ yazılmaz. Ödeme onayını beklemez ve bozamaz (ayrıntı `docs/EMAIL-RESEND.md
   web sayfası `src/app/masa/[code]/page.tsx`; `tests/mobile-tables-route.test.ts`,
   `tests/cafe-tables-core.test.ts`, `tests/mobile-order-table*.test.ts` tutar.
 
+### 22.1 Masadan garson çağırma - `POST /tables/{code}/calls` · `GET /tables/{code}/calls/{id}` (kimlik) (6 Kas 2026, yalnız ekleme)
+
+Operatör: masadaki üye uygulamadan garson, su ya da peçete isteyebilsin;
+istek sitenin panelinde ve köşkün bar ekranında çalsın, biri "Gördüm" diyene
+kadar dursun.
+
+**Ne zaman açık.** `bootstrap.app.ordering.tableEnabled` **ve**
+`tableCallsEnabled` ikisi de `true` iken (§10; panel: Uygulama ayarları ›
+Sipariş › Kanallar › "Masadan garson çağırma açık"). Biri `false` iken
+uygulama düğmeyi gizler, sunucu **409** `calls_unavailable` döner.
+
+#### `POST /tables/{code}/calls` (kimlik)
+
+Gövde **tam olarak** `{ "reason": "waiter" | "water" | "napkin" }` (garson, su,
+peçete). Bilinmeyen alan ya da değer **400** `invalid_body`; JSON değilse **400**
+`invalid_json`. `{code}` §22'deki gibi gevşek okunur.
+
+```jsonc
+// 201 · Cache-Control: private, no-store
+{
+  "call": {
+    "id": "tcl-3f9a0c4b7d2e1a68",   // "tcl-" + 16 rastgele karakter
+    "reason": "water",
+    "status": "open",               // "open" | "acked" | "expired"
+    "createdAt": "2026-11-06T18:02:11.000Z",
+    "ackedAt": "",                  // yanıtlanınca ISO, o zamana kadar ""
+    "table": { "code": "K7Q2M9X4TB", "name": "Bahçe 3" }
+  }
+}
+```
+
+| Yanıt | Ne zaman |
+| --- | --- |
+| **201** `{ call }` | Yeni çağrı açıldı; panel ve bar ekranı çalar. |
+| **200** `{ call }` | O masanın **aynı sebeple** açık bir çağrısı var (yanıtlanmamış, 15 dakikadan genç; kimin açtığı fark etmez): o çağrı döner. Yeni satır, ping ve sayaç yok. |
+| **400** `invalid_body` / `invalid_json` | Gövde yukarıdaki biçimde değil. |
+| **401** `unauthorized` · **403** · **503** `auth_unavailable` | Kimlik yanıtları (§0). |
+| **404** `table_not_found` | §22'nin aynısı, aynı mesaj. Bulunamayan kod §22'nin `table-lookup` sayacına sayılır (aynı üye, aynı adres). |
+| **410** `table_inactive` | §22'nin aynısı, aynı mesaj. |
+| **409** `calls_unavailable` | `tableEnabled` ya da `tableCallsEnabled` kapalı. "Masadan çağrı şu an kapalı. Bir görevliye el sallayabilirsin." Masa koduna bakılmadan döner. |
+| **429** `rate_limited` + `Retry-After` | Masa kodu sayacı kilitliyken (§22, mesajı da onun) ya da üye çok sık çağırdığında: üye başına **dakikada 1**, **saatte 10** yeni çağrı (`auth_attempts`, amaç `table-call` ve `table-call-hour`, hangi adresten olursa olsun). Var olan açık çağrıyı döndüren 200 sayılmaz. |
+| **503** `unavailable` | Veritabanına ulaşılamadı. |
+
+#### `GET /tables/{code}/calls/{id}` (kimlik)
+
+Aynı `call` biçimiyle **200**; `Cache-Control: private, no-store`. `status`:
+`open` (bekliyor), `acked` (personel "Gördüm" dedi; `ackedAt` ne zaman),
+`expired` (yanıtlanmadı ve 15 dakikadan eski: ekranlardan düştü). Çağrı,
+onu `POST /calls`'un verdiği üyeye, açıldığı masanın koduyla döner: açan üye
+ve aynı masada aynı sebeple basıp 200 ile aynı çağrıyı alan ikinci üye.
+Başka masanın kodu, bilinmeyen ya da biçimsiz kimlik **404**
+`call_not_found` ("Çağrı bulunamadı."). Yanıtta üye ve personel adı yoktur.
+
+> **Uygulama notu (§22.1).** "Garson çağır" düğmesi masa ekranında, yalnız
+> `tableEnabled && tableCallsEnabled` iken (alan yoksa `true` say). 201 ya da
+> 200'de "Garson geliyor" kartını gösterir ve `GET .../calls/{id}`'yi
+> birkaç saniyede bir sorar; `acked`'da "Gördük, geliyoruz", `expired`'da
+> kart kapanır (yeniden çağırabilir). 404/410'da sunucunun mesajını gösterir
+> ve masa seçimini düşürür (§22); 409'da mesajı gösterir ve düğmeyi gizler;
+> 429'da mesajı gösterir, kendiliğinden tekrar denemez.
+
+**Personel tarafı (sitenin işi, sözleşmeyi değiştirmez).** Açık çağrı sitenin
+panelinde yeni sipariş zili gibi çalar ("Masa 4 · Su istiyor", "Gördüm") ve
+`/admin/siparisler`'in üstünde "Masa çağrıları" listesinde durur; köşkün bar
+ekranına imzalı `GET /api/panel/orders`'ın `calls` alanıyla gider ve oradan
+imzalı `POST /api/panel/calls/ack` ile yanıtlanır (`docs/PANEL-ORDERS.md`
+"Masa çağrıları"). Çağrı ve yanıtı panele `orders.changed` pingini atar.
+
+**Saklama.** `table_calls`: masanın kodu ve adı (o anki), sebep, çağıran
+üyenin e-postası (yalnız sitede kalır), zamanlar ve yanıtlayan
+(`panel:<ad>`, `lafpos:<ad>`, `admin:<ad>`). 30 gün sonra günlük imha
+çalışmasıyla silinir (`src/lib/retention.ts`, kural `table-calls`); hesap
+kapanınca e-posta hemen anonimleşir (`DELETE /me`, §4).
+
+- Site: `src/app/api/mobile/v1/tables/[code]/calls/route.ts`,
+  `.../calls/[id]/route.ts`, `src/lib/mobile/table-calls.ts` (akış),
+  `src/lib/admin/table-calls{,-core}.ts`; `tests/mobile-table-calls-route.test.ts`,
+  `tests/table-calls-core.test.ts` tutar.
+
 ## 23. Telefon bildirimi - `POST /devices` · `DELETE /devices` (kimlik) (22 Eki 2026, yalnız ekleme)
 
 Uygulama, üye bildirime izin verince Expo push jetonunu sunucuya bildirir;

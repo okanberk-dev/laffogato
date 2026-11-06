@@ -503,6 +503,7 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | `legal_override_history` | `archivedAt` | **11 yıl** | "Sözleşmenin ifasından itibaren 10 yıl…" (Mesafeli satış onay kaydı); ifa arşivden sonra gelir, fazladan yıl onu karşılar |
 | `legal_doc_versions`   | (fonksiyon) | **11 yıl** | Aynı dayanak; metne atıf yapan en yeni onaydan sayılır, belgenin en yeni metni hiç silinmez - aşağıya bak                  |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
+| `table_calls`          | `createdAt` | **30 gün** | Masadan garson çağrısı (6 Kas 2026). Sunucu ve uygulama logu satırının 1 yıllık **tavanı** altında; çağrı 15 dakikada ekrandan düşer, 30 gün bir şikâyete yanıt payıdır. Hesap kapanınca e-posta hemen anonimleşir. Politika çağrıyı henüz adıyla saymaz (adıyla eklemek `LEGAL_UPDATED`'ı taşıyan bir hukuk revizyonudur) |
 | `karaoke_reservations` | `date` (fonksiyon) | **3 yıl** | "rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir" - satır kalır, kişi bilgisi temizlenir (aşağıya bak) |
 | `karaoke_reservations` | `date` (fonksiyon) | **11 yıl** | "ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir" - TTK m.82/6: süre yıl sonundan başlar, 11 × 366 gün hiçbir kaydı erken silmez |
 

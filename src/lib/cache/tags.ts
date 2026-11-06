@@ -99,6 +99,11 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   venue_status: [TAG_VENUE],
 
   orders: ORDERS,
+  // "Garson çağır" (20261106120000): a call rings the order alert and shows
+  // on the köşk panel's bar screen with the orders, so a write moves the
+  // alert's change marker and pings the panel (`orders.changed`) like an
+  // order's.
+  table_calls: ORDERS,
   karaoke_reservations: KARAOKE,
   // Who may still read the panel: the change markers (change-marker.ts).
   admin_users: [TAG_ACCESS],

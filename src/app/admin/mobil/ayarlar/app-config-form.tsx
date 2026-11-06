@@ -327,8 +327,8 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
             />
           </div>
           <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
-            Garson çağırma yalnız masaya sipariş de açıkken çalışır. Gelen
-            çağrı Siparişler&apos;de ve zil uyarısında görünür.
+            Garson çağırma yalnız masaya sipariş de açıkken çalışır. Gelen çağrı
+            Siparişler&apos;de ve zil uyarısında görünür.
           </p>
         </Field>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">

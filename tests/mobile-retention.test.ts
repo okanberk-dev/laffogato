@@ -178,6 +178,8 @@ describe("every retention period is quoted from the published policy", () => {
       // The app's push tokens: at once on sign-out, closure and
       // DeviceNotRegistered; 180 days without a refresh at the latest.
       "customer_devices",
+      // "Garson çağır" (6 Kas 2026): thirty days, under the log ceiling.
+      "table_calls",
     ].sort());
   });
 

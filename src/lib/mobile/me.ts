@@ -407,6 +407,15 @@ export const ANON_SWEEPS: ReadonlyArray<{
     patch: (anon) => ({ customerEmail: anon }),
   },
   {
+    // "Garson çağır" (20261106120000): the call stays for the panel until
+    // the thirty-day sweep (an open one is still a guest at a table), but
+    // no longer points at the address.
+    table: TABLES.tableCalls,
+    column: "customerEmail",
+    caseInsensitive: true,
+    patch: (anon) => ({ customerEmail: anon }),
+  },
+  {
     // The barista grant is keyed on the address. Left alone, whoever next
     // registered it would open the app with the till already in hand - a
     // permission the panel gave somebody else. The row goes; the audit log

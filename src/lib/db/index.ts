@@ -360,4 +360,5 @@ export const TABLES = {
   invoices: "invoices",
   invoiceState: "invoice_state",
   invoiceContacts: "invoice_contacts",
+  tableCalls: "table_calls",
 } as const;

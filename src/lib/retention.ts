@@ -315,6 +315,25 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "refresh is a phone nobody uses for this account any more.",
   },
   {
+    id: "table-calls",
+    table: TABLES.tableCalls,
+    column: "createdAt",
+    idColumn: "id",
+    days: 30,
+    basis:
+      "5651 sayılı Kanun kapsamındaki asgari süreye uygun olarak 1 yıl; güvenlik olayına konu kayıtlar olayın incelenmesi tamamlanana kadar ayrıca muhafaza edilir.",
+    note:
+      '"Garson çağır" from the table (20261106120000): the table, the ' +
+      "reason, the instants, who answered and the member's e-mail. A request " +
+      "made through the app, so the published period is the server and app " +
+      "log row's, a CEILING; the call is useless once the staff saw it (it " +
+      "stops showing after 15 minutes), so KVKK m.4/2-d asks for far less. " +
+      "Thirty days leaves room to answer a guest's complaint about a call " +
+      "nobody came to. Account closure anonymises the e-mail at once " +
+      "(ANON_SWEEPS). The policy does not name table calls yet: naming them " +
+      "is a legal revision (LEGAL_UPDATED), the operator's call.",
+  },
+  {
     id: "karaoke-guest-data",
     table: TABLES.karaokeReservations,
     column: "date",
