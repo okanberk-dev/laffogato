@@ -58,11 +58,11 @@ describe("GET /api/mobile/v1/menu", () => {
   it("keeps the documented cache window and sends the whole menu", async () => {
     const res = await GET(request());
     expect(res.status).toBe(200);
-    // 300 s of CDN, then at most 300 s more of a stale copy while it
-    // refreshes: a price or a Tükendi reaches the app's next fetch within
-    // 10 minutes (docs/API-MOBILE.md "Tazelik penceresi").
+    // 60 s of CDN, then at most 60 s more of a stale copy while it
+    // refreshes: a price, a photo or a Tükendi reaches the app's next fetch
+    // within 2 minutes (docs/API-MOBILE.md "Tazelik penceresi", 6 Kas 2026).
     expect(res.headers.get("cache-control")).toBe(
-      "public, s-maxage=300, stale-while-revalidate=300",
+      "public, s-maxage=60, stale-while-revalidate=60",
     );
     expect(res.headers.get("content-type")).toBe("application/json");
     const body = (await res.json()) as typeof MENU;

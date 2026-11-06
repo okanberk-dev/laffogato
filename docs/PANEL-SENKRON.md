@@ -68,8 +68,8 @@ Saatler, kapanışlar, ayarlar ve tarihli kapanış henüz panele gitmiyor
   `tests/site-menusu.test.ts` (sipariş ve satışınkileri panel P2'de
   sabitler). Kural değişirse iki taraf aynı gün.
 - **Gecikme hedefi.** Site → panel 10 saniye içinde (ping). Site → uygulama:
-  menü 15 dakika içinde (CDN en çok 10 dk + uygulamanın `staleTime`'ı 5 dk,
-  lafmobil M2; bugünkü sürümlerin `staleTime`'ı 1 saat). Sipariş anındaki
+  menü birkaç dakika içinde (6 Kas 2026'dan beri CDN en çok 2 dk +
+  uygulamanın `staleTime`'ı 2 dk; eski sürümlerin `staleTime`'ı 1 saat). Sipariş anındaki
   karar (fiyat, Tükendi, açık / kapalı) her zaman sunucuda, güncel veriyle.
 
 ## Çakışma: iki yer aynı anda değişince

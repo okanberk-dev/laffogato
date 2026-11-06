@@ -185,8 +185,8 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
    Site yazımı yalnız bu üç sütuna yapar (`setMenuItemSaleFields`, tek UPDATE),
    olay kaydına yazar ve `pub:menu` önbelleğini düşürür: sitenin menüsü ve
    `/masa` QR menüsü yeni fiyatı hemen gösterir; uygulamanın menü yanıtı
-   CDN'de en çok 10 dakika eski kalır (`s-maxage=300`,
-   `stale-while-revalidate=300`; üstüne uygulamanın kendi önbelleği,
+   CDN'de en çok 2 dakika eski kalır (`s-maxage=60`,
+   `stale-while-revalidate=60`, 6 Kas 2026; üstüne uygulamanın kendi önbelleği,
    `docs/API-MOBILE.md` "Tazelik penceresi"). Yazım ping de üretir; panel
    çektiğinde değerler zaten aynıdır, döngü olmaz.
 
