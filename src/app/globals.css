@@ -4540,6 +4540,158 @@ summary:focus-visible,
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Home - "Evde L'Affogato" (home-take-home.tsx)
+
+   Owner's brief, 6 Kas 2026: a split product feature - a large photo on
+   the left, the details on a white card on the right. Mapped to the house:
+   the canvas for the near-white ground, the bordo for the eyebrow and the
+   list marks, the brand green for the name, the text gold for the bag's
+   size line, `--ink-line-strong` for the hairlines.
+   ───────────────────────────────────────────────────────────── */
+
+.take-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@media (min-width: 900px) {
+  .take-home {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: stretch;
+  }
+}
+.take-home-photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--r-card);
+  background: var(--bg-stone);
+}
+@media (min-width: 900px) {
+  .take-home-photo {
+    aspect-ratio: auto;
+    min-height: 560px;
+  }
+}
+/* ProductSurface draws the photo (or the bag, without one) at 100 %. */
+.take-home-photo > * {
+  position: absolute;
+  inset: 0;
+}
+.take-home-card {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 4vw, 48px);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.take-home-eyebrow {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--accent);
+}
+.take-home-name {
+  margin: 10px 0 0;
+  font-family: var(--headline);
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--green-brand);
+  text-wrap: balance;
+}
+.take-home-tag {
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.take-home-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 18px;
+}
+.take-home-now {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: var(--tracking);
+  color: var(--ink);
+}
+.take-home-was {
+  font-size: 16px;
+  color: var(--ink-mute);
+  text-decoration: line-through;
+}
+.take-home-list {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--ink-line-strong);
+}
+.take-home-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ink-line-strong);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.take-home-list li::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translateY(-2px);
+}
+.take-home-extra {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin: 22px 0 0;
+}
+.take-home-extra-photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--r-card);
+  background: var(--bg-stone);
+}
+.take-home-extra-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.take-home-extra figcaption {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.take-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+@media (min-width: 900px) {
+  .take-home-actions {
+    margin-top: auto;
+    padding-top: 26px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Footer - a night band over the köşk, then the espresso ground
 
    Owner's brief, 6 Kas 2026: an illustrated call-to-action band above a

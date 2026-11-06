@@ -12,6 +12,7 @@ import { priceLabel } from "@/lib/utils/format";
 import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
 import { HomeKaraoke } from "./home-karaoke";
+import { HomeTakeHome, pickTakeHomeProduct } from "./home-take-home";
 import { Illustration } from "./illustration";
 import { karaokeDoorLine } from "./karaoke-today";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
@@ -80,6 +81,7 @@ export function PageHome({
   heroImageUrl,
   homeSlides,
   karaoke,
+  products,
 }: PageProps) {
   const router = useRouter();
   // Operator-editable at /admin/ayarlar; the phone already reads it from
@@ -145,6 +147,10 @@ export function PageHome({
     }
     return out.slice(0, 8);
   }, [liveMenu]);
+
+  // One bag from the live shop for "Evde L'Affogato" (home-take-home.tsx);
+  // none in stock, no section.
+  const takeHome = useMemo(() => pickTakeHomeProduct(products), [products]);
 
   const menuItemCount = useMemo(
     () => Object.values(liveMenu).reduce((s, cat) => s + cat.items.length, 0),
@@ -549,6 +555,11 @@ export function PageHome({
           </div>
         </div>
       </section>
+
+      {/* Take home ───────────────────────────────────────────── */}
+      {/* After the drink served at the köşk, the coffee to take home: one
+          bag from the shop, its photo and its details on a white card. */}
+      {takeHome && <HomeTakeHome product={takeHome} />}
 
       {/* Loyalty ─────────────────────────────────────────────── */}
       {/* The bordo signature surface - in the app the stamp card IS the
