@@ -8,7 +8,6 @@
   --foreground: var(--admin-text);
   --text-secondary: var(--admin-text-soft);
   --text-muted: var(--admin-text-mute);
-  --surface: var(--admin-surface);
   --surface-muted: var(--admin-panel);
   --border: var(--admin-border);
   --success: var(--admin-success);

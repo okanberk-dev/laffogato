@@ -38,8 +38,6 @@
   /* The white card and the opaque sheet. */
   --surface: #ffffff;
   --surface-sheet: #ffffff;
-  /* The cool utility surface: dropdowns, account menu, quiet wraps. */
-  --surface-cool: #f9f9f9;
 
   /* The home hero's own five, on the café palette. */
   --hero-cream: #f9f8f6;
@@ -170,18 +168,6 @@
   --mono: var(--sans);
   --tracking: -0.01em;
 
-  /* Spacing - a semantic 4/8 scale anchored at 16px (--space-3), the
-     system's most frequent unit: outer gutter, card padding, body size. */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 32px;
-  --space-6: 40px;
-  --space-7: 48px;
-  --space-8: 56px;
-  --space-9: 64px;
-
   /* Layout */
   --content: 1280px;
   --content-wide: 1440px;
@@ -250,12 +236,10 @@
     var(--accent-on-dark) 66.66% 100%
   );
 
-  /* Motion - every button presses to 0.95 in 0.2 s; accordions open over
-     300 ms on a measured ease-out; images fade in over 0.3 s. */
+  /* Motion - every button presses to 0.95 in 0.2 s; images fade in over 0.3 s. */
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --press-scale: 0.95;
-  --expander-duration: 300ms;
 
   /* Card scheme marks on /odeme (scheme-marks.tsx), drawn locally - the
      checkout loads no image from anywhere else. The schemes' own colours. */
@@ -303,8 +287,7 @@ body {
    numerals + zero with slash where the face has them. Poppins (Google's
    cut) has none of the three, so today this only steadies the fallback font
    while Poppins loads; kept so a face that does have them picks them up. */
-.tabular,
-[data-tnum] {
+.tabular {
   font-variant-numeric: tabular-nums lining-nums slashed-zero;
   font-feature-settings: "tnum", "lnum", "zero", "kern";
 }
@@ -1274,9 +1257,6 @@ summary:focus-visible,
   flex: none;
   color: currentColor;
 }
-.nav-search-kbd {
-  display: none;
-}
 @media (max-width: 1280px) {
   .nav-search {
     width: 40px;
@@ -2049,10 +2029,6 @@ summary:focus-visible,
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
-}
-.chip-gold {
-  background: var(--gold-soft);
-  color: var(--gold-ink);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -5577,7 +5553,6 @@ summary:focus-visible,
 /* iOS-style fields: white, 14px corners, a hairline that turns green with
    a soft ring on focus. 48px tall - the touch floor with room to breathe. */
 .input,
-.textarea,
 .select {
   width: 100%;
   min-height: 48px;
@@ -5595,19 +5570,16 @@ summary:focus-visible,
     background-color 0.2s;
 }
 .input:hover,
-.textarea:hover,
 .select:hover {
   border-color: rgba(0, 0, 0, 0.24);
 }
 .input:focus,
-.textarea:focus,
 .select:focus {
   border-color: var(--green);
   box-shadow: var(--ring);
   background: #fff;
 }
-.input::placeholder,
-.textarea::placeholder {
+.input::placeholder {
   color: var(--ink-quiet);
 }
 /* A native select, drawn with the app's thin chevron. */
@@ -5619,84 +5591,10 @@ summary:focus-visible,
   background-repeat: no-repeat;
   background-position: right 16px center;
 }
-.label {
-  display: block;
-  font-family: var(--sans);
-  font-size: 13.5px;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: var(--ink-soft);
-  margin-bottom: 8px;
-}
 
 /* ─────────────────────────────────────────────────────────────
-   Page headers (consistent across pages)
+   Animation helpers
    ───────────────────────────────────────────────────────────── */
-
-.page-head {
-  /* Was clamp(140px, 16vw, 200px) at the top: pure clearance for the fixed
-     transparent header. The header is a sticky opaque bar now, so the page
-     starts where the page starts. */
-  padding: clamp(32px, 4vw, 64px) 0 clamp(28px, 4vw, 48px);
-  background: var(--bg);
-}
-.page-head .eyebrow {
-  margin-bottom: 24px;
-}
-.page-head h1 {
-  font-family: var(--headline);
-  font-weight: 600;
-  font-size: clamp(34px, 4.6vw, 60px);
-  line-height: 1.06;
-  letter-spacing: -0.02em;
-  margin: 0 0 18px;
-}
-.page-head h1 .script {
-  color: var(--accent);
-}
-.page-head .lede {
-  max-width: 64ch;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Steam / animation helpers
-   ───────────────────────────────────────────────────────────── */
-
-@keyframes steam {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translateY(-60px) translateX(4px);
-    opacity: 0;
-  }
-}
-@keyframes sway {
-  0%,
-  100% {
-    transform: rotate(-1.5deg);
-  }
-  50% {
-    transform: rotate(1.5deg);
-  }
-}
-@keyframes pour {
-  0% {
-    transform: scaleY(0.85);
-    opacity: 0;
-  }
-  25% {
-    opacity: 1;
-  }
-  100% {
-    transform: scaleY(1.05);
-    opacity: 1;
-  }
-}
 
 /* Respect reduced-motion: stop looping/scroll motion (steam, marquee, sway,
    reveals, page transitions) and snap transitions for users who request it. */
@@ -5736,9 +5634,7 @@ summary:focus-visible,
   [data-row="visit-map-row"],
   [data-row="visit-book-row"],
   [data-row="private-row"],
-  [data-row="founder-row"],
-  [data-row="featured-row"],
-  [data-row="shop-head"] {
+  [data-row="founder-row"] {
     grid-template-columns: 1fr !important;
     gap: 40px !important;
   }
@@ -5750,9 +5646,7 @@ summary:focus-visible,
   [data-row="visit-map-row"] > *,
   [data-row="visit-book-row"] > *,
   [data-row="private-row"] > *,
-  [data-row="founder-row"] > *,
-  [data-row="featured-row"] > *,
-  [data-row="shop-head"] > * {
+  [data-row="founder-row"] > * {
     min-width: 0;
   }
 }
@@ -7142,20 +7036,6 @@ select {
   min-height: 44px;
 }
 
-/* Hero stats row (PageHome) - used inline in home-page.tsx */
-
-/* Home - "01 Il locale" split row + 4-col stats card */
-
-/* Home - signature row inner stats grid */
-
-/* Home - matcha row inner grids */
-
-/* Home - shop preview section heads + grid */
-
-/* Home - shop preview grid (inline 3-col override) */
-
-/* Press row 4-col on home - override 820px rule (already 2-col); add 480px 1-col */
-
 /* Menu page - notes 3-col -> tablet 1-col */
 @media (max-width: 720px) {
   [data-row="menu-notes"] {
@@ -7163,9 +7043,6 @@ select {
     gap: 24px !important;
   }
 }
-
-/* Menu item card: intermediate breakpoint between 768 and 540 */
-/* Smallest phones */
 
 /* Shop page - 3-col grid override per breakpoint */
 .shop-grid-3 {
@@ -7289,19 +7166,6 @@ select {
   }
 }
 
-/* Featured row inner 2x2 grid */
-[data-row="featured-inner"] {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-@media (max-width: 480px) {
-  [data-row="featured-inner"] {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-}
-
 /* Footer-meta line breaks + smaller font on phones */
 @media (max-width: 540px) {
   .footer-meta {
@@ -7355,8 +7219,6 @@ select {
   }
 }
 
-/* Reduce hero section bottom padding on phones */
-
 /* Hero buttons full-width on smallest phones */
 @media (max-width: 380px) {
   .btn-lg {
@@ -7365,14 +7227,6 @@ select {
   }
   .btn {
     padding: 12px 18px;
-  }
-}
-
-/* Page head heading scales already use clamp; nudge tighter on smallest */
-@media (max-width: 380px) {
-  .page-head {
-    padding-left: var(--gutter);
-    padding-right: var(--gutter);
   }
 }
 
@@ -9709,49 +9563,6 @@ select {
     transform: translateY(42%);
   }
 }
-/* Three curls of steam, once. */
-.nf-steam {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: calc(var(--mark-w) * 0.3);
-}
-.nf-steam i {
-  position: absolute;
-  bottom: 4%;
-  width: calc(var(--mark-w) * 0.09);
-  height: 90%;
-  opacity: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 60'%3E%3Cpath d='M10 58C4 48 16 40 10 30S4 12 10 2' fill='none' stroke='%23A89684' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E")
-    center / contain no-repeat;
-  animation: nf-steam 2.6s var(--ease-out) forwards;
-}
-.nf-steam i:nth-child(1) {
-  left: 30%;
-  animation-delay: 1.5s;
-}
-.nf-steam i:nth-child(2) {
-  left: 47%;
-  animation-delay: 1.9s;
-}
-.nf-steam i:nth-child(3) {
-  left: 64%;
-  animation-delay: 2.3s;
-}
-@keyframes nf-steam {
-  0% {
-    opacity: 0;
-    transform: translateY(10px) scaleY(0.8);
-  }
-  35% {
-    opacity: 0.55;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-18px) scaleY(1.05);
-  }
-}
 
 .nf-code {
   display: inline-flex;
@@ -9950,9 +9761,6 @@ select {
     animation: none;
   }
 }
-.nf-art .nf-steam i {
-  filter: brightness(1.7);
-}
 .nf-stops-title {
   max-width: none;
   margin: clamp(32px, 4vw, 48px) auto 16px;
@@ -10052,8 +9860,7 @@ select {
   .nf-stage--half .nf-coffee {
     transform: translateY(42%);
   }
-  .nf-coffee::before,
-  .nf-steam i {
+  .nf-coffee::before {
     animation: none;
   }
 }
@@ -10943,8 +10750,7 @@ select {
   background: #fff;
 }
 .search-close-kbd,
-.search-foot kbd,
-.nav-search-kbd {
+.search-foot kbd {
   display: inline-grid;
   place-items: center;
   min-width: 26px;
