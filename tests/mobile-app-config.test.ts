@@ -255,13 +255,17 @@ describe("toBootstrapApp", () => {
         "campaignCards",
         // 6 Kas 2026: which app sections the operator shows.
         "sections",
+        // 8 Kas 2026: the sign-in doors beside e-mail and password.
+        "signIn",
         "store",
         // Karar 177: fA'L's AI switch, from the environment - off by default.
         "fal",
       ].sort(),
     );
     expect(app.fal).toEqual({ ai: false });
-    expect(toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true, true).fal).toEqual({ ai: true });
+    expect(toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true, true).fal).toEqual({
+      ai: true,
+    });
     // Only the listing URLs cross the wire. The signing identifiers are the
     // website's own business - it publishes the two `.well-known` documents,
     // and the app can do nothing with its own fingerprint.
@@ -411,11 +415,49 @@ describe("app sections (6 Kas 2026)", () => {
   });
 
   it("saves the section alone, leaving the others as they are", () => {
-    const current = normalizeMobileAppConfig({ ordering: { cafeEnabled: false } });
+    const current = normalizeMobileAppConfig({
+      ordering: { cafeEnabled: false },
+    });
     const merged = mergeMobileAppConfig(current, {
       sections: { ...current.sections, rewards: false },
     });
     expect(merged.sections.rewards).toBe(false);
     expect(merged.ordering.cafeEnabled).toBe(false);
+  });
+});
+
+describe("sign-in doors (8 Kas 2026)", () => {
+  it("keeps Google closed until the operator opens it", () => {
+    expect(DEFAULT_MOBILE_APP_CONFIG.signIn).toEqual({ google: false });
+    // A document saved before the section existed has no `signIn`.
+    expect(normalizeMobileAppConfig({}).signIn).toEqual({ google: false });
+    expect(toBootstrapApp(DEFAULT_MOBILE_APP_CONFIG, true).signIn).toEqual({
+      google: false,
+    });
+  });
+
+  it("publishes the operator's switch and falls back leaf by leaf", () => {
+    const open = normalizeMobileAppConfig({ signIn: { google: true } });
+    expect(open.signIn.google).toBe(true);
+    expect(toBootstrapApp(open, true).signIn).toEqual({ google: true });
+    // A broken leaf or section closes the door rather than opening it.
+    expect(
+      normalizeMobileAppConfig({ signIn: { google: "yes" } }).signIn,
+    ).toEqual({
+      google: false,
+    });
+    expect(normalizeMobileAppConfig({ signIn: "on" }).signIn).toEqual({
+      google: false,
+    });
+  });
+
+  it("saves the section alone, leaving the others as they are", () => {
+    const current = normalizeMobileAppConfig({
+      ordering: { cafeEnabled: false },
+    });
+    const merged = mergeMobileAppConfig(current, { signIn: { google: true } });
+    expect(merged.signIn.google).toBe(true);
+    expect(merged.ordering.cafeEnabled).toBe(false);
+    expect(merged.sections).toEqual(current.sections);
   });
 });

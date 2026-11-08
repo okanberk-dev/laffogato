@@ -1,8 +1,9 @@
 # AUTH-BRIDGE - site ile uygulamanın ortak üyeliği
 
 > Bu belge `src/lib/supabase/**`, `src/lib/customer/supabase-*.ts`,
-> `src/lib/mobile/auth*.ts`, `src/proxy.ts` ve `src/app/uye/actions.ts`'in
-> neden böyle yazıldığını anlatır. Sözleşme `docs/API-MOBILE.md` §0'dadır;
+> `src/lib/mobile/auth*.ts`, `src/proxy.ts`, `src/app/uye/actions.ts` ve
+> Google ile girişin `src/app/uye/google/**`'unun (§7) neden böyle
+> yazıldığını anlatır. Sözleşme `docs/API-MOBILE.md` §0'dadır;
 > veri taşıma `docs/SUPABASE-GECIS.md`'dir - bu belge o işten bağımsızdır.
 
 ---
@@ -250,3 +251,81 @@ yok / devre dışı, hoş geldin kuponu anı, ad-telefon üzerine yazmama), tek
 seferlik köprü kuralı, obfuscated user. Supabase ve veritabanına dokunan
 kısımlar (`auth.ts`, `supabase-bridge.ts`) yalnız sarmalayıcıdır ve
 entegrasyon ortamında elle doğrulanır.
+
+## 7. Google ile giriş (8 Kas 2026)
+
+Operatör: _"uygulamaya google ile giriş alt yapısı yap hazırla ve diğer site
+repolarıyla da bağlantılı hale getir"_. Google, Supabase Auth'un bir
+sağlayıcısıdır; yeni bir kimlik sistemi değildir. Site, uygulama ve mobil
+API aynı Supabase kullanıcısını görür; `customers` satırı yine e-postayla
+eşleşir (§0, "bir e-posta = bir üyelik").
+
+**Anahtar:** Mobil → Ayarlar → **Giriş yöntemleri** → "Google ile giriş açık
+(site ve uygulama)" (`settings."mobileApp".signIn.google`, varsayılan
+kapalı). Site düğmeyi bir sonraki istekte çizer; uygulama
+`bootstrap.app.signIn.google`'ı okur ve yalnız bu özelliği taşıyan
+derlemede, iOS'ta da yalnız Apple ile giriş yanındayken gösterir (App Store
+4.8; lafmobil `docs/AUTH.md` §5e). Anahtar en son açılır: önce Supabase'de
+Google sağlayıcısı ve hukuk metinleri (lafmobil `docs/GOOGLE-GIRIS.md`).
+
+### Akış (site)
+
+```
+/uye/giris · /uye/kayit   "Google ile devam et"  (düz <a>, form değil)
+      │
+      ▼ GET /uye/google            anahtar kapalı → /uye/giris?google=kapali
+      │   signInWithOAuth(google, PKCE; doğrulayıcı bu tarayıcının çerezinde)
+      ▼ Supabase /authorize → Google hesap seçici (prompt=select_account)
+      ▼ GET /uye/google/donus?code=…
+      │   customer-login-ip bütçesi (parola formuyla ortak) → exchangeCodeForSession
+      │   e-posta yok → ?google=eposta · kapalı hesap → ?google=devredisi
+      ├─ yeni üye (satır yok, terms_accepted_at yok) → /uye/google/onay
+      │     kutu işaretlenir → updateUser({ data: { terms_accepted_at, marketing_consent_at } })
+      │     → ensureCustomerForSupabaseUser(user, "site-google") → site çerezi
+      └─ var olan üye → ensureCustomerForSupabaseUser(user) → site çerezi
+```
+
+- **Neden form değil, bağlantı.** Sitenin CSP'si `form-action 'self'`;
+  tarayıcılar bunu form gönderiminin izlediği yönlendirmeye de uygular,
+  Supabase'e ve Google'a giden adım engellenirdi.
+- **Neden PKCE yeter.** `@supabase/ssr` sunucu istemcisi PKCE akışındadır:
+  doğrulayıcı başlatan tarayıcının çerezinde durur, kod yalnız orada
+  harcanır. Başka bir tarayıcıya taşınan kod kimseyi içeri almaz; doğrulayıcı
+  yoksa auth-js ağa hiç gitmeden reddeder.
+- **Onay adımı.** Hesap açmak sözleşmenin tikini ister (`registerAction`,
+  uygulamanın kaydı); Google'ın izin ekranı bizim sözleşmemiz değildir. Yeni
+  üye `/uye/google/onay`'da durur: Supabase oturumu çerezdedir, satır ve
+  sitenin çerezi yoktur, yani üye siteye henüz girmemiştir. "Vazgeç" Supabase
+  çerezlerini (yerel kapsam) siler; Supabase kullanıcısı üye verisi
+  taşımadığı için kalır ve aynı hesapla bir sonraki Google girişi yine onay
+  sayfasına döner. Kapatılmış hesabın kimliğine onay sorulmaz, köprü onu
+  `account_disabled` ile reddeder (`googleNeedsConsent`).
+- **Rıza geçmişi.** Onay sayfasında açılan satırın ticari ileti satırları
+  `site-google-signup` kaynağıyla ve isteğin IP'siyle yazılır; uygulamadan
+  gelen yeni Google üyesininki eskisi gibi `app-signup` (IP'siz: kutunun
+  işaretlendiği istek o değildir).
+- **Hesap bağlama Supabase'in işidir** (GoTrue `DetermineAccountLinking`,
+  kaynağından okundu): Google'ın doğrulanmış e-postası, aynı e-postalı
+  kullanıcıya yeni bir kimlik olarak eklenir (e-posta başına tek kullanıcı).
+  Var olan kullanıcının e-postası doğrulanmamışsa GoTrue doğrulanmamış
+  kimlikleri (parola dahil) siler ve hesabı doğrular: önceden açılmış bir
+  hesabın ele geçirilmesine karşı. Her Google girişinde Google'ın kimlik
+  verisi `user_metadata`'ya birleştirilir (`full_name`, `avatar_url` ...);
+  `terms_accepted_at` gibi bizim anahtarlarımız silinmez. Satırdaki ad
+  yalnız boşsa doldurulur (`planCustomerLink`), Google adı üyenin yazdığı adı
+  ezmez.
+- **Parolasız üye.** Google ile açılan satırın `passwordHash`'i boştur
+  (uygulamada açılanlarınki gibi). Sitede şifre değiştirme mevcut şifreyi
+  sorar; böyle bir üye şifreyi "Şifremi unuttum" ile belirler (sıfırlama
+  Supabase'e de yazılır, §5).
+- **Dönüş adresi.** `https://laffogato.net/uye/google/donus` Supabase'in Site
+  URL'siyle aynı hosttadır ve bu yüzden izin listesi olmadan da kabul edilir;
+  kurulum yine de listeye ekler. `?next=` yalnız `sameSitePath`'ten geçerek
+  taşınır.
+
+Parçalar: `src/lib/customer/google-sign-in-core.ts` (saf: yollar, uyarı
+cümleleri, onay kararı), `src/app/uye/google/route.ts` (başlatma),
+`src/app/uye/google/donus/route.ts` (dönüş), `src/app/uye/google/onay/`
+(onay sayfası; eylemler `src/app/uye/actions.ts`),
+`src/components/uye/google-sign-in.tsx` (düğme), `googleSignInNeedsConsent`
+(`supabase-bridge.ts`). Testler: `tests/google-sign-in.test.ts`.

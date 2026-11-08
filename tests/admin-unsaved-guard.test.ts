@@ -957,16 +957,16 @@ describe("adoption: one call in each of the four forms, the wizard's own guard k
     );
   });
 
-  it("Uygulama ayarları: the form every one of the ten tabs is drawn by", () => {
+  it("Uygulama ayarları: the form every one of the eleven tabs is drawn by", () => {
     const src = read("src/app/admin/mobil/ayarlar/app-config-ui.tsx");
     expect(src).toContain(
       "useUnsavedGuard(ref, { saved: savedAnswer(state) });",
     );
     expect(src.match(/<form\s+ref=\{ref\}/g)).toHaveLength(1);
-    // The ten tabs build their form through it ("Uygulama bölümleri" is
-    // the tenth, 6 Kas 2026).
+    // The eleven tabs build their form through it ("Uygulama bölümleri" is
+    // the tenth, 6 Kas 2026; "Giriş yöntemleri" the eleventh, 8 Kas 2026).
     const tabs = read("src/app/admin/mobil/ayarlar/app-config-form.tsx");
-    expect(tabs.match(/<ConfigForm form=\{form\}>/g)).toHaveLength(10);
+    expect(tabs.match(/<ConfigForm form=\{form\}>/g)).toHaveLength(11);
   });
 
   it("the legal editor: its own ref handed to ActionForm", () => {

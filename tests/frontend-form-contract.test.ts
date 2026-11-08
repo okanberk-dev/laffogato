@@ -95,6 +95,14 @@ const CONTRACTS: FormContract[] = [
     ],
   },
   {
+    // A new member who came in with Google ticks the agreement here before
+    // a member row exists (docs/AUTH-BRIDGE.md §7).
+    action: "completeGoogleSignUpAction",
+    actionFile: "src/app/uye/actions.ts",
+    forms: ["src/app/uye/google/onay/consent-form.tsx"],
+    fields: ["acceptedTerms", "marketing", "next"],
+  },
+  {
     action: "loginAction",
     actionFile: "src/app/uye/actions.ts",
     forms: ["src/app/uye/giris/login-form.tsx"],
@@ -278,6 +286,9 @@ describe("consent boxes a redesign must not pre-tick", () => {
     ["src/app/uye/kayit/register-form.tsx", 'name="acceptedTerms"'],
     ["src/app/uye/kayit/register-form.tsx", 'name="marketing"'],
     ["src/app/uye/kayit/register-form.tsx", 'name="newsletter"'],
+    // A new member who came in with Google (8 Kas 2026).
+    ["src/app/uye/google/onay/consent-form.tsx", 'name="acceptedTerms"'],
+    ["src/app/uye/google/onay/consent-form.tsx", 'name="marketing"'],
     ["src/components/laffogato/newsletter-form.tsx", 'name="consent"'],
     ["src/components/laffogato/karaoke-booking.tsx", 'name="consentPreInfo"'],
     ["src/components/laffogato/karaoke-booking.tsx", 'name="consentContract"'],

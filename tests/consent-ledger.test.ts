@@ -54,7 +54,10 @@ describe("consentChanges", () => {
       ),
     ).toEqual([{ purpose: "newsletter", granted: true }]);
     expect(
-      consentChanges({ marketing: true }, { marketing: false, newsletter: false }),
+      consentChanges(
+        { marketing: true },
+        { marketing: false, newsletter: false },
+      ),
     ).toEqual([{ purpose: "marketing", granted: false }]);
   });
 
@@ -108,10 +111,15 @@ describe("appendConsentChanges", () => {
   });
 
   it("uses the given IP, even an empty one, over the request's", async () => {
-    await appendConsentChanges("a@b.co", null, { marketing: true }, {
-      source: "admin",
-      ip: "",
-    });
+    await appendConsentChanges(
+      "a@b.co",
+      null,
+      { marketing: true },
+      {
+        source: "admin",
+        ip: "",
+      },
+    );
     // Not the member's act: neither the IP nor the browser is theirs.
     expect(
       (inserted[0] as { rows: { ip: string; userAgent: string }[] }).rows[0],
@@ -158,7 +166,9 @@ describe("every writer of a member's commercial preferences appends", () => {
       // A refusal read from İYS's consent list (/admin/iys, applyIysRefusal).
       "iys",
     ],
-    "src/lib/customer/supabase-bridge.ts": ["app-signup"],
+    // The app's first sign-in, and the site's Google consent page (8 Kas
+    // 2026, /uye/google/onay).
+    "src/lib/customer/supabase-bridge.ts": ["app-signup", "site-google-signup"],
     "src/lib/mobile/me.ts": ["app-account", "account-deletion"],
   };
 

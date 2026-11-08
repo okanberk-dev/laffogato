@@ -1553,6 +1553,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "coffeeMode": true,                         // Kahve Modu
       "campaigns": true                           // Kampanyalar
     },
+    "signIn": { "google": false },                // 8 Kas 2026, yalnız ekleme: e-posta ve parolanın yanındaki giriş kapıları (/admin/mobil/ayarlar → Giriş yöntemleri). Varsayılan false; alan ya da anahtar yoksa (eski dağıtım) false say. true iken site /uye/giris ve /uye/kayit'ta "Google ile devam et"i çizer; uygulama yalnız bu özelliği taşıyan derlemede ve iOS'ta Apple ile giriş de varken
     "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20) VE standart sözleşmenin imza ve bildirim kaydı (19 Eki 2026, §20); false iken uygulama yalnız cihazda okur (§20) · 27 Ekim 2026: uygulama karar 330'dan sonra bu uçları (§20) çağırmaz ve app.fal'ı okumaz (App Review 4.3(b)); uçlar v1 gereği yanıt vermeye devam eder, yapay zekâ yolu kapalıdır, POST /fal 503 fal_unavailable döner
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
@@ -1573,6 +1574,18 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
   vermeye devam eder. Panel değişikliği bootstrap önbelleği yüzünden
   uygulamaya en geç birkaç dakikada ulaşır. Kaydedilen her değişiklik olay
   kaydına `mobile_app_config` / `sections` olarak yazılır.
+- `app.signIn` (8 Kas 2026) bir **görünürlük** anahtarıdır, kimlik yöntemi
+  değildir: Google ile gelen üyenin her yetkili isteği yine
+  `Authorization: Bearer <Supabase access JWT>` taşır (§0) ve sunucu onu
+  parolayla gelenle aynı yoldan doğrular (`requireMobileCustomer`). Supabase
+  doğrulanmış aynı e-postalı Google kimliğini mevcut kullanıcıya bağlar,
+  `customers` satırı e-postayla eşleşir: sipariş, adres ve damga bölünmez.
+  Yeni üye hesabı yalnız üyelik onayıyla açılır: uygulama Google'dan dönen
+  oturumu kendi istemcisine vermeden önce Supabase kullanıcısının
+  metadata'sına `terms_accepted_at` (ve isteğe bağlı `marketing_consent_at`)
+  yazar, site aynısını `/uye/google/onay`'da yapar; satır ilk yetkili
+  istekte bu anlarla oluşur (§13 "Rıza kaydı"). Kurulum ve sıra: lafmobil
+  `docs/GOOGLE-GIRIS.md`; site tarafı `docs/AUTH-BRIDGE.md` §7.
 - `app` **karaoke** kurallarını ve `venue`'yü taşımaz: karaoke alanları
   `GET /karaoke/availability` ile (§7), köşk alanları `venue.*` ile gelir.
 - Uygulama tarafı: `app` ya da yeni `venue` alanları eksik gelirse (eski
@@ -1750,6 +1763,16 @@ kullanıcı meta verisine yazar: `terms_accepted_at`, `marketing_consent_at`
 **Meta veri yoksa sütun boş kalır** — sunucu artık "hesap açıldığına göre
 sözleşme kabul edilmiştir" varsayımını yapmaz. Ticari ileti onayı ayrıdır ve
 `notificationPrefs.marketing` anahtarını da o belirler.
+
+**Google ile ilk giriş (8 Kas 2026, yalnız ekleme).** Google ile gelen yeni
+üyede kayıt formu yoktur; aynı iki alanı onay adımı yazar. Uygulama, `email`
+kimliği olmayan ve `terms_accepted_at` taşımayan bir Google kullanıcısını
+kendi onay panelinde durdurur, onay verilince `updateUser({ data })` ile iki
+anı yazar ve oturumu ancak ondan sonra kendi istemcisine verir; böylece ilk
+yetkili istek satırı onayla oluşturur. Site aynı anahtarları
+`/uye/google/onay`'da yazar ve satırı hemen açar (rıza geçmişinde kaynak
+`site-google-signup`, isteğin IP'siyle). Var olan bir üyenin Google girişi
+onay sormaz.
 
 ## 14. `POST /me/favorites` (kimlik) — favori aç/kapat
 

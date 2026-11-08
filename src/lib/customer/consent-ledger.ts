@@ -19,7 +19,8 @@ import { COMMERCIAL_CONSENT_UPDATED } from "@/lib/legal/meta";
  *
  * Every writer of those two flags calls `appendConsentChanges` after its own
  * write succeeded (`tests/consent-ledger.test.ts` finds them by source):
- * site sign-up, the app's first sign-in (Supabase bridge), the site's account
+ * site sign-up, the app's first sign-in and the site's Google consent page
+ * (Supabase bridge), the site's account
  * page, PATCH /me, the member unsubscribe link, the bulletin unsubscribe link
  * that also switches the member off, the admin customer form, account
  * closure, and a refusal read from İYS's consent list.
@@ -35,6 +36,9 @@ export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number];
 export type ConsentSource =
   | "site-signup"
   | "app-signup"
+  // The site's Google consent page (/uye/google/onay, 8 Kas 2026): a new
+  // member who came in with Google accepts the agreement there.
+  | "site-google-signup"
   | "site-account"
   | "app-account"
   | "unsubscribe-link"
@@ -141,9 +145,7 @@ export async function appendConsentChanges(
     createdAt,
   }));
   try {
-    const { error } = await getDb()
-      .from(TABLES.customerConsents)
-      .insert(rows);
+    const { error } = await getDb().from(TABLES.customerConsents).insert(rows);
     if (error) throw new Error(error.message);
     return rows.length;
   } catch (err) {

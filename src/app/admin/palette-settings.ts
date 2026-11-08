@@ -104,6 +104,7 @@ const APP_KEYWORDS: Record<AppConfigTabId, readonly string[]> = {
   reminders: ["hatırlatma", "bildirim saati"],
   cards: ["sadakat kartı", "davet kartı", "kampanya"],
   sections: ["bölüm gizle", "ana sayfa", "kahve modu", "mağaza rafı"],
+  signin: ["google ile giriş", "giriş yöntemleri", "sosyal giriş"],
   happy: ["mutlu saat", "happy hour", "indirim oranı"],
   venue: ["köşk", "kısa ad", "yer tarifi", "harita"],
   store: ["app store", "google play", "derin bağlantı", "paket adı"],

@@ -575,6 +575,109 @@ export async function logoutAction(): Promise<void> {
   redirect("/");
 }
 
+// ─── Google sign-in: the new member's consent (docs/AUTH-BRIDGE.md §7) ────
+
+export type GoogleConsentState = {
+  error?: string;
+  values?: { marketing?: boolean };
+};
+
+/**
+ * Opens the membership of someone who came in with Google for the first
+ * time (`/uye/google/onay`).
+ *
+ * The return route left them half-way on purpose: a Supabase session in the
+ * cookies, no member row and no site cookie, because an account is opened
+ * only with the agreement's tick (`registerAction`, the app's sign-up) and
+ * Google's consent screen is Google's. This is the tick.
+ *
+ * The consent instants go into the Supabase user's metadata first, the same
+ * keys the app's sign-up writes (`terms_accepted_at`, `marketing_consent_at`),
+ * so the bridge copies them onto the new row whichever surface the member
+ * uses next, and the app does not ask again. Then the bridge creates the row
+ * with this request's IP in the consent history (`site-google`) and the
+ * site's cookie is set, exactly as after a password sign-in.
+ *
+ * The session is re-read here, not trusted from the page: a public POST
+ * endpoint (rule 27) must find its own Supabase user or do nothing.
+ */
+export async function completeGoogleSignUpAction(
+  _prev: GoogleConsentState,
+  formData: FormData,
+): Promise<GoogleConsentState> {
+  const acceptedTerms = formData.get("acceptedTerms") === "on";
+  const marketing = formData.get("marketing") === "on";
+  const next = sameSitePath(formData.get("next"));
+  const values = { marketing };
+  if (!acceptedTerms) {
+    return {
+      error: "Üyeliğini açmak için kullanım şartlarını okuyup kabul etmelisin.",
+      values,
+    };
+  }
+
+  let sessionEmail = "";
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user?.email) {
+      return {
+        error:
+          "Google oturumunun süresi doldu. Giriş sayfasından yeniden dene.",
+        values,
+      };
+    }
+    const now = new Date().toISOString();
+    const { data: updated, error: updateError } =
+      await supabase.auth.updateUser({
+        data: {
+          terms_accepted_at: now,
+          marketing_consent_at: marketing ? now : "",
+        },
+      });
+    if (updateError || !updated.user) {
+      console.error(
+        `[uye/google] consent write refused: ${updateError?.message ?? "no user"}`,
+      );
+      return {
+        error: "Onayın kaydedilemedi. Biraz sonra yeniden dene.",
+        values,
+      };
+    }
+    const linked = await ensureCustomerForSupabaseUser(
+      updated.user,
+      "site-google",
+    );
+    if (!linked.ok) {
+      await signOutSupabase();
+      return {
+        error:
+          linked.reason === "account_disabled"
+            ? "Hesabın devre dışı bırakılmış. Lütfen bizimle iletişime geç."
+            : "Üyeliğin açılamadı. Biraz sonra yeniden dene.",
+        values,
+      };
+    }
+    sessionEmail = linked.customer.email;
+  } catch (err) {
+    if (!isDbUnreachable(err)) throw err;
+    return { error: DB_DOWN_MESSAGE, values };
+  }
+  await setActiveCustomerSession(sessionEmail);
+  redirect(next ?? "/uye/hesap");
+}
+
+/**
+ * "Vazgeç" on the consent page: the Supabase session the Google return left
+ * behind goes (local scope), and nothing was created here. The Supabase user
+ * itself stays - it holds no member data, and the next Google sign-in with
+ * that account comes back to the consent page.
+ */
+export async function cancelGoogleSignUpAction(): Promise<void> {
+  await signOutSupabase();
+  redirect("/uye/giris");
+}
+
 export type UpdateProfileState = {
   error?: string;
   message?: string;
