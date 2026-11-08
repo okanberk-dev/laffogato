@@ -350,11 +350,14 @@ sonucuyla) ile, toplu gönderimi `deliverBatch` ile sunar: Resend
 (`cmp-<kampanya>-b<parti>`) sayesinde yeniden deneme aynı kutuya iki kez
 düşmez. Kim, kime, ne zaman gönderir - §7.
 
-**Mağaza linkleri:** uygulama henüz yayında değil.
-`NEXT_PUBLIC_APP_STORE_URL` ve `NEXT_PUBLIC_PLAY_STORE_URL` tanımlı değilken
-maillerdeki uygulama şeridi tümüyle düşer - hiçbir yere gitmeyen buton
-gönderilmez. İkisi de girildiğinde şerit kendiliğinden geri gelir; uygulama
-duyurusu maili ise onlar olmadan hiç gönderilmez.
+**Mağaza linkleri:** iOS uygulaması App Store'da (1.1.0'dan beri); adresi
+koda gömülü varsayılandır (`LIVE_APP_STORE_URL`, `src/lib/mobile/app-store.ts`;
+`NEXT_PUBLIC_APP_STORE_URL` onu ezer). Google Play'de listeleme yok:
+`NEXT_PUBLIC_PLAY_STORE_URL` boş. Maillerdeki uygulama şeridi iki düğmelik bir
+çift olduğu için yalnız **ikisi de** varken basılır (`hasAppLinks()`); Play
+adresi girilene kadar şerit tümüyle düşer - hiçbir yere gitmeyen buton
+gönderilmez - ve uygulama duyurusu maili hiç gönderilmez. Play adresi Vercel'e
+girildiğinde ikisi de kendiliğinden gelir.
 
 ## 6. Sır saklama kuralı
 

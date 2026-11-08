@@ -105,11 +105,15 @@ hesaplayıp sunucuya "bu kadar al" diye göndermek **yoktur** (Güvenlik kuralı
 
 ### Onay kutuları ön işaretli olamaz
 
-`legalConsent` (mesafeli satış, kural 12), `acceptedTerms`, `marketing`,
-`newsletter` ve bülten `consent`'i (6563, kural 19) **işaretsiz başlar**. Aynı
-test bunu da tutar: `defaultChecked`, `defaultChecked={true}` ve `checked`
-reddedilir; başarısız bir gönderimden sonra ziyaretçinin kendi seçimini geri
-yazan `defaultChecked={values.x}` serbesttir.
+Ödemenin iki belge kutusu (`consentPreInfo`, `consentContract`; mesafeli
+satış, kural 12), `acceptedTerms`, `marketing`, `newsletter`, bülten
+`consent`'i (6563, kural 19) ve Google ile gelen yeni üyenin onay sayfasındaki
+kutular **işaretsiz başlar**. `legalConsent` artık kutu değil, gizli bir
+alandır: yalnız iki belge kutusu da işaretlenince çizilir
+(`checkout-consent.tsx`, `tests/checkout-consent.test.ts`). Aynı test kutuları
+da tutar: `defaultChecked`, `defaultChecked={true}` ve `checked` reddedilir;
+başarısız bir gönderimden sonra ziyaretçinin kendi seçimini geri yazan
+`defaultChecked={values.x}` serbesttir.
 
 ---
 
