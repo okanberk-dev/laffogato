@@ -33,6 +33,7 @@ import {
   saveOrderingAction,
   saveRemindersAction,
   saveSectionsAction,
+  saveSignInAction,
   saveStoreAction,
   saveVenueAction,
   saveVersionAction,
@@ -51,7 +52,7 @@ import {
 } from "./app-config-ui";
 
 /**
- * Ten independent forms, one per section of `settings."mobileApp"`, laid
+ * Eleven independent forms, one per section of `settings."mobileApp"`, laid
  * out like Ayarlar: each saves only its own section (the action merges it
  * onto the live document), so an operator can tune the courier ETA without
  * re-submitting the reminders. `@/lib/mobile/app-config` is safe to import
@@ -182,6 +183,7 @@ const TAB_BODY: Record<AppConfigTabId, (config: MobileAppConfig) => ReactNode> =
     reminders: (config) => <RemindersTab config={config} />,
     cards: (config) => <CampaignCardsTab config={config} />,
     sections: (config) => <SectionsTab config={config} />,
+    signin: (config) => <SignInTab config={config} />,
     happy: (config) => <HappyHourTab config={config} />,
     venue: (config) => <VenueTab config={config} />,
     store: (config) => <StoreTab config={config} />,
@@ -735,7 +737,58 @@ function SectionsTab({ config }: { config: MobileAppConfig }) {
   );
 }
 
-// ─── 6b. Mutlu saatler ────────────────────────────────────────────────────
+// ─── 6b. Giriş yöntemleri ─────────────────────────────────────────────────
+
+/**
+ * Google beside e-mail and password, for the site and the app at once.
+ *
+ * The warning above the box is the point of the section: the switch is the
+ * last step, not the first. Turned on before the Supabase provider exists,
+ * the button opens a raw JSON error in the member's browser; before the
+ * legal texts name Google, it starts a transfer the KVKK notice does not
+ * mention. The steps live in lafmobil `docs/GOOGLE-GIRIS.md`.
+ */
+function SignInTab({ config }: { config: MobileAppConfig }) {
+  const form = useAppConfigForm(saveSignInAction);
+  return (
+    <ConfigForm form={form}>
+      <Section
+        title="Giriş yöntemleri"
+        description="E-posta ve parolanın yanındaki giriş kapıları. Aynı e-postayla gelen Google hesabı mevcut üyeliğe bağlanır; siparişler ve damgalar bölünmez."
+      >
+        <div className={cx("rounded-lg p-3 text-sm", TONE_SOFT.warning)}>
+          <p>Kutuyu en son işaretle. Önce:</p>
+          <ol className="mt-2 grid list-decimal gap-1 pl-5">
+            <li>
+              Google Cloud&apos;da OAuth istemcisi, Supabase&apos;de Google
+              sağlayıcısı kurulu olmalı. Kurulmadan açılırsa düğme üyeye bir
+              hata sayfası açar.
+            </li>
+            <li>
+              Hukuk metinleri (KVKK aydınlatması, gizlilik politikası)
+              Google&apos;ı kimlik sağlayıcısı olarak anmalı.
+            </li>
+          </ol>
+          <p className="mt-2">
+            Site düğmeyi hemen gösterir. Uygulama yalnız bu özelliği taşıyan,
+            incelemeden geçmiş derlemelerde gösterir; iPhone&apos;da Apple ile
+            giriş eklenmeden hiç göstermez (App Store 4.8).
+          </p>
+        </div>
+        <div className="mt-3">
+          <Checkbox
+            name="signInGoogle"
+            label="Google ile giriş açık (site ve uygulama)"
+            defaultChecked={config.signIn.google}
+          />
+        </div>
+        <SaveBar form={form} />
+      </Section>
+    </ConfigForm>
+  );
+}
+
+// ─── 6c. Mutlu saatler ────────────────────────────────────────────────────
 
 const HAPPY_DAY_LABELS: Record<string, string> = {
   weekday: "Hafta içi",

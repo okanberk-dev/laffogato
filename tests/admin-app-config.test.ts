@@ -13,7 +13,7 @@ import {
  * Mobil → Uygulama ayarları (admin audit CON-03, CON-05, CON-12, CON-20,
  * CON-21, CON-25, CON-27, KAR-02, KAR-12, KAR-17):
  *
- * - the ten tabs post by hand, so a refused save keeps what was typed and
+ * - the eleven tabs post by hand, so a refused save keeps what was typed and
  *   the ticked boxes (React reset every `<form action>` on any answer);
  * - every refusal lands under its own field, a reminder's names its row;
  * - maintenance going on and the minimum version going up are not written
@@ -350,6 +350,48 @@ describe("Uygulama bölümleri and table calls (6 Kas 2026)", () => {
   });
 });
 
+describe("Giriş yöntemleri (8 Kas 2026)", () => {
+  it("saves the Google switch alone and logs it", async () => {
+    saved = config();
+    const res = await actions.saveSignInAction(
+      {},
+      form({ signInGoogle: "on" }),
+    );
+    expect(res.error).toBeUndefined();
+    const patch = updateSettings.mock.calls[0][0] as {
+      mobileApp: MobileAppConfig;
+    };
+    expect(patch.mobileApp.signIn).toEqual({ google: true });
+    expect(patch.mobileApp.sections).toEqual(saved.sections);
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "mobile_app_config",
+        entityId: "signIn",
+      }),
+    );
+  });
+
+  it("closes the door when the box is left unticked", async () => {
+    saved = config({ signIn: { google: true } });
+    await actions.saveSignInAction({}, form({}));
+    const patch = updateSettings.mock.calls[0][0] as {
+      mobileApp: MobileAppConfig;
+    };
+    expect(patch.mobileApp.signIn.google).toBe(false);
+  });
+
+  it("says what has to be ready before the box is ticked", () => {
+    const html = renderToStaticMarkup(
+      createElement(AppConfigForm, { config: config(), initialTab: "signin" }),
+    );
+    expect(html).toContain("Giriş yöntemleri");
+    expect(html).toContain('name="signInGoogle"');
+    expect(html).toContain("Supabase");
+    expect(html).toContain("Apple ile giriş");
+    expect(core.parseAppConfigTab("signin")).toBe("signin");
+  });
+});
+
 describe("tabs in the address (CON-20)", () => {
   it("reads and writes ?bolum=", () => {
     expect(core.parseAppConfigTab("store")).toBe("store");
@@ -388,9 +430,9 @@ describe("the form as the server renders it", () => {
   it("draws ARIA tabs and opens the tab the address names", () => {
     const html = render("store");
     expect(html).toContain('role="tablist"');
-    expect(html.match(/role="tab"/g)).toHaveLength(10);
+    expect(html.match(/role="tab"/g)).toHaveLength(11);
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
-    expect(html.match(/role="tabpanel"/g)).toHaveLength(10);
+    expect(html.match(/role="tabpanel"/g)).toHaveLength(11);
     // The selected tab is Mağaza; its panel is the one not hidden.
     const tab = html.match(
       /<button[^>]*aria-selected="true"[^>]*>[\s\S]*?<\/button>/,
@@ -409,7 +451,7 @@ describe("the form as the server renders it", () => {
 
   it("posts by hand: no form action that React would reset", () => {
     const html = render();
-    expect(html.match(/<form /g)).toHaveLength(10);
+    expect(html.match(/<form /g)).toHaveLength(11);
     expect(html).not.toMatch(/<form[^>]*\saction=/);
     const src = readFileSync(
       "src/app/admin/mobil/ayarlar/app-config-form.tsx",

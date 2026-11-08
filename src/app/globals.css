@@ -11797,6 +11797,32 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   justify-content: center;
   margin-top: 6px;
 }
+/* "Google ile devam et" (docs/AUTH-BRIDGE.md §7): the outlined pill on a
+   white ground, Google's four-colour mark beside the label. The mark keeps
+   its own colours (Google's branding rules), so the ground under it stays
+   white rather than taking a tint. */
+.auth-google {
+  background: var(--surface);
+}
+.auth-google svg {
+  flex: none;
+}
+/* The "ya da" rule between the e-mail form and the Google door. */
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 4px;
+  color: var(--ink-mute);
+  font-size: 13px;
+}
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--ink-line);
+}
 .auth-submit[disabled] {
   opacity: 0.7;
 }

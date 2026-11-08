@@ -362,6 +362,29 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   dakika tutar: fiyat ve fotoğraf en kötü ~4 dakikada görünür (sözleşme §1
   "Tazelik penceresi"; fotoğraf URL'si içerikten damgalı).
 
+## Google ile giriş (8 Kas 2026)
+
+Operatör: _"uygulamaya google ile giriş alt yapısı yap hazırla ve diğer site
+repolarıyla da bağlantılı hale getir"_. Google, ortak Supabase projesinin bir
+sağlayıcısıdır; site oturumu, mobil API'nin bearer doğrulaması ve
+`customers` eşlemesi (e-postayla, tek üyelik) değişmedi.
+
+- **Anahtar:** Mobil → Ayarlar → Giriş yöntemleri
+  (`mobileApp.signIn.google`, varsayılan kapalı; `bootstrap.app.signIn`,
+  `docs/API-MOBILE.md` §10). Site `/uye/giris` ve `/uye/kayit`'ta "Google
+  ile devam et"i hemen çizer; uygulama yalnız bu özelliği taşıyan derlemede
+  ve iOS'ta Apple ile giriş yanındayken (App Store 4.8).
+- **Akış:** `GET /uye/google` (PKCE, düz bağlantı: CSP `form-action 'self'`
+  form yönlendirmesini keser) → Google → `GET /uye/google/donus` (ortak giriş
+  bütçesi, kod değişimi, köprü, sitenin çerezi). Yeni üye
+  `/uye/google/onay`'da sözleşmeyi onaylamadan satır açılmaz; onay anları
+  Supabase metadata'sına (`terms_accepted_at`, `marketing_consent_at`) yazılır,
+  uygulama da aynı anahtarları yazar.
+- **Açmadan önce (operatör):** Google Cloud OAuth istemcisi, Supabase'de
+  Google sağlayıcısı ve yönlendirme adresleri, hukuk metinlerinde Google'ın
+  kimlik sağlayıcısı olarak anılması. Sıra ve ekran ekran adımlar lafmobil
+  `docs/GOOGLE-GIRIS.md`; tasarım `docs/AUTH-BRIDGE.md` §7.
+
 ## Marina şubesi: yalnız sitede (5 Kas 2026)
 
 Operatör: _"Laffogato Marina şubesi ... açıldı olarak göster"_, kapsam

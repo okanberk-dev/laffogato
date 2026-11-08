@@ -3,25 +3,37 @@ import { redirect } from "next/navigation";
 
 import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
 import { LafMark } from "@/components/laffogato/brand-mark";
+import { AuthOr, GoogleSignInLink } from "@/components/uye/google-sign-in";
 import { LoginForm } from "./login-form";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { googleNotice } from "@/lib/customer/google-sign-in-core";
 import { sameSitePath } from "@/lib/http/same-site-path";
+import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const metadata = { title: "Giriş yap · L'Affogato" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ dogrulandi?: string; next?: string }>;
+  searchParams: Promise<{
+    dogrulandi?: string;
+    next?: string;
+    google?: string;
+  }>;
 }
 
 export default async function GirisPage({ searchParams }: PageProps) {
   // `?next=` is how /odeme and /karaoke send a signed-out visitor here; it
   // rides the form to `loginAction`, which follows it only if it is a path
   // on this site.
-  const { dogrulandi, next: rawNext } = await searchParams;
+  const { dogrulandi, next: rawNext, google } = await searchParams;
   const next = sameSitePath(rawNext) ?? undefined;
   const active = await getActiveCustomer();
   if (active) redirect(next ?? "/uye/hesap");
+  // "Google ile devam et" while the panel switch is on (Mobil → Ayarlar →
+  // Giriş yöntemleri), and the line the Google return sent back with, if
+  // the flow ended without a sign-in (docs/AUTH-BRIDGE.md §7).
+  const googleOpen = (await getSiteSettings()).mobileApp.signIn.google;
+  const googleLine = googleNotice(google);
   // `?dogrulandi=1` is where Supabase's confirmation mail lands
   // (`supabaseEmailRedirectUrl`). It was being produced and never read, so a
   // member who had just confirmed their address arrived at a plain login form
@@ -46,6 +58,11 @@ export default async function GirisPage({ searchParams }: PageProps) {
               E-posta adresin doğrulandı. Şifrenle giriş yapabilirsin.
             </p>
           )}
+          {googleLine && (
+            <p role="alert" className="auth-alert auth-note--status">
+              {googleLine}
+            </p>
+          )}
           <p className="eyebrow">Üye girişi</p>
           <h1 id="auth-title" className="auth-title">
             Tekrar hoş geldin
@@ -55,6 +72,12 @@ export default async function GirisPage({ searchParams }: PageProps) {
             doldur.
           </p>
           <LoginForm next={next} />
+          {googleOpen && (
+            <>
+              <AuthOr />
+              <GoogleSignInLink next={next} />
+            </>
+          )}
           <div className="auth-foot">
             <Link href="/uye/sifremi-unuttum" className="auth-link">
               Şifreni mi unuttun?

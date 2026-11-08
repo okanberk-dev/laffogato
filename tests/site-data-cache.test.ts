@@ -670,6 +670,13 @@ describe("the guard itself", () => {
       "src/app/rehber/layout.tsx",
       "src/app/robots.ts",
       "src/app/sitemap.ts",
+      // The Google door's panel switch (8 Kas 2026) and nothing else: the
+      // pages draw or hide a button, the start route refuses to begin while
+      // it is off. Signing in itself is Supabase's answer, read live, and a
+      // settings save expires `pub:site` at once; an outage reads "off".
+      "src/app/uye/giris/page.tsx",
+      "src/app/uye/google/route.ts",
+      "src/app/uye/kayit/page.tsx",
       "src/app/uye/layout.tsx",
       "src/app/ziyaret/opengraph-image.tsx",
       "src/app/ziyaret/page.tsx",

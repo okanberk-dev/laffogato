@@ -419,7 +419,25 @@ export async function saveSectionsAction(
   return saveSection("sections", { sections });
 }
 
-// ─── 6b. Mutlu saatler ────────────────────────────────────────────────────
+// ─── 6b. Giriş yöntemleri ─────────────────────────────────────────────────
+
+/**
+ * The sign-in doors beside e-mail and password (`signIn`, 8 Kas 2026). One
+ * box today: Google. The site draws its button from the next request; the
+ * app from its next bootstrap, and only in a build that carries the feature
+ * (`MobileAppConfig["signIn"]`). Logged like every section.
+ */
+export async function saveSignInAction(
+  _prev: AppConfigState,
+  formData: FormData,
+): Promise<AppConfigState> {
+  await requireRole("mobileApp");
+  return saveSection("signIn", {
+    signIn: { google: flag(formData, "signInGoogle") },
+  });
+}
+
+// ─── 6c. Mutlu saatler ────────────────────────────────────────────────────
 
 /**
  * The happy hour the app announces.

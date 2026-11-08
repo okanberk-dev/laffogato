@@ -43,6 +43,7 @@ export const APP_CONFIG_TABS = [
   { id: "reminders", label: "Hatırlatmalar" },
   { id: "cards", label: "Kampanya kartları" },
   { id: "sections", label: "Uygulama bölümleri" },
+  { id: "signin", label: "Giriş yöntemleri" },
   { id: "happy", label: "Mutlu saatler" },
   { id: "venue", label: "Köşk bilgileri" },
   { id: "store", label: "Mağaza ve bağlantılar" },

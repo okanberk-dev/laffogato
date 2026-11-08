@@ -13,7 +13,8 @@ import {
 } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import { appendConsentChanges } from "./consent-ledger";
+import { appendConsentChanges, type ConsentContext } from "./consent-ledger";
+import { googleNeedsConsent } from "./google-sign-in-core";
 import { grantWelcomeCoupon } from "./coupons";
 import {
   activatePendingNewsletter,
@@ -27,6 +28,7 @@ import {
   normalizeEmail,
   planCustomerLink,
   shouldAttemptSupabaseLink,
+  termsAcceptedAtOf,
   type SupabaseUserLike,
 } from "./supabase-link-plan";
 
@@ -77,6 +79,23 @@ async function identityRevoked(userId: string): Promise<boolean> {
   return ((data as unknown[] | null) ?? []).length > 0;
 }
 
+/**
+ * Where a member row is born, for the first rows of its consent history.
+ *
+ * - `app`: the app's sign-up form (or its Google consent panel). The boxes
+ *   were ticked there, earlier; this request is the app's first API call,
+ *   so it carries neither the IP nor the browser of that moment.
+ * - `site-google`: this site's Google consent page (`/uye/google/onay`),
+ *   submitted by the very request that creates the row - its IP and browser
+ *   are the evidence, read from the request.
+ */
+export type SignUpSurface = "app" | "site-google";
+
+const SIGN_UP_CONSENT: Record<SignUpSurface, ConsentContext> = {
+  app: { source: "app-signup", ip: "" },
+  "site-google": { source: "site-google-signup" },
+};
+
 export type EnsureCustomerResult =
   | { ok: true; customer: PublicCustomer; created: boolean }
   | {
@@ -94,16 +113,42 @@ export type EnsureCustomerResult =
  */
 export async function ensureCustomerForSupabaseUser(
   user: SupabaseUserLike,
+  surface: SignUpSurface = "app",
 ): Promise<EnsureCustomerResult> {
   const email = normalizeEmail(user.email);
   if (!email) return { ok: false, reason: "missing_email" };
-  return reconcile(email, user, false);
+  return reconcile(email, user, false, surface);
+}
+
+/**
+ * Whether a Google sign-in on the site must stop at the consent page before
+ * a member row is created (`googleNeedsConsent`, docs/AUTH-BRIDGE.md §7).
+ *
+ * Reads the row the bridge would otherwise create or link, and nothing is
+ * written. Throws on a database failure, like the bridge.
+ */
+export async function googleSignInNeedsConsent(
+  user: SupabaseUserLike,
+): Promise<boolean> {
+  const email = normalizeEmail(user.email);
+  // No address: the return route refuses it before asking.
+  if (!email) return false;
+  const termsAcceptedAt = termsAcceptedAtOf(user);
+  // Accepted already (in the app, or on this site's consent page): no read.
+  if (termsAcceptedAt) return false;
+  const existing = await fetchRaw(email);
+  return googleNeedsConsent({
+    termsAcceptedAt,
+    rowExists: existing !== null,
+    identityRevoked: existing ? false : await identityRevoked(user.id),
+  });
 }
 
 async function reconcile(
   email: string,
   user: SupabaseUserLike,
   retried: boolean,
+  surface: SignUpSurface,
 ): Promise<EnsureCustomerResult> {
   const now = new Date().toISOString();
   const existing = await fetchRaw(email);
@@ -136,18 +181,21 @@ async function reconcile(
       // Unique violation: the app and the site created the row at the same
       // moment. The other write won - read it back and reconcile against it.
       if (error.code === "23505" && !retried) {
-        return reconcile(email, user, true);
+        return reconcile(email, user, true, surface);
       }
       checkErr(error, "supabaseBridge.insert");
     }
     created = true;
-    // The consent the member gave in the app's sign-up form (Supabase
-    // metadata), into the history. No IP: this request is not where the
-    // box was ticked.
-    await appendConsentChanges(email, null, plan.row.notificationPrefs, {
-      source: "app-signup",
-      ip: "",
-    });
+    // The consent the member gave (Supabase metadata) into the history:
+    // the app's sign-up form, with no IP because this request is not where
+    // the box was ticked, or the site's Google consent page, whose request
+    // this is (`SIGN_UP_CONSENT`).
+    await appendConsentChanges(
+      email,
+      null,
+      plan.row.notificationPrefs,
+      SIGN_UP_CONSENT[surface],
+    );
   } else if (plan.action === "update") {
     const { error } = await db
       .from(TABLES.customers)

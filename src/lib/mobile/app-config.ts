@@ -91,6 +91,25 @@ export interface MobileAppConfig {
    */
   sections: AppSections;
   /**
+   * The sign-in doors beside e-mail and password (8 Kas 2026, "Giriş
+   * yöntemleri"). One switch per provider, and only Google exists.
+   *
+   * Off by default and off until the operator says the provider is ready:
+   * the button is only as good as the Supabase project behind it. With the
+   * Google provider not yet configured there, `/authorize` answers a raw
+   * JSON error inside the browser sheet, and the member is left looking at
+   * it (docs/AUTH-BRIDGE.md §7).
+   *
+   * One switch for two surfaces. The site's /uye/giris and /uye/kayit draw
+   * "Google ile devam et" the moment it is on. The app reads it from
+   * `bootstrap.app.signIn` and draws the button only in a build that carries
+   * the feature (lafmobil `BUILD_FEATURES.googleSignIn`, App Review 2.3.1),
+   * and never on iOS without Sign in with Apple beside it (Guideline 4.8).
+   */
+  signIn: {
+    google: boolean;
+  };
+  /**
    * The happy hour, and whether it is announced at all.
    *
    * It is off by default and stays off until the operator turns it on,
@@ -221,6 +240,11 @@ export interface BootstrapApp {
   /** Every key of `APP_SECTION_KEYS`, always (6 Kas 2026, additive). */
   sections: AppSections;
   /**
+   * The sign-in doors the operator has opened (8 Kas 2026, additive).
+   * Absent on an older deployment, which the app reads as all off.
+   */
+  signIn: MobileAppConfig["signIn"];
+  /**
    * Karar 177: whether fA'L's AI reading is on (`fal-core.ts`
    * `falAiEnabled`). Always false since 27 Oct 2026: fA'L left the app after
    * App Review's 4.3(b) refusal (lafmobil karar 330) and the app no longer
@@ -346,6 +370,11 @@ export const DEFAULT_MOBILE_APP_CONFIG: MobileAppConfig = deepFreeze({
   sections: Object.fromEntries(
     APP_SECTION_KEYS.map((key) => [key, true]),
   ) as AppSections,
+  // Closed until the provider is configured in Supabase and the operator
+  // turns it on (see `MobileAppConfig["signIn"]`).
+  signIn: {
+    google: false,
+  },
   happyHour: {
     // The window the café has always run; off until someone says the till
     // will honour it.
@@ -598,6 +627,11 @@ const configSchema = z.object({
       APP_SECTION_KEYS.map((key) => [key, bool(D.sections[key])]),
     ) as Record<AppSectionKey, z.ZodCatch<z.ZodBoolean>>,
   ).catch(() => ({ ...D.sections })),
+  // A document saved before 8 Kas 2026 has no `signIn`: every door stays
+  // closed, which is what those deployments had.
+  signIn: section({
+    google: bool(D.signIn.google),
+  }).catch(() => ({ ...D.signIn })),
   happyHour: section({
     enabled: bool(D.happyHour.enabled),
     days: z.enum(L.happyHourDays).catch(D.happyHour.days),
@@ -697,6 +731,7 @@ export function toBootstrapApp(
     },
     campaignCards: { ...cfg.campaignCards },
     sections: { ...cfg.sections },
+    signIn: { ...cfg.signIn },
     fal: { ai: falAi },
   };
 }
