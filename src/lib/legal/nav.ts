@@ -2,7 +2,8 @@
  * Footer'da listelenen hukuki belgeler — yalnızca slug + etiket.
  *
  * Footer bir client component olduğu için burası bilerek `documents.ts`'ten
- * ayrı tutulur: aksi halde 24 belgenin tam metni istemci paketine girerdi.
+ * ayrı tutulur: aksi halde bütün belgelerin tam metni istemci paketine
+ * girerdi.
  * Slug'ların gerçekten var olduğu `tests/legal-docs.test.ts` içinde doğrulanır.
  *
  * **Burası tam liste değildir, olmamalıdır.** Footer'da on dört sözleşme

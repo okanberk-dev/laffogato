@@ -227,6 +227,13 @@ describe("the start", () => {
     }
   });
 
+  it("tells a Google member on the password page how to get a password", () => {
+    const page = read("src/app/uye/hesap/sifre/page.tsx");
+    expect(page).toContain("mobileApp.signIn.google");
+    expect(page).toMatch(/googleOpen && \(/);
+    expect(page).toContain('href="/uye/sifremi-unuttum"');
+  });
+
   it("counts the return against the shared sign-in budget before exchanging", () => {
     const route = read("src/app/uye/google/donus/route.ts");
     expect(route).toContain('"customer-login-ip"');

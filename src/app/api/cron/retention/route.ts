@@ -14,11 +14,14 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Vercel cron (vercel.json → crons, daily 04:00 UTC = 07:00 İstanbul):
- * periodic destruction, as the published Veri Saklama ve İmha Politikası
+ * Periodic destruction, as the published Veri Saklama ve İmha Politikası
  * undertakes. The policy names the last work week of June and December; a
  * daily sweep satisfies that without ever letting a category run past its
  * period, and the report is what gets filed for those two dates.
+ *
+ * The daily cron runs it, as its last step (`/api/cron/daily`, vercel.json,
+ * 06:00 UTC = 09:00 İstanbul); this route is the same sweep on its own,
+ * behind the same `CRON_SECRET`, for reading the report by hand.
  *
  * REPORT MODE IS THE DEFAULT. Destruction is irreversible, so it happens only
  * when `RETENTION_APPLY=destroy` is set on the deployment; until then the run

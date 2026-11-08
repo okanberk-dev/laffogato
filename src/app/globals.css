@@ -8093,6 +8093,15 @@ select {
   border: 1px solid #a7f3d0;
   color: #065f46;
 }
+/* A hint, not an answer (the Google member's password note): the auth
+   pages' green note. */
+.account-msg[data-tone="info"] {
+  margin-top: 16px;
+  background: var(--green-mist);
+  border: 1px solid rgba(29, 109, 86, 0.18);
+  color: var(--ink);
+  line-height: 1.5;
+}
 
 /* Wishlist grid */
 .account-wishlist-grid {

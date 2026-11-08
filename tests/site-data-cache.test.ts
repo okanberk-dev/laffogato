@@ -676,6 +676,8 @@ describe("the guard itself", () => {
       // settings save expires `pub:site` at once; an outage reads "off".
       "src/app/uye/giris/page.tsx",
       "src/app/uye/google/route.ts",
+      // The same switch, for the Google member's password note only.
+      "src/app/uye/hesap/sifre/page.tsx",
       "src/app/uye/kayit/page.tsx",
       "src/app/uye/layout.tsx",
       "src/app/ziyaret/opengraph-image.tsx",
