@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -85,8 +85,14 @@ describe("three.js loads late, in a chunk of its own", () => {
   });
 
   it("retired the valley: its files and its component are gone", () => {
-    for (const name of ["home-valley.tsx", "valley-scene.ts", "valley-shaders.ts"]) {
-      expect(existsSync(join("src/components/laffogato", name)), name).toBe(false);
+    for (const name of [
+      "home-valley.tsx",
+      "valley-scene.ts",
+      "valley-shaders.ts",
+    ]) {
+      expect(existsSync(join("src/components/laffogato", name)), name).toBe(
+        false,
+      );
     }
     expect(HOME).not.toContain("HomeValley");
     expect(HOME).toContain("<HomeRoast");
@@ -111,6 +117,40 @@ describe("the scene is a good guest", () => {
     );
   });
 
+  it("gives the visitor one switch that stops every drawing (WCAG 2.2.2)", () => {
+    // The drawings move for longer than five seconds, so each place that
+    // mounts one mounts the control beside it. Until 11 Kas 2026 this was
+    // the valley's "Hareketi durdur" button; the promise is the same.
+    for (const [name, source] of [
+      ["home-roast.tsx", HERO],
+      ["home-page.tsx", HOME],
+    ] as const) {
+      const stages = source.match(/<RoastStage\b/g)?.length ?? 0;
+      const controls = source.match(/<RoastPause\b/g)?.length ?? 0;
+      expect(stages, `${name} mounts no drawing`).toBeGreaterThan(0);
+      expect(controls, `${name}: a drawing without a pause control`).toBe(
+        stages,
+      );
+    }
+    // A real button that says what it does and which state it is in.
+    expect(STAGE).toMatch(
+      /<button\s+type="button"\s+className=\{cx\("roast-pause", className\)\}\s+aria-pressed=\{paused\}\s+aria-label=\{paused \? "Hareketi başlat" : "Hareketi durdur"\}/,
+    );
+    // One shared switch: pressing any control holds every running scene,
+    // and a scene that starts later starts held.
+    expect(STAGE).toMatch(
+      /motion\.paused = !motion\.paused;\s+motion\.emit\(\);/,
+    );
+    expect(STAGE).toMatch(/handle\.current\?\.setPaused\(paused\);/);
+    expect(STAGE).toMatch(/handle\.current\.setPaused\(motion\.paused\);/);
+    // It sits outside the stage (which takes no pointer) and is a 44px
+    // target: a 36px disc with 4px of reach on every side.
+    const control = rule(".roast-pause");
+    expect(control).toMatch(/pointer-events: auto;/);
+    expect(control).toMatch(/width: 36px;/);
+    expect(rule(".roast-pause::after")).toMatch(/inset: -4px;/);
+  });
+
   it("gives everything back when it leaves", () => {
     for (const call of [
       "bin.empty()",
@@ -127,13 +167,21 @@ describe("the scene is a good guest", () => {
   it("never takes the scroll or a pointer away from the page", () => {
     // It only listens to where the pointer is (the camera leans toward it),
     // passively; it never handles a wheel or a touch.
-    expect(SCENE).not.toMatch(/addEventListener\("(wheel|touchmove|touchstart)"/);
-    expect(SCENE).not.toMatch(/preventDefault\(\)[^;]*;[\s\S]{0,40}(wheel|scroll|touch)/);
+    expect(SCENE).not.toMatch(
+      /addEventListener\("(wheel|touchmove|touchstart)"/,
+    );
+    expect(SCENE).not.toMatch(
+      /preventDefault\(\)[^;]*;[\s\S]{0,40}(wheel|scroll|touch)/,
+    );
     expect(SCENE).toMatch(
       /addEventListener\("pointermove", onPointer, \{ passive: true \}\)/,
     );
-    expect(SCENE).toContain('window.removeEventListener("pointermove", onPointer)');
-    expect(HERO).toMatch(/addEventListener\("scroll", read, \{ passive: true \}\)/);
+    expect(SCENE).toContain(
+      'window.removeEventListener("pointermove", onPointer)',
+    );
+    expect(HERO).toMatch(
+      /addEventListener\("scroll", read, \{ passive: true \}\)/,
+    );
     expect(rule(".roast-stage")).toMatch(/pointer-events: none;/);
   });
 
@@ -161,7 +209,9 @@ describe("the type is the page's, not the canvas's", () => {
       expect(html).toContain(`<span class="sr-only">${word}</span>`);
     }
     expect(html).toContain("Bölüm 1: Bologna 1897’den Tuzla’ya");
-    expect(html).toMatch(/<a class="btn btn-ghost btn-sm roast-hero-go" href="\/menu"/);
+    expect(html).toMatch(
+      /<a class="btn btn-ghost btn-sm roast-hero-go" href="\/menu"/,
+    );
     expect(html).toContain("Menüyü keşfet");
     expect(html).toContain("Kaydır ve keşfet");
   });
@@ -179,7 +229,9 @@ describe("the type is the page's, not the canvas's", () => {
       const stage = renderToStaticMarkup(createElement(RoastStage, { kind }));
       expect(stage).toContain(`roast-stage--${kind}`);
       expect(stage).toContain(`roast-still--${kind}`);
-      expect(stage).toMatch(/^<div class="roast-stage [^"]*" aria-hidden="true">/);
+      expect(stage).toMatch(
+        /^<div class="roast-stage [^"]*" aria-hidden="true">/,
+      );
     }
   });
 
@@ -212,10 +264,13 @@ describe("the type is the page's, not the canvas's", () => {
   });
 });
 
+/** The text goes in as a child, the way a page writes it. */
+type RevealProps = ComponentProps<typeof RevealText>;
+
 describe("a split title still reads as one", () => {
   it("names a heading by its whole line and hides the glyph boxes", () => {
     const html = renderToStaticMarkup(
-      createElement(RevealText, { as: "h2", children: "Şimdi barda" }),
+      createElement(RevealText, { as: "h2" } as RevealProps, "Şimdi barda"),
     );
     expect(html).toMatch(/^<h2 class="rv rv-chars" aria-label="Şimdi barda">/);
     expect(html).toContain('<span aria-hidden="true">');
@@ -225,7 +280,11 @@ describe("a split title still reads as one", () => {
 
   it("leaves a paragraph's words in the reading order, unhidden", () => {
     const html = renderToStaticMarkup(
-      createElement(RevealText, { as: "p", by: "words", children: "Bir iki üç" }),
+      createElement(
+        RevealText,
+        { as: "p", by: "words" } as RevealProps,
+        "Bir iki üç",
+      ),
     );
     expect(html).not.toContain("aria-hidden");
     expect(html).not.toContain("aria-label");
@@ -236,6 +295,8 @@ describe("a split title still reads as one", () => {
     // `.rv-item` alone must not carry a transform; the hidden state belongs
     // to `.will-reveal` (set by script, below the fold only).
     expect(rule(".rv-item")).not.toMatch(/transform: translate/);
-    expect(rule(".rv.will-reveal .rv-item")).toMatch(/transform: translateY\(145%\)/);
+    expect(rule(".rv.will-reveal .rv-item")).toMatch(
+      /transform: translateY\(145%\)/,
+    );
   });
 });

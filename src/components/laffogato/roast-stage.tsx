@@ -268,7 +268,13 @@ function RoastStill({ kind }: { kind: RoastKind }) {
           </radialGradient>
         </defs>
         <g transform="rotate(24 100 130)">
-          <ellipse cx="100" cy="130" rx="74" ry="108" fill="url(#roast-still-bean)" />
+          <ellipse
+            cx="100"
+            cy="130"
+            rx="74"
+            ry="108"
+            fill="url(#roast-still-bean)"
+          />
           <path
             d="M104 28c-22 36 20 62-4 104s18 62-2 100"
             fill="none"

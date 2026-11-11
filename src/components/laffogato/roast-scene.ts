@@ -647,7 +647,7 @@ function beanKit(bin: Bin, around: number, along: number): BeanKit {
         0.93 + 0.07 * Math.sin(phi * 5 + sy * 9) * Math.sin(sy * 13 + phi * 3);
       // The furrow is in shadow; at its very bottom lies a thread of
       // pale silverskin the roast did not take.
-      const thread = Math.exp(-Math.pow(0.7 * sx / 0.02, 2)) * body * belly;
+      const thread = Math.exp(-Math.pow((0.7 * sx) / 0.02, 2)) * body * belly;
       tint
         .copy(roast)
         .lerp(shade, Math.min(1, groove * 1.2))
@@ -735,7 +735,9 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
   const kit = beanKit(bin, lite ? 64 : 96, lite ? 40 : 64);
   const shell = beanMaterial(bin);
   // The inside of the shell is the light: seen only once the bean opens.
-  const light = bin.m(new MeshBasicMaterial({ color: 0xffc04a, side: BackSide }));
+  const light = bin.m(
+    new MeshBasicMaterial({ color: 0xffc04a, side: BackSide }),
+  );
 
   /* The bean, as two halves hinged along its back. */
   const bean = new Group();
@@ -779,7 +781,11 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
   ].map(([x, y, size]) => {
     const sprite = new Sprite(
       bin.m(
-        new SpriteMaterial({ map: sparkMap, transparent: true, depthWrite: false }),
+        new SpriteMaterial({
+          map: sparkMap,
+          transparent: true,
+          depthWrite: false,
+        }),
       ),
     );
     sprite.userData = { x, y, size };
@@ -822,8 +828,11 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
   const plan = Array.from({ length: DROPS }, (_, i) => {
     const a = rand() * Math.PI * 2;
     const lift = (rand() - 0.5) * 1.3;
-    const dir = new Vector3(Math.cos(a), Math.sin(a) * 0.8 + lift * 0.25, lift)
-      .normalize();
+    const dir = new Vector3(
+      Math.cos(a),
+      Math.sin(a) * 0.8 + lift * 0.25,
+      lift,
+    ).normalize();
     return {
       dir,
       reach: 0.6 + rand() * 2.2,
@@ -857,7 +866,10 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
         new CatmullRomCurve3(points),
         RINGS,
         SIDES,
-        (u) => 0.075 * Math.pow(1 - u, 0.7) + 0.02 * Math.exp(-Math.pow((u - 0.93) / 0.05, 2)) + 0.006,
+        (u) =>
+          0.075 * Math.pow(1 - u, 0.7) +
+          0.02 * Math.exp(-Math.pow((u - 0.93) / 0.05, 2)) +
+          0.006,
       ),
       espresso,
     );
@@ -943,7 +955,12 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
       const z = position.getZ(k);
       const facing = Math.max(0, -x / (Math.hypot(x, z) || 1));
       const pull = Math.pow(facing, 5) * smooth(span(y, 0.55, 0.9));
-      position.setXYZ(k, x * (1 + 0.42 * pull), y + 0.05 * pull, z * (1 - 0.35 * pull));
+      position.setXYZ(
+        k,
+        x * (1 + 0.42 * pull),
+        y + 0.05 * pull,
+        z * (1 - 0.35 * pull),
+      );
     }
     position.needsUpdate = true;
     jugGeometry.computeVertexNormals();
@@ -962,7 +979,10 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
     ),
     aluminium,
   );
-  const stud = new Mesh(bin.g(new CylinderGeometry(0.045, 0.06, 0.06, 16)), turned);
+  const stud = new Mesh(
+    bin.g(new CylinderGeometry(0.045, 0.06, 0.06, 16)),
+    turned,
+  );
   stud.position.y = 1.08;
   const knob = new Mesh(bin.g(new SphereGeometry(0.095, 20, 14)), bakelite);
   knob.position.y = 1.17;
@@ -990,11 +1010,17 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
     ),
     bakelite,
   );
-  const bracket = new Mesh(bin.g(new CylinderGeometry(0.05, 0.05, 0.16, 12)), turned);
+  const bracket = new Mesh(
+    bin.g(new CylinderGeometry(0.05, 0.05, 0.16, 12)),
+    turned,
+  );
   bracket.rotation.z = Math.PI / 2;
   bracket.position.set(0.72, 0.74, 0);
   // On the face that looks a little right of the eye.
-  const valve = new Mesh(bin.g(new CylinderGeometry(0.045, 0.045, 0.07, 14)), brassy);
+  const valve = new Mesh(
+    bin.g(new CylinderGeometry(0.045, 0.045, 0.07, 14)),
+    brassy,
+  );
   valve.position.set(0.215, -0.52, 0.52);
   valve.rotation.set(Math.PI / 2, 0, -0.39);
   const potShadow = new Mesh(
@@ -1010,7 +1036,19 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
   potShadow.rotation.x = -Math.PI / 2;
   potShadow.position.y = -1.04;
   potShadow.scale.set(1, 0.9, 1);
-  pot.add(potShadow, boiler, collar, bead, jug, lid, stud, knob, handle, bracket, valve);
+  pot.add(
+    potShadow,
+    boiler,
+    collar,
+    bead,
+    jug,
+    lid,
+    stud,
+    knob,
+    handle,
+    bracket,
+    valve,
+  );
   pot.visible = false;
   root.add(pot);
 
@@ -1040,7 +1078,11 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
     const a = rand() * Math.PI * 2;
     const lift = (rand() - 0.5) * 1.6;
     return {
-      dir: new Vector3(Math.cos(a), Math.sin(a) * 0.85 + lift * 0.2, lift).normalize(),
+      dir: new Vector3(
+        Math.cos(a),
+        Math.sin(a) * 0.85 + lift * 0.2,
+        lift,
+      ).normalize(),
       reach: 0.4 + rand() * 2.6,
       fall: 0.3 + rand() * 1.1,
       delay: rand() * 0.18,
@@ -1176,7 +1218,11 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
     glow.scale.setScalar(0.5 + 3.3 * smooth(clamp01(swell)));
 
     sparks.forEach((spark, i) => {
-      const { x, y, size } = spark.userData as { x: number; y: number; size: number };
+      const { x, y, size } = spark.userData as {
+        x: number;
+        y: number;
+        size: number;
+      };
       const on = smooth(span(p, 0.3, 0.48)) * (1 - 0.6 * settle);
       const blink = 0.72 + 0.28 * Math.sin(time * 2.6 + i * 1.7);
       spark.material.opacity = on * blink;
@@ -1217,7 +1263,10 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
           dummy.position.x += Math.cos(time * 0.6 + d.phase) * 0.03;
         } else {
           size = d.size * Math.sin(Math.PI * Math.min(1, t * 1.02));
-          dummy.position.copy(d.dir).multiplyScalar(d.reach * out).add(origin);
+          dummy.position
+            .copy(d.dir)
+            .multiplyScalar(d.reach * out)
+            .add(origin);
           dummy.position.y -= d.fall * t * t;
         }
       }
@@ -1250,7 +1299,9 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
       flank.scale.setScalar(lerp(0.52, 0.47, fly));
       flank.rotation.set(
         -0.2 + Math.sin(time * 0.45 + i) * 0.08,
-        side * (0.5 - fly * 0.72) + (1 - fly) * side * 3.6 + Math.sin(time * 0.5 + i * 1.3) * 0.2,
+        side * (0.5 - fly * 0.72) +
+          (1 - fly) * side * 3.6 +
+          Math.sin(time * 0.5 + i * 1.3) * 0.2,
         side * (0.5 - settle * 0.12),
       );
     });
@@ -1259,7 +1310,11 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
     pot.visible = rise > 0;
     const grown = rise > 0 ? easeOutBack(smooth(rise)) : 0;
     pot.scale.setScalar(Math.max(0.001, potSize * grown));
-    pot.position.set(-0.04, lerp(-0.7, -0.06, easeOut(rise)) + Math.sin(time * 0.7) * 0.02, 0);
+    pot.position.set(
+      -0.04,
+      lerp(-0.7, -0.06, easeOut(rise)) + Math.sin(time * 0.7) * 0.02,
+      0,
+    );
     pot.rotation.set(0.1, -0.5 + rise * 0.3 + Math.sin(time * 0.35) * 0.1, 0);
 
     /* Steam, once the pot stands. */
@@ -1293,7 +1348,8 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
         );
       }
       at.needsUpdate = true;
-      groundsMaterial.opacity = 0.85 * Math.sin(Math.PI * Math.min(1, burst * 1.05));
+      groundsMaterial.opacity =
+        0.85 * Math.sin(Math.PI * Math.min(1, burst * 1.05));
     }
 
     /* The motes: up, with a sway, and round again. */
@@ -1313,10 +1369,16 @@ function drawBean(scene: Scene, bin: Bin, lite: boolean): Drawing {
         const f = farPlan[i];
         dummy.position.set(
           f.x + Math.sin(time * 0.12 + f.phase) * 0.3,
-          f.y + Math.sin(time * 0.2 + f.phase) * 0.14 + p * 0.5 * Math.sign(f.y),
+          f.y +
+            Math.sin(time * 0.2 + f.phase) * 0.14 +
+            p * 0.5 * Math.sign(f.y),
           f.z,
         );
-        dummy.rotation.set(time * f.spin + f.phase, time * f.spin * 0.7, f.phase);
+        dummy.rotation.set(
+          time * f.spin + f.phase,
+          time * f.spin * 0.7,
+          f.phase,
+        );
         dummy.scale.setScalar(f.size);
         dummy.updateMatrix();
         farBeans.setMatrixAt(i, dummy.matrix);
@@ -1362,11 +1424,17 @@ function drawPour(scene: Scene, bin: Bin, lite: boolean): Drawing {
 
   /* The portafilter, handle to the right. */
   const filter = new Group();
-  const basket = new Mesh(bin.g(new CylinderGeometry(0.62, 0.56, 0.36, 48)), brass);
+  const basket = new Mesh(
+    bin.g(new CylinderGeometry(0.62, 0.56, 0.36, 48)),
+    brass,
+  );
   const rim = new Mesh(bin.g(new TorusGeometry(0.63, 0.045, 12, 48)), brass);
   rim.rotation.x = Math.PI / 2;
   rim.position.y = 0.18;
-  const block = new Mesh(bin.g(new CylinderGeometry(0.2, 0.14, 0.16, 24)), brass);
+  const block = new Mesh(
+    bin.g(new CylinderGeometry(0.2, 0.14, 0.16, 24)),
+    brass,
+  );
   block.position.y = -0.26;
   const spoutGeometry = bin.g(new CylinderGeometry(0.05, 0.04, 0.14, 16));
   const spouts = [-0.09, 0.09].map((x) => {
@@ -1374,13 +1442,22 @@ function drawPour(scene: Scene, bin: Bin, lite: boolean): Drawing {
     spout.position.set(x, -0.4, 0);
     return spout;
   });
-  const neck = new Mesh(bin.g(new CylinderGeometry(0.075, 0.075, 0.3, 16)), brass);
+  const neck = new Mesh(
+    bin.g(new CylinderGeometry(0.075, 0.075, 0.3, 16)),
+    brass,
+  );
   neck.rotation.z = Math.PI / 2;
   neck.position.set(0.74, 0, 0);
-  const ferrule = new Mesh(bin.g(new CylinderGeometry(0.125, 0.125, 0.14, 20)), brass);
+  const ferrule = new Mesh(
+    bin.g(new CylinderGeometry(0.125, 0.125, 0.14, 20)),
+    brass,
+  );
   ferrule.rotation.z = Math.PI / 2;
   ferrule.position.set(0.94, 0, 0);
-  const grip = new Mesh(bin.g(new CylinderGeometry(0.115, 0.09, 1.15, 20)), wood);
+  const grip = new Mesh(
+    bin.g(new CylinderGeometry(0.115, 0.09, 1.15, 20)),
+    wood,
+  );
   grip.rotation.z = -Math.PI / 2;
   grip.position.set(1.58, 0, 0);
   const cap = new Mesh(bin.g(new SphereGeometry(0.115, 16, 12)), wood);
@@ -1662,7 +1739,11 @@ function drawAffogato(scene: Scene, bin: Bin, lite: boolean): Drawing {
   ];
   const strand = (offset: number) => {
     const points = spine.map(([x, y]) => new Vector3(x, y, 0));
-    return { points, curve: new CatmullRomCurve3(points, false, "catmullrom", 0.5), offset };
+    return {
+      points,
+      curve: new CatmullRomCurve3(points, false, "catmullrom", 0.5),
+      offset,
+    };
   };
   const strands = [strand(0), strand(Math.PI)];
   const cream = liquid(bin, 0xf1e2c4);
@@ -1741,7 +1822,9 @@ function drawAffogato(scene: Scene, bin: Bin, lite: boolean): Drawing {
     ),
   );
   // The scoop: a ball worked by the spoon, with a ruffled skirt.
-  const scoopGeometry = bin.g(new SphereGeometry(0.53, lite ? 40 : 64, lite ? 28 : 44));
+  const scoopGeometry = bin.g(
+    new SphereGeometry(0.53, lite ? 40 : 64, lite ? 28 : 44),
+  );
   {
     const position = scoopGeometry.getAttribute("position") as BufferAttribute;
     for (let k = 0; k < position.count; k++) {
@@ -1861,7 +1944,13 @@ function drawAffogato(scene: Scene, bin: Bin, lite: boolean): Drawing {
           Math.sin(a) * wind,
         );
       });
-      shapeRibbon(pours[i].geometry, s.curve, RINGS, SIDES, i === 0 ? thick : thin);
+      shapeRibbon(
+        pours[i].geometry,
+        s.curve,
+        RINGS,
+        SIDES,
+        i === 0 ? thick : thin,
+      );
     });
 
     for (let i = 0; i < DROPS; i++) {
@@ -1917,7 +2006,10 @@ function studioLight(renderer: WebGLRenderer, bin: Bin): Texture {
     at: [number, number, number],
   ) => {
     const geometry = new PlaneGeometry(width, height);
-    const material = new MeshBasicMaterial({ side: DoubleSide, toneMapped: false });
+    const material = new MeshBasicMaterial({
+      side: DoubleSide,
+      toneMapped: false,
+    });
     material.color.setRGB(r, g, b);
     const mesh = new Mesh(geometry, material);
     mesh.position.set(...at);
@@ -2018,7 +2110,9 @@ export function startRoast(options: RoastOptions): RoastHandle {
     scene.traverse((node) => {
       const mesh = node as Mesh;
       if (!mesh.isMesh) return;
-      const material = mesh.material as Material & { isMeshBasicMaterial?: boolean };
+      const material = mesh.material as Material & {
+        isMeshBasicMaterial?: boolean;
+      };
       const solid = !material.isMeshBasicMaterial && !material.transparent;
       mesh.castShadow = solid;
       mesh.receiveShadow = solid;
@@ -2083,7 +2177,8 @@ export function startRoast(options: RoastOptions): RoastHandle {
   };
 
   const running = () => {
-    const on = !disposed && !lost && !still && visible && !paused && !document.hidden;
+    const on =
+      !disposed && !lost && !still && visible && !paused && !document.hidden;
     return on;
   };
 

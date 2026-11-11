@@ -4,75 +4,99 @@
 > `src/app/globals.css` içindeki `:root` bloğudur. Buradaki her değer oradan
 > okunmuştur; ikisi çelişirse **globals.css doğrudur** ve bu belge güncellenir.
 >
-> **Kafe-perakende düzeni (5 Kas 2026, operatör).** Talimat: _"sitenin
-> görselini ... starbucks tarzı istiyorum ... ama panel değil"_. Site bir
-> kahve perakende vitrininin **yapısını** aldı: sıcak krem zemin, beyaz kart
-> ve fısıltı gölgesi, her birinin tek bir işi olan **dört yeşil**, sayfayı
-> iki uçtan kapatan koyu yeşil bant ve footer, yalnız ödül anlarında pirinç,
-> basınca 0.95'e inen tam hap düğmeler, tek yazı sesi. **Renkler kopyalanmadı,
-> logo yeşilinden türetildi** (başka markanın yeşili `tests/brand-theme.test.ts`
-> tarafından reddedilir). Bu, lafmobil'in porselen paletinden (karar 31 c,
-> 25 Eyl 2026) **bilinçli bir ayrışmadır** ve operatör kararıdır; uygulama
-> paleti değişirse site artık kendiliğinden izlemez. Panel (`/admin`) bu
-> değişiklikten etkilenmez. Güncel değerler aşağıdaki §0'dadır; §1-§4'te
-> onlarla çelişen eski porselen değerleri tarihçedir.
+> **Roast (11 Kas 2026, operatör).** Talimat: _"siteyi tamamen
+> https://coffee-beans-swart.vercel.app/ bu sitedeki gibi landingleri diğer
+> sayfaları yap, three js vs. ne varsa kullan, aynı birebir yap ve bizde daha
+> fazla özellik olduğu için de bize uyarlayarak yap."_ Site o sayfanın
+> **görünümünü** aldı: krem zemin, mürekkep, dolu düğme, koyu bant ve footer
+> için **tek bir espresso**, sıcak dolgu olarak amber, başlıkta Abril Fatface
+> ve metinde Plus Jakarta Sans, kaydırmayla ilerleyen bir three.js girişi ve
+> iki three.js bandı. **Dosyası, metni ve kodu kopyalanmadı**: oranları,
+> yazısı, rengi ve hareketi ölçüldü, konular (çekirdek, dökülen espresso,
+> affogato kupası) canlı çizildi. Tasarım kaydı `docs/REDESIGN-ROAST.md`.
+> Site artık lafmobil'in paletini izlemez (5 Kas 2026'dan beri). Panel
+> (`/admin`) bu değişiklikten etkilenmez. Güncel değerler aşağıdaki
+> §0'dadır; §1-§4'te onlarla çelişen eski değerler (porselen, kafe-perakende)
+> tarihçedir. 5 Kas 2026 kafe-perakende düzeni ve önceki paletler §9'da.
 >
 > Nöbetçi testler: `tests/brand-theme.test.ts` (paletin kaymasını engeller) ve
 > `tests/contrast.test.ts` (okunabilirliği engeller). Önceki (Köşk) palet §9'da.
 
 ---
 
-## 0. Kafe-perakende düzeni (5 Kas 2026) - güncel değerler
+## 0. Roast (11 Kas 2026) - güncel değerler
+
+Tasarım kaydı **`docs/REDESIGN-ROAST.md`**: referans sayfanın ölçüleri, ana
+sayfanın bölüm bölüm karşılığı, hareket takımı ve canlı çizimler oradadır.
+Bu bölüm değerleri ve rolleri verir. Token **adları değişmedi**; `--green-*`
+ailesi bugün espressodur.
 
 | Token                  | Değer                 | Rol                                                                 |
 | ---------------------- | --------------------- | ------------------------------------------------------------------- |
-| `--bg`                 | `#f2f0eb`             | Sıcak krem sayfa zemini (saf beyaz zemin yok).                      |
-| `--bg-stone`           | `#edebe9`             | Seramik: bölge ayırıcı, çökük yüzey.                                |
-| `--bg-warm`            | `#f9f8f6`             | Beyaza yakın içerik bandı.                                          |
-| `--bg-cream`           | `#faf6ee`             | Ödül bölümlerinin altın-krem yıkaması.                              |
-| `--surface`            | `#ffffff`             | Kart, modal, başlık çubuğu.                                         |
-| `--green-brand`        | `#1d6d56`             | Logo yeşili: başlık, yeşil metin, bağlantı, üst etiket (`--green`). |
-| `--green-cta`          | `#1f7a5c`             | Her dolu eylem düğmesi ve yüzen sipariş düğmesi (beyaz 5.25:1).     |
-| `--green-house`        | `#173f35`             | Koyu bant: özellik bantları, ödül paneli, footer'daki gece gökyüzü (`--bg-espresso`). |
-| `--night`              | `#181412`             | Footer zemini (6 Kas 2026): `--ink`'in koyulaştırılmış espressosu; `--night-raise` `#221d1a` hap ve kart, `--night-line` `#3a332e` çizgi, metin `--night-ink` / `-soft` / `-mute` (16.28 · 10.62 · 6.95:1). |
-| `--green-uplift`       | `#2a5a4d`             | Koyu bandın içindeki kart ve süsler.                                |
-| `--green-light`        | `#d5e8df`             | Açık nane yıkaması.                                                 |
-| `--gold-soft`          | `#cba258`             | **Yalnız ödül**: damga, kademe, ödül düğmesi.                       |
-| `--ink` / `--ink-soft` | `#211f1d` / `#5c5955` | %87 ve %58 siyahın krem üstündeki karşılığı; saf siyah metin yok.   |
-| `--rose`               | `#c82014`             | Hata ve "son adet".                                                 |
-| `--accent`             | `#9d2543`             | Logonun bordosu, ekran başına bir imza; yeşille üst üste yazılmaz.  |
+| `--bg`                 | `#faf7f2`             | Krem sayfa zemini (referansın tuvali); saf beyaz zemin yok.         |
+| `--bg-warm`            | `#fdfcf9`             | Beyaza yakın içerik bandı.                                          |
+| `--bg-stone`           | `#f0eae1`             | Taş: bölge ayırıcı, çökük yüzey.                                    |
+| `--bg-cream`           | `#f7efe2`             | Krem kart ve ödül bölümlerinin yıkaması.                            |
+| `--surface`            | `#ffffff`             | Kart, modal, alan.                                                  |
+| `--ink`                | `#23120b`             | Espresso mürekkep (zeminde 16.90:1). `--ink-soft` `#57463d` (8.37:1), `--ink-mute` `#6b5a50` (6.13:1); `--ink-quiet` `#9a8c82` yalnız süs ve nokta (3.05:1, metin değil). |
+| `--green-cta`          | `#23120b`             | **Aynı espresso**, eski adlarıyla: her dolu düğme ve yüzen sipariş düğmesi (krem etiket 16.90:1). `--green`, `--brand`, `--green-brand`, `--green-house` (koyu bant), `--bg-espresso`, `--hero-green` ve yeni `--roast` aynı değerdir. Basılı hâl `--green-cta-pressed` / `--roast-raise` `#3a241a`. |
+| `--green-uplift`       | `#4a3327`             | Koyu bandın içindeki kart ve süsler.                                |
+| `--green-light`        | `#efe6da`             | Açık kum yıkaması; `--green-mint` `#e9dfd2` koyu zeminde üst etiket (13.72:1). |
+| `--night`              | `#23120b`             | Footer zemini: espressonun kendisi. `--night-raise` `#2f1c13` hap ve kart, `--night-line` `#4a372c` çizgi, metin `--night-ink` / `-soft` / `-mute` (16.90 · 11.31 · 7.27:1; `-mute` kabarık hapta 6.52:1). En koyu adım `--bg-espresso-deep` `#170b06`. |
+| `--amber`              | `#de853a`             | **Amber** (= `--accent-on-dark`): tek sıcak düğmenin dolgusu (`.btn-amber`; üstünde espresso 6.47:1, üzerine gelince `--amber-raise` `#e2934d` 7.32:1) ve **koyu zeminde** vurgu metni (espressoda 6.47:1). Krem üstünde 2.61:1: orada metin olamaz. |
+| `--accent`             | `#a35019`             | **Karamel**: amberin krem üstünde metin olarak okunan hâli (zeminde 5.28:1, beyazda 5.65:1, taşta 4.72:1): bağlantı, vurgu kelimesi, üzerine gelme. `--accent-deep` `#6f350d` basılı hâl, `--accent-soft` `#fbead9` yıkama. Koyu zeminde kullanılmaz (3.20:1). |
+| `--gold-soft`          | `#cba258`             | **Yalnız ödül**: damga, kademe, ödül düğmesi (üstünde mürekkep 7.61:1); metin altını `--gold` `#765923` (6.10:1). Değişmedi. |
+| `--matcha`             | `#1d6d56`             | Sitede kalan **tek yeşil**: olumlu durum ("açık", "stokta", "kaydedildi"; zeminde 5.82:1). Marka rengi değildir; başka hiçbir token bu değeri taşımaz. |
+| `--rose`               | `#c82014`             | Hata ve "son adet" (5.35:1). "Kapalı" kırmızı yazılmaz: sakin mürekkep. |
 
-- **Yazı:** tek ses Poppins (`--headline` de ona çözülür; Gabarito
-  emekli). Hiyerarşi ağırlık ve renkle: başlıklar 600, ana başlık yeşil;
-  izleme `--tracking: -0.01em`; gövde 16px / 1.5. Ödül bloğunun başlığı tek
-  bağlam değişimidir: `--reward-serif` (yalnız sistem serifleri, indirilen
-  yazı tipi yok); alışveriş akışında serif yok.
-- **Düğme:** 50px hap, 1px kendi renginde kenar, gölgesiz, basınca
-  `scale(0.95)`, `all 0.2s ease`. Birincil dolu (CTA yeşil), birincil
-  çerçeveli (yeşil kenar), siyah dolu (sepet, dönüşüm), koyu çerçeveli
-  (ikincil), koyu bantta beyaz dolu + beyaz çerçeveli.
-- **Yüzey:** kart 12px, alan 4px, gölge katmanlı ve siyah-alfa
-  (`--shadow-card`, `--shadow-nav`, `--shadow-frap`); cam ve bulanıklık
-  yok (`--glass-blur: none`), degrade dolgu yok - yüzeyler düz renk blokları.
-  Ürün görselinin arkası sahnenin en açık tonunda düz bir blok
-  (`sceneBackground`), hero'da içecek kendi renginde bir blokta durur.
-- **Başlık çubuğu:** düz beyaz, üç katmanlı gölge, yükseklik 64 · 72 · 83 ·
-  99 px, bağlantılar logonun yanında sola dizili, etkin bağlantının altında
-  CTA yeşili çubuk, sağda çerçeveli hesap düğmesi ve siyah sepet hapı.
-- **Yüzen sipariş düğmesi** (`.frap`): sağ altta 56px yeşil daire, sepeti
-  açar, sayfanın en yüksek gölgesi; telefonda (sekme çubuğu sepeti taşır) ve
-  `/odeme`'de yok.
-- **Footer (6 Kas 2026, sahibin brifi):** üstte resimli gece bandı
-  (`footer-night.tsx`: ev yeşili gökyüzü, yıldızlar, köşkün silueti, buharı
-  samanyoluna dönen fincan; yalnız token renkleri, hareket
-  `prefers-reduced-motion`'da durur), altında `--night` zemin: logo ve
-  durum hapları (köşkün saati ve tarayıcıda canlı açık/kapalı, Marina'nın
-  saati, App Store), dört sütun (telefonda katlanır), kategori satırı,
-  bülten kartı, sosyal ikonlar, şirket kimliği. Tek degrade bu çizimin
-  içindedir; yüzeyler düz kalır.
+Oranlar 11 Kas 2026'da `:root` değerlerinden, `tests/contrast.test.ts`'in
+formülüyle (WCAG 2.1) hesaplandı; aynı test bu çiftleri AA'da (4.5:1) tutar.
+
+- **Karamel ile espresso üst üste yazılmaz.** `--accent` koyu zeminlerde
+  3.20-3.42:1'dir; orada vurgu `--accent-on-dark` (amber) ile yazılır.
+  `.script` bunu `--script-ink` ile kendiliğinden yapar; koyu bir blok
+  yazarken `data-ground="dark"` eklemek yeterlidir. Tersi de kuraldır: amber
+  krem üstünde metin olmaz. (11 Kas 2026'ya kadar bu kural "bordo ile yeşil"
+  diye yazılırdı.)
+- **Yazı:** iki ses. Başlık **Abril Fatface** (`--headline`: tek kesim 400,
+  büyük harf CSS'le, 20px ve üstü, asla cümle, asla kalın), gerisi **Plus
+  Jakarta Sans** (`--display` = `--sans`; değişken 200-800). Kurallar §2'de.
+  `--reward-serif` `--headline`'a çözülür; izleme `--tracking: -0.01em`.
+- **Düğme:** tam hap (`--r-btn: 999px`), 44px (dokunma tabanı; `.btn-sm`
+  36px, `.btn-lg` 52px), 12px kalın büyük harf, aralık `--caps-button`,
+  basınca `scale(0.95)`. `.btn-primary` espresso dolu; `.btn-ghost` çerçeveli,
+  üzerine gelince dolar; `.btn-outline` sakin çerçeveli; koyu zeminde
+  `.btn-light` ve `.btn-glass-dark`; tek sıcak düğme `.btn-amber`; yalnız
+  ödülde `.btn-gold`. Etiketin ardındaki ok çizilir (`.arrow`).
+- **Yüzey:** kart 16px (`--r-card`), alan 10px, düğme ve çip tam hap.
+  Gölgeler espresso tonludur (`rgba(35, 18, 11, …)`), asla siyah
+  (`--shadow-card`, `--shadow-nav`, `--shadow-md`, `--shadow-lg`,
+  `--shadow-frap`). `--glass-*` adları durur ve opaktır (`--glass-blur:
+  none`); yarı saydam tek malzeme **buzlu krem**dir (`--frost`,
+  `--frost-chrome`, `--frost-blur` 12px, `--frost-line`): üst çubuk ve buzlu
+  kart (`.frost-card`). Bölüm mobilyası: hayalet rakam (`.ghost-n`), üç
+  nokta (`.dots-trio`), kaydırma ipucu (`.scroll-hint`), yaprak gölgesi
+  zemini (`/brand/roast-shadow.svg`).
+- **Üst çubuk:** sayfanın başında saydam; 30px kaydırınca buzlu krem olur
+  (zemin %95 + 12px bulanıklık, `--shadow-nav`, taş ince çizgi) ve daralır:
+  68 → 60 px, 768px'ten 84 → 64, 1024px'ten 96 → 68. İçerik 80rem, yan
+  boşluk 24 · 40 · 56 px; bağlantılar 12px kalın büyük harf
+  (`--caps-nav`). `backdrop-filter` yoksa çubuk opaktır.
+- **Yüzen sipariş düğmesi** (`.frap`): sağ altta 56px espresso daire
+  (`--green-cta`), espresso footer üstünde de seçilsin diye ince bir
+  `--night-line` halkası, sayfanın en yüksek gölgesi (`--shadow-frap`);
+  sepeti açar; telefonda (sekme çubuğu sepeti taşır) ve `/odeme`'de yok.
+- **Footer:** üstte 6 Kas 2026'nın resimli bandı durur (`footer-night.tsx`:
+  gece köşkü, artık aynı espressoda, krem ve amberle aydınlanır; üstünde
+  yeşil yok), altında `--night` espresso zemin: küçük aralıklı büyük harf
+  başlıklar, ambere ısınan sakin bağlantılar, satır aralarında ince
+  çizgiler, hap biçiminde bülten alanı ve tek amber düğme. İçerik 80rem.
+- **Canlı çizimler ve hareket:** §7.
 - **Kapsam dışı (eski palette kaldı):** e-posta şablonları, bağlantı
-  önizleme kartları, JSON-LD ikonları ve PayNkolay köprüsü - logo yeşili
-  `#1d6d56` ortak olduğu için marka tutarlı kalır; taşınmaları ayrı iştir.
+  önizleme kartları, JSON-LD ikonları, `browserconfig.xml` karosu ve
+  PayNkolay köprüsü hâlâ logo yeşili `#1d6d56` üstündeki eski palettedir;
+  taşınmaları ayrı iştir ve `tests/brand-theme.test.ts` onları olduğu gibi
+  tutar. Panel (`/admin`) kendi görünümündedir.
 
 ---
 
@@ -232,74 +256,72 @@ başlığı etiketinin (`.page-hero-kicker`) önünde kısa hâli durur.
 
 ## 2. Tipografi
 
-**İki ses: başlıkta Gabarito, metinde ve kontrolde Poppins** (operatör,
-14 Eki 2026: _"sitede yapay zeka gibi duruyor, yazı tipleri poppins ve
-biennale vs kullan"_).
+**İki ses: başlıkta Abril Fatface, metinde ve kontrolde Plus Jakarta Sans**
+(operatör, 11 Kas 2026; referans sayfanın iki yazısı, `docs/REDESIGN-ROAST.md`).
 
-- **Gabarito** (`--headline`) sayfa, bölüm ve kart başlıklarını
-  (`.h-display`, `.h1`-`.h3`, `*-title`) ve gösterim rakamlarını (`.stat-n`,
-  ürün sayfasının fiyatı, ödenecek tutar) yazar. Operatörün adını verdiği
-  **Biennale**'nin (Latinotype) yerine durur: Biennale ücretlidir (web
-  lisansı; tek kesit 29 $'dan, aile Fontspring'de 99,50 $'dan) ve lisansı
-  yok. Gabarito (SIL OFL, Google Fonts) onun en yakın serbest akrabası:
-  geometrik, geniş x-yüksekliği, başlık ve marka için çizilmiş, Türkçe
-  işaretleri temiz. Adaylar sitenin başlıklarıyla çizilip karşılaştırıldı
-  (Urbanist, Outfit, Red Hat Display, Syne, Jost, Kumbh Sans, Sora): Syne'nin
-  Türkçe aksanları bozuk, Sora ve Urbanist Poppins'e fazla yakın. Lisans
-  alınırsa Biennale `layout.tsx`'teki tek yükleyicide ve `--headline`
-  yığınında Gabarito'nun yerine geçer, başka hiçbir yer değişmez.
-- **Poppins** (`--display`; operatör, 11 Eki 2026: _"sitede poppins fontu
-  olsun"_) gövde, açıklama, etiket, düğme, çip, form ve hukuk metnini,
-  ürün adlarını ve liste fiyatlarını yazar. Poppins içinde hiyerarşiyi
-  **ağırlık** taşır:
+- **Abril Fatface** (`--headline`, `--font-headline`) sayfa, bölüm ve kart
+  başlıklarını (`.h-display`, `.h1`-`.h3`, `.section-title`, `.pdp-title`)
+  ve gösterim rakamlarını (`.stat-n`) yazar. Şişman bir didone, **tek kesim:
+  400**. Kuralları:
+  - **Kalın yazılmaz.** `font-weight: 400`; 600 istenirse tarayıcı sahte
+    kalın üretir ve harf bulanır, bu yüzden `html` `font-synthesis-weight:
+    none` taşır.
+  - **Gösterim yazısıdır:** 20px ve üstü, asla bir cümle. 20px'in altında
+    kalan küçük başlık `--display` 700'e geçer.
+  - **Büyük harf CSS'ledir** (`text-transform: uppercase`), elle yazılmaz:
+    Türkçe büyük harf (i → İ, ı → I) `<html lang="tr">`'den gelir. `.h3`
+    cümle düzeninde kalır (kartta 22px büyük harf bağırır).
+  - **Türkçe satır aralığı.** Büyük harfler üstte (İ Ö Ü Ğ) ve altta (Ç Ş)
+    işaret taşır; çok satırlı başlıklar referansın 0.86-0.92'si yerine
+    0.96-1.0 ile dizilir. Yalnız işaret taşımadığı bilinen bir satır daha
+    sıkı olabilir.
+- **Plus Jakarta Sans** (`--display`, `--font-display`; değişken, 200-800)
+  gövde, açıklama, etiket, düğme, çip, form ve hukuk metnini, ürün adlarını
+  ve liste fiyatlarını yazar. Hiyerarşiyi **ağırlık** taşır: 400-500 gövde,
+  600 etiket, 700 düğme ve üst etiket, 800 logo yazısı ve vurgu.
 
-| Ağırlık       | Rol                                                                                                         |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| 300 Light     | Büyük manifesto metni (anasayfa `.home-intro`) - tek yer                                                    |
-| 400 Regular   | Gövde, `.lede`, açıklama, form metni                                                                        |
-| 500 Medium    | Menü bağlantıları, ikincil etiket, küçük resim adı                                                          |
-| 600 SemiBold  | `.h3`, düğme, `.eyebrow`, `.label`, çip                                                                     |
-| 700 Bold      | `.h1`, `.h2`, kart başlığı, fiyat                                                                           |
-| 800 ExtraBold | Gösterim anları: hero başlığı, `.h-display`, büyük rakamlar, manifesto ilk cümlesi, kampanya panosu başlığı |
+İkisi de `next/font/google` ile self-host edilir (`layout.tsx`), Türkçe
+için `latin-ext` ile; Plus Jakarta Sans değişken olduğu için tek dosya bütün
+ağırlıkları taşır. Tarihsel token'ların hepsi (`--sans`, `--serif`,
+`--serif-modern`, `--serif-display`, `--script`, `--mono`) `--display`'e
+çözülür; `--headline` kendi yığınıdır (Abril Fatface, sonra sistem
+serifleri) ve `--reward-serif` ona çözülür. `tests/brand-theme.test.ts` iki
+sesi, tek kesimi ve hangi sınıfın hangisini okuduğunu kilitler; Poppins,
+Gabarito ve Inter'in bir yazı yığınına geri girmesini engeller.
 
-Poppins'in altı kesimi (`--font-display`) ve Gabarito'nun üç kesimi
-(600 · 700 · 800, `--font-headline`) `next/font/google` ile self-host edilir,
-Türkçe için `latin-ext` ile. Tarihsel token'ların hepsi (`--sans`,
-`--serif`, `--serif-modern`, `--serif-display`, `--script`, `--mono`)
-`--display`'e çözülür; `--headline`'ın son yedeği de `--display`'dir, eksik
-bir kesim sistem yazısına değil Poppins'e düşer. `tests/brand-theme.test.ts`
-iki sesi ve hangi sınıfın hangisini okuduğunu kilitler, Inter'in bir yazı
-yığınına geri girmesini engeller.
+| Sınıf           | Yazı / ağırlık        | Not                                                          |
+| --------------- | --------------------- | ------------------------------------------------------------ |
+| `.h-display`    | Abril 400             | 40-96px, büyük harf, satır 0.96, harf aralığı -0.025em       |
+| `.h1`           | Abril 400             | 31-72px, büyük harf, satır 0.98                              |
+| `.h2`           | Abril 400             | 26-52px, büyük harf, satır 1.0                               |
+| `.h3`           | Abril 400             | 20-26px, **cümle düzeni**, satır 1.15                        |
+| `.lede`         | Plus Jakarta Sans 400 | 15-17px / 1.65, `--ink-soft`, en çok 46ch                    |
+| `.eyebrow`      | Plus Jakarta Sans 700 | 12px, **büyük harf**, aralık `--caps-kicker` 0.16em, mürekkep |
+| `.btn`          | Plus Jakarta Sans 700 | 12px, büyük harf, aralık `--caps-button` 0.05em              |
+| Menü bağlantısı | Plus Jakarta Sans 700 | 12px, büyük harf, aralık `--caps-nav` 0.12em                 |
 
-| Sınıf           | Ağırlık | Not                                              |
-| --------------- | ------- | ------------------------------------------------ |
-| `.h-display`    | 800     | Gabarito; negatif harf aralığı (-0.035em)        |
-| `.hero-x-title` | 800     | Gabarito; -0.04em, satır aralığı 0.98            |
-| `.h1`, `.h2`    | 700     | Gabarito                                         |
-| `.h3`           | 600     | Gabarito                                         |
-| `.lede`, gövde  | 400     | 16px / 1.6 - Poppins geniş, biraz daha ara ister |
-| `.eyebrow`      | 600     | **Cümle düzeni**, yeşil, 13.5px                  |
-| `.label`        | 600     | Form alanı başlığı, cümle düzeni                 |
+**Uygulamadan ayrışma.** lafmobil başka bir çiftle yazar (Poppins gösterir,
+Inter okutur - BRAND-IDENTITY §2). Site 11 Eki 2026'da tek ses Poppins'e,
+14 Eki 2026'da Gabarito + Poppins çiftine, 5 Kas 2026'da yeniden tek ses
+Poppins'e, 11 Kas 2026'da Abril Fatface + Plus Jakarta Sans'a operatör
+kararıyla geçti; uygulamanın izlemesi ayrı bir karar ve lafmobil'de ayrı bir
+iştir.
 
-**Uygulamadan ayrışma.** lafmobil iki sesle yazar ama başka bir çiftle
-(Poppins gösterir, Inter okutur - BRAND-IDENTITY §2). Site 11 Eki 2026'da
-tek sese, 14 Eki 2026'da Gabarito + Poppins çiftine operatör kararıyla geçti;
-uygulamanın da izlemesi ayrı bir karar ve lafmobil'de ayrı bir iştir. Palet
-ayrışmadı.
-
-**Büyük harfli, geniş aralıklı etiket dili emekli.** Uygulama etiketleri
-cümle düzeninde yazar; site de öyle. `.eyebrow.caps` yalnız kart baskısında kalır
-(üyelik, seviye, damga kartı) - uygulamanın `eyebrow` rolü.
+**Büyük harfli, aralıklı etiket dili geri geldi (11 Kas 2026).** Üst etiket
+(`.eyebrow`), düğme ve menü bağlantısı 11-12px kalın büyük harfle, üç ayrı
+aralıkla yazılır (`--caps-kicker` 0.16em, `--caps-button` 0.05em,
+`--caps-nav` 0.12em). Büyük harf yine CSS'tedir; markup cümle düzeninde
+kalır ("Bölüm 2: …"). 25 Eyl - 11 Kas 2026 arasında etiketler cümle
+düzenindeydi.
 
 `.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: başlığın kendi
-sesi (Gabarito),
-`--accent` rengi, koyu zeminde `--accent-on-dark`.
+sesi (Abril Fatface), `--accent` rengi (karamel), koyu zeminde
+`--accent-on-dark` (amber).
 
-Rakamlar: Poppins'in (Google kesimi) `tnum` özelliği yok, rakamları
-orantılı. Sitede yerinde sayan bir sayı yok; fiyatlar kutularına göre
-hizalanır. `.tabular` yalnız yazı yüklenirken yedek yazıyı sabitler.
+Rakamlar: sitede yerinde sayan bir sayı yok; fiyatlar kutularına göre
+hizalanır. `.tabular` ve `.eyebrow` tablo rakamı ister (`tnum`).
 
-**Ok ve simgeler:** Poppins'te ok (→ ↗) ve simge glifi yok. Etiketin
+**Ok ve simgeler:** iki yazının da kullanmaya değer ok glifi yok. Etiketin
 ardındaki ok `.arrow` (dış bağlantı için `.arrow.out`) ile **çizilir**: kapı
 oklarıyla aynı çizgi, `currentColor` ile maske - her düğme renginde etiketin
 rengini alır. Markupta `→` kalır (CSS'siz okuyan için), boyanmaz. Diğer
@@ -383,9 +405,11 @@ radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 | `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                                            |
 | `.auth-page` / `.auth-card`    | `/uye/*` giriş sayfaları | Porselen üzerinde tek cam kart, başında L'Af.                                 |
 | `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı).                  |
-| `.valley` (`home-valley.tsx`)  | Anasayfanın ilk ekranı   | Gece kahve vadisi (three.js) önünde "L'Affogato" logo yazısı, iki satır, menü oku, canlı açık/kapalı, ipucu. Anasayfanın tek girişi. |
-| `.home-intro`                  | Anasayfa, hero'nun altı  | Panelin "Hero üst etiket" + "Hero açıklama" metni: ilk cümle 800, devamı 300. |
-| `.valley-status`               | Anasayfa hero'su         | Canlı "Şu an açık · Kapanış 02:00"; /ziyaret'in saat satırıyla aynı kaynak.   |
+| `.roast-hero` (`home-roast.tsx`) | Anasayfanın ilk ekranı   | Roast girişi (11 Kas 2026): "UYAN / KAHVE HAZIR" (Abril, harf harf yükselir), çözülen üst etiket, canlı açık/kapalı, "Menüyü keşfet", kaydırma ipucu; arkasında kaydırmayla ilerleyen çekirdek çizimi (`<RoastStage kind="bean">`). Anasayfanın tek girişi. |
+| `<RoastStage>` + `<RoastPause>` (`roast-stage.tsx`) | Giriş ve iki bant | Canlı three.js çizimi (`bean` · `pour` · `affogato`) ve durdur düğmesi; altında aynı konunun düz SVG çizimi (§7). |
+| `.home-intro`                  | Anasayfa, A bandı        | Panelin "Hero üst etiket" + "Hero açıklama" metni: ilk cümle küçük başlık (Abril, büyük harf), devamı üç satıra kırpılır. |
+| `.roast-status`                | Anasayfa girişi          | Canlı "Şu an açık · Kapanış 02:00"; /ziyaret'in saat satırıyla aynı kaynak.   |
+| `.ghost-n` · `.frost-card` · `.dots-trio` · `.scroll-hint` | Bölüm açılışları | Referansın küçük parçaları: hayalet rakam, buzlu kart, üç nokta, kaydırma ipucu. |
 | `.home-karaoke`                | Anasayfa, girişin altı   | Karaoke bandı: oda çizimi, panelin değerleri, bugünün boş saatleri.           |
 | `<Illustration>`               | Çizim gereken her yer    | `public/illustrations/` dosyası, `alt=""` ve `aria-hidden` (§6.1).            |
 
@@ -475,32 +499,65 @@ ve her çizimin yerini tutar.
 
 ## 7. Hareket
 
-- Geçişler `--ease-out` = `cubic-bezier(0.2, 0.7, 0.2, 1)`; yerine oturan
-  her şey (sheet, açılır panel) `--ease-spring` =
-  `cubic-bezier(0.32, 0.72, 0, 1)`.
-- Basma: `scale(var(--press-scale))` = 0.97, 120 ms.
+- Geçişler `--ease-out` = `cubic-bezier(0.25, 0.46, 0.45, 0.94)`; yerine
+  oturan her şey (sheet, açılır panel) `--ease-spring` =
+  `cubic-bezier(0.32, 0.72, 0, 1)`; maskeden yükselen yazı `--ease-rise` =
+  `cubic-bezier(0.16, 1, 0.3, 1)`.
+- Basma: `scale(var(--press-scale))` = 0.95.
+- **Üç canlı çizim** (11 Kas 2026; `<RoastStage kind>`, `roast-stage.tsx` →
+  `roast-scene.ts`, three.js): girişte **çekirdek** (`bean`: kavrulmuş bir
+  çekirdek uyanır, çatlar, espressoya dönüşür ve bir moka demliği olarak
+  yerleşir; sayfa kaydırıldıkça ilerler, giriş 330vh, 640px'ten 360vh ve
+  içeriği boyunca sabit), A bandında **dökülen espresso** (`pour`:
+  portafiltreden yivli fincana), B bandında **affogato** (`affogato`: küçük
+  sürahiden yenen kupadaki fior di latte'ye). Sitede beş saniyeden uzun
+  süren hareket bunlardır, bu yüzden:
+  - her çizimin yanında bir **durdur düğmesi** vardır (`<RoastPause />`,
+    "Hareketi durdur" / "Hareketi başlat", `aria-pressed`; 36px daire, 44px
+    dokunma alanı). Tek anahtardır: biri basılınca üç çizim de durur, sonradan
+    başlayan da durmuş başlar (WCAG 2.2.2). Çizim gerçekten çalışmıyorsa
+    düğme de yoktur;
+  - çizim **ekran dışındayken ve sekme gizliyken hiç çizilmez**;
+    `prefers-reduced-motion` altında **tek durgun karedir** ve giriş tek
+    ekrana iner (`.roast-hero { height: auto }`);
+  - three.js ilk yüklemede yoktur: yalnız `import()` ile, `load` olayından ve
+    boş bir andan sonra gelir; bantların çizimi bant ekrana yaklaşınca başlar.
+    WebGL 2 yoksa, "veri tasarrufu" açıksa ya da çizim henüz gelmediyse aynı
+    yerde aynı konunun **düz SVG çizimi** durur; tuval ilk karesini çizince
+    onun üstünde belirir. Yazı sunucuda basılır ve WebGL'i beklemez;
+  - sayfanın kaydırmasını ve dokunuşu tutmaz (`pointer-events: none`; imleci
+    yalnız dinler); telefonda gölge geçişi, imleç takibi ve uzak çekirdekler
+    yoktur, piksel oranı 1.5'te sınırlıdır.
+- **Maskeden yükselen başlık** (`<RevealText>`, `reveal-text.tsx`): başlığın
+  her harfi (paragrafın her kelimesi) kendi satırının maskesinin içinden
+  yükselir (1.15 sn, `--ease-rise`, harf başına 38 ms, kelime başına 14 ms).
+  Yalnız `transform`: opaklıkla solma yoktur, çünkü sayfanın en büyük
+  yazısını tarayıcının en büyük boyama kaydından saklardı. Maske, Türkçe büyük
+  harflerin işaretleri (İ Ö Ü Ğ, Ç Ş) kesilmesin diye pay bırakır. Başlık
+  ekran okuyucuya tek satır olarak okunur (`aria-label` ya da gizli kopya).
+- **Çözülen üst etiket** (`<ScrambleText>`, `scramble-text.tsx`): etiket
+  soldan sağa çözülür (harf başına 32 ms, her harf 260 ms döner). Sunucu
+  bitmiş satırı basar; çözülürken ekran okuyucu gürültüyü değil bitmiş satırı
+  alır.
+- **Betik olmadan hiçbir şey gizlenmez.** Yazı varsayılan olarak boyanmıştır:
+  sayfanın başındaki başlık CSS ile ilk kareden oynar (`rv-load`), ekranın
+  altındakileri yalnız `<RevealMotion>` (client) silahlandırır
+  (`will-reveal` → `is-in`). `.reveal` (+ `.r1`-`.r4`) düğme, kart ve
+  görsel için aynı kuralla 18px yukarı süzülür. `<RevealMotion>` ayrıca harf
+  harf bölünen başlığın kaybettiği harf aralığı düzeltmesini (kerning) geri
+  koyar.
+- Giriş ekranındaki canlı "açık" noktası **hareket etmez** (açıkken
+  `--matcha`, kapalıyken sakin mürekkep; kırmızı değil).
 - 404'te kahve harflerin içinden bir kez yükselir, buhar bir kez çıkar; her
   hareket beş saniyede biter (WCAG 2.2.2).
-- Hero slaytı 7 sn'de döner; saati seçili küçük resmin altındaki ilerleme
-  çizgisidir (animasyonu bitince slayt değişir, duraklatınca tam yerinde
-  durur). Bir kontrole dokunulduğunda ya da sahne kaydırıldığında **kalıcı
-  olarak** durur, imleç/odak üzerindeyken ve sekme arka plandayken duraklar,
-  `prefers-reduced-motion` altında hiç başlamaz. Noktalar kaldırıldı: küçük
-  resimler kontroldür.
-- Hero'daki canlı "açık" noktası iki halka atar ve durur (4 sn, WCAG 2.2.2).
-- Anasayfanın ilk ekranı, kahve vadisi (`valley-scene.ts`, three.js), sitede
-  beş saniyeden uzun süren tek harekettir: kamera sıralar boyunca kendi
-  kendine ilerler. Bu yüzden sol altta bir durdur düğmesi taşır (WCAG
-  2.2.2); ekran dışındayken ve sekme arka plandayken hiç çizilmez,
-  `prefers-reduced-motion` altında tek bir durgun karedir. Sayfanın
-  kaydırmasını tutmaz; imleç noktaları iter, menü okunun üstüne gelince
-  vadi durur ve çiçekler havalanır.
-- Anasayfanın karaoke bandı `.reveal` ile gelirken oda çiziminin üstünden
-  bir kez ışık geçer (1.5 sn); sadakat bloğunun iki dolu damgası sırayla
-  basılır (1.3 → 1 ve genişleyip sönen bir pirinç halka, yarım saniye, bir
-  kez). İkisi de `prefers-reduced-motion` altında yerinde durur.
-- `.reveal` yalnızca client'ta, yalnız ekranın altındaki öğelere uygulanır;
-  JS yoksa hiçbir şey gizlenmez.
+- Mağaza hero slaytı 7 sn'de döner; saati seçili küçük resmin altındaki
+  ilerleme çizgisidir (animasyonu bitince slayt değişir, duraklatınca tam
+  yerinde durur). Bir kontrole dokunulduğunda ya da sahne kaydırıldığında
+  **kalıcı olarak** durur, imleç/odak üzerindeyken ve sekme arka plandayken
+  duraklar, `prefers-reduced-motion` altında hiç başlamaz.
+- Anasayfanın karaoke bandı gelirken oda çiziminin üstünden bir kez ışık
+  geçer; sadakat bloğunun dolu damgaları sırayla bir kez basılır. İkisi de
+  `prefers-reduced-motion` altında yerinde durur.
 - `prefers-reduced-motion: reduce` altında tüm animasyon ve geçişler durur.
 
 ---
@@ -508,20 +565,25 @@ ve her çizimin yerini tutar.
 ## 8. Değiştirirken
 
 1. Renk **yalnız** `globals.css :root` içinde değişir. Çağrı noktasına hex
-   yazma.
+   yazma; bir tonun saydam hâli gerekiyorsa `color-mix(in srgb, var(--token)
+   N%, transparent)` yaz, `rgba()` ile rengi yeniden yazma.
 2. `npm test` çalıştır. `tests/contrast.test.ts` okunabilirliği,
    `tests/brand-theme.test.ts` paletin kaymasını tutar; ikisi de bilerek
-   katıdır çünkü bu palet üç kez kaydı.
+   katıdır çünkü bu palet defalarca kaydı.
 3. `globals.css` dışındaki yüzeyler CSS değişkeni çözemez ve paleti harfi
-   harfine yazar - değiştirirsen hepsini güncelle: `src/app/manifest.ts`
-   (PWA açılışı), `src/app/layout.tsx` (`themeColor`), `public/browserconfig.xml`,
+   harfine yazar. Sitenin zeminiyle birlikte değişenler: `src/app/manifest.ts`
+   (PWA açılışı) ve `src/app/layout.tsx` (`themeColor`), ikisi de `#faf7f2`.
+   Kendi (eski) paletinde kalan ve ayrı taşınacak olanlar: `public/browserconfig.xml`,
    `src/app/global-error.tsx`, `src/lib/seo/og-card.tsx` (bağlantı
    önizlemeleri: kök kart ve sayfa kartları paleti buradan alır),
    `src/lib/email/templates/*.html` (işlemsel e-posta),
-   `src/app/odeme/paynkolay/route.ts` (ödeme köprüsü).
-4. Kaynak uygulamadır: bir değeri değiştirmeden önce `lafmobil/src/theme/tokens.ts`
-   ile karşılaştır; ayrışma operatör kararı olmadan yapılmaz.
-5. Bu belgeyi de güncelle.
+   `src/lib/payment/paynkolay-page.ts` (ödeme köprüsü), `public/icon-*.png`.
+4. Görünümün kaynağı `docs/REDESIGN-ROAST.md`'dir (11 Kas 2026); site artık
+   uygulamanın paletini izlemez. Bir değeri değiştirmek operatör kararı ister.
+5. three.js yalnız `roast-scene.ts`'te ve yalnız `import()` ile yüklenir;
+   yeni bir canlı çizim `<RoastStage>` ile ve yanında `<RoastPause />` ile
+   gelir (`tests/home-roast.test.ts`, `tests/client-bundle-weight.test.ts`).
+6. Bu belgeyi de güncelle.
 
 ---
 
@@ -574,7 +636,8 @@ lafmaliyet AkmanOS teması bırakıldı; köşkün arka ofis paneli
   (`NUMERIC_STYLE`); karakter karakter okunan kimlik, parmak izi, 2FA
   anahtarı ve Markdown sistemin eş genişlikli yazısında (`CODE_STYLE`).
   Panel içindeki site önizlemesi (`data-site-preview`) ve basılı masa
-  kartları sitenin sesinde (Poppins / Gabarito) kalır.
+  kartları sitenin sesinde (11 Kas 2026'dan beri Plus Jakarta Sans / Abril
+  Fatface) kalır.
 - **Bileşenler:** düğme köşe 8 px, 14 px orta kalınlık, dokunmatikte 44,
   farede 36, "Sıkı görünüm"de 32 px; alan 40-44 px, kenarı `#898d94` (boş
   alan 3:1 ile bulunsun diye Innex'ten koyu); kart beyaz, 1 px çizgi,
@@ -618,6 +681,28 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 6 Kas 2026  | **Kahve vadisi** (sahibin brifi: gece vadisi, three.js, "kahve çekirdekleri kullanabilirsin"): anasayfanın ilk ekranı sıra sıra kahve fidanlarının gece vadisi (beş yapraklı beyaz kahve çiçekleri, birkaç bordo kiraz, yerde ışıyan çekirdekler, yıldızlar, ışık hüzmeleri), önünde Poppins 600 sıkı "L'Affogato", serif iki satır, yuvarlak menü oku ve "Kaydır ve keşfet". Yazılar sunucuda çizilir ve WebGL'i beklemez; three.js yükten ve boş andan sonra ayrı bir parçayla gelir, WebGL yoksa CSS gece zemini kalır. Renkler `.valley`'nin `--valley-*` jetonlarından (yalnız ışık). Panel slaytları hemen altında, köşkün gece fotoğrafındaki bantta; ad ve serif satır vadiye taşındı. |
 | 6 Kas 2026  | **Kahve vadisi, ikinci tur** (sahip: "menü kısmını çıkart ... kahve çekirdeği ekle ... L'Affogato yazısını estetik yap ... yeşil bordo beyaz"): vadinin altındaki içecek bandı (operatörün slaytları) anasayfadan kalktı, slaytlar panelde durur ve `/admin/anasayfa-hero` bunu söyler; canlı açık/kapalı satırı vadiye taşındı. Kavrulmuş çekirdekler öne çıktı (daha çok, daha büyük, havada süzülen ve düşenler), yapraklar küçük kaldı. İsim Poppins değil, uygulamanın logo yazısından düzgünleştirilmiş vektör maske (`public/brand/laffogato-wordmark.svg`), beyazdan kreme, yumuşak parıltı, soldan açılış (ilk harf baştan görünür, LCP beklemez). Renkler ev yeşili gece, bordo ufuk ışığı, beyaz çiçek ve yazı, bordo kiraz; pirinç yalnız çekirdek parıltısında. |
 | 6 Kas 2026  | **Ana sayfa ve başlık** (sahibin brifleri): hero köşkün gece fotoğrafında, tam genişlikte "L'Affogato" ve önünde slaydın içeceği, sistem serifiyle bir satır, `--night`'a inen ve hiçbir yerde %66'nın altına düşmeyen karartma (slaytlar ve panel akışı aynı); "Evde L'Affogato" (mağazadan bir paket kahve, canlı üründen); uygulama bölümü (çizilmiş telefon, üç fayda kartı, `--bg-cream`); başlıkta Menü, Mağaza ve Ziyaret tam genişlikte açılan panel, kaydırınca krem bar; 404'te bahçede tabela; ödeme sayfalarında küçük ödeme çizimi. |
+| 11 Kas 2026 | **Roast** (operatör: "siteyi tamamen coffee-beans-swart.vercel.app ... gibi ... yap, three js vs. ne varsa kullan"): krem zemin `#faf7f2`, mürekkep, dolu düğme, bant ve footer için tek espresso `#23120b` (token adları yerinde, `--green-*` ailesi artık espresso), amber `#de853a` dolgu ve koyu zeminde vurgu, karamel `#a35019` krem üstünde vurgu metni, `--matcha` tek yeşil (yalnız olumlu durum), Abril Fatface başlık + Plus Jakarta Sans metin (Poppins emekli), 16px kart, espresso tonlu gölge, buzlu krem üst çubuk, kaydırmayla ilerleyen three.js girişi (çekirdek) ve iki three.js bandı (dökülen espresso, affogato kupası); kahve vadisi kalktı. Tasarım kaydı `docs/REDESIGN-ROAST.md`; güncel değerler §0. |
+
+**5 Kas - 11 Kas 2026: kafe-perakende düzeni (tarihçe; 11 Kas 2026'ya kadar
+bu belgenin §0'ıydı).** Operatör: _"sitenin görselini ... starbucks tarzı
+istiyorum ... ama panel değil"_. Site bir kahve perakende vitrininin yapısını
+almıştı: sıcak krem zemin `#f2f0eb` (taş `#edebe9`, bant `#f9f8f6`, ödül kremi
+`#faf6ee`), beyaz kart ve fısıltı gölgesi, logo yeşilinden türetilmiş ve her
+birinin tek işi olan dört yeşil (brand `#1d6d56` başlık ve yeşil metin, cta
+`#1f7a5c` dolu düğme ve yüzen sipariş düğmesi, house `#173f35` koyu bant, uplift
+`#2a5a4d` bandın içi; açık nane `#d5e8df`), 6 Kas'tan beri gece espressosu
+footer (`--night` `#181412`, `--night-raise` `#221d1a`, `--night-line`
+`#3a332e`) ve üstünde resimli gece bandı, mürekkep `#211f1d` / `#5c5955`, bordo
+vurgu `#9d2543` (yeşille üst üste yazılmazdı), pirinç `#cba258` yalnız ödülde.
+Tek ses Poppins'ti (`--headline` de ona çözülürdü; başlık 600, ana başlık yeşil,
+ödül başlığında sistem serifi); düğme 50px hap, gölgesiz, basınca 0.95; kart
+12px, gölge katmanlı siyah-alfa, cam / bulanıklık / degrade dolgu yok; başlık
+çubuğu düz beyaz (64 · 72 · 83 · 99 px), etkin bağlantının altında CTA yeşili
+çubuk; anasayfanın girişi 6 Kas'tan beri gece kahve vadisiydi (three.js,
+`home-valley.tsx`). Renkler kopyalanmamış, logo yeşilinden türetilmişti; başka
+markanın yeşili hâlâ yasaktır (`tests/brand-theme.test.ts`). Bu düzen,
+lafmobil'in porselen paletinden (karar 31 c, 25 Eyl 2026) operatör kararıyla
+ayrışmıştı; Roast o ayrışmayı sürdürür.
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

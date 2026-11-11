@@ -232,9 +232,7 @@ export default async function PromosyonlarPage() {
               <div key={p.id} className="account-promo-card">
                 <div className="account-promo-code">{p.code}</div>
                 <div className="account-promo-meta">
-                  <span
-                    style={{ fontWeight: 700, fontSize: 16 }}
-                  >
+                  <span style={{ fontWeight: 700, fontSize: 16 }}>
                     {discountLabel(p.kind, p.value)}
                   </span>
                   <span>

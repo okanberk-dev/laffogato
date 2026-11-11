@@ -366,12 +366,7 @@ export function PageHome({
               >
                 Şimdi barda
               </RevealText>
-              <RevealText
-                as="p"
-                by="words"
-                className="opener-text"
-                delay={350}
-              >
+              <RevealText as="p" by="words" className="opener-text" delay={350}>
                 {`Matcha barı, espresso ve tatlılar: menüde ${menuItemCount} lezzet var. Siparişini uygulamadan ver, gel-al ${pickupMinutes} dakikada hazır olsun.`}
               </RevealText>
               <div className="opener-actions reveal r1">
@@ -428,12 +423,7 @@ export function PageHome({
                   kupası yenir
                 </RevealText>
               </h2>
-              <RevealText
-                as="p"
-                by="words"
-                className="opener-text"
-                delay={350}
-              >
+              <RevealText as="p" by="words" className="opener-text" delay={350}>
                 {c(
                   "home.signature.body",
                   "L’Affogato bir bardağa servis edilmez; o bir bardaktır. Çıtır waffle kup, iç yüzeyinde yenilebilir glaze, bir top fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.",
@@ -493,15 +483,10 @@ export function PageHome({
                 <br />
                 bizden
               </RevealText>
-              <RevealText
-                as="p"
-                by="words"
-                className="opener-text"
-                delay={350}
-              >
+              <RevealText as="p" by="words" className="opener-text" delay={350}>
                 Uygulamadan verilen 140 TL ve üzeri kafe siparişi damga
-                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Dolan
-                kart 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
+                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Dolan kart
+                90 gün geçerli ücretsiz içecek kuponuna dönüşür.
               </RevealText>
               {/* The programme explained, not a particular visitor's card -
                   this page is public and does not know who is reading it, so

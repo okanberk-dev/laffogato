@@ -227,7 +227,8 @@
     0 1px 2px rgba(35, 18, 11, 0.06), 0 8px 20px -10px rgba(35, 18, 11, 0.16);
   --shadow-nav: 0 2px 20px rgba(35, 18, 11, 0.06);
   --shadow-frap:
-    0 10px 18px -4px rgba(35, 18, 11, 0.22), 0 4px 8px -4px rgba(35, 18, 11, 0.16);
+    0 10px 18px -4px rgba(35, 18, 11, 0.22),
+    0 4px 8px -4px rgba(35, 18, 11, 0.16);
   --shadow-glass: var(--shadow-card);
   --shadow-lift: var(--shadow-card);
   --shadow-chrome: var(--shadow-nav);
@@ -2634,16 +2635,19 @@ summary:focus-visible,
 .roast-status.is-pending {
   visibility: hidden;
 }
+/* Open is the success signal (--matcha); closed is quiet ink, never the
+   error red (the same rule as .open-dot on /ziyaret). The dot does not
+   move: nothing here to pause (WCAG 2.2.2). */
 .roast-status-dot {
   flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--rose);
+  background: var(--ink-quiet);
 }
 .roast-status.is-open .roast-status-dot {
   background: var(--matcha);
-  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.16);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--matcha) 16%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2856,8 +2860,7 @@ summary:focus-visible,
 }
 .pour-top {
   height: clamp(260px, 36vh, 380px);
-  background: var(--bg) url("/brand/roast-shadow.svg") center / cover
-    no-repeat;
+  background: var(--bg) url("/brand/roast-shadow.svg") center / cover no-repeat;
 }
 /* The drawing's row is a box of its own only on a phone. */
 .pour-art-row {
@@ -4670,7 +4673,7 @@ summary:focus-visible,
   /* A live order is a success mark: the one green left. Two rings and it
      rests (nothing on the page moves for ever without a pause control). */
   background: var(--matcha);
-  box-shadow: 0 0 0 0 rgba(29, 109, 86, 0.4);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--matcha) 40%, transparent);
   animation: apm-live 2.4s ease-out 2;
 }
 .apm-steps {
@@ -4738,10 +4741,10 @@ summary:focus-visible,
 }
 @keyframes apm-live {
   70% {
-    box-shadow: 0 0 0 8px rgba(29, 109, 86, 0);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--matcha) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(29, 109, 86, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--matcha) 0%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4978,7 +4981,7 @@ summary:focus-visible,
   height: 8px;
   border-radius: 50%;
   background: var(--matcha);
-  box-shadow: 0 0 0 3px rgba(29, 109, 86, 0.16);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--matcha) 16%, transparent);
 }
 .visit-fact-live.is-closed .visit-fact-dot {
   background: var(--ink-quiet);
@@ -7411,7 +7414,7 @@ summary:focus-visible,
   height: 10px;
   border-radius: 50%;
   background: var(--matcha);
-  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.18);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--matcha) 18%, transparent);
 }
 .open-now.is-closed .open-dot {
   background: var(--ink-quiet);
@@ -8003,9 +8006,9 @@ select {
    again, so the slide is judged in the faces customers see. */
 [data-admin-root] [data-site-preview] {
   --display:
-    var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
+    var(--font-display), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Helvetica Neue", sans-serif;
-  --headline: var(--font-headline), "Gabarito", var(--display);
+  --headline: var(--font-headline), "Abril Fatface", Georgia, serif;
   --sans: var(--display);
   --serif: var(--display);
   --serif-modern: var(--display);

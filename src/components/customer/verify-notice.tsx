@@ -78,7 +78,9 @@ export function VerifyNotice({
           </span>
         )}
         {state.error && (
-          <span style={{ color: "var(--rose)", fontSize: 13 }}>{state.error}</span>
+          <span style={{ color: "var(--rose)", fontSize: 13 }}>
+            {state.error}
+          </span>
         )}
       </form>
     </div>

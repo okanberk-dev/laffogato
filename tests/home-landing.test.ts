@@ -115,6 +115,22 @@ describe("the rest of the landing page", () => {
     expect(arrow).not.toMatch(/font-family/);
   });
 
+  it("keeps its live status still (WCAG 2.2.2)", () => {
+    // Until 11 Kas 2026 this pinned the valley's dot: two 2 s rings and it
+    // settled, never `infinite`. The roast hero's dot (operator's
+    // instruction of 11 Kas 2026, docs/REDESIGN-ROAST.md) does not move at
+    // all; the guard is the same promise, stricter: no animation on it.
+    const dot = rule(".roast-status-dot");
+    const open = rule(".roast-status.is-open .roast-status-dot");
+    expect(dot).not.toMatch(/animation/);
+    expect(open).not.toMatch(/animation/);
+    expect(CSS).not.toMatch(/\.roast-status[^{]*\{[^}]*infinite/);
+    // Open is the success signal; closed is quiet ink, never the error red.
+    expect(open).toMatch(/background: var\(--matcha\);/);
+    expect(dot).toMatch(/background: var\(--ink-quiet\);/);
+    expect(dot).not.toContain("--rose");
+  });
+
   it("sets the display titles and the figures in the title face's one weight", () => {
     // Operator, 11 Kas 2026 (docs/REDESIGN-ROAST.md): Abril Fatface has one
     // weight, 400; a 600 would be a smeared synthetic bold.

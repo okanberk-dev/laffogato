@@ -38,7 +38,8 @@ Tam sınır: **`docs/FRONTEND-SINIR.md`**. Bu skill onun iş akışı.
   bileşeninde `server-only` modül import etme - `*-core.ts` / `*-utils.ts`
   kardeşini al.
 - Renk/token değişikliği `tests/contrast.test.ts` ve
-  `tests/brand-theme.test.ts`'ten geçmeli; bordo ile yeşil üst üste yazılmaz.
+  `tests/brand-theme.test.ts`'ten geçmeli; karamel (`--accent`) ile espresso
+  üst üste yazılmaz, koyu zeminde vurgu `--accent-on-dark` (amber) ile yazılır.
 - Hash router hydration kuralı (CLAUDE.md → "Sık Karşılaşılan Hatalar").
 
 ## Form başka dosyaya taşındıysa

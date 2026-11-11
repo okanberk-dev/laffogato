@@ -38,28 +38,49 @@ const emails = [
 ].join("\n");
 
 /**
- * The bordo as the site paints it: accent / deep / soft. Since 25 Eyl 2026
- * these are lafmobil's accent.burgundy / burgundyDeep / accentSubtle again,
- * verbatim (src/theme/tokens.ts, karar 149) - see the note on the phone below.
+ * The accent as the site paints it: text / deep / soft. Since 11 Kas 2026
+ * this is the caramel of the roast (docs/REDESIGN-ROAST.md): the reference's
+ * amber #DE853A is 2.6:1 on the cream canvas, so the accent AS TEXT is a
+ * darker caramel and the amber itself is a fill and the accent on dark.
  */
-const SITE_BORDO = ["#9D2543", "#520F1F", "#F9E6EA"] as const;
+const SITE_ACCENT = ["#A35019", "#6F350D", "#FBEAD9"] as const;
+/** The amber: the one warm fill, and the accent on the espresso grounds. */
+const SITE_AMBER = "#de853a";
+/** One espresso for ink, every filled action, the bands and the footer. */
+const ESPRESSO = "#23120b";
 
 /** Only what the stylesheet paints with - the history notes can name anything. */
 const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
+/** The site's tokens: the first `:root` block, comments stripped. */
+const rootCode = (() => {
+  const at = css.indexOf("\n:root {");
+  return css.slice(at, css.indexOf("\n}", at)).replace(/\/\*[\s\S]*?\*\//g, "");
+})();
+/** A declaration's value, whatever line breaks the formatter gave it. */
+const flat = (source: string) => source.replace(/\s+/g, " ");
 
 /**
- * The site's palette is café retail, since 5 Kas 2026.
+ * The site's palette is the Roast, since 11 Kas 2026.
  *
- * Operator instruction, 5 Kas 2026: "sitenin görselini ... starbucks tarzı
- * istiyorum ... ama panel değil". A warm cream canvas (#F2F0EB), white
- * cards, a four-tier green system derived from the logo green (brand
- * #1D6D56 for headings and green text, cta #1F7A5C for filled actions, house
- * #173F35 for bands and the footer, uplift #2A5A4D for accents), brass
- * (#CBA258) for the reward moments only, black-alpha layered shadows and a
- * single Poppins voice. That diverges from lafmobil's porcelain (below) by
- * the operator's decision, recorded in docs/BRAND.md.
+ * Operator instruction, 11 Kas 2026: "siteyi tamamen
+ * https://coffee-beans-swart.vercel.app/ bu sitedeki gibi ... yap". The
+ * design record is docs/REDESIGN-ROAST.md. A cream canvas (#FAF7F2), white
+ * cards, ONE espresso (#23120B) for ink, for every filled button, for the
+ * dark bands and for the footer - the token NAMES did not move, so the whole
+ * `--green-*` family, `--brand`, `--bg-espresso` and `--night` are that
+ * espresso now - an amber (#DE853A) as the warm fill and the accent on dark,
+ * a caramel (#A35019) as the accent in text on cream, brass (#CBA258) for
+ * the reward moments only, espresso-tinted shadows, and two voices: Abril
+ * Fatface for titles, Plus Jakarta Sans for everything else. The one green
+ * left is `--matcha`, the success signal.
  *
  * Before that:
+ *
+ * Operator instruction, 5 Kas 2026: "sitenin görselini ... starbucks tarzı
+ * istiyorum ... ama panel değil". A warm cream canvas (#F2F0EB), a four-tier
+ * green system derived from the logo green (brand #1D6D56, cta #1F7A5C,
+ * house #173F35, uplift #2A5A4D), black-alpha layered shadows and a single
+ * Poppins voice.
  *
  * Operator instruction, 25 Eyl 2026: "lafmobil reposu mobil uygulamanın
  * reposu ve tasarımı apple'a uygun, sen de site tasarımını buna uygun olarak
@@ -68,37 +89,40 @@ const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
  * §13) on that day - porcelain ground #F7F3ED, structure green #1D6D56, bordo
  * #9D2543, brass #E8C877 - with the app's two voices, Poppins and Inter.
  *
- * This file has now pinned FIVE successive decisions - heritage köşk, the
+ * This file has now pinned SEVEN successive decisions - heritage köşk, the
  * mobile app's tokens (2 Eyl), the Köşk redesign (5 Eyl), the tricolore
- * accent (7 Eyl) and the app's porcelain (25 Eyl) - and is kept, each time
- * inverted, because the failure mode it guards is real: a palette that
- * drifts one hex at a time until half the site is on the previous one. The
- * `not.toContain` assertions are the load-bearing half.
+ * accent (7 Eyl), the app's porcelain (25 Eyl), café retail (5 Kas) and the
+ * Roast (11 Kas) - and is kept, each time inverted, because the failure mode
+ * it guards is real: a palette that drifts one hex at a time until half the
+ * site is on the previous one. The `not.toContain` assertions are the
+ * load-bearing half.
  *
- * Note on the phone: the app is the source now. When lafmobil's tokens move,
- * the site moves in the same PR series (docs/SITE-PALETTE-SYNC.md in
- * lafmobil holds the value table). The one surface that has NOT moved yet
- * was the e-mails, until 15 Eki 2026: their baked bands and glint GIF went
- * with the light/dark restyle, and the mail is on this palette now (see the
- * mail block below).
+ * The surfaces that deliberately did NOT move on 11 Kas 2026 are the
+ * e-mails, the link preview cards, the icons and the PayNkolay bridge page:
+ * they spell their palette out (no CSS variables there) and keep the older
+ * one until each is redrawn. Their blocks below are unchanged.
  * Contrast is a separate guard in contrast.test.ts.
  */
-describe("palette is café retail on the logo's green", () => {
-  it("gives each of the four greens one role", () => {
-    // brand: headings, green text, the logo; cta: filled actions; house:
-    // the deep bands and the footer; uplift: accents inside the band.
-    expect(css).toContain("--brand: #1d6d56");
-    expect(css).toContain("--green: #1d6d56");
-    expect(css).toContain("--matcha: #1d6d56");
-    expect(css).toContain("--green-brand: #1d6d56");
-    expect(css).toContain("--green-cta: #1f7a5c");
-    expect(css).toContain("--green-house: #173f35");
-    expect(css).toContain("--green-uplift: #2a5a4d");
-    expect(css).toContain("--bg-espresso: #173f35");
-    // The filled action is the CTA green. The footer was the house green
-    // until 6 Kas 2026; the owner's brief made it a night footer: `--night`,
-    // the ink deepened, under an illustrated band whose sky is the house
-    // green. The house green keeps its role as the band colour.
+describe("palette is the Roast: cream, one espresso, amber", () => {
+  it("gives the espresso every structural role, under the names that stayed", () => {
+    // 11 Kas 2026 (docs/REDESIGN-ROAST.md): names did not move, values did.
+    // brand: headings and the logo; cta: filled actions; house: the deep
+    // bands; uplift: the raised tone inside a band; night: the footer.
+    expect(css).toContain(`--brand: ${ESPRESSO}`);
+    expect(css).toContain(`--green: ${ESPRESSO}`);
+    expect(css).toContain(`--ink: ${ESPRESSO}`);
+    expect(css).toContain(`--roast: ${ESPRESSO}`);
+    expect(css).toContain(`--green-brand: ${ESPRESSO}`);
+    expect(css).toContain(`--green-cta: ${ESPRESSO}`);
+    expect(css).toContain("--green-cta-pressed: #3a241a");
+    expect(css).toContain(`--green-house: ${ESPRESSO}`);
+    expect(css).toContain("--green-uplift: #4a3327");
+    expect(css).toContain(`--bg-espresso: ${ESPRESSO}`);
+    expect(css).toContain("--bg-espresso-deep: #170b06");
+    expect(css).toContain(`--hero-green: ${ESPRESSO}`);
+    // The filled action is the CTA token, the footer the night token, the
+    // band above it the house token: the rules still read the roles, so a
+    // later palette moves them all at once.
     const rule = (selector: string) => {
       const at = cssCode.indexOf(`\n${selector} {`);
       expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
@@ -107,17 +131,46 @@ describe("palette is café retail on the logo's green", () => {
     expect(rule(".btn-primary")).toContain("background: var(--green-cta);");
     expect(rule(".footer")).toContain("background: var(--night);");
     expect(rule(".footer-cta")).toContain("background: var(--green-house);");
-    // An espresso, not a black: --ink's warm cast, deepened.
-    expect(css).toContain("--night: #181412;");
+    // The footer is the espresso itself, with its own raised tone and text.
+    expect(css).toContain(`--night: ${ESPRESSO};`);
+    expect(css).toContain("--night-raise: #2f1c13;");
+    expect(css).toContain("--night-ink: #faf7f2;");
   });
 
-  it("is colour-block: solid bands, layered shadows, pills that press to 0.95", () => {
+  it("keeps one green, and only as the success signal", () => {
+    // 11 Kas 2026: #1d6d56 was the brand colour until the Roast. It is now
+    // allowed as --matcha alone ("open", "in stock", "saved"): no other
+    // token may carry it, and nothing paints it as a literal.
+    expect(css).toContain("--matcha: #1d6d56");
+    const carriers = [...rootCode.matchAll(/(--[a-z0-9-]+):\s*#1d6d56/gi)].map(
+      (m) => m[1],
+    );
+    expect(carriers).toEqual(["--matcha"]);
+    expect(cssCode.toLowerCase().split("#1d6d56").length - 1).toBe(1);
+    // The café-retail greens of 5 Kas 2026 and the brand green's decimal
+    // form (halos that were written as rgba() and missed by a hex search).
+    for (const hex of ["#1f7a5c", "#173f35", "#2a5a4d", "#0f2b24"]) {
+      expect(
+        cssCode.toLowerCase(),
+        `${hex} is the retired green`,
+      ).not.toContain(hex);
+    }
+    expect(cssCode).not.toContain("rgba(29, 109, 86,");
+    expect(/29\s*,\s*109\s*,\s*86/.test(cssCode)).toBe(false);
+  });
+
+  it("is soft and round: 16px cards, pills that press to 0.95, no glass", () => {
+    // 11 Kas 2026 (docs/REDESIGN-ROAST.md): the card radius went 12 → 16px
+    // and the button from a 50px pill to a full pill; the press stays.
     expect(css).toContain("--press-scale: 0.95;");
-    expect(css).toContain("--r-card: 12px;");
-    expect(css).toContain("--r-btn: 50px;");
+    expect(css).toContain("--r-card: 16px;");
+    expect(css).toContain("--r-btn: 999px;");
+    // --glass-* still exist as names and are opaque; the only translucent
+    // material is the frost of the top bar and the frosted card.
     expect(css).toContain("--glass-blur: none;");
-    expect(css).toContain(
-      "--shadow-card: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.24);",
+    expect(css).toContain("--frost-blur: blur(12px);");
+    expect(flat(rootCode)).toContain(
+      "--shadow-card: 0 1px 2px rgba(35, 18, 11, 0.06), 0 8px 20px -10px rgba(35, 18, 11, 0.16);",
     );
     // The floating order button.
     expect(cssCode).toMatch(
@@ -128,17 +181,24 @@ describe("palette is café retail on the logo's green", () => {
     );
   });
 
-  it("uses the app's bordo as the accent", () => {
-    expect(css).toContain("--accent: #9d2543");
-    expect(css).toContain("--accent-deep: #520f1f");
-    expect(css).toContain("--accent-soft: #f9e6ea");
+  it("uses a caramel as the accent in text and the amber as the fill", () => {
+    // 11 Kas 2026: the bordo (#9d2543 / #520f1f / #f9e6ea) is retired.
+    expect(css).toContain("--accent: #a35019");
+    expect(css).toContain("--accent-deep: #6f350d");
+    expect(css).toContain("--accent-soft: #fbead9");
+    expect(css).toContain(`--accent-on-dark: ${SITE_AMBER}`);
+    expect(css).toContain(`--amber: ${SITE_AMBER}`);
+    expect(css).toContain("--amber-raise: #e2934d");
   });
 
   it("keeps brass as a fill and a darker gold for text", () => {
     // Brass (#CBA258) is the reward fill: ink sits on it, it never carries
-    // text on the canvas. #765923 is the text gold.
+    // text on the canvas. #765923 is the text gold. Unchanged by the Roast.
     expect(css).toContain("--gold-soft: #cba258");
     expect(css).toContain("--gold: #765923");
+    expect(css).toContain("--gold-deep: #5c4325");
+    expect(css).toContain("--gold-light: #dfc49d");
+    expect(css).toContain("--gold-ink: #2e2113");
   });
 
   it("retires the Köşk values from the stylesheet, not just their names", () => {
@@ -209,8 +269,8 @@ describe("palette is café retail on the logo's green", () => {
     }
   });
 
-  it("keeps one bordo, not a second one near it", () => {
-    // Two burgundies one hex apart is exactly the drift this file exists to
+  it("keeps one caramel, not a second one near it, and no bordo", () => {
+    // Two accents one hex apart is exactly the drift this file exists to
     // stop, so all three shades are pinned as literals.
     //
     // Until 8 Eyl 2026 this test also opened ../lafmobil/src/theme/tokens.ts
@@ -219,23 +279,45 @@ describe("palette is café retail on the logo's green", () => {
     // operator decision (lafmobil's src/theme/tokens.ts is its only record),
     // so that half would fail for a reason that is not a defect - and in CI
     // the app was never there anyway. Only the site side remains.
-    for (const hex of SITE_BORDO) expect(css).toContain(hex.toLowerCase());
+    for (const hex of SITE_ACCENT) expect(css).toContain(hex.toLowerCase());
+    // 11 Kas 2026: the app's bordo (25 Eyl - 11 Kas) no longer paints the
+    // stylesheet, as a hex or as its decimal triplet.
+    for (const [hex, triplet] of [
+      ["#9d2543", /157\s*,\s*37\s*,\s*67/],
+      ["#520f1f", /82\s*,\s*15\s*,\s*31/],
+      ["#f9e6ea", /249\s*,\s*230\s*,\s*234/],
+    ] as const) {
+      expect(
+        cssCode.toLowerCase(),
+        `${hex} is the retired bordo`,
+      ).not.toContain(hex);
+      expect(triplet.test(cssCode), `${hex} in decimal`).toBe(false);
+    }
   });
 
-  it("sits on a warm cream canvas, with white kept for cards", () => {
-    expect(css).toContain("--bg: #f2f0eb");
-    expect(css).toContain("--bg-stone: #edebe9");
+  it("sits on the reference's cream canvas, with white kept for cards", () => {
+    // 11 Kas 2026 (docs/REDESIGN-ROAST.md): #faf7f2, measured on the
+    // reference page; stone and cream are its two quieter grounds.
+    expect(css).toContain("--bg: #faf7f2");
+    expect(css).toContain("--bg-warm: #fdfcf9");
+    expect(css).toContain("--bg-stone: #f0eae1");
+    expect(css).toContain("--bg-cream: #f7efe2");
     expect(css).toContain("--surface: #ffffff");
-    // The retired grounds: the app's porcelain, its old canvas and the
-    // heritage köşk cream.
+    // The retired grounds: the café-retail canvas and stone and its night
+    // footer (5-6 Kas), the app's porcelain, its old canvas and the heritage
+    // köşk cream.
+    expect(cssCode).not.toContain("#f2f0eb");
+    expect(cssCode).not.toContain("#edebe9");
+    expect(cssCode).not.toContain("#181412");
     expect(cssCode).not.toContain("#f7f3ed");
     expect(css).not.toContain("#f9f8f7");
     expect(css).not.toContain("#f7f3ea");
   });
 
-  it("is not Starbucks' own green - the style is borrowed, the colours derived", () => {
-    // The structure follows a coffee-retail flagship; the greens come from
-    // L'Affogato's logo, never from another brand's storefront.
+  it("is not Starbucks' own green - nor anyone else's", () => {
+    // Banned since the café-retail restyle borrowed a coffee-retail
+    // flagship's structure; it stays banned now that the site has no brand
+    // green at all.
     for (const hex of ["#00754a", "#005c3a", "#006241", "#1e3932", "#2b5148"]) {
       expect(css.toLowerCase(), `${hex} is someone else's green`).not.toContain(
         hex,
@@ -243,35 +325,66 @@ describe("palette is café retail on the logo's green", () => {
     }
   });
 
-  it("layers black-alpha shadows, never the retired tints", () => {
-    // Two or three low-alpha black shadows per elevation. Every earlier
-    // shadow colour - the app's warm earth, the espresso brown, the app's
-    // older dark green and the Köşk house green - is gone.
-    expect(cssCode).toContain("rgba(0, 0, 0, 0.24)");
+  it("tints every shadow with the espresso, never black or a retired tint", () => {
+    // 11 Kas 2026 (docs/REDESIGN-ROAST.md): shadows are rgba(35, 18, 11, …),
+    // the ink itself at low alpha. The black-alpha layers of 5 Kas are
+    // gone with every earlier shadow colour - the app's warm earth, the
+    // espresso brown, the app's older dark green and the Köşk house green.
+    expect(cssCode).toContain("rgba(35, 18, 11,");
+    expect(flat(rootCode)).toContain(
+      "--shadow-nav: 0 2px 20px rgba(35, 18, 11, 0.06);",
+    );
+    expect(flat(rootCode)).toMatch(
+      /--shadow-frap: [^;]*rgba\(35, 18, 11, 0\.22\)[^;]*;/,
+    );
+    expect(flat(rootCode)).toContain(
+      "--ring: 0 0 0 4px rgba(35, 18, 11, 0.16);",
+    );
+    expect(cssCode).not.toContain("rgba(0, 0, 0,");
     expect(cssCode).not.toContain("rgba(59, 42, 30,");
     expect(css).not.toContain("rgba(20, 61, 43,");
     expect(css).not.toContain("rgba(74, 52, 22,");
     expect(css).not.toContain("rgba(18, 41, 31,");
   });
 
-  it("speaks in one voice - Poppins, tracked tight - and no retired one", () => {
-    // Operator, 11 Eki 2026: "sitede poppins fontu olsun". The café-retail
-    // restyle (5 Kas 2026) sets headlines in the same face as the text, so
-    // the hierarchy is weight and colour; Gabarito (14 Eki 2026) is retired.
+  it("speaks in two voices - Abril Fatface titles, Plus Jakarta Sans text - and no retired one", () => {
+    // Operator, 11 Kas 2026 (docs/REDESIGN-ROAST.md): the reference's two
+    // faces. Abril Fatface has ONE weight (400) and sets titles in capitals;
+    // Plus Jakarta Sans (variable) sets everything else. Poppins (11 Eki -
+    // 11 Kas 2026) and Gabarito (14 Eki - 5 Kas 2026) are retired.
     const layout = read("src/app/layout.tsx");
-    expect(layout).toMatch(/import \{ Poppins \} from "next\/font\/google"/);
+    const layoutCode = layout
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
     expect(layout).toMatch(
-      /weight: \["300", "400", "500", "600", "700", "800"\]/,
+      /import \{ Abril_Fatface, Plus_Jakarta_Sans \} from "next\/font\/google"/,
     );
-    expect(layout).not.toMatch(/\bGabarito\(/);
-    expect(layout).not.toContain("--font-headline");
-    expect(css).toContain('"Poppins"');
-    // Every historical token resolves to the one voice, the headline too.
+    expect(flat(layoutCode)).toMatch(
+      /Plus_Jakarta_Sans\(\{ subsets: \["latin", "latin-ext"\], variable: "--font-display",/,
+    );
+    // One weight: a bold Abril would be a synthesised smear.
+    expect(flat(layoutCode)).toMatch(
+      /Abril_Fatface\(\{ subsets: \["latin", "latin-ext"\], weight: "400", variable: "--font-headline",/,
+    );
+    expect(cssCode).toContain("font-synthesis-weight: none;");
+    expect(css).toContain('"Plus Jakarta Sans"');
+    expect(css).toContain('"Abril Fatface"');
+    // The text face, and every historical token that resolves to it; the
+    // headline is a stack of its own.
+    expect(flat(rootCode)).toMatch(
+      /--display: var\(--font-display\), "Plus Jakarta Sans",[^;]*sans-serif;/,
+    );
+    expect(flat(rootCode)).toMatch(
+      /--headline: var\(--font-headline\), "Abril Fatface",[^;]*serif;/,
+    );
+    expect(rootCode).not.toContain("--headline: var(--display);");
     expect(cssCode).toContain("--sans: var(--display);");
-    expect(cssCode).toContain("--headline: var(--display);");
+    expect(cssCode).toContain("--serif: var(--display);");
+    expect(cssCode).toContain("--mono: var(--sans);");
     expect(cssCode).toContain("--tracking: -0.01em;");
-    // The reward serif is system faces only - nothing is downloaded for it.
-    expect(cssCode).toMatch(/--reward-serif: "Iowan Old Style"[^;]*serif;/);
+    // The reward serif is the headline face now that the site has a real
+    // one - still nothing downloaded for it alone.
+    expect(cssCode).toContain("--reward-serif: var(--headline);");
     const rule = (selector: string) => {
       const at = cssCode.indexOf(`\n${selector} {`);
       expect(at, `${selector} is missing from globals.css`).toBeGreaterThan(-1);
@@ -299,17 +412,22 @@ describe("palette is café retail on the logo's green", () => {
       expect(rule(control)).toContain("font-family: var(--display);");
     }
     // The retired faces are gone from the stylesheet and the loader, not
-    // merely unused: a stray "Inter" in a font stack would quietly become
-    // the reading face again wherever Poppins is missing a glyph.
+    // merely unused: a stray "Poppins" in a font stack would quietly become
+    // the reading face again wherever the loaded one is missing a glyph.
+    for (const face of [
+      "Poppins",
+      "Gabarito",
+      "Montserrat",
+      "Hanken Grotesk",
+      "JetBrains Mono",
+    ]) {
+      expect(cssCode, `${face} in globals.css`).not.toContain(face);
+      expect(layoutCode, `${face} in layout.tsx`).not.toContain(face);
+    }
     expect(cssCode).not.toMatch(/\bInter\b/);
-    expect(layout).not.toMatch(/import \{[^}]*\bInter\b/);
-    expect(layout).not.toMatch(/\bInter\(/);
+    expect(layoutCode).not.toMatch(/\bInter\b/);
+    expect(layout).not.toMatch(/import \{[^}]*\b(Inter|Poppins|Gabarito)\b/);
     expect(layout).not.toContain("--font-text");
-    expect(layout).not.toContain("Montserrat");
-    expect(css).not.toContain("Montserrat");
-    expect(css).not.toContain("Plus Jakarta Sans");
-    expect(css).not.toContain("Hanken Grotesk");
-    expect(css).not.toContain("JetBrains Mono");
   });
 });
 
@@ -322,10 +440,19 @@ describe("palette is café retail on the logo's green", () => {
  */
 describe("surfaces outside globals.css follow the same palette", () => {
   it("installs the PWA on the site's ground and chrome, matching layout.tsx", () => {
-    expect(manifest).toContain('background_color: "#f2f0eb"');
-    expect(manifest).toContain('theme_color: "#ffffff"');
-    expect(read("src/app/layout.tsx")).toContain('themeColor: "#ffffff"');
-    for (const hex of ["#FBF4E6", "#2C1D11", "#f9f8f7", "#12291f", "#143d2b"]) {
+    // 11 Kas 2026 (docs/REDESIGN-ROAST.md): the splash and the browser
+    // chrome are both the cream canvas the transparent top bar sits on.
+    expect(manifest).toContain('background_color: "#faf7f2"');
+    expect(manifest).toContain('theme_color: "#faf7f2"');
+    expect(read("src/app/layout.tsx")).toContain('themeColor: "#faf7f2"');
+    for (const hex of [
+      "#FBF4E6",
+      "#2C1D11",
+      "#f9f8f7",
+      "#12291f",
+      "#143d2b",
+      "#f2f0eb",
+    ]) {
       expect(manifest, `${hex} belongs to a retired palette`).not.toContain(
         hex,
       );

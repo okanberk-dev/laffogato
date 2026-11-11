@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cx } from "./cx";
 
@@ -40,7 +40,10 @@ export function ScrambleText({
   delay?: number;
   className?: string;
 }) {
-  const ref = useRef<HTMLElement>(null);
+  // Typed as all three tags at once so the one ref fits whichever is drawn.
+  const ref = useRef<HTMLParagraphElement & HTMLSpanElement & HTMLDivElement>(
+    null,
+  );
   /** The line mid-decode ("" = not yet started), or null when at rest. */
   const [frame, setFrame] = useState<string[] | null>(null);
 
@@ -89,33 +92,40 @@ export function ScrambleText({
   }, [text, delay]);
 
   const glyphs = frame ? [...text] : null;
-  return createElement(
-    as,
-    { ref, className: cx("scr", on === "load" && "scr-load", className) },
-    frame && glyphs ? (
-      <>
-        <span className="sr-only">{text}</span>
-        <span aria-hidden="true">
-          {glyphs.map((glyph, i) => {
-            const shown = frame[i];
-            // An unstarted glyph keeps its width so the line does not jump.
-            if (!shown) {
+  const Tag = as;
+  return (
+    <Tag
+      ref={ref}
+      className={cx("scr", on === "load" && "scr-load", className)}
+    >
+      {frame && glyphs ? (
+        <>
+          <span className="sr-only">{text}</span>
+          <span aria-hidden="true">
+            {glyphs.map((glyph, i) => {
+              const shown = frame[i];
+              // An unstarted glyph keeps its width so the line does not jump.
+              if (!shown) {
+                return (
+                  <span key={i} style={{ visibility: "hidden" }}>
+                    {glyph}
+                  </span>
+                );
+              }
               return (
-                <span key={i} style={{ visibility: "hidden" }}>
-                  {glyph}
+                <span
+                  key={i}
+                  className={shown === glyph ? undefined : "scr-spin"}
+                >
+                  {shown}
                 </span>
               );
-            }
-            return (
-              <span key={i} className={shown === glyph ? undefined : "scr-spin"}>
-                {shown}
-              </span>
-            );
-          })}
-        </span>
-      </>
-    ) : (
-      text
-    ),
+            })}
+          </span>
+        </>
+      ) : (
+        text
+      )}
+    </Tag>
   );
 }

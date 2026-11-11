@@ -61,37 +61,62 @@ export function RevealText({
   children: ReactNode;
 }) {
   const step = stagger ?? STEP[by];
-  let n = 0;
-  const box = (text: string, key: number, word: boolean) => (
+  /** One moving box; `order` is its place in the whole line's stagger. */
+  const box = (text: string, key: number, word: boolean, order: number) => (
     <span
       key={key}
       className={word ? "rv-item rv-item-word" : "rv-item"}
-      style={{ "--rv-d": `${delay + n++ * step}ms` } as CSSProperties}
+      style={{ "--rv-d": `${delay + order * step}ms` } as CSSProperties}
     >
       {text}
     </span>
   );
 
+  // Plain loops, not callbacks: the box counter and the accessible name
+  // are built up while rendering, which React only allows in the render
+  // body itself.
+  let n = 0;
   let plain = "";
-  const split = Children.toArray(children).map((child, i) => {
+  const split: ReactNode[] = [];
+  const kids = Children.toArray(children);
+  for (let i = 0; i < kids.length; i++) {
+    const child = kids[i];
     if (typeof child !== "string" && typeof child !== "number") {
       if (isValidElement(child) && child.type === "br") plain += " ";
-      return child;
+      split.push(child);
+      continue;
     }
     const text = String(child);
     plain += text;
-    return text.split(/(\s+)/).map((part, j) => {
-      if (!part) return null;
-      if (/^\s+$/.test(part)) return " ";
-      return (
+    const parts = text.split(/(\s+)/);
+    const line: ReactNode[] = [];
+    for (let j = 0; j < parts.length; j++) {
+      const part = parts[j];
+      if (!part) {
+        line.push(null);
+        continue;
+      }
+      if (/^\s+$/.test(part)) {
+        line.push(" ");
+        continue;
+      }
+      const boxes: ReactNode[] = [];
+      if (by === "chars") {
+        const glyphs = [...part];
+        for (let k = 0; k < glyphs.length; k++) {
+          boxes.push(box(glyphs[k], k, false, n++));
+        }
+      } else {
+        boxes.push(box(part, 0, true, n++));
+      }
+      line.push(
         <span key={`${i}-${j}`} className="rv-mask">
-          {by === "chars"
-            ? [...part].map((glyph, k) => box(glyph, k, false))
-            : box(part, 0, true)}
-        </span>
+          {by === "chars" ? boxes : boxes[0]}
+        </span>,
       );
-    });
-  });
+    }
+    split.push(line);
+  }
 
   const classes = cx(
     "rv",

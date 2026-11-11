@@ -112,9 +112,11 @@ describe("colour contrast", () => {
   });
 
   it("the accent is legible as text on the night ground", () => {
-    // The palette swap made `--accent` a dark burgundy. On `--bg-espresso`
-    // it measured 1.68:1 - the menu hero's script word was rendered and
-    // could not be seen. `--accent-on-dark` is the same hue, lightened.
+    // Caramel vs espresso (11 Kas 2026, docs/REDESIGN-ROAST.md). `--accent`
+    // is the caramel that carries text on cream; on the espresso grounds it
+    // measures 3.20:1 and must not be used. `--accent-on-dark` is the amber
+    // itself (6.47:1 there): the same hue, lighter. Before the Roast this
+    // was "bordo vs green" (1.68:1, a script word nobody could see).
     const night = token("--bg-espresso");
     expect(contrast(token("--accent"), night)).toBeLessThan(AA);
     expect(contrast(token("--accent-on-dark"), night)).toBeGreaterThanOrEqual(
@@ -158,9 +160,11 @@ describe("colour contrast", () => {
   });
 
   it("bans the accent ink on every dark ground, including the deep one", () => {
-    // --bg-espresso-deep is the lower stop of the footer's gradient and was
-    // missing from the pair list, so bordo text at the bottom of the footer
-    // was unguarded.
+    // --bg-espresso-deep is the deepest dark ground and was once missing
+    // from the pair list, so accent text at the bottom of the footer was
+    // unguarded. Since 11 Kas 2026 every name below but --matcha is the
+    // espresso; the caramel fails on each (3.20-3.42:1, and 1.10:1 on the
+    // success green).
     for (const green of [
       "--hero-green",
       "--bg-espresso",
@@ -176,7 +180,8 @@ describe("colour contrast", () => {
   });
 
   it("every night ink clears AA on the night footer and its pills", () => {
-    // The footer's ground and its raised pills and letter card (6 Kas 2026).
+    // The footer's ground and its raised pills and letter card (6 Kas 2026;
+    // the espresso and its raised tone since 11 Kas 2026).
     for (const ground of ["--night", "--night-raise"]) {
       for (const ink of [
         "--night-ink",
@@ -189,11 +194,74 @@ describe("colour contrast", () => {
         ).toBeGreaterThanOrEqual(AA);
       }
     }
-    // The band's copy sits on the sky: the house green at the bottom of it.
+    // The band above the footer: its copy sits on the house token (the
+    // espresso since 11 Kas 2026).
     for (const ink of ["--night-ink", "--night-ink-soft", "--green-mint"]) {
       expect(
         contrast(token(ink), token("--green-house")),
         `${ink} on the night band`,
+      ).toBeGreaterThanOrEqual(AA);
+    }
+  });
+
+  it("the Roast's own pairs clear AA", () => {
+    // 11 Kas 2026 (docs/REDESIGN-ROAST.md). The pairs the new look relies
+    // on and no earlier assertion named.
+    //
+    // The amber is a FILL: the one warm button (.btn-amber) and its hover
+    // carry the espresso ink.
+    for (const fill of ["--amber", "--amber-raise"]) {
+      expect(
+        contrast(token("--ink"), token(fill)),
+        `--ink on ${fill}`,
+      ).toBeGreaterThanOrEqual(AA);
+    }
+    // ...and it is the accent as TEXT on the dark grounds only: kickers on
+    // the espresso panels, footer hovers, the raised espresso.
+    for (const ground of [
+      "--night",
+      "--night-raise",
+      "--roast",
+      "--roast-raise",
+      "--bg-espresso-deep",
+    ]) {
+      for (const ink of ["--accent-on-dark", "--amber"]) {
+        expect(
+          contrast(token(ink), token(ground)),
+          `${ink} on ${ground}`,
+        ).toBeGreaterThanOrEqual(AA);
+      }
+    }
+    // On the cream canvas it measures 2.61:1, which is why --accent (the
+    // caramel) exists. If this ever passes AA the two tokens can be merged;
+    // until then no text on a paper ground may be the amber.
+    expect(contrast(token("--amber"), bg)).toBeLessThan(AA);
+    expect(token("--accent-on-dark")).toBe(token("--amber"));
+    // The quietest footer text on the footer's raised pill.
+    expect(
+      contrast(token("--night-ink-mute"), token("--night-raise")),
+      "--night-ink-mute on --night-raise",
+    ).toBeGreaterThanOrEqual(AA);
+    // Secondary and muted text on the two quieter paper grounds (the stone
+    // bands, the cream cards) and on white.
+    for (const ground of [
+      "--bg-stone",
+      "--bg-cream",
+      "--bg-warm",
+      "--surface",
+    ]) {
+      for (const ink of ["--ink-soft", "--ink-mute"]) {
+        expect(
+          contrast(token(ink), token(ground)),
+          `${ink} on ${ground}`,
+        ).toBeGreaterThanOrEqual(AA);
+      }
+    }
+    // The filled pill: cream on the espresso and on its pressed tone.
+    for (const fill of ["--green-cta", "--green-cta-pressed"]) {
+      expect(
+        contrast(token("--ink-on-dark"), token(fill)),
+        `--ink-on-dark on ${fill}`,
       ).toBeGreaterThanOrEqual(AA);
     }
   });
@@ -248,9 +316,24 @@ describe("the accent carries text at any size", () => {
    * turned a brand-coloured link or badge into body ink. The rules moved back
    * to `--accent`; what these assertions now hold is the property that made
    * that safe.
+   *
+   * 11 Kas 2026 (docs/REDESIGN-ROAST.md): the accent is a caramel. The
+   * reference's amber would have brought terracotta's problem back (2.61:1
+   * on the canvas), so `--accent` was chosen as the darkest caramel that is
+   * still plainly the amber's hue AND keeps this property: 5.28:1 on the
+   * canvas, 5.65:1 on white, 4.95:1 on the cream card, 4.72:1 on stone,
+   * 4.81:1 on its own soft tint.
    */
   it("clears AA as body text on every paper ground", () => {
-    for (const ground of ["--bg", "--bg-warm", "--bg-cream", "--hero-cream"]) {
+    for (const ground of [
+      "--bg",
+      "--bg-warm",
+      "--bg-cream",
+      "--bg-stone",
+      "--surface",
+      "--accent-soft",
+      "--hero-cream",
+    ]) {
       expect(
         contrast(token("--accent"), token(ground)),
         `--accent on ${ground}`,
@@ -264,8 +347,9 @@ describe("the accent carries text at any size", () => {
   });
 
   it("keeps the deep step for pressed and hover, not for colour", () => {
-    // --accent-deep is a near-black. That is fine as a pressed state and as
-    // ink on --accent-soft; it is not a substitute for the accent itself.
+    // --accent-deep is the darker step (8.97:1 on the canvas since 11 Kas
+    // 2026; a near-black under the bordo). That is fine as a pressed state
+    // and as ink on --accent-soft; it is not a substitute for the accent.
     expect(contrast(token("--accent-deep"), token("--bg"))).toBeGreaterThan(
       contrast(token("--accent"), token("--bg")),
     );
@@ -275,8 +359,9 @@ describe("the accent carries text at any size", () => {
   });
 
   it("colours the map caption link with the accent, not with body ink", () => {
-    // The regression this replaces: the link was --accent-deep, 15.24:1,
-    // indistinguishable from --ink - so it stopped reading as a link at all.
+    // The regression this replaces: the link was --accent-deep (15.24:1
+    // under the bordo), indistinguishable from --ink - so it stopped reading
+    // as a link at all.
     const rule = /\.visit-map-caption a \{[^}]*\}/.exec(css)?.[0] ?? "";
     expect(rule).toContain("var(--accent)");
     expect(rule).not.toContain("var(--accent-deep)");

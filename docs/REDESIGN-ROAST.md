@@ -109,7 +109,13 @@ brass (`--gold*`) for rewards. New plain names: `--roast`, `--roast-raise`,
 `--amber`, `--amber-raise`, `--ink-ghost`, `--frost`, `--frost-chrome`,
 `--frost-blur`, `--frost-line`, `--ease-rise`, `--caps-button` (0.05em),
 `--caps-nav` (0.12em), `--caps-kicker` (0.16em). Shadows are espresso-tinted
-(`rgba(35, 18, 11, …)`), never black.
+(`rgba(35, 18, 11, …)`), never black. A see-through tint of a token is
+derived from it (`color-mix(in srgb, var(--matcha) 16%, transparent)`), not
+rewritten as `rgba()`: `#1d6d56` is `--matcha` and nothing else, and the 5 Kas
+greens are gone from the stylesheet in every notation
+(`tests/brand-theme.test.ts`). Contrast pairs: `tests/contrast.test.ts`
+("the Roast's own pairs"). "Open" is `--matcha`; "closed" is quiet ink,
+never `--rose`.
 
 **Type.** `--headline` = Abril Fatface (ONE weight: 400), `--display` =
 `--sans` = Plus Jakarta Sans (variable 200-800). Rules:
@@ -136,12 +142,17 @@ brass for rewards only. 44px tall (touch floor), `.btn-sm` 36px.
 (use as `background: var(--bg) url(...) center / cover`).
 
 **Motion kit.**
-- `<RevealText as by on delay stagger className>` (`reveal-text.tsx`, server
-  safe). `by="chars"` for a title, `"words"` for a paragraph. `on="load"`
+- `<RevealText as by on delay stagger className id>` (`reveal-text.tsx`,
+  server safe). `by="chars"` for a title, `"words"` for a paragraph. `on="load"`
   for the title at the top of a page (CSS plays it from the first frame),
   default `"view"` (armed by `<RevealMotion>` only when below the fold).
   Children: text and `<br />`. Delays as in §1 (title 150-250ms, paragraph
-  350ms).
+  350ms). Ours travels further than the reference: a glyph from
+  `translateY(145%) rotate(7deg)`, a word from `110%`, because the mask is
+  padded (0.22em) so the marks on Turkish capitals are not cut. Transform
+  only, never opacity (the title is the largest paint). A heading is named
+  by its whole line (`aria-label`); `<RevealMotion>` restores the kerning a
+  glyph-split title loses.
 - `<ScrambleText text as on delay className>` (`scramble-text.tsx`, client):
   the decoding kicker. `on="load"` at the top of a page.
 - `.reveal` (+ `.r1`-`.r4`): the fade-up, for buttons, cards, media.
@@ -155,6 +166,13 @@ brass for rewards only. 44px tall (touch floor), `.btn-sm` 36px.
 `pour` and `affogato` are composed for a 9:16 box: give the stage a parent
 with `aspect-ratio: 9 / 16`. `<RoastPause />` is the pause control; put one
 in each band, in a corner, outside the stage (it needs pointer events).
+It is ONE switch: pressing any control holds every drawing, and it renders
+nothing until a drawing is really running (no WebGL 2, save-data or
+reduced motion: no control, because nothing moves). Under the canvas each
+stage carries a flat SVG drawing of the same subject, so the page is
+composed before and without WebGL. A band's drawing starts only when the
+band nears the screen; a phone gets no shadow pass, no pointer and no far
+beans.
 Subjects: `bean` = bean → light → espresso burst → moka pot between two
 beans; `pour` = portafilter stream into a fluted cup; `affogato` = espresso
 from a small glass pitcher over fior di latte in the waffle cup.
@@ -163,10 +181,24 @@ from a small glass pitcher over fior di latte in the waffle cup.
 
 | # | Reference | Ours |
 |---|---|---|
-| 1 | Hero "WAKE / THE BEANS" | `HomeRoast`: "UYAN / KAHVE HAZIR", kicker "Bölüm 1: Bologna 1897'den Tuzla'ya", open/closed line, scroll hint, "Menüyü keşfet" |
+| 1 | Hero "WAKE / THE BEANS" | `HomeRoast`: "UYAN / KAHVE HAZIR", kicker "Bölüm 1: Bologna 1897'den Tuzla'ya", open/closed line (a still dot), scroll hint, "Menüyü keşfet"; 330vh, 360vh from 640px, one screen under reduced motion |
 | 2-4 | Band A, the pour | `pour` drawing over: a short band; the **statement** (panel kicker + lede, `home-intro`) as the small opener with the **four doors** as the frosted card's rows; the **bar** opener ("Şimdi barda") with the way to the menu |
 | 5-6 | Band B, the cup | `affogato` drawing beside: the **signature** ("İçilir, sonra kupası yenir", stats, panel body) and the **rewards** (stamps) openers |
 | after | (none) | Our other features, in the same language (ghost numeral, kicker, title, paragraph, pill): karaoke, campaigns banner, bar rail, take-home, app, visit |
 
 Kickers follow the reference's numbering ("Bölüm 2: …"), sentence case in the
 markup.
+
+## 4. What guards it
+
+- `tests/brand-theme.test.ts`: the palette, radii, shadows, the two faces and
+  the bans on every retired colour and face (re-pinned on 11 Kas 2026).
+- `tests/contrast.test.ts`: AA for every ink on its ground, the caramel /
+  amber split.
+- `tests/home-roast.test.ts`: three.js only through `import()`, the scene's
+  manners (off screen, hidden tab, pause, reduced motion, disposal), the
+  server-rendered words, one pause control per drawing.
+- `tests/home-landing.test.ts`: the landing's sections and the still status
+  dot.
+- Not moved by this redesign, on purpose: e-mails, link preview cards, icons,
+  the PayNkolay bridge page, and `/admin`.

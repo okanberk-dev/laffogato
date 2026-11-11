@@ -113,7 +113,30 @@ aynı fonksiyonu çağırsın. Örnekler: `src/lib/mobile/karaoke-core.ts` ↔
 `karaoke.ts` (web `/karaoke` sayfası ile mobil uç aynı `createReservation`'a
 iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 
-**Site görünümü 5 Kas 2026'dan beri kafe-perakende düzeninde (operatör:
+**Site görünümü 11 Kas 2026'dan beri Roast (operatör: _"siteyi tamamen
+https://coffee-beans-swart.vercel.app/ bu sitedeki gibi ... yap, three js vs.
+ne varsa kullan ... bize uyarlayarak yap"_).** Krem zemin `#faf7f2`; mürekkep,
+her dolu düğme, koyu bantlar ve footer için **tek bir espresso** `#23120b`
+(token adları değişmedi: `--green-*` ailesi, `--brand`, `--bg-espresso` ve
+`--night` artık o espressodur); amber `#de853a` (`--amber` =
+`--accent-on-dark`) tek sıcak düğmenin dolgusu ve koyu zeminde vurgu; krem
+üstünde vurgu metni karamel `--accent` `#a35019` (amber orada 2.61:1 kalır);
+pirinç `#cba258` yalnız ödül anında; sitede kalan tek yeşil `--matcha`
+`#1d6d56`, yalnız olumlu durum. İki ses: başlık Abril Fatface (tek kesim
+400, büyük harf CSS'le), gerisi Plus Jakarta Sans; Poppins emekli. 16px
+kart, espresso tonlu gölge (`rgba(35, 18, 11, …)`, siyah değil), tam hap
+düğme ve basınca 0.95, başta saydam olup kaydırınca buzlu kreme dönen üst
+çubuk, sağ altta yüzen sipariş düğmesi (`.frap`). Anasayfa kaydırmayla
+ilerleyen bir three.js girişiyle açılır ve iki three.js bandı taşır
+(`home-roast.tsx`, `roast-stage.tsx`, `roast-scene.ts`; `three` yalnız
+`import()` ile). Başka markanın yeşili ve emekli renkler kullanılmaz
+(`tests/brand-theme.test.ts`). Tasarım kaydı `docs/REDESIGN-ROAST.md`,
+değerler `docs/BRAND.md` §0. Panel (`/admin`) değişmedi. E-posta, bağlantı
+önizlemesi, ikonlar ve PayNkolay köprüsü eski (logo yeşili) palette.
+Aşağıdaki iki paragraf tarihçedir:
+
+**Tarihçe: site görünümü 5 Kas - 11 Kas 2026 arasında kafe-perakende
+düzenindeydi (operatör:
 _"starbucks tarzı istiyorum ... ama panel değil"_).** Krem zemin `#f2f0eb`,
 logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56` başlık/metin, cta
 `#1f7a5c` dolu düğme, house `#173f35` bant, uplift `#2a5a4d`; footer 6 Kas
@@ -123,9 +146,9 @@ pirinç `#cba258` yalnız ödül anında, tek ses Poppins (Gabarito emekli;
 bulanıklık / degrade dolgu yok, düğme 50px hap ve basınca 0.95, sağ altta
 yüzen sipariş düğmesi (`.frap`). Başka markanın yeşili kullanılmaz
 (`tests/brand-theme.test.ts`). Bu, aşağıdaki uygulama paritesinden
-**bilinçli ayrışmadır**; değerler `docs/BRAND.md` §0. Panel (`/admin`)
+**bilinçli ayrışmaydı**; değerleri `docs/BRAND.md` §9'da. Panel (`/admin`)
 değişmedi. E-posta, bağlantı önizlemesi ve ikonlar eski (porselen) palette.
-Aşağıdaki paragraf tarihçedir:
+Aşağıdaki paragraf da tarihçedir:
 
 **Tasarım paritesi (25 Eyl - 5 Kas 2026) - kaynak uygulamaydı.**
 Operatör talimatı (25 Eyl 2026): _"lafmobil ... tasarımı apple'a uygun, sen de
@@ -153,11 +176,13 @@ e-postası (`docs/email/`) aynı iskelette; panele elle yapıştırılır.
 `tests/brand-theme.test.ts` ve `tests/email-templates.test.ts` tutar. Tam
 kılavuz ve geçmiş: `docs/BRAND.md`.
 
-**Bordo ile yeşil asla üst üste yazılmaz.** `#9D2543` ile ev yeşili
-neredeyse aynı parlaklıkta (`--hero-green` ile 1.21:1). Koyu zeminde
-`--accent-on-dark` kullanılır; `.script` bunu `--script-ink` değişkeniyle
+**Karamel ile espresso asla üst üste yazılmaz** (11 Kas 2026'ya kadar:
+"bordo ile yeşil"). `--accent` `#a35019` krem üstünde metindir (5.28:1);
+espresso zeminlerde 3.20:1'de kalır. Koyu zeminde `--accent-on-dark` (amber,
+6.47:1) kullanılır; `.script` bunu `--script-ink` değişkeniyle
 kendiliğinden yapar, koyu bir blok yazarken `data-ground="dark"` eklemek
-yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
+yeterlidir. Tersi de kuraldır: amber krem üstünde metin olmaz (2.61:1).
+`tests/contrast.test.ts` bu kuralları tutar.
 
 ## Ön yüz ↔ Arka yüz Sınırı
 
@@ -207,8 +232,9 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
-    layout.tsx               → next/font ile iki ses (Gabarito başlık 600-800,
-                               Poppins metin 300-800) + Consent
+    layout.tsx               → next/font ile iki ses (Abril Fatface başlık,
+                               tek kesim 400; Plus Jakarta Sans metin,
+                               değişken 200-800) + Consent
                                Mode bootstrap (GTM'den önce) + GTM
     globals.css              → Tüm design tokens + müşteri SPA stilleri
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
@@ -275,11 +301,21 @@ src/
       visuals.tsx            → SVG illüstrasyonlar + HUES yüzey paleti
       product-detail.tsx     → Ürün detay (PDP)
       shop-hero-slider.tsx   → Mağaza hero karuseli
-      home-valley.tsx        → Anasayfanın ilk ekranı: gece kahve vadisi;
-                               three.js yalnız `import()` ile, yükten ve
-                               boş andan sonra (valley-scene.ts +
-                               valley-shaders.ts; home-valley testi)
-      reveal-motion.tsx      → Scroll reveal gözlemcisi
+      home-roast.tsx         → Anasayfanın ilk ekranı: Roast girişi
+                               ("UYAN / KAHVE HAZIR"), kaydırmayla ilerleyen
+                               çekirdek çizimi
+      roast-stage.tsx        → <RoastStage kind="bean|pour|affogato"> canlı
+                               çizimin sahnesi (altında düz SVG çizim) +
+                               <RoastPause> durdur düğmesi; roast-scene'i
+                               yalnız `import()` ile, yükten ve boş andan
+                               sonra yükler
+      roast-scene.ts         → three.js'i import eden TEK modül (üç sahne;
+                               home-roast testi)
+      reveal-text.tsx        → <RevealText>: maskeden yükselen başlık /
+                               paragraf (sunucuda çizilir)
+      scramble-text.tsx      → <ScrambleText>: soldan sağa çözülen üst etiket
+      reveal-motion.tsx      → Scroll reveal gözlemcisi + bölünmüş başlığın
+                               harf aralığı düzeltmesi
       data.ts                → Statik seed (MENU, PRODUCTS, LOCATION, ...)
     admin/                   → Admin form primitives + liste/form bileşenleri
       forms.tsx              → Field, TextInput, Select, Button, Card, ...
@@ -788,22 +824,32 @@ durum bozulmaya uygundur.
 > Tam marka kılavuzu: **`docs/BRAND.md`** — her token, ölçülmüş kontrast
 > oranları, tipografi ölçeği, bileşen dili ve değiştirme kuralları.
 
-- **Renk:** `globals.css :root` tek kaynak, değerleri uygulamanın
-  (`lafmobil/src/theme/tokens.ts`). Porselen zeminler (`--bg`, `--bg-warm`,
-  `--bg-stone`, `--bg-cream`), beyaz yüzey (`--surface`), cam jetonları
-  (`--glass*`, `--rim`), mürekkep ailesi, yeşil (`--green` = karar/birincil
-  eylem), **bordo** `--accent` (ekran başına bir imza yüzeyi), pirinç
-  `--gold-soft` (dolgu) ve `--gold` (metin), durum renkleri `--matcha`
-  (olumlu), `--rose` (uyarı — marka değil) ve `--info` (kobalt).
-- **Yazı:** iki ses. Başlık ve gösterim rakamı Gabarito (`--headline`: 600
-  kart başlığı, 700 başlık, 800 gösterim - hero, `.h-display`, büyük
-  rakamlar); gerisi Poppins (`--display`; `--sans` ve tarihsel token'lar ona
-  çözülür; 400 gövde, 600 etiket/düğme). Biennale lisanslanırsa yalnız
-  `layout.tsx`'teki yükleyici ve `--headline` yığını değişir. Poppins'te ok
-  glifi yok: etiketin ardındaki ok `.arrow` ile çizilir. Etiketler cümle
-  düzeninde; büyük harfli geniş aralık yalnız kart baskısında (`.eyebrow.caps`).
-- **Malzeme:** kapsül düğme (`--r-btn: 999px`, basınca 0.97), cam kart,
-  gerçek bulanıklık yalnız yüzen kromda (başlık, sekme çubuğu, sepet, arama).
+- **Renk:** `globals.css :root` tek kaynak; görünümün kaydı
+  `docs/REDESIGN-ROAST.md` (11 Kas 2026), site uygulamanın paletini izlemez.
+  Krem zeminler (`--bg`, `--bg-warm`, `--bg-stone`, `--bg-cream`), beyaz
+  yüzey (`--surface`), espresso mürekkep ailesi; **tek espresso** `#23120b`
+  birincil eylem, bant ve footer'dır (`--green-cta`, `--green-house`,
+  `--night`; `--green-*` adları miras, değerleri espresso); **amber**
+  `--amber` / `--accent-on-dark` dolgu ve koyu zeminde vurgu, **karamel**
+  `--accent` krem üstünde vurgu metni; pirinç `--gold-soft` (dolgu) ve
+  `--gold` (metin) yalnız ödülde; durum renkleri `--matcha` (olumlu, sitedeki
+  tek yeşil), `--rose` (uyarı — marka değil) ve `--info` (kobalt). Bir tonun
+  saydam hâli `color-mix()` ile token'dan türetilir, `rgba()` ile yeniden
+  yazılmaz.
+- **Yazı:** iki ses. Başlık ve gösterim rakamı Abril Fatface (`--headline`):
+  **tek kesim 400, asla kalın** (`html` `font-synthesis-weight: none`
+  taşır), 20px ve üstü, asla cümle; büyük harf CSS'le
+  (`text-transform: uppercase`, Türkçe büyük harf `lang="tr"`'den), çok
+  satırlı başlıkta satır aralığı 0.96-1.0 (İ Ö Ü Ğ Ç Ş işaretleri). Gerisi
+  Plus Jakarta Sans (`--display`; `--sans` ve tarihsel token'lar ona
+  çözülür; 400-500 gövde, 700 düğme ve üst etiket). Etiketin ardındaki ok
+  `.arrow` ile çizilir. Üst etiket, düğme ve menü bağlantısı 11-12px kalın
+  büyük harf (`--caps-kicker`, `--caps-button`, `--caps-nav`); markup cümle
+  düzeninde kalır.
+- **Malzeme:** tam hap düğme (`--r-btn: 999px`, 44px, basınca 0.95), 16px
+  beyaz kart, espresso tonlu gölge. `--glass-*` adları opaktır; bulanıklık
+  yalnız buzlu kremde (`--frost*`): kaydırılmış üst çubuk ve buzlu kart
+  (`.frost-card`).
 - **Sahneler** (`scenes.ts`): ürünün arkasındaki ışık uygulamanın 14 sahne
   pigmentinden gelir; eski 12 **HUES** adı (`visuals.tsx`) birer sahneye
   çözülür. Her birinin `ink`'i kendi zeminine karşı AA'yı geçer.
@@ -812,11 +858,16 @@ durum bozulmaya uygundur.
   değerleri sessizce AA altına düşürdüğü için eklendi.
 - **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
   `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
-  altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez. Anasayfanın
-  kahve vadisi (6 Kas 2026, three.js) tek sürekli harekettir: durdur
-  düğmesi, ekran dışında ve gizli sekmede çizim yok, azaltılmış harekette
-  tek kare, WebGL yoksa CSS zemini. `three` statik import edilmez
-  (`tests/client-bundle-weight.test.ts`).
+  altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez. Başlık
+  maskesinin içinden harf harf yükselir (`<RevealText>`, yalnız `transform`:
+  en büyük yazı opaklıkla solmaz), üst etiket soldan sağa çözülür
+  (`<ScrambleText>`; sunucu bitmiş satırı basar). Anasayfanın üç canlı
+  çizimi (11 Kas 2026, three.js: giriş çekirdeği, dökülen espresso, affogato)
+  sitenin sürekli hareketidir: her birinin yanında durdur düğmesi
+  (`<RoastPause>`, tek anahtar hepsini durdurur), ekran dışında ve gizli
+  sekmede çizim yok, azaltılmış harekette tek kare, WebGL yoksa aynı yerde
+  düz SVG çizim. `three` statik import edilmez
+  (`tests/client-bundle-weight.test.ts`, `tests/home-roast.test.ts`).
 - **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
   Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
   `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart

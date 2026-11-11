@@ -68,7 +68,8 @@ export function HomeRoast({
 
     const apply = () => {
       const screen = window.innerHeight;
-      const run = screen * (wide.matches ? SCRUB_SCREENS.wide : SCRUB_SCREENS.phone);
+      const run =
+        screen * (wide.matches ? SCRUB_SCREENS.wide : SCRUB_SCREENS.phone);
       scrub.current?.(Math.min(1, eased / run));
       const from = screen * PART_FROM_SCREENS;
       const end = track.offsetHeight - screen;
@@ -134,7 +135,11 @@ export function HomeRoast({
           </div>
         </div>
 
-        <RoastStage kind="bean" className="roast-hero-stage" onScrub={bindScrub} />
+        <RoastStage
+          kind="bean"
+          className="roast-hero-stage"
+          onScrub={bindScrub}
+        />
 
         <div className="roast-hero-foot">
           <RoastStatus hours={hours} onVisit={onVisit} />
@@ -191,14 +196,20 @@ function RoastStatus({
 }) {
   const st = useOpenStatus(hours);
   // The slot is kept either way so the foot's three columns do not jump.
-  if (!st) return <span className="roast-status is-pending" aria-hidden="true" />;
+  if (!st)
+    return <span className="roast-status is-pending" aria-hidden="true" />;
   const detail = openStatusDetail(st);
   return (
     <a
       href={ROUTE_PATHS.visit}
       className={cx("roast-status", st.open ? "is-open" : "is-closed")}
       onClick={(event) => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.button !== 0
+        )
           return;
         event.preventDefault();
         onVisit();

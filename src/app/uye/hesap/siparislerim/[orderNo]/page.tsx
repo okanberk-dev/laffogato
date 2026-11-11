@@ -182,9 +182,7 @@ export default async function OrderDetailPage({
               }}
             >
               <div>
-                <div
-                  style={{ fontWeight: 700, fontSize: 15 }}
-                >
+                <div style={{ fontWeight: 700, fontSize: 15 }}>
                   {it.productName}
                 </div>
                 <div
