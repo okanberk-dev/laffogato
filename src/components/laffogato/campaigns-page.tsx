@@ -122,7 +122,8 @@ export function CampaignsPage({
 }
 
 /**
- * The reference's banner: a deep-green board with a soft wave across it and a
+ * The banner: an espresso board (`green` is the tone's historical name;
+ * `gold` the brass one, for the reward) with a soft wave across it and a
  * single pill on the right.
  */
 function PromoBanner({

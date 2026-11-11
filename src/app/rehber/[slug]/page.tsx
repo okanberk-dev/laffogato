@@ -256,10 +256,10 @@ export default async function GuidePage({
               çekirdeği eve götür.
             </p>
             <div className="guide-cta-actions">
-              <Link href="/menu" className="btn btn-primary btn-sm">
+              <Link href="/menu" className="btn btn-light btn-sm">
                 Menü
               </Link>
-              <Link href="/magaza" className="btn btn-ghost btn-sm">
+              <Link href="/magaza" className="btn btn-glass-dark btn-sm">
                 Mağaza
               </Link>
             </div>

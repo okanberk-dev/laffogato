@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, Fragment } from "react";
+import { useMemo, useRef, useState, Fragment } from "react";
 import Image from "next/image";
 
 import { STAMP_TARGET } from "@/lib/mobile/loyalty-core";
@@ -15,7 +15,10 @@ import { Illustration } from "./illustration";
 import { karaokeDoorLine } from "./karaoke-today";
 import { MENU, LOCATION } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
+import { RevealText } from "./reveal-text";
+import { RoastPause, RoastStage } from "./roast-stage";
 import { ROUTE_PATHS, type Route } from "./route-paths";
+import { ScrambleText } from "./scramble-text";
 import { MenuPlate } from "./visuals";
 import {
   DEFAULT_PICKUP_MINUTES,
@@ -64,6 +67,8 @@ export function PageHome({
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   const liveMenu = menu ?? MENU;
   const railRef = useRef<HTMLDivElement>(null);
+  // The shortcuts card starts open; its chevron folds the list.
+  const [doorsOpen, setDoorsOpen] = useState(true);
 
   /**
    * The bar rail - what is on the counter today, drawn from the live cafe
@@ -143,7 +148,6 @@ export function PageHome({
   const karaokeToday = useKaraokeToday(!!karaoke);
 
   const doors: Array<{
-    tone: "green" | "cream" | "brass" | "velvet";
     href: string;
     route?: Route;
     kicker: string;
@@ -152,7 +156,6 @@ export function PageHome({
     icon: React.ReactNode;
   }> = [
     {
-      tone: "green",
       href: "#uygulama",
       kicker: "Sipariş",
       title: `Gel-al · ${pickupMinutes} dk`,
@@ -165,7 +168,6 @@ export function PageHome({
       ),
     },
     {
-      tone: "cream",
       href: ROUTE_PATHS.menu,
       route: "menu",
       kicker: "Menü",
@@ -179,7 +181,6 @@ export function PageHome({
       ),
     },
     {
-      tone: "brass",
       href: "/uye/hesap",
       kicker: "Ödüller",
       title: `${stampTarget} damgada 1 içecek`,
@@ -192,7 +193,6 @@ export function PageHome({
       ),
     },
     {
-      tone: "velvet",
       href: "/karaoke",
       kicker: "Karaoke",
       title: "Üst kat özel oda",
@@ -223,6 +223,60 @@ export function PageHome({
   const introKicker = content?.["home.hero.eyebrow"]?.trim();
   const [introLead, introMore] = splitLead(content?.["home.hero.lede"] ?? "");
 
+  /**
+   * The four doors as the frosted card of Band A: a header row that folds
+   * the list, and one row per shortcut - ordering (which lives in the app,
+   * so it opens the app block below), the menu, rewards, the karaoke room.
+   */
+  const doorsCard = (
+    <div className="frost-card doors-card reveal r2">
+      <div className="doors-card-head">
+        <h2 id="doors-card-title" className="eyebrow">
+          Kısayollar
+        </h2>
+        <button
+          type="button"
+          className="doors-card-fold"
+          aria-expanded={doorsOpen}
+          aria-controls="doors-card-list"
+          aria-label={doorsOpen ? "Kısayolları gizle" : "Kısayolları göster"}
+          onClick={() => setDoorsOpen((open) => !open)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m6.5 14.5 5.5-5.5 5.5 5.5" />
+          </svg>
+        </button>
+      </div>
+      <ul
+        id="doors-card-list"
+        className="doors-card-list"
+        aria-labelledby="doors-card-title"
+        hidden={!doorsOpen}
+      >
+        {doors.map((d) => (
+          <li key={d.kicker}>
+            <a
+              href={d.href}
+              onClick={d.route ? go(d.route) : undefined}
+              className="door-row"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {d.icon}
+              </svg>
+              <span className="door-row-copy">
+                <span className="door-row-title">
+                  <span className="sr-only">{d.kicker}: </span>
+                  {d.title}
+                </span>
+                <span className="door-row-sub">{d.sub}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   return (
     <div className="page" data-screen-label="01 Home">
       {/* The page's one h1. The hero's three words are a slogan, not the
@@ -245,52 +299,297 @@ export function PageHome({
         onVisit={() => navigate("visit")}
       />
 
-      {/* The statement - who we are, in one paragraph, set large: the first
-          sentence in ExtraBold ink, the rest in Light. Operator copy from
-          /admin/icerik (home.hero.eyebrow / home.hero.lede), so it renders
-          only when the panel has something to say. */}
-      {introLead && (
-        <section className="home-intro" aria-label="L'Affogato hakkında">
-          <div className="wrap">
-            <div className="home-intro-inner reveal">
-              {introKicker && (
-                <p className="home-intro-kicker">{introKicker}</p>
-              )}
-              <p className="home-intro-text">
-                <span className="home-intro-lead">{introLead}</span>
-                {introMore && <> {introMore}</>}
-              </p>
+      {/* Band A, "the pour" (docs/REDESIGN-ROAST.md §1): three stacked
+          blocks under one tall live drawing, the portafilter's stream
+          falling through the empty middle into the cup beside the bar
+          opener. The drawing is decoration over the blocks; on a phone it
+          takes a row of its own between the statement and the bar. */}
+      <div className="pour-band">
+        <div className="pour-top" aria-hidden="true" />
+
+        {/* The statement - who we are: the panel's "Hero üst etiket" as
+            the kicker and the first sentence of "Hero açıklama" as the
+            small title (/admin/icerik), so the opener renders only when
+            the panel has something to say. The four doors ride beside it
+            either way. */}
+        {introLead ? (
+          <section className="home-intro" aria-label="L'Affogato hakkında">
+            <div className="wrap home-intro-grid">
+              <div className="home-intro-inner">
+                <div className="opener-head">
+                  <span className="ghost-n sm" aria-hidden="true">
+                    02
+                  </span>
+                  <ScrambleText
+                    as="p"
+                    className="eyebrow"
+                    text={introKicker || "Bölüm 2"}
+                  />
+                </div>
+                <RevealText as="h2" className="home-intro-lead" delay={150}>
+                  {introLead.replace(/\.$/, "")}
+                </RevealText>
+                {introMore && (
+                  <p className="home-intro-text reveal">{introMore}</p>
+                )}
+                <div className="opener-actions reveal r1">
+                  <a
+                    href={ROUTE_PATHS.story}
+                    onClick={go("story")}
+                    className="btn btn-primary btn-sm"
+                  >
+                    Hikayemiz
+                    <span className="arrow">→</span>
+                  </a>
+                </div>
+              </div>
+              {doorsCard}
+            </div>
+          </section>
+        ) : (
+          <section className="pour-doors" aria-label="Kısayollar">
+            <div className="wrap home-intro-grid">{doorsCard}</div>
+          </section>
+        )}
+
+        {/* The bar opener: the cup of the drawing on the left, the way to
+            the menu on the right. */}
+        <section className="pour-bar" aria-labelledby="pour-bar-title">
+          <div className="wrap pour-bar-inner">
+            <div className="opener pour-bar-copy">
+              <ScrambleText as="p" className="eyebrow" text="Bölüm 3: Bar" />
+              <RevealText
+                as="h2"
+                id="pour-bar-title"
+                className="opener-title md"
+                delay={150}
+              >
+                Şimdi barda
+              </RevealText>
+              <RevealText
+                as="p"
+                by="words"
+                className="opener-text"
+                delay={350}
+              >
+                {`Matcha barı, espresso ve tatlılar: menüde ${menuItemCount} lezzet var. Siparişini uygulamadan ver, gel-al ${pickupMinutes} dakikada hazır olsun.`}
+              </RevealText>
+              <div className="opener-actions reveal r1">
+                <a
+                  href={ROUTE_PATHS.menu}
+                  onClick={go("menu")}
+                  className="btn btn-primary"
+                >
+                  Tüm menü
+                  <span className="arrow">→</span>
+                </a>
+              </div>
             </div>
           </div>
         </section>
-      )}
 
-      {/* The karaoke room, highlighted (operator, 17 Eki 2026): right after
-          the hero and the statement, before "Köşkte bu ay". */}
+        {/* The row only exists on a phone, where it carries the amber band
+            behind the cup (globals.css). */}
+        <div className="pour-art-row" aria-hidden="true">
+          <div className="pour-art">
+            <RoastStage kind="pour" />
+          </div>
+        </div>
+        <RoastPause className="band-pause" />
+      </div>
+
+      {/* Band B, "the cup": two full-screen blocks beside one tall live
+          drawing of the affogato (pushed right, spanning both): the
+          signature drink, then the stamps it earns. */}
+      <div className="cup-band">
+        <section className="cup-block" aria-labelledby="cup-signature-title">
+          <div className="wrap cup-wrap">
+            <div className="dots-trio cup-dots" aria-hidden="true">
+              <i className="on" />
+              <i />
+              <i />
+            </div>
+            <div className="opener cup-copy">
+              <div className="opener-head">
+                <span className="ghost-n" aria-hidden="true">
+                  04
+                </span>
+                <ScrambleText
+                  as="p"
+                  className="eyebrow"
+                  text="Bölüm 4: İmza ürün"
+                />
+              </div>
+              {/* Two reveals in one heading: each carries its own hidden
+                  copy, so the heading's name is the whole line. */}
+              <h2 id="cup-signature-title" className="opener-title lg">
+                <RevealText delay={150}>İçilir, sonra</RevealText>{" "}
+                <RevealText className="script" delay={450}>
+                  kupası yenir
+                </RevealText>
+              </h2>
+              <RevealText
+                as="p"
+                by="words"
+                className="opener-text"
+                delay={350}
+              >
+                {c(
+                  "home.signature.body",
+                  "L’Affogato bir bardağa servis edilmez; o bir bardaktır. Çıtır waffle kup, iç yüzeyinde yenilebilir glaze, bir top fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.",
+                )}
+              </RevealText>
+              <div className="stat-row reveal">
+                {SIGNATURE_STATS.map((s) => (
+                  <div key={s.l}>
+                    <div className="stat-n">{s.n}</div>
+                    <div className="stat-l">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="opener-actions reveal r1">
+                <a
+                  href={ROUTE_PATHS.menu}
+                  onClick={go("menu")}
+                  className="btn btn-primary"
+                >
+                  Menüyü gör
+                  <span className="arrow">→</span>
+                </a>
+                <a
+                  href={ROUTE_PATHS.story}
+                  onClick={go("story")}
+                  className="btn btn-ghost"
+                >
+                  Hikayemiz
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="cup-block" aria-labelledby="cup-rewards-title">
+          <div className="wrap cup-wrap">
+            <div className="opener cup-copy">
+              <div className="opener-head">
+                <span className="ghost-n" aria-hidden="true">
+                  05
+                </span>
+                <p className="eyebrow">
+                  <ScrambleText text="L’Af Ödüller" />
+                  <br />
+                  tek hesap
+                </p>
+              </div>
+              <RevealText
+                as="h2"
+                id="cup-rewards-title"
+                className="opener-title lg"
+                delay={150}
+              >
+                {`${stampTarget} damga,`}
+                <br />
+                bir içecek
+                <br />
+                bizden
+              </RevealText>
+              <RevealText
+                as="p"
+                by="words"
+                className="opener-text"
+                delay={350}
+              >
+                Uygulamadan verilen 140 TL ve üzeri kafe siparişi damga
+                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Dolan
+                kart 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
+              </RevealText>
+              {/* The programme explained, not a particular visitor's card -
+                  this page is public and does not know who is reading it, so
+                  the circles are numbered as a legend. The live card, with
+                  the reader's own stamps on it, is on /uye/hesap. */}
+              <div className="loyalty-block reveal" data-ground="dark">
+                <div className="loyalty-card-head">
+                  <span className="eyebrow caps on-dark">Damga kartı</span>
+                  <span className="loyalty-tier">{stampTarget} damga</span>
+                </div>
+                <div className="stamp-grid" aria-hidden="true">
+                  {Array.from({ length: stampTarget }, (_, i) => (
+                    <div
+                      key={i}
+                      className={`stamp ${i < 2 ? "filled" : ""} ${i === stampTarget - 1 ? "reward" : ""}`}
+                    >
+                      {i === stampTarget - 1 ? (
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <path
+                            d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : (
+                        i + 1
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="opener-actions reveal r1">
+                <a href="/uye/hesap" className="btn btn-primary">
+                  Hesabımı gör
+                  <span className="arrow">→</span>
+                </a>
+                <a href="#uygulama" className="btn btn-ghost">
+                  Uygulamayı al
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="cup-art" aria-hidden="true">
+          <RoastStage kind="affogato" />
+        </div>
+        <RoastPause className="band-pause" />
+      </div>
+
+      {/* The rest of the house, in the same language: each section opens
+          with its number (a CSS counter that continues from Band B, so a
+          section the panel leaves out does not leave a gap), a kicker, a
+          title and a pill. */}
+
+      {/* The karaoke room, highlighted (operator, 17 Eki 2026). */}
       {karaoke && <HomeKaraoke facts={karaoke} today={karaokeToday} />}
 
-      {/* The reference's banner board, pointing at /kampanyalar - the offers
-          themselves are operator-managed and live there, so this is a door,
-          not a second place to keep the same copy. */}
+      {/* The banner board, pointing at /kampanyalar - the offers themselves
+          are operator-managed and live there, so this is a door, not a
+          second place to keep the same copy. */}
       <section className="home-section">
         <div className="wrap">
           <a
             className="promo-banner promo-banner--art reveal"
             href="/kampanyalar"
+            data-ground="dark"
           >
-            <svg
-              className="promo-banner-wave"
-              viewBox="0 0 1200 220"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <path d="M0 150 C 220 60, 420 210, 660 130 S 1000 40, 1200 96 L1200 220 L0 220 Z" />
-            </svg>
             <span className="promo-banner-copy">
-              <span className="promo-banner-eyebrow">Köşkte bu ay</span>
-              <span className="promo-banner-title">
+              <ScrambleText
+                className="promo-banner-eyebrow bolum-kicker"
+                text="Köşkte bu ay"
+              />
+              <RevealText className="promo-banner-title" delay={150}>
                 Kampanyalar ve etkinlikler
-              </span>
+              </RevealText>
               <span className="promo-banner-body">
                 Sezon kampanyaları, iş birlikleri ve damga programı - hepsi tek
                 sayfada.
@@ -299,65 +598,28 @@ export function PageHome({
             {/* A ticket, a strawberry and a matcha whisk: the month's
                 offers, drawn. Hidden on a phone (globals.css). */}
             <Illustration name="kosk-ticket" className="promo-banner-art" />
-            <span className="promo-banner-cta">Hepsini gör</span>
+            <span className="promo-banner-cta">
+              Hepsini gör
+              <span className="arrow">→</span>
+            </span>
           </a>
-        </div>
-      </section>
-
-      {/* Four doors ─────────────────────────────────────────── */}
-      {/* The köşk's own shape: each shortcut is an arched window in a
-          porcelain frame, the colour living inside the arch - green for
-          ordering (which lives in the app, so it opens the app block below),
-          cream for the menu, brass for rewards, bordo for the karaoke room.
-          They used to be four flat colour blocks butted against the band
-          below; the section now has its own heading and room on both sides. */}
-      <section className="home-doors" aria-labelledby="home-doors-title">
-        <div className="wrap">
-          <div className="home-doors-head reveal">
-            <span className="eyebrow">Kısayollar</span>
-            <h2 id="home-doors-title" className="home-doors-title">
-              Dört kapı, tek köşk
-            </h2>
-          </div>
-          <div className="home-doors-grid">
-            {doors.map((d, i) => (
-              <div key={d.kicker} className={`door-cell reveal r${i + 1}`}>
-                <a
-                  href={d.href}
-                  onClick={d.route ? go(d.route) : undefined}
-                  className={`door door--${d.tone}`}
-                >
-                  <span className="door-arch" aria-hidden="true">
-                    <span className="door-light" />
-                    <span className="door-icon">
-                      <svg viewBox="0 0 24 24">{d.icon}</svg>
-                    </span>
-                  </span>
-                  <span className="door-copy">
-                    <span className="door-kicker">{d.kicker}</span>
-                    <span className="door-title">{d.title}</span>
-                    <span className="door-sub">{d.sub}</span>
-                  </span>
-                  <span className="door-go" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M5 12h13M13 6.5 18.5 12 13 17.5" />
-                    </svg>
-                  </span>
-                </a>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
       {/* Bar rail ────────────────────────────────────────────── */}
       {railItems.length > 0 && (
-        <section className="home-section band-cream">
+        <section className="home-section">
           <div className="wrap">
             <div className="rail-head">
-              <div>
-                <div className="eyebrow">Sezon · Strawberry Aşkı</div>
-                <h2 className="h2">Şimdi barda olanlar</h2>
+              <div className="opener">
+                <ScrambleText
+                  as="p"
+                  className="eyebrow bolum-kicker"
+                  text="Sezon · Strawberry Aşkı"
+                />
+                <RevealText as="h2" className="h2" delay={150}>
+                  Barda bu sezon
+                </RevealText>
               </div>
               <div className="rail-controls">
                 <button
@@ -366,7 +628,9 @@ export function PageHome({
                   onClick={() => scrollRail(-1)}
                   aria-label="Geri kaydır"
                 >
-                  ‹
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m14.5 6-6 6 6 6" />
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -374,7 +638,9 @@ export function PageHome({
                   onClick={() => scrollRail(1)}
                   aria-label="İleri kaydır"
                 >
-                  ›
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m9.5 6 6 6-6 6" />
+                  </svg>
                 </button>
                 <a
                   href={ROUTE_PATHS.menu}
@@ -388,7 +654,7 @@ export function PageHome({
             <div className="rail" ref={railRef}>
               {railItems.map((it) => {
                 return (
-                  <article className="rail-card" key={it.key}>
+                  <article className="rail-card reveal" key={it.key}>
                     <a
                       className="rail-card-media"
                       href={it.href}
@@ -435,149 +701,10 @@ export function PageHome({
         </section>
       )}
 
-      {/* Signature ───────────────────────────────────────────── */}
-      <section className="home-section">
-        <div className="wrap split-2col">
-          <div className="signature-photos reveal">
-            <div className="signature-photo">
-              <Image
-                src="/photos/affogato-cup.webp"
-                alt="Yenilebilir waffle kupada affogato"
-                width={685}
-                height={1020}
-                sizes="(max-width: 700px) 50vw, 320px"
-              />
-            </div>
-            <div className="signature-photo offset">
-              <Image
-                src="/photos/affogato-tray.webp"
-                alt="Avluda iki affogato"
-                width={765}
-                height={1020}
-                sizes="(max-width: 700px) 50vw, 320px"
-              />
-            </div>
-          </div>
-          <div className="reveal r1">
-            <div className="eyebrow">İmza ürün · 1897’den beri</div>
-            <h2 className="h2" style={{ marginTop: 14 }}>
-              İçilir, sonra <span className="script">kupası yenir</span>
-            </h2>
-            <p className="lede" style={{ marginTop: 18 }}>
-              {c(
-                "home.signature.body",
-                "L’Affogato bir bardağa servis edilmez; o bir bardaktır. Çıtır waffle kup, iç yüzeyinde yenilebilir glaze, bir top fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.",
-              )}
-            </p>
-            <div className="stat-row">
-              {SIGNATURE_STATS.map((s) => (
-                <div key={s.l}>
-                  <div className="stat-n">{s.n}</div>
-                  <div className="stat-l">{s.l}</div>
-                </div>
-              ))}
-            </div>
-            <div className="cta-row">
-              <a
-                href={ROUTE_PATHS.menu}
-                onClick={go("menu")}
-                className="btn btn-primary"
-              >
-                Menüyü gör
-                <span className="arrow">→</span>
-              </a>
-              <a
-                href={ROUTE_PATHS.story}
-                onClick={go("story")}
-                className="btn btn-ghost"
-              >
-                Hikayemiz
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Take home ───────────────────────────────────────────── */}
       {/* After the drink served at the köşk, the coffee to take home: one
           bag from the shop, its photo and its details on a white card. */}
       {takeHome && <HomeTakeHome product={takeHome} />}
-
-      {/* Loyalty ─────────────────────────────────────────────── */}
-      {/* The bordo signature surface - in the app the stamp card IS the
-          velvet card (one per screen). */}
-      <section className="home-section">
-        <div className="wrap">
-          <div className="loyalty-block reveal" data-ground="dark">
-            <div>
-              <div className="eyebrow on-dark">
-                L’Af Ödüller · uygulama ve web’de tek hesap
-              </div>
-              <h2 className="h2" style={{ marginTop: 12 }}>
-                Altı damga, bir içecek bizden
-              </h2>
-              <p>
-                Uygulamadan verilen 140 TL ve üzeri kafe siparişi damga
-                kazandırır: 320 TL’ye kadar bir, 640 TL’ye kadar iki. Altıncı
-                damga 90 gün geçerli ücretsiz içecek kuponuna dönüşür.
-              </p>
-              <div className="cta-row">
-                <a href="/uye/hesap" className="btn btn-light">
-                  Hesabımı gör
-                </a>
-                <a href="#uygulama" className="btn btn-glass-dark">
-                  Uygulamayı al
-                </a>
-              </div>
-            </div>
-            <div className="loyalty-card">
-              <div className="loyalty-card-head">
-                <span className="eyebrow caps on-dark">Damga kartı</span>
-                <span className="loyalty-tier">6 damga</span>
-              </div>
-              {/* The programme explained, not a particular visitor's card -
-                  this page is public and does not know who is reading it, so
-                  the circles are numbered as a legend. The live card, with the
-                  reader's own stamps on it, is on /uye/hesap. */}
-              <div className="stamp-grid" aria-hidden="true">
-                {Array.from({ length: 6 }, (_, i) => (
-                  <div
-                    key={i}
-                    className={`stamp ${i < 2 ? "filled" : ""} ${i === 5 ? "reward" : ""}`}
-                  >
-                    {i === 5 ? (
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z"
-                          stroke="currentColor"
-                          strokeWidth="1.7"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3"
-                          stroke="currentColor"
-                          strokeWidth="1.7"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    ) : (
-                      i + 1
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="loyalty-headline">
-                Altıncı içecek bizden - hesabında biriksin
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* The app ─────────────────────────────────────────────── */}
       {/* The site's door into lafmobil (home-app-intro.tsx): the copy and
@@ -586,8 +713,8 @@ export function PageHome({
       <HomeAppIntro stampTarget={stampTarget} courierEnabled={courierEnabled} />
 
       {/* Visit ───────────────────────────────────────────────── */}
-      <section className="home-section home-section-last band-cream">
-        <div className="wrap split-2col">
+      <section className="home-section home-section-last">
+        <div className="wrap visit-block">
           <div className="visit-photo reveal">
             <Image
               src="/photos/facade-night.webp"
@@ -597,15 +724,19 @@ export function PageHome({
               sizes="(max-width: 700px) 100vw, 640px"
             />
           </div>
-          <div className="reveal r1">
-            <div className="eyebrow">Ziyaret · Tuzla, İstanbul</div>
-            <h2 className="h2" style={{ marginTop: 14 }}>
+          <div className="opener">
+            <ScrambleText
+              as="p"
+              className="eyebrow bolum-kicker"
+              text="Ziyaret · Tuzla, İstanbul"
+            />
+            <RevealText as="h2" className="h2" delay={150}>
               200 yıllık köşkte, gece 02:00’e kadar
-            </h2>
+            </RevealText>
             {/* Where, when and how to reach us: the address across the
                 top, today's hours with the live open/closed line beside the
                 phone and e-mail (both tappable). */}
-            <div className="visit-facts">
+            <div className="visit-facts reveal">
               <div className="wide">
                 <div className="visit-fact-label">Adres</div>
                 <p className="visit-fact-body">
@@ -631,7 +762,7 @@ export function PageHome({
                 </p>
               </div>
             </div>
-            <div className="cta-row">
+            <div className="opener-actions reveal r1">
               <a
                 href={ROUTE_PATHS.visit}
                 onClick={go("visit")}

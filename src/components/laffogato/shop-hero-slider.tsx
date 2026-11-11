@@ -182,20 +182,21 @@ export function Slide({
   const isLight = slide.textTheme === "light";
   const overlay = slide.imageUrl
     ? isLight
-      ? "linear-gradient(to right, rgba(12,59,45,0.5), rgba(12,59,45,0.22) 60%, rgba(12,59,45,0.5))"
+      ? "linear-gradient(to right, rgba(35,18,11,0.55), rgba(35,18,11,0.24) 60%, rgba(35,18,11,0.55))"
       : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
-    : // No photo: a solid colour block - the house green band, or the
-      // ceramic cream (5 Kas 2026: colour-block, no gradient fills).
+    : // No photo: a solid colour block - the espresso band, or the stone
+      // cream (5 Kas 2026: colour-block, no gradient fills).
       isLight
-      ? "var(--green-house)"
+      ? "var(--roast)"
       : "var(--bg-stone)";
 
   const words = slide.title.trim().split(/\s+/);
   const lead = words.slice(0, -1).join(" ");
   const accent = words.length > 1 ? words[words.length - 1] : null;
-  // Brass is kept for the reward moments, so the accent word is the mint on
-  // the green band and the brand green on the light one.
-  const accentColor = isLight ? "var(--green-mint)" : "var(--green)";
+  // Brass is kept for the reward moments, so the accent word is the amber on
+  // a dark slide and the accent's text colour on a pale one (the amber
+  // itself is 2.6:1 on cream).
+  const accentColor = isLight ? "var(--amber)" : "var(--accent)";
 
   return (
     <article

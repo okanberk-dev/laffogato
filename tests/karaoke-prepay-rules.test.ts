@@ -430,7 +430,10 @@ describe("the booking form", () => {
 
   it("takes the room size from the setting and speaks sen throughout", () => {
     const html = render({ capacity: 6 });
-    expect(html).toContain("6 kişilik oda");
+    // The page hero's paragraph comes up word by word since the operator's
+    // instruction of 11 Kas 2026 (docs/REDESIGN-ROAST.md): each word is its
+    // own box, so the sentence is read from the text, not the markup.
+    expect(html.replace(/<[^>]+>/g, "")).toContain("6 kişilik oda");
     expect(html).toContain("En fazla 6 kişi");
     expect(html).not.toContain("sekiz");
     expect(html).not.toContain("arayın");

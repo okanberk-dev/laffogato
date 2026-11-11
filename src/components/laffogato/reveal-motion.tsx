@@ -3,6 +3,13 @@
 import { useEffect } from "react";
 
 /**
+ * The largest correction a kerning pair of the title face asks for, in em.
+ * A bigger one means the word was measured on some other face: throw the
+ * whole word's measure away rather than open a gap inside it.
+ */
+const MAX_KERN_EM = 0.14;
+
+/**
  * Restores the kerning a glyph-split title loses.
  *
  * <RevealText> puts every glyph of a title in its own inline-block so each
@@ -12,47 +19,69 @@ import { useEffect } from "react";
  * run, compares that with where the boxes landed, and closes the difference
  * with a margin in em, so it holds at every size. `offsetLeft` is used for
  * the boxes because it ignores the transform a box may be carrying mid-rise.
- * Without script, or before the face has loaded, the title is only a hair
- * looser.
+ *
+ * The measure is only worth anything on the title face itself. So each
+ * title first waits for the faces ITS text needs (`document.fonts.load`
+ * with the text: a Turkish capital comes from a second file that only
+ * starts loading when a title first uses it; `document.fonts.ready` says
+ * nothing about a file not yet asked for), and a word whose corrections
+ * come out larger than any real pair is left exactly as it was. Without
+ * script the title is only a hair looser.
  */
-function restoreKerning() {
-  document
-    .querySelectorAll<HTMLElement>(".rv-chars:not([data-kerned])")
-    .forEach((title) => {
-      title.dataset.kerned = "";
-      title.querySelectorAll<HTMLElement>(".rv-mask").forEach((word) => {
-        const boxes = Array.from(word.children) as HTMLElement[];
-        if (boxes.length < 2) return;
-        const size = parseFloat(getComputedStyle(word).fontSize) || 16;
-        const probe = document.createElement("span");
-        probe.textContent = boxes.map((box) => box.textContent).join("");
-        probe.style.cssText =
-          "position:absolute;visibility:hidden;white-space:pre;left:0;top:0";
-        word.appendChild(probe);
-        const run = probe.firstChild;
-        if (run) {
-          const range = document.createRange();
-          const at = (i: number) => {
-            range.setStart(run, i);
-            range.setEnd(run, i + 1);
-            return range.getBoundingClientRect().left;
-          };
-          const first = at(0);
-          let closed = 0;
-          boxes.forEach((box, i) => {
-            if (i === 0) return;
-            const natural = at(i) - first;
-            const actual = box.offsetLeft - boxes[0].offsetLeft;
-            const gap = natural - actual - closed;
-            if (Math.abs(gap) > 0.05 && Math.abs(gap) < size) {
-              box.style.marginLeft = `${gap / size}em`;
-              closed += gap;
-            }
-          });
+async function restoreKerning() {
+  const titles = Array.from(
+    document.querySelectorAll<HTMLElement>(".rv-chars:not([data-kerned])"),
+  );
+  for (const title of titles) {
+    title.dataset.kerned = "";
+    const style = getComputedStyle(title);
+    const text = title.textContent ?? "";
+    try {
+      const faces = await document.fonts.load(
+        `${style.fontWeight} 1em ${style.fontFamily}`,
+        text + text.toLocaleUpperCase("tr"),
+      );
+      // Nothing came: the title is set in a fallback. Leave it alone.
+      if (faces.length === 0) continue;
+    } catch {
+      continue;
+    }
+    if (!title.isConnected) continue;
+    title.querySelectorAll<HTMLElement>(".rv-mask").forEach((word) => {
+      const boxes = Array.from(word.children) as HTMLElement[];
+      if (boxes.length < 2) return;
+      const size = parseFloat(getComputedStyle(word).fontSize) || 16;
+      const probe = document.createElement("span");
+      probe.textContent = boxes.map((box) => box.textContent).join("");
+      probe.style.cssText =
+        "position:absolute;visibility:hidden;white-space:pre;left:0;top:0";
+      word.appendChild(probe);
+      const run = probe.firstChild;
+      const margins: number[] = [];
+      if (run) {
+        const range = document.createRange();
+        const at = (i: number) => {
+          range.setStart(run, i);
+          range.setEnd(run, i + 1);
+          return range.getBoundingClientRect().left;
+        };
+        const first = at(0);
+        let closed = 0;
+        for (let i = 1; i < boxes.length; i++) {
+          const natural = at(i) - first;
+          const actual = boxes[i].offsetLeft - boxes[0].offsetLeft;
+          const gap = natural - actual - closed;
+          margins[i] = gap / size;
+          closed += gap;
         }
-        probe.remove();
+      }
+      probe.remove();
+      if (margins.some((em) => Math.abs(em) > MAX_KERN_EM)) return;
+      margins.forEach((em, i) => {
+        if (Math.abs(em) > 0.002) boxes[i].style.marginLeft = `${em}em`;
       });
     });
+  }
 }
 
 /**
@@ -85,7 +114,6 @@ export function RevealMotion() {
       { rootMargin: "0px 0px -8% 0px", threshold: 0.05 },
     );
 
-    let fontsReady = false;
     const scan = () => {
       const fold = window.innerHeight * 0.85;
       document
@@ -106,7 +134,7 @@ export function RevealMotion() {
             io.observe(el);
           }
         });
-      if (fontsReady) restoreKerning();
+      void restoreKerning();
     };
 
     let raf = 0;
@@ -119,11 +147,6 @@ export function RevealMotion() {
     };
 
     scan();
-    // Kerning is the face's: measure only once the title face has arrived.
-    document.fonts?.ready.then(() => {
-      fontsReady = true;
-      schedule();
-    });
     const mo = new MutationObserver(schedule);
     mo.observe(document.body, { childList: true, subtree: true });
 

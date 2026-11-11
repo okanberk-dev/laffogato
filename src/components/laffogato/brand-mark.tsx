@@ -13,12 +13,13 @@
  * cached 5 KB file across every page. No "use client": it renders in server
  * and client trees alike.
  *
- * Tones:
- * - `ink`   espresso letters and bean (the quiet default on porcelain)
- * - `duo`   espresso letters, brass bean (the header, the 404)
- * - `green` house-green letters, brass bean (the app's logo.tintOnNeutral)
- * - `cream` cream letters, brass bean - on the green blocks, exactly the
- *           app icon
+ * Tones (the roast, 11 Kas 2026: the bean's second colour is the amber):
+ * - `ink`   espresso letters and bean (the top bar, the search bar)
+ * - `duo`   espresso letters, amber bean (the auth cards, the 404)
+ * - `green` the same as `duo` since the green became the espresso; the
+ *           name stays for its call sites
+ * - `cream` cream letters, amber bean - on the espresso blocks and the
+ *           footer
  */
 import { cx } from "./cx";
 

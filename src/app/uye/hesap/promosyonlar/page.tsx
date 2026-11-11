@@ -45,25 +45,25 @@ function CouponCard({
     status === "redeemed"
       ? {
           text: "Kullanıldı",
-          bg: "rgba(120,120,120,0.12)",
+          bg: "var(--bg-stone)",
           fg: "var(--ink-mute)",
         }
       : status === "expired"
         ? {
             text: "Süresi doldu",
-            bg: "rgba(120,120,120,0.12)",
+            bg: "var(--bg-stone)",
             fg: "var(--ink-mute)",
           }
         : status === "inactive"
           ? {
               text: "Pasif",
-              bg: "rgba(120,120,120,0.12)",
+              bg: "var(--bg-stone)",
               fg: "var(--ink-mute)",
             }
           : {
               text: "Kullanıma hazır",
-              bg: "rgba(70,150,90,0.14)",
-              fg: "#2f7d4f",
+              bg: "var(--green-mist)",
+              fg: "var(--matcha)",
             };
 
   return (
@@ -76,7 +76,8 @@ function CouponCard({
         {coupon.title && (
           <span
             style={{
-              fontFamily: "var(--serif-display)",
+              fontFamily: "var(--display)",
+              fontWeight: 700,
               fontSize: 18,
               color: "var(--ink)",
             }}
@@ -183,7 +184,8 @@ export default async function PromosyonlarPage() {
                 <div className="account-promo-meta">
                   <span
                     style={{
-                      fontFamily: "var(--serif-display)",
+                      fontFamily: "var(--display)",
+                      fontWeight: 700,
                       fontSize: 18,
                       color: "var(--ink)",
                     }}
@@ -231,7 +233,7 @@ export default async function PromosyonlarPage() {
                 <div className="account-promo-code">{p.code}</div>
                 <div className="account-promo-meta">
                   <span
-                    style={{ fontFamily: "var(--serif-display)", fontSize: 16 }}
+                    style={{ fontWeight: 700, fontSize: 16 }}
                   >
                     {discountLabel(p.kind, p.value)}
                   </span>

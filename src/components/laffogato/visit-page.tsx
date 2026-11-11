@@ -230,8 +230,8 @@ export function PageVisit({ visit, settings }: PageProps) {
               style={{
                 marginTop: 36,
                 padding: 22,
-                background: "var(--bg-warm)",
-                borderRadius: "var(--r-md)",
+                background: "var(--bg-stone)",
+                borderRadius: "var(--r-card)",
               }}
             >
               <div className="eyebrow" style={{ marginBottom: 10 }}>
@@ -424,7 +424,7 @@ export function PageVisit({ visit, settings }: PageProps) {
                     padding: 30,
                   }}
                 >
-                  <CupEmblem size={240} bg="#f3f5f2" />
+                  <CupEmblem size={240} bg="#f0eae1" />
                 </div>
               </PhotoSurface>
             </div>
@@ -484,7 +484,7 @@ export function PageVisit({ visit, settings }: PageProps) {
       <section
         className="section"
         data-ground="dark"
-        style={{ background: "var(--bg-espresso)", color: "#FFF" }}
+        style={{ background: "var(--roast)", color: "var(--ink-on-dark)" }}
       >
         <div
           className="wrap"
@@ -498,12 +498,15 @@ export function PageVisit({ visit, settings }: PageProps) {
         >
           <div className="reveal">
             <div className="eyebrow on-dark">Eventi privati</div>
-            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2
+              className="h1"
+              style={{ marginTop: 16, color: "var(--ink-on-dark)" }}
+            >
               Özel <span className="script">kiralama</span>
             </h2>
             <p
               className="lede"
-              style={{ marginTop: 24, color: "rgba(255, 255, 255, 0.78)" }}
+              style={{ marginTop: 24, color: "var(--ink-on-dark-soft)" }}
             >
               Pazartesi günleri köşkü tamamen kiralayabilirsiniz. 24 koltuk,
               özel menü, barista demonstrasyonu, gelato workshop’u. Marka
@@ -534,13 +537,13 @@ export function PageVisit({ visit, settings }: PageProps) {
                 key={l}
                 style={{
                   padding: 26,
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  borderRadius: "var(--r-md)",
+                  border: "1px solid var(--night-line)",
+                  borderRadius: "var(--r-card)",
                 }}
               >
                 <div
                   style={{
-                    fontFamily: "var(--serif)",
+                    fontFamily: "var(--headline)",
                     fontStyle: "normal",
                     fontSize: 42,
                     lineHeight: 1,

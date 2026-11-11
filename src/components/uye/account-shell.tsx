@@ -44,9 +44,7 @@ export function AccountShell({
               {initials || "L"}
             </div>
             <div>
-              <h1 className="h1" style={{ fontSize: "clamp(28px, 4vw, 44px)" }}>
-                Hesabım
-              </h1>
+              <h1 className="account-shell-title">Hesabım</h1>
               <p
                 style={{
                   marginTop: 6,

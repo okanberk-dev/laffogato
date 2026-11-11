@@ -117,7 +117,8 @@ function Toggle({
         <span
           style={{
             display: "block",
-            fontFamily: "var(--serif-display)",
+            fontFamily: "var(--display)",
+            fontWeight: 700,
             fontSize: 16,
           }}
         >

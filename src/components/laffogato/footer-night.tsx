@@ -69,15 +69,15 @@ export function FooterSky({ className }: { className?: string }) {
       <defs>
         <linearGradient id="fn-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" className="fn-stop-deep" />
-          <stop offset="1" className="fn-stop-house" />
+          <stop offset="1" className="fn-stop-horizon" />
         </linearGradient>
-        <radialGradient id="fn-glow-mint">
-          <stop offset="0" className="fn-stop-mint" stopOpacity="0.2" />
-          <stop offset="1" className="fn-stop-mint" stopOpacity="0" />
+        <radialGradient id="fn-glow-haze">
+          <stop offset="0" className="fn-stop-haze" stopOpacity="0.2" />
+          <stop offset="1" className="fn-stop-haze" stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="fn-glow-brass">
-          <stop offset="0" className="fn-stop-brass" stopOpacity="0.22" />
-          <stop offset="1" className="fn-stop-brass" stopOpacity="0" />
+        <radialGradient id="fn-glow-amber">
+          <stop offset="0" className="fn-stop-amber" stopOpacity="0.22" />
+          <stop offset="1" className="fn-stop-amber" stopOpacity="0" />
         </radialGradient>
         <mask id="fn-moon-cut">
           <rect width="1440" height="560" fill="white" />
@@ -85,15 +85,15 @@ export function FooterSky({ className }: { className?: string }) {
         </mask>
       </defs>
       <rect width="1440" height="560" fill="url(#fn-sky)" />
-      {/* The milky way: a long mint haze, brass where the steam meets it. */}
+      {/* The milky way: a long cream haze, amber where the steam meets it. */}
       <g transform="rotate(-14 900 240)">
-        <ellipse cx="900" cy="240" rx="640" ry="74" fill="url(#fn-glow-mint)" />
+        <ellipse cx="900" cy="240" rx="640" ry="74" fill="url(#fn-glow-haze)" />
         <ellipse
           cx="980"
           cy="250"
           rx="300"
           ry="54"
-          fill="url(#fn-glow-brass)"
+          fill="url(#fn-glow-amber)"
         />
       </g>
       <circle
@@ -170,8 +170,8 @@ export function FooterKosk({ className }: { className?: string }) {
           <stop offset="1" className="fn-stop-cream" stopOpacity="0" />
         </linearGradient>
         <radialGradient id="fn-lamp">
-          <stop offset="0" className="fn-stop-brass" stopOpacity="0.55" />
-          <stop offset="1" className="fn-stop-brass" stopOpacity="0" />
+          <stop offset="0" className="fn-stop-amber" stopOpacity="0.55" />
+          <stop offset="1" className="fn-stop-amber" stopOpacity="0" />
         </radialGradient>
       </defs>
 

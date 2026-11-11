@@ -48,8 +48,7 @@ export default async function FavorilerimPage() {
                       style={{
                         width: "100%",
                         height: "100%",
-                        background:
-                          "linear-gradient(135deg, var(--bg-cream), var(--gold-soft))",
+                        background: "var(--bg-stone)",
                       }}
                     />
                   )}
@@ -58,7 +57,8 @@ export default async function FavorilerimPage() {
                   <div className="eyebrow">{p.tag}</div>
                   <h3
                     style={{
-                      fontFamily: "var(--serif-display)",
+                      fontFamily: "var(--display)",
+                      fontWeight: 700,
                       fontSize: 17,
                       margin: "6px 0 4px",
                     }}

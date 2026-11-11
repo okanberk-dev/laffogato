@@ -82,23 +82,22 @@ describe("openStatusDetail", () => {
 });
 
 describe("home hero", () => {
-  // Since 6 Kas 2026 the home page opens on the coffee valley alone: the
-  // operator's drinks band (home-hero-slider.tsx) is gone, its slides stay
-  // in the panel (home-hero-slides.test.ts). The valley's own guards live in
-  // home-valley.test.ts.
+  // Since 6 Kas 2026 the home page opens on one live drawing alone (the
+  // coffee valley, then the roast hero from 11 Kas 2026): the operator's
+  // drinks band (home-hero-slider.tsx) is gone, its slides stay in the panel
+  // (home-hero-slides.test.ts).
   it("puts the panel's hero copy in the statement band under the hero", () => {
     expect(HOME).toContain('content?.["home.hero.eyebrow"]');
     expect(HOME).toContain('content?.["home.hero.lede"]');
     expect(HOME).toContain('className="home-intro-lead"');
-    expect(rule(".home-intro-text")).toMatch(/font-weight: 300;/);
-    expect(rule(".home-intro-lead")).toMatch(/font-weight: 600;/);
-  });
-
-  it("keeps its live status motion under five seconds (WCAG 2.2.2)", () => {
-    // Two 2 s rings and it settles - never `infinite`.
-    expect(rule(".valley-status-dot")).toMatch(
-      /animation: valley-live 2s var\(--ease-out\) 2;/,
-    );
+    // Operator, 11 Kas 2026 (docs/REDESIGN-ROAST.md): the statement is the
+    // small opener of Band A - its first sentence the small title in the
+    // title face, the rest clamped to three lines in the text face.
+    const lead = rule(".home-intro-lead");
+    expect(lead).toMatch(/font-family: var\(--headline\);/);
+    expect(lead).toMatch(/font-weight: 400;/);
+    expect(lead).toMatch(/text-transform: uppercase;/);
+    expect(rule(".home-intro-text")).toMatch(/-webkit-line-clamp: 3;/);
   });
 });
 
@@ -116,11 +115,11 @@ describe("the rest of the landing page", () => {
     expect(arrow).not.toMatch(/font-family/);
   });
 
-  it("sets the hero titles and the figures in SemiBold - weight, not size, carries the hierarchy", () => {
-    // Café-retail restyle, 5 Kas 2026: display moments are 600 in one face;
-    // an ExtraBold squeeze is the look this replaced.
-    expect(rule(".h-display")).toMatch(/font-weight: 600;/);
-    expect(rule(".stat-n")).toMatch(/font-weight: 600;/);
+  it("sets the display titles and the figures in the title face's one weight", () => {
+    // Operator, 11 Kas 2026 (docs/REDESIGN-ROAST.md): Abril Fatface has one
+    // weight, 400; a 600 would be a smeared synthetic bold.
+    expect(rule(".h-display")).toMatch(/font-weight: 400;/);
+    expect(rule(".stat-n")).toMatch(/font-weight: 400;/);
   });
 });
 

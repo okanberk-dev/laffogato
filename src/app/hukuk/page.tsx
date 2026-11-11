@@ -35,25 +35,25 @@ export default function HukukIndexPage() {
   }
 
   return (
-    <div className="legal-page">
+    <div className="legal-page legal-page-index">
       <JsonLd
         data={breadcrumbLd([
           { name: "Ana Sayfa", url: "/" },
           { name: "Hukuki bilgiler", url: "/hukuk" },
         ])}
       />
-      <div className="legal-wrap">
-        <PageHero
-          scene="porcelain"
-          eyebrow="Hukuki belgeler"
-          title={["Sözleşmeler", "ve haklarınız"]}
-          lede="Sipariş öncesi okumanız gereken sözleşmeler, gizlilik politikamız ve kullanıcı haklarınız. Hepsi Türk mevzuatına göre hazırlandı; soru varsa yazın - birlikte adım atalım."
-        >
-          <Link href="/" className="page-hero-back">
-            ← Anasayfa
-          </Link>
-        </PageHero>
-
+      {/* The opener spans the page; the index under it keeps its measure. */}
+      <PageHero
+        scene="porcelain"
+        eyebrow="Hukuki belgeler"
+        title={["Sözleşmeler", "ve haklarınız"]}
+        lede="Sipariş öncesi okumanız gereken sözleşmeler, gizlilik politikamız ve kullanıcı haklarınız. Hepsi Türk mevzuatına göre hazırlandı; soru varsa yazın - birlikte adım atalım."
+      >
+        <Link href="/" className="page-hero-back">
+          ← Anasayfa
+        </Link>
+      </PageHero>
+      <div className="legal-wrap legal-wrap-index">
         <div className="legal-index-grid">
           {[...grouped.entries()]
             .filter(([, docs]) => docs.length > 0)

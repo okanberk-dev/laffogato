@@ -5,6 +5,8 @@ import {
 
 import { AppStoreLinks } from "./app-links";
 import { LafMark } from "./brand-mark";
+import { RevealText } from "./reveal-text";
+import { ScrambleText } from "./scramble-text";
 
 /**
  * The home page's door into the app (#uygulama). Owner's brief, 6 Kas 2026:
@@ -65,9 +67,18 @@ export function HomeAppIntro({
       <div className="wrap">
         <div className="app-intro">
           <div className="app-intro-copy reveal">
-            <p className="app-intro-eyebrow">L&apos;Affogato uygulaması</p>
+            <ScrambleText
+              as="p"
+              className="eyebrow bolum-kicker"
+              text="L’Affogato uygulaması"
+            />
+            {/* Two reveals in one heading: each carries its own hidden
+                copy, so the heading's name is the whole line. */}
             <h2 id="app-intro-title" className="app-intro-title">
-              Köşkün kahve kulübü, <span className="script">cebinde</span>
+              <RevealText delay={150}>Köşkün kahve kulübü,</RevealText>{" "}
+              <RevealText className="script" delay={450}>
+                cebinde
+              </RevealText>
             </h2>
             <p className="app-intro-text">
               Masadan siparişini ver, hazırlanırken adım adım izle, her kahvede

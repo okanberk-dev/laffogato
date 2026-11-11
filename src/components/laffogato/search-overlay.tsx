@@ -353,7 +353,7 @@ export function SearchOverlay({
       >
         <div className="search-bar">
           <span className="search-bar-mark" aria-hidden="true">
-            <LafMark tone="duo" />
+            <LafMark tone="ink" />
           </span>
           <label className="search-field">
             <span className="search-field-icon" aria-hidden="true">

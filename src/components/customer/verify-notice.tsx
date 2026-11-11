@@ -25,16 +25,17 @@ export function VerifyNotice({
   return (
     <div
       style={{
-        border: "1px solid #e1e5e0",
-        background: "#f3f5f2",
-        borderRadius: 14,
+        border: "1px solid var(--ink-line)",
+        background: "var(--bg-warm)",
+        borderRadius: "var(--r-md)",
         padding: compact ? "14px 16px" : "22px 24px",
-        color: "#5b6660",
+        color: "var(--ink-soft)",
       }}
     >
       <div
         style={{
-          fontWeight: 600,
+          fontWeight: 700,
+          color: "var(--ink)",
           fontSize: compact ? 14 : 16,
           marginBottom: 6,
         }}
@@ -77,7 +78,7 @@ export function VerifyNotice({
           </span>
         )}
         {state.error && (
-          <span style={{ color: "#bb251b", fontSize: 13 }}>{state.error}</span>
+          <span style={{ color: "var(--rose)", fontSize: 13 }}>{state.error}</span>
         )}
       </form>
     </div>

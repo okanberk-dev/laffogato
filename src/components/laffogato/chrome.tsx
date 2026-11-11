@@ -213,10 +213,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // The bar is glass from the first pixel; the hairline under it only
-  // appears once there is content scrolling beneath it, as on iOS.
+  // The bar is transparent at the top of every page; once the page has
+  // moved 30px it turns to frost and tightens (globals.css .is-scrolled).
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
+    const onScroll = () => setScrolled(window.scrollY > 30);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -335,7 +335,13 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             className="nav-brand"
             aria-label="L'Affogato anasayfası"
           >
-            <LafMark tone="duo" />
+            <LafMark tone="ink" />
+            {/* The link is already named; the wordmark is for the eye.
+                Capitals are CSS. */}
+            <span className="nav-wordmark" aria-hidden="true">
+              <span>L&apos;Affogato</span>
+              <span>Tuzla.</span>
+            </span>
           </Link>
 
           <div className="nav-center">
@@ -398,8 +404,8 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <span>Uygulamayı indir</span>
               </a>
             ) : null}
-            {/* Minimal: the glyph and one word. Narrow headers keep the
-                glyph alone. ⌘K / Ctrl+K / "/" open it from anywhere. */}
+            {/* A round outlined button, the glyph alone. ⌘K / Ctrl+K / "/"
+                open it from anywhere. */}
             <button
               type="button"
               className="nav-search"
@@ -408,7 +414,6 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               onClick={openSearch}
             >
               <SearchGlyph />
-              <span className="nav-search-text">Ara</span>
             </button>
             <AccountMenu />
             <button
@@ -417,7 +422,6 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               aria-label={`Sepetim - ${cartCount} ürün`}
               onClick={openCart}
             >
-              <BagGlyph />
               <span className="nav-cart-label">Sepet</span>
               <span
                 className={cx("nav-cart-count", cartCount > 0 && "has-items")}
@@ -463,8 +467,8 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         </div>
       </header>
 
-      {/* The small-screen sheet: an inset grouped list, iOS Settings style -
-          big tappable rows, the two catalogues expandable in place. */}
+      {/* The small-screen sheet: kicker titles over plain rows on hairlines,
+          the two catalogues expandable in place. */}
       <div
         id="mobile-sheet"
         className={cx("mobile-sheet", open && "open")}
@@ -472,7 +476,10 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         inert={!open}
       >
         <div className="mobile-sheet-scroll">
-          <ul className="sheet-group" aria-label="Keşfet">
+          <p className="sheet-title" id="sheet-title-explore">
+            Keşfet
+          </p>
+          <ul className="sheet-group" aria-labelledby="sheet-title-explore">
             <li>
               <Link
                 href="/"
@@ -597,6 +604,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             </li>
           </ul>
 
+          <p className="sheet-title">Hesap</p>
           <div className="sheet-actions">
             <a
               href="/uye/hesap"
@@ -629,9 +637,8 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         </div>
       </div>
 
-      {/* The small-screen tab bar: a floating glass capsule, the app's own
-          bar (DESIGN-GLASS §4.5) - the selected tab sits in a white capsule
-          that lifts off the glass. */}
+      {/* The small-screen tab bar: a floating frosted capsule - the selected
+          tab takes the espresso over one amber dot. */}
       <nav className="tab-bar" aria-label="Mobil gezinme">
         <Link
           href="/"
@@ -709,7 +716,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         </a>
       </nav>
 
-      {/* The floating order button: a green circle bottom-right that rides
+      {/* The floating order button: an espresso circle bottom-right that rides
           over every scrolled surface and opens the cart. Phones already
           carry the cart in the tab bar, and the checkout is the cart, so it
           stays off both (globals.css .frap). */}
@@ -1512,8 +1519,17 @@ export function Footer({ navigate, settings }: FooterProps) {
           <span>
             © {year} {SITE_LEGAL_NAME}
           </span>
-          <span className="footer-meta-pay">
-            Visa · Mastercard · Troy · Apple Pay
+          <span className="footer-meta-end">
+            <span className="footer-meta-pay">
+              Visa · Mastercard · Troy · Apple Pay
+            </span>
+            {/* Every shell names its <main> "main" (the skip link's target). */}
+            <a className="footer-top" href="#main">
+              Başa dön
+              <span className="arrow" aria-hidden="true">
+                ↑
+              </span>
+            </a>
           </span>
         </div>
       </div>

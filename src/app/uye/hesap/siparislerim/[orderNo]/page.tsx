@@ -161,7 +161,8 @@ export default async function OrderDetailPage({
 
         <h3
           style={{
-            fontFamily: "var(--serif-display)",
+            fontFamily: "var(--display)",
+            fontWeight: 700,
             fontSize: 18,
             marginBottom: 10,
           }}
@@ -182,7 +183,7 @@ export default async function OrderDetailPage({
             >
               <div>
                 <div
-                  style={{ fontFamily: "var(--serif-display)", fontSize: 15 }}
+                  style={{ fontWeight: 700, fontSize: 15 }}
                 >
                   {it.productName}
                 </div>

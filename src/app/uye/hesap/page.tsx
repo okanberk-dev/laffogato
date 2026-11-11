@@ -336,7 +336,8 @@ export default async function HesapPage() {
                 <div className="account-promo-meta">
                   <span
                     style={{
-                      fontFamily: "var(--serif-display)",
+                      fontFamily: "var(--display)",
+                      fontWeight: 700,
                       fontSize: 16,
                       color: "var(--ink)",
                     }}

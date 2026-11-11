@@ -85,8 +85,8 @@ export default async function GirisPage({ searchParams }: PageProps) {
           </div>
         </section>
 
-        {/* The reward panel beside the form: the one place on this page
-            brass may speak (the stamps), on the house green. */}
+        {/* The membership panel beside the form: espresso, with the amber
+            (kicker and ticks) as its one accent. */}
         <aside
           className="auth-join"
           data-ground="dark"

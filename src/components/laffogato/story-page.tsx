@@ -227,7 +227,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
               style={{
                 margin: "32px 0",
                 padding: "24px 28px",
-                borderLeft: "2px solid var(--gold)",
+                borderLeft: "2px solid var(--amber)",
                 fontFamily: "var(--serif)",
                 fontStyle: "normal",
                 fontSize: 20,
@@ -242,9 +242,10 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             </blockquote>
             <div
               style={{
-                fontFamily: "var(--script)",
+                fontFamily: "var(--headline)",
                 fontSize: 38,
-                color: "var(--gold)",
+                lineHeight: 1,
+                color: "var(--accent)",
               }}
             >
               - Eda
@@ -256,12 +257,15 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
       <section
         className="section"
         data-ground="dark"
-        style={{ background: "var(--bg-espresso)", color: "#FFF" }}
+        style={{ background: "var(--roast)", color: "var(--ink-on-dark)" }}
       >
         <div className="wrap-wide">
           <div className="reveal" style={{ marginBottom: 70 }}>
             <div className="eyebrow on-dark">Linea del tempo</div>
-            <h2 className="h1" style={{ marginTop: 16, color: "#FFF" }}>
+            <h2
+              className="h1"
+              style={{ marginTop: 16, color: "var(--ink-on-dark)" }}
+            >
               How we got <span className="script">here</span>
             </h2>
           </div>
@@ -285,13 +289,13 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                   <span></span>
                 </div>
                 <div className="timeline-content">
-                  <h3 className="h3" style={{ color: "#FFF" }}>
+                  <h3 className="h3" style={{ color: "var(--ink-on-dark)" }}>
                     {ev.t}
                   </h3>
                   <p
                     style={{
                       marginTop: 10,
-                      color: "var(--green-mist)",
+                      color: "var(--night-ink-soft)",
                       lineHeight: 1.6,
                       maxWidth: 540,
                     }}
@@ -402,9 +406,9 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
                   style={{
                     transitionDelay: `${(i % 4) * 60}ms`,
                     padding: 36,
-                    border: "1px solid var(--ink-line)",
-                    borderRadius: "var(--r-md)",
-                    background: "#FFF",
+                    borderRadius: "var(--r-card)",
+                    background: "var(--surface)",
+                    boxShadow: "var(--shadow-card)",
                   }}
                 >
                   <div className="eyebrow" style={{ marginBottom: 20 }}>

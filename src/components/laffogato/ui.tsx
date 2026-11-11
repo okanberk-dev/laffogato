@@ -362,9 +362,9 @@ export function Stat({
     <div>
       <div
         style={{
-          fontFamily: "var(--serif)",
+          fontFamily: "var(--headline)",
           fontStyle: "normal",
-          fontWeight: 500,
+          fontWeight: 400,
           fontSize: "clamp(36px, 4vw, 56px)",
           lineHeight: 1,
           letterSpacing: "-0.02em",
@@ -709,7 +709,7 @@ export function ProductModal({
         position: "fixed",
         inset: 0,
         zIndex: 90,
-        background: "rgba(33, 28, 24, 0.32)",
+        background: "var(--glass-dim)",
         backdropFilter: "blur(8px)",
         display: "grid",
         placeItems: "center",
@@ -727,8 +727,8 @@ export function ProductModal({
         style={{
           width: "min(1080px, 100%)",
           maxHeight: "92vh",
-          background: "var(--surface-sheet)",
-          borderRadius: "var(--r-xl)",
+          background: "var(--bg)",
+          borderRadius: "var(--r-card)",
           boxShadow: "var(--shadow-lg)",
           overflow: "hidden",
           display: "grid",
@@ -750,7 +750,7 @@ export function ProductModal({
             width: 38,
             height: 38,
             borderRadius: "50%",
-            background: "rgba(255, 255, 255, 0.92)",
+            background: "var(--frost-chrome)",
             backdropFilter: "blur(10px)",
             display: "grid",
             placeItems: "center",
@@ -857,7 +857,9 @@ function ProductModalBody({
         <div className="eyebrow" style={{ marginBottom: 14 }}>
           {p.tag}
         </div>
-        <h2 className="h2">{p.name}</h2>
+        <h2 className="pdp-title" style={{ marginTop: 0 }}>
+          {p.name}
+        </h2>
         <div
           style={{
             display: "flex",
@@ -868,8 +870,11 @@ function ProductModalBody({
         >
           <span
             style={{
-              fontFamily: "var(--serif)",
+              fontFamily: "var(--display)",
               fontStyle: "normal",
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+              fontVariantNumeric: "tabular-nums",
               fontSize: 28,
             }}
           >

@@ -30,12 +30,9 @@ export function NewsletterForm() {
         />
         <button
           type="submit"
-          className="btn btn-light btn-sm"
-          /* No radius override: `.btn` resolves --r-btn, and this inline 999
-             was the last capsule-shaped real button on the site - in the
-             footer of every route. The field around it moved to the same
-             radius so the two read as one control. */
-          style={{ whiteSpace: "nowrap" }}
+          /* The one warm button of the footer: the amber pill inside the
+             pill field (docs/REDESIGN-ROAST.md "Footer"). */
+          className="btn btn-amber btn-sm"
           disabled={pending}
           aria-busy={pending}
         >
@@ -66,11 +63,9 @@ export function NewsletterForm() {
         <p
           role="status"
           aria-live="polite"
-          style={{
-            marginTop: 12,
-            fontSize: 13,
-            color: state.error ? "#fca5a5" : "rgba(255,255,255,0.85)",
-          }}
+          className={
+            state.error ? "newsletter-status is-error" : "newsletter-status"
+          }
         >
           {state.error ?? state.message}
         </p>

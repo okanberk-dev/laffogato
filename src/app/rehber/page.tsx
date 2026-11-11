@@ -47,22 +47,24 @@ const GUIDE_ART: Record<string, IllustrationName> = {
 
 export default function GuideHubPage() {
   return (
-    <div className="guide-page">
+    <div className="guide-page guide-page-hub">
       <JsonLd data={guideHubLd(GUIDES)} />
 
-      <div className="guide-wrap">
+      {/* The opener spans the page; the breadcrumb and the cards under it
+          share the site's content width. */}
+      <PageHero
+        scene="matcha"
+        eyebrow="Il quaderno"
+        title={["Barın arkasında", "öğrendiklerimiz"]}
+        lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir - hepsi tek tek, uygulanabilir biçimde."
+      />
+
+      <div className="wrap">
         <nav className="guide-breadcrumb" aria-label="breadcrumb">
           <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
           <span>Rehber</span>
         </nav>
-
-        <PageHero
-          scene="matcha"
-          eyebrow="Il quaderno"
-          title={["Barın arkasında", "öğrendiklerimiz"]}
-          lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir - hepsi tek tek, uygulanabilir biçimde."
-        />
 
         <ul className="guide-hub-grid">
           {GUIDES.map((g) => (
