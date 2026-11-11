@@ -13,11 +13,11 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    // The installed app's splash and status bar: the site's warm canvas
-    // (globals.css --bg) and the white top bar (layout.tsx themeColor), since
-    // the café-retail restyle of 5 Kas 2026.
-    background_color: "#f2f0eb",
-    theme_color: "#ffffff",
+    // The installed app's splash and status bar: the site's cream canvas
+    // (globals.css --bg, layout.tsx themeColor), since the roast restyle of
+    // 11 Kas 2026.
+    background_color: "#faf7f2",
+    theme_color: "#faf7f2",
     lang: SITE.language,
     dir: "ltr",
     categories: ["food", "lifestyle", "shopping"],

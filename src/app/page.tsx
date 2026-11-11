@@ -59,7 +59,7 @@ interface PageProps {
 
 export default async function HomePage({ searchParams }: PageProps) {
   // No `withHomeHero`: the panel's home slides are not on the page while
-  // the coffee valley opens it (home-valley.tsx), so they are not read.
+  // the roast hero opens it (home-roast.tsx), so they are not read.
   const [
     { cart, item, available, hesap },
     { settings, menu, products, appProps, contact },

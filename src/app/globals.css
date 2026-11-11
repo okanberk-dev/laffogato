@@ -1,113 +1,113 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   L'Affogato - design system v3 (café retail: cream, green, pill)
+   L'Affogato - design system v4 ("roast": cream, espresso, amber)
    ───────────────────────────────────────────────────────────── */
 
 :root {
   /* ─────────────────────────────────────────────────────────────
-     Palette: café retail, 5 Kas 2026.
+     Palette: the roast, 11 Kas 2026.
 
-     Operator, 5 Kas 2026: "sitenin görselini ... starbucks tarzı istiyorum
-     ... ama panel değil". The site takes the structure of a coffee-retail
-     flagship: a warm cream canvas instead of white, white cards with a
-     whisper of shadow, a FOUR-tier green system where each green has one
-     job, deep house-green bands and a night footer bookending the body,
-     brass kept for the reward moments only, full-pill buttons that press to
-     0.95, one sans voice with tight tracking. The greens are derived from
-     L'Affogato's own logo green (#1D6D56), not copied from anyone's
-     storefront (tests/brand-theme.test.ts keeps that line). The bordo stays:
-     it is the logo's, one signature surface per screen.
+     Operator, 11 Kas 2026: "siteyi tamamen [coffee-beans-swart.vercel.app]
+     gibi ... landingleri diğer sayfaları yap, three js ... birebir ... bize
+     uyarlayarak". The site takes that page's language whole: a warm cream
+     canvas, ONE espresso ink that is also every filled control and every
+     dark band, an amber accent, a fat didone for the titles (set in
+     capitals, tight) over a plain grotesque, pills, a frosted top bar and
+     an espresso footer. The drawings on the landing are our own, live in
+     three.js; nothing is copied from the reference but its proportions.
 
-     This is a deliberate divergence from lafmobil's porcelain palette
-     (karar 31 (c), 25 Eyl 2026): the operator's call, recorded in
-     docs/BRAND.md. The variable NAMES did not move - ~800 call sites read
-     them - only what they resolve to. Where an old name no longer says what
-     it holds (--bg-espresso is the HOUSE green band), the comment says it.
+     This retires the café-retail greens of 5 Kas 2026 on the site. The
+     variable NAMES did not move - ~800 call sites read them - only what
+     they resolve to, as on 5 Kas. Where an old name no longer says what it
+     holds (the --green-* family is the roast now; --bg-espresso finally is
+     espresso), the comment says it. New rules should reach for the plain
+     names at the end of each group (--roast, --amber, --frost).
+
+     Still out of scope, on the older porcelain palette: e-mails, link
+     previews (OG cards), icons, the PayNkolay bridge page, the admin panel.
 
      Contrast is held by tests/contrast.test.ts; the palette itself by
      tests/brand-theme.test.ts. */
 
-  /* Grounds. --bg is the warm-neutral canvas (the café's napkin and wall);
-     --bg-warm the near-white content band; --bg-stone the ceramic step for
-     zone separators; --bg-cream the brass-cream wash under reward blocks. */
-  --bg: #f2f0eb;
-  --bg-warm: #f9f8f6;
-  --bg-stone: #edebe9;
-  --bg-cream: #faf6ee;
+  /* Grounds. --bg is the cream canvas; --bg-warm the near-white content
+     band; --bg-stone the ceramic step for zone separators (and the text
+     selection); --bg-cream the warmer wash under reward blocks. */
+  --bg: #faf7f2;
+  --bg-warm: #fdfcf9;
+  --bg-stone: #f0eae1;
+  --bg-cream: #f7efe2;
   /* The white card and the opaque sheet. */
   --surface: #ffffff;
   --surface-sheet: #ffffff;
 
-  /* The home hero's own five, on the café palette. */
-  --hero-cream: #f9f8f6;
-  --hero-green: #173f35;
-  --hero-cocoa: #5c5955;
-  --hero-tile: #edebe9;
-  --hero-tile-deep: #e4e1dc;
+  /* The hero's own five, on the roast palette. */
+  --hero-cream: #fdfcf9;
+  --hero-green: #23120b;
+  --hero-cocoa: #57463d;
+  --hero-tile: #f0eae1;
+  --hero-tile-deep: #e8dfd1;
 
-  /* The four greens, each with one role (never "one brand green"):
-     - brand  #1D6D56  the logo green: headings, green text, links, kickers
-                       (5.46:1 on the canvas);
-     - cta    #1F7A5C  a step brighter: every filled call to action and the
-                       floating order button (white on it 5.25:1);
-     - house  #173F35  the deep band: feature bands, reward panels, the
-                       footer's night sky (white on it 11.67:1);
-     - uplift #2A5A4D  decorative accents inside the house band.
-     --green-light is the pale mint wash (valid-field tint, light utility). */
-  --green-brand: #1d6d56;
-  --green-cta: #1f7a5c;
-  --green-cta-pressed: #17624a;
-  --green-house: #173f35;
-  --green-uplift: #2a5a4d;
-  --green-light: #d5e8df;
+  /* The roast. One espresso does the four jobs the four greens had:
+     - brand  the ink of headings, kickers and links (16.90:1 on the canvas);
+     - cta    every filled call to action and the floating order button
+              (cream on it 16.90:1); -pressed is its hover step;
+     - house  the deep band: feature bands, reward panels, the footer;
+     - uplift decorative accents inside a dark band.
+     --green-light is the pale wash (valid-field tint, light utility). */
+  --green-brand: #23120b;
+  --green-cta: #23120b;
+  --green-cta-pressed: #3a241a;
+  --green-house: #23120b;
+  --green-uplift: #4a3327;
+  --green-light: #efe6da;
+  /* The same thing under its own name. */
+  --roast: #23120b;
+  --roast-raise: #3a241a;
 
-  /* The dark ground. Named "espresso" from the heritage palette; it is the
-     house green band. The deep step is the top of the footer's night sky. */
-  --bg-espresso: #173f35;
-  --bg-espresso-deep: #0f2b24;
+  /* The dark ground, and the step below it. */
+  --bg-espresso: #23120b;
+  --bg-espresso-deep: #170b06;
 
-  /* The night footer (owner's brief, 6 Kas 2026: a dark footer under an
-     illustrated night band). Not black: --ink (#211f1d) deepened with its
-     warm cast kept, an espresso the cream body comes to rest on. The house
-     green is still the site's band; in the footer it is the night sky over
-     the köşk (footer-night.tsx), --bg-espresso-deep at the top of it.
-     - --night        the ground (white 18.30:1)
+  /* The footer and every other night surface: the same espresso.
+     - --night        the ground (cream 16.90:1)
      - --night-raise  pills and the letter card on it
      - --night-line   hairlines and pill borders (decoration, never text)
-     - --night-ink / -soft / -mute  text: 16.28 · 10.62 · 6.95 on --night,
-       14.85 · 9.69 · 6.33 on --night-raise (tests/contrast.test.ts). */
-  --night: #181412;
-  --night-raise: #221d1a;
-  --night-line: #3a332e;
-  --night-ink: #f6f1ea;
-  --night-ink-soft: #cdc4b9;
-  --night-ink-mute: #a89e92;
+     - --night-ink / -soft / -mute  text: 16.90 · 11.31 · 7.27 on --night,
+       15.16 · 10.15 · 6.52 on --night-raise (tests/contrast.test.ts). */
+  --night: #23120b;
+  --night-raise: #2f1c13;
+  --night-line: #4a372c;
+  --night-ink: #faf7f2;
+  --night-ink-soft: #d6cbbf;
+  --night-ink-mute: #b0a295;
 
-  /* Ink - never pure black: 87 % black read on the warm canvas, then the
-     58 % secondary. --ink-quiet is glyph-only (3.06:1): chevrons, dividers,
-     a disabled tile - never text. Lines are black at 8 % and 14 %. */
-  --ink: #211f1d;
-  --ink-soft: #5c5955;
-  --ink-mute: #64615c;
-  --ink-quiet: #8c8984;
-  --ink-line: rgba(0, 0, 0, 0.08);
-  --ink-line-strong: rgba(0, 0, 0, 0.14);
-  /* On the house band: white and white at 70 %. */
-  --ink-on-dark: #ffffff;
-  --ink-on-dark-soft: rgba(255, 255, 255, 0.7);
+  /* Ink - the espresso, then its two readable steps (8.37 and 6.13 on the
+     canvas). --ink-quiet is glyph-only (3.05:1): chevrons, dividers, a
+     disabled tile - never text. --ink-ghost is the numeral behind a section
+     opener. Lines are the espresso at 10 % and 18 %. */
+  --ink: #23120b;
+  --ink-soft: #57463d;
+  --ink-mute: #6b5a50;
+  --ink-quiet: #9a8c82;
+  --ink-ghost: rgba(35, 18, 11, 0.15);
+  --ink-line: rgba(35, 18, 11, 0.1);
+  --ink-line-strong: rgba(35, 18, 11, 0.18);
+  /* On a dark band: the cream and the cream at 72 %. */
+  --ink-on-dark: #faf7f2;
+  --ink-on-dark-soft: rgba(250, 247, 242, 0.72);
 
-  /* Green as text and as the plain fill most rules already reach for: the
-     brand green. --green-mint / --green-mist are the secondary and body inks
-     INSIDE a green block. */
-  --green: #1d6d56;
-  --green-pressed: #165543;
-  --green-mint: #d5e8df;
-  --green-mist: #e6efe9;
-  --green-wash: #d5e8df;
+  /* "Green" as text and as the plain fill most rules already reach for: the
+     espresso. --green-mint / --green-mist are the secondary and body inks
+     INSIDE a dark block; --green-wash is the selection and the pale tile. */
+  --green: #23120b;
+  --green-pressed: #3a241a;
+  --green-mint: #e9dfd2;
+  --green-mist: #f3ece2;
+  --green-wash: #e8dfd1;
 
   /* Brass - the REWARD voice and nothing else (stamps, tiers, coupons).
-     --gold is brass as text (5.72:1 on the canvas); --gold-soft the brass
+     --gold is brass as text (6.10:1 on the canvas); --gold-soft the brass
      fill that only ever carries ink (--gold-ink, 6.59:1); --gold-light the
      softer wash on reward sections. */
   --gold: #765923;
@@ -116,50 +116,57 @@
   --gold-light: #dfc49d;
   --gold-ink: #2e2113;
 
-  /* Bordo - the logo's, one signature surface per screen. It is also text on
-     the canvas (6.63:1).
-
-     DANGER: bordo and the greens are near-equal in luminance (1.55:1 on the
-     house green). They are never each other's foreground and background -
-     on green, the accent ink is --accent-on-dark (9.89:1 on the house band).
-     Guarded in tests/contrast.test.ts. */
-  --accent: #9d2543;
-  --accent-deep: #520f1f;
-  --accent-soft: #f9e6ea;
-  --accent-on-dark: #f6e9ec;
+  /* Amber - the accent. The reference's orange (#DE853A) is a FILL and a
+     hover colour: it carries the espresso ink (6.47:1) and it is the accent
+     on a dark band, but as text on cream it is 2.6:1. So the accent has two
+     inks, exactly as the bordo had:
+     - --accent          caramel, the accent as text and as a fill under
+                         white on a LIGHT ground (4.89:1 on the canvas,
+                         white on it 5.56:1);
+     - --accent-on-dark  the amber itself, the accent on espresso (6.47:1).
+     Caramel on espresso is 3.3:1: never each other's foreground and
+     background (tests/contrast.test.ts). --accent-deep is the pressed step,
+     --accent-soft its wash. */
+  --accent: #a35019;
+  --accent-deep: #6f350d;
+  --accent-soft: #fbead9;
+  --accent-on-dark: #de853a;
+  /* The reference's own names for the same two. */
+  --amber: #de853a;
+  --amber-raise: #e2934d;
 
   /* Brand - the logo's tint on a light ground. */
-  --brand: #1d6d56;
+  --brand: #23120b;
 
-  /* State, not brand. Success is the brand green. --rose is the error and
-     low-stock red (5.02:1 on the canvas, 4.81:1 on --bg-stone): brighter
-     than the bordo so "almost gone" never reads as a brand accent. --info is
+  /* State, not brand. Success stays a green (5.82:1 on the canvas) so "open
+     now" and "saved" never read as an accent. --rose is the error and
+     low-stock red (5.35:1 on the canvas, 4.78:1 on --bg-stone). --info is
      the cobalt for notes and "new" badges only. */
   --rose: #c82014;
   --matcha: #1d6d56;
   --info: #3442b8;
   --info-fill: #4858d2;
 
-  /* Type - one voice (5 Kas 2026). Poppins (operator, 11 Eki 2026: "sitede
-     poppins fontu olsun") sets everything: headlines, sentences, controls,
-     prices. Hierarchy comes from WEIGHT and COLOUR, not from a second face:
-     a 600 green headline over a 400 ink one. Tracking is tight across the
-     board (--tracking, -0.01em). Six cuts load through next/font in
-     layout.tsx (300 · 400 · 500 · 600 · 700 · 800).
+  /* Type - two voices (11 Kas 2026).
 
-     --headline is kept as a name (the title rules read it) and resolves to
-     the same face. The historical names (--sans, --serif, --script, --mono,
-     …) all resolve to it so every call site keeps working. Poppins has no
-     arrow glyphs; the arrow after a label is drawn (.arrow).
+     --headline is Abril Fatface: a fat didone, ONE weight (400), set in
+     capitals with tight leading for every title. It is a display face: 20px
+     and up, never for a sentence. --display is Plus Jakarta Sans (variable,
+     200-800): sentences, labels, controls, product names and prices. Both
+     load through next/font in layout.tsx with latin-ext for Turkish.
 
-     --reward-serif is the one context switch: the editorial serif on the
-     reward (stamp card, loyalty) headline - system serifs only, nothing is
-     downloaded for it. It never appears in the shopping flow. */
+     The historical names (--sans, --serif, --script, --mono, …) resolve to
+     the text face so every call site keeps working. Neither face has arrow
+     glyphs worth using; the arrow after a label is drawn (.arrow).
+     --reward-serif (the editorial serif on the stamp card) is the headline
+     face now that the site has a real one. */
   --display:
-    var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --headline: var(--display);
-  --reward-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    var(--font-display), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --headline:
+    var(--font-headline), "Abril Fatface", "Fraunces", Georgia,
+    "Times New Roman", serif;
+  --reward-serif: var(--headline);
   --sans: var(--display);
   --serif: var(--display);
   --serif-modern: var(--display);
@@ -167,6 +174,11 @@
   --script: var(--display);
   --mono: var(--sans);
   --tracking: -0.01em;
+  /* The label voice: small bold capitals, opened wide (kickers, nav,
+     buttons). Three steps, the reference's 0.05 · 0.12 · 0.16em. */
+  --caps-button: 0.05em;
+  --caps-nav: 0.12em;
+  --caps-kicker: 0.16em;
 
   /* Layout */
   --content: 1280px;
@@ -174,71 +186,73 @@
   --content-narrow: 880px;
   --gutter: clamp(16px, 3vw, 40px);
 
-  /* Radii - cards, modals and tiles 12px; fields 4px; every button and chip
-     a full pill; avatars and the floating button a circle. The old names
-     resolve onto that short scale. */
-  --r-sm: 4px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-xl: 12px;
-  --r-panel: 12px;
-  --r-card: 12px;
+  /* Radii - cards, modals and tiles 16px; fields 10px; every button, chip
+     and the newsletter field a full pill; avatars and the floating button a
+     circle. The old names resolve onto that short scale. */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 16px;
+  --r-panel: 16px;
+  --r-card: 16px;
   --r-pill: 999px;
-  --r-btn: 50px;
+  --r-btn: 999px;
 
-  /* Surfaces are solid colour blocks: no frosted glass, no blur. The glass
-     names stay (many rules read them) and resolve to opaque white. */
+  /* Content cards are solid white. The glass names stay (many rules read
+     them) and resolve to opaque white; real frost is the navigation layer's
+     and the one floating card's (--frost-*): cream at 80-95 % over a 12px
+     blur, a stone hairline. */
   --glass: #ffffff;
   --glass-raised: #ffffff;
   --glass-control: #ffffff;
   --glass-chrome: #ffffff;
-  --glass-disc: rgba(0, 0, 0, 0.06);
-  --glass-dim: rgba(0, 0, 0, 0.4);
+  --glass-disc: rgba(35, 18, 11, 0.06);
+  --glass-dim: rgba(35, 18, 11, 0.45);
   --glass-blur: none;
+  --frost: rgba(250, 247, 242, 0.8);
+  --frost-chrome: rgba(250, 247, 242, 0.95);
+  --frost-blur: blur(12px);
+  --frost-line: rgba(214, 205, 195, 0.6);
   /* The two-tone rim of the glass era, retired: a transparent no-op so the
      `box-shadow: var(--rim), …` lists keep parsing. */
   --rim: 0 0 0 0 transparent;
 
-  /* Shadows - whisper-soft and LAYERED: two or three low-alpha shadows at
-     different offsets (ambient + direct), never one heavy drop.
+  /* Shadows - soft, warm (the espresso, never black) and layered.
      card  - the default content card;
-     nav   - the three-layer lift under the fixed top bar;
+     nav   - the wide low lift under the frosted top bar;
+     md    - a filled pill;
+     lg    - the frosted card, a sheet;
      frap  - the floating order button, the most elevated thing on a page. */
-  --shadow-card: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.24);
-  --shadow-nav:
-    0 1px 3px rgba(0, 0, 0, 0.1), 0 2px 2px rgba(0, 0, 0, 0.06),
-    0 0 2px rgba(0, 0, 0, 0.07);
-  --shadow-frap: 0 0 6px rgba(0, 0, 0, 0.24), 0 8px 12px rgba(0, 0, 0, 0.14);
+  --shadow-card:
+    0 1px 2px rgba(35, 18, 11, 0.06), 0 8px 20px -10px rgba(35, 18, 11, 0.16);
+  --shadow-nav: 0 2px 20px rgba(35, 18, 11, 0.06);
+  --shadow-frap:
+    0 10px 18px -4px rgba(35, 18, 11, 0.22), 0 4px 8px -4px rgba(35, 18, 11, 0.16);
   --shadow-glass: var(--shadow-card);
   --shadow-lift: var(--shadow-card);
   --shadow-chrome: var(--shadow-nav);
   --shadow-sm: var(--shadow-card);
-  --shadow-md: 0 0 0.5px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.12);
-  --shadow-lg: var(--shadow-frap);
+  --shadow-md:
+    0 4px 6px -1px rgba(35, 18, 11, 0.1), 0 2px 4px -2px rgba(35, 18, 11, 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgba(35, 18, 11, 0.1), 0 4px 6px -4px rgba(35, 18, 11, 0.1);
 
-  /* Focus - the brand green ring with a soft halo, legible on the canvas,
-     on white and (with the white variant) on the house band. */
-  --ring: 0 0 0 4px rgba(29, 109, 86, 0.18);
+  /* Focus - the espresso ring with a soft halo, legible on the canvas and
+     on white; cream (the white variant below) on a dark band. */
+  --ring: 0 0 0 4px rgba(35, 18, 11, 0.16);
 
-  /* Tricolore - the flag as a 3px rule under a heading, with hard stops (a
-     rule, not a gradient fill): green, white, bordo. The on-dark version
-     lifts the green to mint and the bordo to its blush. */
-  --tricolore: linear-gradient(
-    to right,
-    var(--green-brand) 0 33.33%,
-    #ffffff 33.33% 66.66%,
-    var(--accent) 66.66% 100%
-  );
-  --tricolore-on-dark: linear-gradient(
-    to right,
-    var(--green-mint) 0 33.33%,
-    #ffffff 33.33% 66.66%,
-    var(--accent-on-dark) 66.66% 100%
-  );
+  /* The rule under a section title. It was the flag (green, white, bordo)
+     while the site was green; it is one amber stroke now. The names stay
+     because the title rules read them. */
+  --tricolore: linear-gradient(to right, var(--amber) 0 100%);
+  --tricolore-on-dark: linear-gradient(to right, var(--amber) 0 100%);
 
-  /* Motion - every button presses to 0.95 in 0.2 s; images fade in over 0.3 s. */
+  /* Motion. Every button presses to 0.95 in 0.2 s. --ease-rise is the long
+     settle of a title coming up through its mask (the reference's curve);
+     --ease-out and --ease-spring are the house's two older curves. */
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-rise: cubic-bezier(0.16, 1, 0.3, 1);
   --press-scale: 0.95;
 
   /* Card scheme marks on /odeme (scheme-marks.tsx), drawn locally - the
@@ -261,6 +275,13 @@ body {
 }
 html {
   scroll-behavior: smooth;
+  /* Abril Fatface has one weight. Title rules written for a 600 face would
+     otherwise be smeared into a synthetic bold; the text face is variable
+     and needs no synthesis either. The admin panel keeps the default. */
+  font-synthesis-weight: none;
+}
+[data-admin-root] {
+  font-synthesis-weight: auto;
 }
 
 body {
@@ -268,14 +289,10 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
-  /* Body copy: 16px on 1.5, tracked tight (-0.01em) like the rest of the
-     system - confident and friendly, never airy. */
+  /* Body copy: Plus Jakarta Sans 16px on 1.5, tracked a hair tight. */
   line-height: 1.5;
   letter-spacing: var(--tracking);
   font-feature-settings: "kern";
-  /* No tabular-nums here any more: Poppins (Google's cut) has proportional
-     figures and no tnum, so the property only ever reached the fallback
-     font. Nothing on the site ticks in place; prices align by their box. */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -284,9 +301,7 @@ body {
 }
 
 /* Numeric content (prices, SKUs, time, addresses) - tabular + lining
-   numerals + zero with slash where the face has them. Poppins (Google's
-   cut) has none of the three, so today this only steadies the fallback font
-   while Poppins loads; kept so a face that does have them picks them up. */
+   numerals where the face has them (Plus Jakarta Sans does). */
 .tabular {
   font-variant-numeric: tabular-nums lining-nums slashed-zero;
   font-feature-settings: "tnum", "lnum", "zero", "kern";
@@ -316,30 +331,30 @@ select {
   font: inherit;
   color: inherit;
   /* A field's intrinsic width (~20 characters) is measured in the page's
-     face, and Poppins sets wider than Inter did: in a flex or grid row the
-     automatic minimum let a field push its row past its card, and on a
-     phone past the screen (the checkout's promo row, 11 Eki 2026). Zero
-     lets a field give way instead; its preferred width is unchanged. */
+     face: in a flex or grid row the automatic minimum let a field push its
+     row past its card, and on a phone past the screen (the checkout's promo
+     row, 11 Eki 2026). Zero lets a field give way instead; its preferred
+     width is unchanged. */
   min-width: 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Type primitives - one family, Poppins; the weight sets the role
+   Type primitives - a fat didone for titles, a grotesque for the rest
    ───────────────────────────────────────────────────────────── */
 
-/* The section kicker. The app dropped the spaced, all-caps "eyebrow" for a
-   quiet semibold line in the house green (DESIGN-GLASS §2.6: `eyebrow` is
-   kept only on membership and tier cards, everywhere else `captionStrong`).
-   The site follows: sentence case as written in the markup, 13.5px Poppins
-   600, green on porcelain (5.63:1), mint on the green blocks. */
+/* The section kicker: small bold capitals opened wide, in the espresso (the
+   reference's "SECTION 2" line; cream on a dark band). The markup stays in
+   sentence case - the capitals are CSS, so Turkish casing follows
+   <html lang="tr"> (i becomes İ). */
 .eyebrow {
   font-family: var(--sans);
-  font-size: 13.5px;
-  line-height: 1.3;
-  letter-spacing: 0;
-  color: var(--green);
-  font-weight: 600;
-  font-feature-settings: "tnum", "lnum", "zero";
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: var(--caps-kicker);
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 700;
+  font-feature-settings: "tnum", "lnum";
 }
 .eyebrow.on-dark {
   color: var(--green-mint);
@@ -348,8 +363,7 @@ select {
 .eyebrow.muted {
   color: var(--ink-mute);
 }
-/* The one place the spaced capitals stay: card imprints (membership, tier,
-   the stamp card) - the app's `eyebrow` role. */
+/* Card imprints (membership, tier, the stamp card): a step smaller. */
 .eyebrow.caps {
   font-size: 11px;
   font-weight: 700;
@@ -392,16 +406,20 @@ select {
   top: 0;
 }
 
-/* Headlines: one face, hierarchy by weight and colour. Display and title
-   sizes are SemiBold 600 on 1.2 with the system's tight tracking - a
-   confident café signboard, not a fashion-magazine cover. `.script` is the
-   accent-coloured word in a headline ("içilir, sonra kupası yenir"). */
+/* Titles: Abril Fatface in capitals, on a leading tight enough that two
+   lines read as one block - the reference's "MAKE TIME TASTE BETTER". Its
+   0.9 is opened to 0.96-1.0 here: Turkish capitals carry marks above (İ Ö
+   Ü Ğ) and below (Ç Ş) that English ones do not, and at 0.9 a dot lands on
+   the cedilla over it. One weight exists (400). Sizes are the reference's
+   steps: display 96, h1 72, h2 52 on a wide screen. `.script` is the
+   accent-coloured word in a title ("içilir, sonra kupası yenir"). */
 .h-display {
   font-family: var(--headline);
-  font-weight: 600;
-  font-size: clamp(36px, 5.2vw, 72px);
-  line-height: 1.12;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  font-size: clamp(40px, 7.4vw, 96px);
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -415,10 +433,11 @@ select {
    The typography classes intentionally use a non-hyphenated form. */
 .h1 {
   font-family: var(--headline);
-  font-weight: 600;
-  font-size: clamp(32px, 4.2vw, 56px);
-  line-height: 1.15;
-  letter-spacing: -0.018em;
+  font-weight: 400;
+  font-size: clamp(31px, 5.2vw, 72px);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -429,10 +448,11 @@ select {
 
 .h2 {
   font-family: var(--headline);
-  font-weight: 600;
-  font-size: clamp(26px, 3.2vw, 40px);
-  line-height: 1.2;
-  letter-spacing: -0.015em;
+  font-weight: 400;
+  font-size: clamp(26px, 3.6vw, 52px);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
   margin: 0;
   text-wrap: balance;
   font-feature-settings: "lnum", "kern", "liga";
@@ -441,24 +461,27 @@ select {
   color: var(--script-ink, var(--accent));
 }
 
+/* The small title (a card, an empty state): the same face in sentence
+   case - capitals at 22px would shout from every card. */
 .h3 {
   font-family: var(--headline);
-  font-weight: 600;
-  font-size: clamp(19px, 1.9vw, 24px);
-  line-height: 1.5;
-  letter-spacing: var(--tracking);
+  font-weight: 400;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   margin: 0;
   font-feature-settings: "lnum", "kern", "liga";
 }
 
-/* The subhead under a headline - the large intro line: Poppins 400 at
-   16.5-19px on 1.75, in the secondary ink. */
+/* The paragraph under a title: 15-17px on 1.65 in the secondary ink, held
+   to a short measure (the reference sets it at 12-14px; ours must also be
+   read on a phone at arm's length). */
 .lede {
-  font-size: clamp(16.5px, 1.3vw, 19px);
-  line-height: 1.75;
+  font-size: clamp(15px, 1.15vw, 17px);
+  line-height: 1.65;
   letter-spacing: var(--tracking);
   color: var(--ink-soft);
-  max-width: 56ch;
+  max-width: 46ch;
   margin: 0;
   text-wrap: pretty;
 }
@@ -494,26 +517,27 @@ select {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Buttons - capsules, the app's control language
+   Buttons - pills, labelled in small bold capitals
    ───────────────────────────────────────────────────────────── */
 
-/* Every button is a full pill (50px radius, no exception), labelled in
-   Poppins 600 at 16px with the tight tracking, a 1px border in its own
-   colour, at least 44px tall (the touch floor). It answers a press by
-   scaling to 0.95 - the signature micro-interaction - never by fading. Flat:
-   no shadow, the colour block is the affordance. */
+/* Every button is a full pill, labelled in the text face at 12px bold
+   capitals opened to 0.05em (the reference's "READ MORE"), a 1px border in
+   its own colour, at least 44px tall (the touch floor; the reference's 40
+   is under it). It answers a press by scaling to 0.95, never by fading. The
+   filled ones carry a soft shadow. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  padding: 0 22px;
+  padding: 0 24px;
   border-radius: var(--r-btn);
   font-family: var(--display);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: var(--tracking);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: var(--caps-button);
+  text-transform: uppercase;
   line-height: 1.2;
   border: 1px solid transparent;
   cursor: pointer;
@@ -523,12 +547,10 @@ select {
   -webkit-user-select: none;
   user-select: none;
 }
-/* The arrow after a label ("Menüyü gör →"). Poppins has no arrow glyph, so
-   the "→" in the markup used to borrow Inter's and would now fall to
-   whatever the system has. It is drawn instead, in the stroke the door
-   arrows use (.door-go): the glyph stays in the DOM for a reader without
-   CSS, is pushed out of its box, and currentColor paints the mask - so the
-   arrow takes the label's colour on every button tone. */
+/* The arrow after a label ("Menüyü gör →"). It is drawn, not typed, in the
+   stroke the door arrows use (.door-go): the glyph stays in the DOM for a
+   reader without CSS, is pushed out of its box, and currentColor paints the
+   mask - so the arrow takes the label's colour on every button tone. */
 .arrow {
   display: inline-block;
   flex: none;
@@ -545,7 +567,7 @@ select {
     center / contain no-repeat;
 }
 /* "Leaves the site" (maps, carrier tracking): the same stroke, turned
-   north-east, in place of a "↗" glyph Poppins does not have either. */
+   north-east. */
 .arrow.out {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
@@ -554,7 +576,7 @@ select {
   transition: transform 0.3s var(--ease-spring);
 }
 .btn:hover .arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 .btn:hover .arrow.out {
   transform: translate(2px, -2px);
@@ -631,73 +653,89 @@ select {
   }
 }
 
-/* Primary filled - the decided action: the CTA green, white label
-   (5.25:1). Bordo is a signature surface, never the button a page is built
-   around. */
+/* Primary filled - the decided action: the espresso pill, cream label
+   (16.90:1), the reference's "READ MORE". */
 .btn-primary {
   background: var(--green-cta);
   border-color: var(--green-cta);
-  color: #ffffff;
+  color: var(--ink-on-dark);
+  box-shadow: var(--shadow-md);
 }
 .btn-primary:hover {
   background: var(--green-cta-pressed);
   border-color: var(--green-cta-pressed);
 }
 
-/* Black filled - the conversion moment ("Üye ol", the cart): pure black,
-   white label. */
+/* Ink filled - the conversion moment ("Üye ol", the cart). The same
+   espresso: the name is kept for its call sites. */
 .btn-ink {
-  background: #000000;
-  border-color: #000000;
-  color: #ffffff;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--ink-on-dark);
+  box-shadow: var(--shadow-md);
 }
 .btn-ink:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--roast-raise);
+  border-color: var(--roast-raise);
 }
 
-/* Dark outlined - the second action beside a green one, and every quiet
-   control: transparent, an ink border, an ink label. */
+/* Outlined - the second action beside a filled one, and every quiet
+   control: transparent, an ink border, an ink label; it fills on hover (the
+   reference's outlined pill in the top bar). */
 .btn-ghost {
   background: transparent;
   color: var(--ink);
   border-color: var(--ink);
 }
 .btn-ghost:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--ink-on-dark);
 }
 
-/* Primary outlined - "Tüm menü", "Hesabım": transparent, CTA-green border
-   and label. */
+/* Quiet outlined - "Tüm menü", "Hesabım": the same pill with a softer
+   border that only tints on hover. */
 .btn-outline {
   background: transparent;
-  color: var(--green-cta);
-  border-color: var(--green-cta);
+  color: var(--ink);
+  border-color: rgba(35, 18, 11, 0.8);
 }
 .btn-outline:hover {
-  background: rgba(31, 122, 92, 0.08);
+  background: rgba(35, 18, 11, 0.05);
 }
 
-/* Green-on-green inverted - on the house band: a white pill with a CTA-green
-   label instead of a green pill on green. */
+/* Inverted - on a dark band: a cream pill with an espresso label. */
 .btn-light {
-  background: #ffffff;
-  border-color: #ffffff;
-  color: var(--green-cta);
+  background: var(--bg);
+  border-color: var(--bg);
+  color: var(--ink);
 }
 .btn-light:hover {
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--green-wash);
+  border-color: var(--green-wash);
 }
 
-/* Outlined on dark - the quieter action on the house band: transparent,
-   white border, white label. */
+/* Outlined on dark - the quieter action on a dark band: transparent, cream
+   border, cream label. */
 .btn-glass-dark {
   background: transparent;
-  color: #ffffff;
-  border-color: #ffffff;
+  color: var(--ink-on-dark);
+  border-color: var(--ink-on-dark);
 }
 .btn-glass-dark:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(250, 247, 242, 0.1);
+}
+
+/* Amber filled - the one warm button (the reference's "Join"): the
+   newsletter, and a single invitation per dark band. Espresso on it
+   (6.47:1), never white. */
+.btn-amber {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--ink);
+}
+.btn-amber:hover {
+  background: var(--amber-raise);
+  border-color: var(--amber-raise);
 }
 
 /* Brass is the REWARD voice only - loyalty CTAs, the coupon. Ink on the
@@ -712,7 +750,7 @@ select {
   border-color: var(--gold-light);
 }
 
-/* Keyboard focus: the house green ring with a soft halo. Shown only for
+/* Keyboard focus: the espresso ring with a soft halo. Shown only for
    keyboard users; modern browsers round the outline to the element. */
 a:focus-visible,
 button:focus-visible,
@@ -725,7 +763,7 @@ summary:focus-visible,
   outline-offset: 2px;
   box-shadow: var(--ring);
 }
-/* On the green blocks the green ring would vanish; cream there. */
+/* On a dark band the espresso ring would vanish; white there. */
 [data-ground="dark"] :focus-visible,
 .footer :focus-visible,
 .loyalty-block :focus-visible {
@@ -742,24 +780,25 @@ summary:focus-visible,
 .btn-sm {
   min-height: 36px;
   padding: 0 16px;
-  font-size: 14px;
+  font-size: 11px;
 }
 .btn-lg {
   min-height: 52px;
   padding: 0 32px;
-  font-size: 16px;
+  font-size: 13px;
 }
 
-/* The text link with a chevron - Apple's "Daha fazla ›". Green, Poppins 600. */
+/* The text link with a chevron: the label voice, amber on hover. */
 .link-more {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--green);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--caps-button);
+  text-transform: uppercase;
 }
 .link-more::after {
   content: "›";
@@ -769,8 +808,7 @@ summary:focus-visible,
   transition: transform 0.25s var(--ease-spring);
 }
 .link-more:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: var(--accent);
 }
 .link-more:hover::after {
   transform: translate(2px, -1px);
@@ -1956,16 +1994,17 @@ summary:focus-visible,
   opacity: 1;
   transform: none;
   transition:
-    opacity 0.5s var(--ease-out),
-    transform 0.5s var(--ease-out);
+    opacity 0.8s ease,
+    transform 1s var(--ease-rise);
 }
 /* Only elements <RevealMotion> marks as below-the-fold get the hidden "from"
    state, so above-the-fold content is never blank - no flash, and SSR / no-JS /
-   crawlers never hide anything. Travel is deliberately short: enough to read as
-   arrival, not enough to feel like a slide deck. */
+   crawlers never hide anything. Travel is deliberately short (the
+   reference's 18px on its long settle): enough to read as arrival, not
+   enough to feel like a slide deck. */
 .reveal.will-reveal {
   opacity: 0;
-  transform: translate3d(0, 14px, 0);
+  transform: translate3d(0, 18px, 0);
 }
 .reveal.will-reveal.is-in {
   opacity: 1;
@@ -1982,6 +2021,203 @@ summary:focus-visible,
 }
 .r4 {
   transition-delay: 160ms;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Masked rise - a title comes up through its own line
+   ───────────────────────────────────────────────────────────── */
+
+/* <RevealText> (reveal-text.tsx) splits a title into one box per glyph, or
+   a paragraph into one box per word, each inside a mask the height of its
+   line: the reference's reveal, redrawn. The rule of the reveal observer
+   holds - the text is PAINTED by default - and there are two ways in:
+   - `rv-load`, for the title at the top of a page: a CSS animation from the
+     first frame, no script. Transform only: an opacity fade would hide the
+     page's largest text from the browser's largest-paint record (.page);
+   - below the fold: <RevealMotion> adds `will-reveal`, then `is-in`.
+   The mask is padded and pulled back by the same amount so the marks on
+   Turkish capitals (İ Ö Ü Ğ above, Ç Ş below) are not cut off; the travel
+   (145 %) clears that padding. Stagger is --rv-d, set per box. */
+.rv-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  white-space: nowrap;
+  padding: 0.22em 0.06em;
+  margin: -0.22em -0.06em;
+}
+.rv-item {
+  display: inline-block;
+  transform-origin: 0 100%;
+}
+.rv.will-reveal .rv-item {
+  transform: translateY(145%) rotate(7deg);
+  transition: transform 1.15s var(--ease-rise) var(--rv-d, 0s);
+}
+.rv.will-reveal .rv-item-word {
+  transform: translateY(110%);
+}
+.rv.will-reveal.is-in .rv-item {
+  transform: none;
+}
+.rv-load .rv-item {
+  animation: rv-rise 1.15s var(--ease-rise) var(--rv-d, 0s) both;
+}
+.rv-load .rv-item-word {
+  animation-name: rv-rise-word;
+}
+@keyframes rv-rise {
+  from {
+    transform: translateY(145%) rotate(7deg);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes rv-rise-word {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-load .rv-item {
+    animation: none;
+  }
+}
+
+/* <ScrambleText> (scramble-text.tsx): a kicker that decodes left to right
+   when it comes into view. At the top of a page (`scr-load`) it is held
+   back for a moment so the decode starts from nothing rather than from the
+   finished line; with no script the hold simply ends and the line is
+   there. A glyph still spinning is dimmed. */
+.scr-load {
+  animation: scr-hold 0.7s steps(1, end) both;
+}
+.scr-load[data-scr] {
+  animation: none;
+}
+@keyframes scr-hold {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+.scr-spin {
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scr-load {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Section furniture - the reference's small parts
+   ───────────────────────────────────────────────────────────── */
+
+/* The numeral behind a section opener ("05"): the title face at 15 % ink.
+   Decoration - the markup hides it from a screen reader. */
+.ghost-n {
+  font-family: var(--headline);
+  font-weight: 400;
+  font-size: clamp(48px, 9vw, 128px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink-ghost);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ghost-n.sm {
+  font-size: clamp(36px, 4.4vw, 48px);
+}
+[data-ground="dark"] .ghost-n {
+  color: rgba(250, 247, 242, 0.16);
+}
+
+/* The floating card: the one content surface that is real frost (cream at
+   80 % over a 12px blur, a stone hairline, the large soft shadow). */
+.frost-card {
+  background: var(--frost);
+  -webkit-backdrop-filter: var(--frost-blur);
+  backdrop-filter: var(--frost-blur);
+  border: 1px solid var(--frost-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-lg);
+}
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .frost-card {
+    background: var(--bg);
+  }
+}
+
+/* Three dots beside a section opener: where you are in the page. */
+.dots-trio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.dots-trio i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(35, 18, 11, 0.6);
+}
+.dots-trio i.on {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+/* "Kaydır ve keşfet": the label over a mouse outline whose wheel dips. Six
+   dips and it rests - nothing on a page moves for ever without a pause
+   control. */
+.scroll-hint {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.scroll-hint-mouse {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 16px;
+  height: 28px;
+  padding: 4px;
+  border: 1px solid rgba(35, 18, 11, 0.6);
+  border-radius: var(--r-pill);
+}
+.scroll-hint-mouse::before {
+  content: "";
+  width: 4px;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  animation: scroll-hint-dip 1s 6;
+}
+@keyframes scroll-hint-dip {
+  0%,
+  100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -2064,417 +2300,354 @@ summary:focus-visible,
 /* The prototype pads its home sections at the TOP only, so two stacked blocks
    leave one gap between them rather than two. `.section` (padding on both
    edges) is still right for pages whose sections alternate grounds. */
-/* Home valley ───────────────────────────────────────────────────
-   Owner's briefs, 6 Kas 2026 (two rounds): the home page opens on a night valley
-   of coffee, drawn live with three.js (home-valley.tsx, valley-scene.ts):
-   roasted beans first - on the ground, tumbling through the air, a few
-   drifting close and soft - with white blossoms, green leaves and bordo
-   cherries on the plants, under the brand's wordmark, a two-line caption,
-   a round arrow to the menu, the live open/closed line and a scroll hint.
+/* Roast hero ────────────────────────────────────────────────────
+   Operator, 11 Kas 2026: the landing takes the look of
+   coffee-beans-swart.vercel.app, drawn live in three.js (home-roast.tsx,
+   roast-stage.tsx, roast-scene.ts). Three words in the title face, as large
+   as the screen allows, with one roasted bean between them, on the cream
+   ground under soft leaf shadows. The section is 3.6 screens tall (3.3 on a
+   phone) and its content is pinned: the scroll plays the drawing, then, over
+   the last stretch (`--hp`, 0 to 1, written by home-roast.tsx on wide
+   screens only), the words part and fade while the drawing comes forward.
+   The sizes, offsets and factors below are the reference's.
+
    It is the whole entrance: the operator's slides are not drawn. The type
-   is server-rendered and never waits for the canvas; the canvas fades in
-   behind it once its first frame is drawn (`data-gl="ready"`). Without
-   WebGL the CSS ground below stays.
-
-   Colour is the brand's three: deep greens for the night, a bordo glow on
-   the horizon and in the light, white for the blossoms and every word.
-   Brass is only the tiny glint on a bean. The --valley-* values are the
-   scene's pigments, read by the canvas from this rule: light, never text
-   or control colours.
-
-   Contrast is held by the type, not the scene: the small type sits in a
-   quiet zone where the canvas dims every point to 22 % and a deep green
-   scrim lies under it (white over two stacked blossoms at the scrim's
-   edge still reads 6:1); the wordmark has a milder zone of its own. */
-.valley {
-  --valley-sky: var(--bg-espresso-deep);
-  --valley-ground: var(--green-house);
-  --valley-horizon: var(--accent);
-  --valley-ray: var(--accent-soft);
-  --valley-blossom: var(--surface);
-  --valley-blossom-heart: var(--green-light);
-  --valley-leaf: var(--green-brand);
-  --valley-leaf-light: var(--green-light);
-  --valley-cherry: var(--accent);
-  --valley-cherry-light: var(--accent-soft);
-  --valley-bean: var(--gold-deep);
-  --valley-bean-glint: var(--gold-soft);
-  --valley-shine: var(--surface);
-  --valley-dust: var(--green-mint);
-  --valley-star: var(--surface);
-  --valley-ink: var(--ink-on-dark);
-  --valley-ink-soft: var(--green-mint);
-  --valley-edge: clamp(20px, 4vh, 36px);
-  --script-ink: var(--accent-on-dark);
+   is server-rendered and never waits for the canvas; a flat drawing stands
+   in its place until (and unless) the live one is ready. Without script
+   the section is still three screens of one pinned picture: nothing is
+   hidden behind the scroll. Under prefers-reduced-motion it is one screen. */
+.roast-hero {
+  --hero-pad: 16px;
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  min-height: calc(100svh - var(--header-h));
-  padding: clamp(56px, 9vh, 112px) var(--gutter) clamp(120px, 17vh, 176px);
-  color: var(--valley-ink);
-  text-align: center;
-  /* The ground before (or without) the canvas: the same green night, the
-     same bordo glow low on the horizon. */
-  background:
-    radial-gradient(
-      90% 42% at 50% 34%,
-      color-mix(in srgb, var(--accent) 26%, transparent),
-      transparent 72%
-    ),
-    linear-gradient(var(--bg-espresso-deep) 30%, var(--green-house));
+  height: 330vh;
+  /* Up under the top bar, which is transparent until the page scrolls. */
+  margin-top: calc(-1 * var(--header-h));
 }
-.valley-gl {
+.roast-hero-pin {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  height: 100svh;
+  padding: 0 var(--hero-pad);
+  overflow: hidden;
+}
+.roast-hero-ground {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
+  background: var(--bg) url("/brand/roast-shadow.svg") center / cover no-repeat;
+  transform: scale(calc(1 + var(--hp, 0) * 0.08));
+  will-change: transform;
 }
-.valley-canvas {
-  display: block;
+
+/* The words. On a phone: the kicker and the first word at the top, the
+   other two at the bottom, the bean in the open middle. */
+.roast-hero-words {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   height: 100%;
-  opacity: 0;
-  transition: opacity 1.6s var(--ease-out);
+  padding: 6rem 0 calc(var(--bottom-nav-h) + 76px + env(safe-area-inset-bottom));
+  -webkit-user-select: none;
+  user-select: none;
 }
-.valley[data-gl="ready"] .valley-canvas {
-  opacity: 1;
+.roast-hero-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  opacity: calc(1 - var(--hp, 0) * 0.9);
+  will-change: transform;
 }
-/* The foot settles into the green night before the page's next section. */
-.valley::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  z-index: -1;
-  height: 24%;
-  background: linear-gradient(transparent, var(--bg-espresso-deep));
-  pointer-events: none;
+.roast-hero-side--left {
+  transform: translate3d(0, calc(var(--hp, 0) * -24vh), 0);
 }
-.valley-copy {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: clamp(18px, 3.4vh, 34px);
-  min-width: 0;
+.roast-hero-side--right {
+  transform: translate3d(0, calc(var(--hp, 0) * 22vh - 0.75rem), 0);
 }
-/* The brand's wordmark (docs/BRAND.md §5.1): the app's own "L'Affogato"
-   mask, never redrawn or stretched, in white running to cream, with a soft
-   white glow and a deep shadow that lifts it off the blossoms. It arrives
-   with a wipe from the left (the first letter already showing); under
-   reduced motion it simply stands. */
-.valley-mark {
-  position: relative;
-  width: min(74vw, 940px);
-  aspect-ratio: 2280 / 565;
-  filter: drop-shadow(
-      0 0 22px color-mix(in srgb, var(--surface) 30%, transparent)
-    )
-    drop-shadow(
-      0 8px 30px color-mix(in srgb, var(--bg-espresso-deep) 90%, transparent)
-    );
+.roast-hero-kicker {
+  margin: 0 0 0.5rem;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: var(--caps-kicker);
+  text-transform: uppercase;
+  color: var(--ink);
 }
-.valley-wordmark {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, var(--surface) 38%, var(--night-ink));
-  -webkit-mask:
-    url(/brand/laffogato-wordmark.svg) center / contain no-repeat,
-    linear-gradient(90deg, black 40%, transparent 60%) 0 0 / 250% 100% no-repeat;
-  -webkit-mask-composite: source-in;
-  mask:
-    url(/brand/laffogato-wordmark.svg) center / contain no-repeat,
-    linear-gradient(90deg, black 40%, transparent 60%) 0 0 / 250% 100% no-repeat;
-  mask-composite: intersect;
-  animation: valley-wipe 1.8s var(--ease-out) both;
+/* 5.2rem is the reference's phone size; the vw cap keeps a five-letter word
+   inside a 320px screen. None of the three words carries a mark above or
+   below its capitals, so the reference's leading (0.84-0.88) holds. */
+.roast-word {
+  display: block;
+  font-family: var(--headline);
+  font-weight: 400;
+  font-size: min(5.2rem, 24vw);
+  line-height: 0.88;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
 }
-@keyframes valley-wipe {
-  from {
-    -webkit-mask-position:
-      center,
-      76% 0;
-    mask-position:
-      center,
-      76% 0;
+.roast-hero-side--right .roast-word {
+  line-height: 0.85;
+}
+@media (min-width: 390px) {
+  .roast-word {
+    font-size: 6rem;
   }
 }
-.valley-quiet {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: clamp(16px, 2.6vh, 24px);
+
+/* From 640px: one row, the first word on the left, the other two stacked on
+   the right, each side given 46 % and allowed to overrun it (the bean sits
+   over the overlap). */
+@media (min-width: 640px) {
+  .roast-hero {
+    --hero-pad: 32px;
+    height: 360vh;
+  }
+  .roast-hero-words {
+    flex-direction: row;
+    align-items: center;
+    max-width: 80rem;
+    height: auto;
+    margin: 0 auto;
+    padding: 0;
+  }
+  .roast-hero-side {
+    flex: 1;
+    align-items: flex-start;
+    max-width: 46%;
+    text-align: left;
+  }
+  .roast-hero-side--left {
+    padding-right: 0.5rem;
+    transform: translate3d(
+      calc(var(--hp, 0) * -28vw),
+      calc(var(--hp, 0) * -6vh),
+      0
+    );
+  }
+  .roast-hero-side--right {
+    padding-left: 0.5rem;
+    transform: translate3d(
+      calc(var(--hp, 0) * 28vw),
+      calc(var(--hp, 0) * 6vh),
+      0
+    );
+  }
+  .roast-hero-kicker {
+    margin-bottom: 1rem;
+    font-size: 12px;
+  }
+  .roast-word {
+    font-size: 7.5rem;
+    line-height: 0.86;
+    letter-spacing: -0.03em;
+  }
+  .roast-hero-side--right .roast-word {
+    line-height: 0.84;
+  }
 }
-/* The green night under the small type: with the canvas's quiet zone, the
-   caption reads at AA over any frame. */
-.valley-quiet::before {
-  content: "";
+@media (min-width: 768px) {
+  .roast-word {
+    font-size: 8.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .roast-hero {
+    --hero-pad: 56px;
+  }
+  .roast-hero-side--left {
+    padding-right: 1.5rem;
+  }
+  .roast-hero-side--right {
+    padding-left: 1.5rem;
+  }
+  .roast-hero-kicker {
+    font-size: 14px;
+  }
+  .roast-word {
+    font-size: 11rem;
+  }
+}
+@media (min-width: 1280px) {
+  .roast-word {
+    font-size: 12.5rem;
+  }
+}
+
+/* The drawing lies over the words and comes forward as they part. */
+.roast-hero-stage {
+  z-index: 2;
+  transform: translate3d(0, calc(var(--hp, 0) * 6vh), 0)
+    scale(calc(1 + var(--hp, 0) * 0.32));
+  will-change: transform;
+}
+
+/* The foot: is the köşk open, the scroll hint, the way to the menu. It
+   clears the phone's tab bar, and is gone a quarter of the way into the
+   parting. */
+.roast-hero-foot {
   position: absolute;
-  inset: -36px -72px;
-  z-index: -1;
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--bg-espresso-deep) 74%, transparent),
-    transparent
-  );
-  pointer-events: none;
+  z-index: 3;
+  left: var(--hero-pad);
+  right: var(--hero-pad);
+  bottom: calc(var(--bottom-nav-h) + 12px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  opacity: max(0, calc(1 - var(--hp, 0) * 4));
 }
-.valley-caption {
-  margin: 0;
-  display: grid;
-  font-family: var(--reward-serif);
-  font-size: clamp(18px, 1.6vw, 23px);
-  font-style: italic;
-  line-height: 1.45;
-  color: var(--valley-ink);
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.55),
-    0 0 18px var(--bg-espresso-deep);
+.roast-hero-hint {
+  display: none;
 }
-/* The round arrow to the menu. Hovering or focusing it stills the valley
-   and lifts every blossom and bean into the air (valley-scene.ts). */
-.valley-go {
+.roast-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .roast-hero-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    display: inline-flex;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 761px) {
+  .roast-hero-foot {
+    bottom: 2rem;
+  }
+}
+
+.roast-status {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
   min-height: 44px;
-  font-family: var(--display);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--valley-ink);
-  text-decoration: none;
-  border-radius: var(--r-pill);
-}
-.valley-go-ring {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 1.5px solid var(--valley-ink);
-  background: color-mix(in srgb, var(--bg-espresso-deep) 45%, transparent);
-  transition:
-    background-color 0.35s var(--ease-out),
-    color 0.35s var(--ease-out),
-    transform 0.45s var(--ease-spring);
-}
-.valley-go svg {
-  transition: transform 0.45s var(--ease-spring);
-}
-.valley-go:hover .valley-go-ring,
-.valley-go:focus-visible .valley-go-ring {
-  background: var(--valley-ink);
-  color: var(--bg-espresso-deep);
-  transform: scale(1.06);
-}
-.valley-go:hover svg,
-.valley-go:focus-visible svg {
-  transform: translateX(3px);
-}
-.valley-go:focus-visible {
-  outline: none;
-}
-.valley-go:focus-visible .valley-go-ring {
-  box-shadow:
-    0 0 0 3px var(--bg-espresso-deep),
-    0 0 0 5px var(--valley-ink);
-}
-.valley-go-label {
-  text-shadow: 0 0 14px var(--bg-espresso-deep);
-}
-/* "Şu an açık · Kapanış 02:00", moved here from the slider band: live,
-   opening the visit page. The state is in the dot - the pale green when
-   open, a dim white when closed, never red. */
-.valley-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 32px;
-  padding: 0 6px;
-  font-size: 13.5px;
-  line-height: 1.3;
-  color: var(--valley-ink-soft);
-  text-shadow: 0 0 12px var(--bg-espresso-deep);
-  border-radius: var(--r-pill);
-}
-.valley-status strong {
+  font-family: var(--sans);
+  font-size: 11px;
   font-weight: 600;
-  color: var(--valley-ink);
+  line-height: 1.3;
+  letter-spacing: var(--caps-nav);
+  text-transform: uppercase;
+  color: var(--ink);
+  transition: color 0.2s ease;
 }
-.valley-status:hover strong {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.roast-status strong {
+  font-weight: 800;
 }
-.valley-status:focus-visible {
-  outline: 2px solid var(--valley-ink);
-  outline-offset: 2px;
+.roast-status-detail {
+  color: var(--ink-soft);
 }
-.valley-status-dot {
+.roast-status:hover {
+  color: var(--accent);
+}
+.roast-status.is-pending {
+  visibility: hidden;
+}
+.roast-status-dot {
   flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--green-light);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--green-light) 18%, transparent);
-  /* Two slow rings and it settles (WCAG 2.2.2). */
-  animation: valley-live 2s var(--ease-out) 2;
+  background: var(--rose);
 }
-.valley-status.is-closed .valley-status-dot {
-  background: var(--ink-on-dark-soft);
-  box-shadow: none;
-  animation: none;
+.roast-status.is-open .roast-status-dot {
+  background: var(--matcha);
+  box-shadow: 0 0 0 4px rgba(29, 109, 86, 0.16);
 }
-@keyframes valley-live {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green-light) 45%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 10px transparent;
+
+@media (prefers-reduced-motion: reduce) {
+  .roast-hero {
+    height: auto;
   }
 }
-/* "Kaydır ve keşfet": the line under it runs three times and rests. */
-.valley-hint {
+
+/* Roast stage ───────────────────────────────────────────────────
+   The host of one live drawing (roast-stage.tsx): the hero's bean, the pour
+   and the affogato in the home page's two bands. Decoration: it fills its
+   positioned parent and never takes a pointer event. A flat drawing of the
+   same subject stands in it from the first paint; the canvas fades in over
+   it once its first frame is drawn (`data-gl="ready"`). The band decides
+   the box (the two tall drawings are composed for 9:16). */
+.roast-stage {
   position: absolute;
-  left: 50%;
-  bottom: var(--valley-edge);
-  translate: -50% 0;
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: var(--r-md);
-  background: none;
-  font-family: var(--display);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--valley-ink-soft);
-  cursor: pointer;
-}
-.valley-hint:hover {
-  color: var(--valley-ink);
-}
-.valley-hint:focus-visible,
-.valley-pause:focus-visible {
-  outline: 2px solid var(--valley-ink);
-  outline-offset: 2px;
-}
-.valley-hint-line {
-  position: relative;
-  width: 1px;
-  height: 34px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--valley-ink) 22%, transparent);
-}
-.valley-hint-line::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 12px;
-  background: var(--valley-ink);
-  transform: translateY(-12px);
-  animation: valley-hint 1.6s var(--ease-out) 1.4s 3;
-}
-@keyframes valley-hint {
-  to {
-    transform: translateY(34px);
-  }
-}
-/* Until the scene's first frame: one white dot, breathing. */
-.valley-loader {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--valley-edge) + 74px);
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  border-radius: 50%;
-  background: var(--valley-ink);
-  opacity: 0;
-  transition: opacity 0.5s var(--ease-out);
+  inset: 0;
   pointer-events: none;
 }
-.valley[data-gl="loading"] .valley-loader {
-  opacity: 0.9;
-  animation: valley-pulse 1.3s ease-in-out infinite;
-}
-@keyframes valley-pulse {
-  50% {
-    transform: scale(0.55);
-    opacity: 0.35;
-  }
-}
-/* The visitor's stop for the drift (WCAG 2.2.2), once the scene runs. */
-.valley-pause {
+.roast-stage-art,
+.roast-stage-gl {
   position: absolute;
-  left: var(--gutter);
-  bottom: var(--valley-edge);
-  display: none;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--valley-ink) 28%, transparent);
-  background: color-mix(in srgb, var(--bg-espresso-deep) 60%, transparent);
-  color: var(--valley-ink-soft);
-  cursor: pointer;
-  transition:
-    color 0.2s,
-    border-color 0.2s;
+  inset: 0;
 }
-.valley-pause:hover {
-  color: var(--valley-ink);
-  border-color: var(--valley-ink-soft);
-}
-.valley[data-gl="ready"] .valley-pause {
+.roast-stage-art {
   display: grid;
+  place-items: center;
+  transition: opacity 0.6s ease;
 }
-/* The small type arrives once the wordmark is up. */
-.valley-quiet,
-.valley-hint {
-  animation: valley-in 0.9s var(--ease-out) 0.35s both;
+.roast-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s ease;
 }
-.valley-hint {
-  animation-delay: 0.7s;
+.roast-stage[data-gl="ready"] .roast-canvas {
+  opacity: 1;
 }
-@keyframes valley-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
+.roast-stage[data-gl="ready"] .roast-stage-art {
+  opacity: 0;
 }
-@media (prefers-reduced-motion: reduce) {
-  .valley-wordmark,
-  .valley-quiet,
-  .valley-hint,
-  .valley-hint-line::after,
-  .valley-status-dot,
-  .valley[data-gl="loading"] .valley-loader {
-    animation: none;
-  }
-  .valley-canvas {
-    transition: none;
-  }
-  .valley[data-gl="ready"] .valley-pause {
-    display: none;
-  }
+.roast-still {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 100%;
 }
-@media (max-width: 760px) {
-  .valley {
-    --valley-edge: calc(
-      var(--bottom-nav-h) + 8px + env(safe-area-inset-bottom)
-    );
-    padding-bottom: calc(var(--bottom-nav-h) + 112px);
-  }
-  .valley-mark {
-    width: 86vw;
-  }
-  .valley-go-ring {
-    width: 58px;
-    height: 58px;
-  }
+/* The hero's bean: the size and the place of the live one's first frame. */
+.roast-still--bean {
+  height: 23vh;
+  transform: translate(1.6vh, 0);
+}
+
+/* The pause control for the drawings (WCAG 2.2.2): the reference's round
+   outlined button. 36px to the eye, 44px to the finger. */
+.roast-pause {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(35, 18, 11, 0.8);
+  border-radius: 50%;
+  color: var(--ink);
+  pointer-events: auto;
+  transition: background 0.2s ease;
+}
+.roast-pause::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.roast-pause:hover {
+  background: rgba(35, 18, 11, 0.05);
+}
+[data-ground="dark"] .roast-pause {
+  border-color: rgba(250, 247, 242, 0.8);
+  color: var(--ink-on-dark);
 }
 
 /* Statement band ────────────────────────────────────────────────

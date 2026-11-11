@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Abril_Fatface, Plus_Jakarta_Sans } from "next/font/google";
 
 import { MetaPixel } from "@/components/laffogato/meta-pixel";
 import { RevealMotion } from "@/components/laffogato/reveal-motion";
@@ -29,28 +29,33 @@ const GTM_ID = siteTagManagerId(process.env.NEXT_PUBLIC_GTM_ID);
 // marketing switch and no tracker.
 const META_PIXEL_ID = metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID);
 
-// One voice (5 Kas 2026, the café-retail restyle; docs/BRAND.md §2).
+// Two voices (11 Kas 2026, the roast restyle; docs/BRAND.md §2). Operator:
+// the site takes the look of coffee-beans-swart.vercel.app, whose type is
+// these two faces.
 //
-// Poppins sets everything - headlines, sentences, captions, controls,
-// product names and prices (operator, 11 Eki 2026: "sitede poppins fontu
-// olsun"). Hierarchy comes from weight and colour, not from a second face,
-// so the Gabarito headline voice (14 Eki 2026) is retired. Six static cuts:
-// 300 for the large statement copy, 400 to read, 500 and 600 for labels,
-// controls and headlines, 700 and 800 where a figure must stand out.
-// Turkish via latin-ext.
-const brandFont = Poppins({
+// Plus Jakarta Sans sets sentences, labels, controls, product names and
+// prices. It is a variable font (200-800), so one file carries every weight
+// the page asks for. Abril Fatface, a fat didone with a single weight, sets
+// the titles, in capitals. Poppins (11 Eki - 11 Kas 2026) is retired on the
+// site. Turkish via latin-ext on both.
+const textFont = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
-  weight: ["300", "400", "500", "600", "700", "800"],
   variable: "--font-display",
+  display: "swap",
+});
+const headlineFont = Abril_Fatface({
+  subsets: ["latin", "latin-ext"],
+  weight: "400",
+  variable: "--font-headline",
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  // The white top bar. The site, like the app
+  // The cream canvas the top bar sits on (--bg). The site, like the app
   // (userInterfaceStyle "light"), has one appearance: declaring "light dark"
   // let a dark-mode browser paint its own dark form controls and scrollbars
   // onto a page that has no dark styles.
-  themeColor: "#ffffff",
+  themeColor: "#faf7f2",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -163,7 +168,7 @@ export const metadata: Metadata = {
   },
 };
 
-const fontVariables = brandFont.variable;
+const fontVariables = `${textFont.variable} ${headlineFont.variable}`;
 
 export default function RootLayout({
   children,

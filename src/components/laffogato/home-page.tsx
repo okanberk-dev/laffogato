@@ -8,7 +8,7 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
 import { HomeAppIntro } from "./home-app-intro";
-import { HomeValley } from "./home-valley";
+import { HomeRoast } from "./home-roast";
 import { HomeKaraoke } from "./home-karaoke";
 import { HomeTakeHome, pickTakeHomeProduct } from "./home-take-home";
 import { Illustration } from "./illustration";
@@ -225,20 +225,21 @@ export function PageHome({
 
   return (
     <div className="page" data-screen-label="01 Home">
-      {/* The page's one h1. The valley shows the name as the brand's
-          wordmark (a picture, aria-hidden), and a home page with no h1 at
-          all is what the audit found. Visually hidden; it names the
-          business and what it does, which is what the heading is for. */}
+      {/* The page's one h1. The hero's three words are a slogan, not the
+          page's subject, and a home page with no h1 at all is what the
+          audit found. Visually hidden; it names the business and what it
+          does, which is what the heading is for. */}
       <h1 className="sr-only">
         L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
         mağaza, karaoke ve ziyaret bilgileri
       </h1>
 
-      {/* The first screen: the night valley of coffee under the wordmark
-          (three.js, loaded after the page; the type is server-rendered).
-          Since 6 Kas 2026 it is the whole entrance: the operator's slides
+      {/* The first screen: three words and a roasted bean that the scroll
+          wakes (three.js, loaded after the page; the type is
+          server-rendered). It is the whole entrance, as the valley was
+          from 6 Kas to 11 Kas 2026: the operator's slides
           (/admin/anasayfa-hero) are not on the page. */}
-      <HomeValley
+      <HomeRoast
         hours={hours}
         onMenu={() => navigate("menu")}
         onVisit={() => navigate("visit")}
