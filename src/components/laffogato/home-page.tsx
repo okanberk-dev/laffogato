@@ -36,14 +36,6 @@ export function orderDoorSub(courierEnabled: boolean, courierFee: string) {
     : "Uygulamadan sipariş ver";
 }
 
-/** The four figures under the signature block. */
-const SIGNATURE_STATS = [
-  { n: "27s", l: "Masada dökülür" },
-  { n: "93°C", l: "Servis sıcaklığı" },
-  { n: "36g", l: "Sirena espresso" },
-  { n: "∅0", l: "Atık · zero waste" },
-];
-
 export function PageHome({
   navigate,
   menu,
@@ -317,13 +309,10 @@ export function PageHome({
             <div className="wrap home-intro-grid">
               <div className="home-intro-inner">
                 <div className="opener-head">
-                  <span className="ghost-n sm" aria-hidden="true">
-                    02
-                  </span>
                   <ScrambleText
                     as="p"
                     className="eyebrow"
-                    text={introKicker || "Bölüm 2"}
+                    text={introKicker || LOCATION.short}
                   />
                 </div>
                 <RevealText as="h2" className="home-intro-lead" delay={150}>
@@ -357,7 +346,7 @@ export function PageHome({
         <section className="pour-bar" aria-labelledby="pour-bar-title">
           <div className="wrap pour-bar-inner">
             <div className="opener pour-bar-copy">
-              <ScrambleText as="p" className="eyebrow" text="Bölüm 3: Bar" />
+              <ScrambleText as="p" className="eyebrow" text="Menü" />
               <RevealText
                 as="h2"
                 id="pour-bar-title"
@@ -399,21 +388,9 @@ export function PageHome({
       <div className="cup-band">
         <section className="cup-block" aria-labelledby="cup-signature-title">
           <div className="wrap cup-wrap">
-            <div className="dots-trio cup-dots" aria-hidden="true">
-              <i className="on" />
-              <i />
-              <i />
-            </div>
             <div className="opener cup-copy">
               <div className="opener-head">
-                <span className="ghost-n" aria-hidden="true">
-                  04
-                </span>
-                <ScrambleText
-                  as="p"
-                  className="eyebrow"
-                  text="Bölüm 4: İmza ürün"
-                />
+                <ScrambleText as="p" className="eyebrow" text="İmza ürün" />
               </div>
               {/* Two reveals in one heading: each carries its own hidden
                   copy, so the heading's name is the whole line. */}
@@ -429,14 +406,6 @@ export function PageHome({
                   "L’Affogato bir bardağa servis edilmez; o bir bardaktır. Çıtır waffle kup, iç yüzeyinde yenilebilir glaze, bir top fior di latte. Çift shot Sirena masada dökülür. İçersin, yersin, geriye hiçbir şey kalmaz.",
                 )}
               </RevealText>
-              <div className="stat-row reveal">
-                {SIGNATURE_STATS.map((s) => (
-                  <div key={s.l}>
-                    <div className="stat-n">{s.n}</div>
-                    <div className="stat-l">{s.l}</div>
-                  </div>
-                ))}
-              </div>
               <div className="opener-actions reveal r1">
                 <a
                   href={ROUTE_PATHS.menu}
@@ -462,9 +431,6 @@ export function PageHome({
           <div className="wrap cup-wrap">
             <div className="opener cup-copy">
               <div className="opener-head">
-                <span className="ghost-n" aria-hidden="true">
-                  05
-                </span>
                 <p className="eyebrow">
                   <ScrambleText text="L’Af Ödüller" />
                   <br />
@@ -716,7 +682,7 @@ export function PageHome({
               text="Ziyaret · Tuzla, İstanbul"
             />
             <RevealText as="h2" className="h2" delay={150}>
-              200 yıllık köşkte, gece 02:00’e kadar
+              200 yıllık köşkte, gece 02:00’ye kadar
             </RevealText>
             {/* Where, when and how to reach us: the address across the
                 top, today's hours with the live open/closed line beside the

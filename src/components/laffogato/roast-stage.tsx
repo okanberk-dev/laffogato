@@ -262,9 +262,9 @@ function RoastStill({ kind }: { kind: RoastKind }) {
       <svg viewBox="0 0 200 260" className="roast-still roast-still--bean">
         <defs>
           <radialGradient id="roast-still-bean" cx="38%" cy="32%" r="78%">
-            <stop offset="0" stopColor="#a4633a" />
-            <stop offset="0.55" stopColor="#6d3a1f" />
-            <stop offset="1" stopColor="#3a1c0e" />
+            <stop offset="0" stopColor="#8a5330" />
+            <stop offset="0.55" stopColor="#5b3019" />
+            <stop offset="1" stopColor="#2f170b" />
           </radialGradient>
         </defs>
         <g transform="rotate(24 100 130)">
@@ -285,7 +285,7 @@ function RoastStill({ kind }: { kind: RoastKind }) {
           <path
             d="M96 34c-20 34 20 60-4 100s16 60-2 92"
             fill="none"
-            stroke="#b7774a"
+            stroke="#a87c50"
             strokeWidth="2.5"
             strokeLinecap="round"
             opacity="0.55"
@@ -297,43 +297,45 @@ function RoastStill({ kind }: { kind: RoastKind }) {
   if (kind === "pour") {
     return (
       <svg viewBox="0 0 360 640" className="roast-still roast-still--pour">
-        <rect x="118" y="34" width="124" height="34" rx="8" fill="#b98a4a" />
-        <rect x="242" y="42" width="96" height="18" rx="9" fill="#4a2916" />
+        <rect x="104" y="84" width="134" height="40" rx="9" fill="#b7b5b0" />
+        <rect x="238" y="92" width="100" height="18" rx="9" fill="#1a1512" />
+        <rect x="156" y="124" width="34" height="14" rx="4" fill="#a19f9a" />
         <path
-          d="M176 70c-2 60 50 96 34 168s-70 96-64 170 24 70 26 92"
+          d="M167 138v264M180 138v264"
           fill="none"
-          stroke="#8c5226"
-          strokeWidth="34"
+          stroke="#5a3115"
+          strokeWidth="5"
           strokeLinecap="round"
         />
-        <ellipse cx="172" cy="552" rx="140" ry="20" fill="#c8673b" />
-        <path d="M82 478h180c0 46-32 78-90 78s-90-32-90-78z" fill="#c8673b" />
-        <ellipse cx="172" cy="478" rx="90" ry="20" fill="#7a4420" />
+        <ellipse cx="176" cy="486" rx="142" ry="20" fill="#3a2419" />
+        <path d="M86 404h180c0 48-32 78-90 78s-90-30-90-78z" fill="#2e1810" />
+        <ellipse cx="176" cy="404" rx="90" ry="20" fill="#8b582b" />
       </svg>
     );
   }
   return (
     <svg viewBox="0 0 360 640" className="roast-still roast-still--affogato">
       <path
-        d="M236 40l88 56-34 58-88-56z"
-        fill="#d8cfc4"
-        opacity="0.55"
-        stroke="#b5aa9d"
-        strokeWidth="2"
-      />
-      <path
-        d="M218 132c-30 60 20 100-10 170s-40 80-34 150"
+        d="M192 178l66-94 78 54-66 94z"
         fill="none"
-        stroke="#2d1408"
-        strokeWidth="12"
+        stroke="#8d8279"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path d="M192 178l44-6 60 42-26 18z" fill="#2a1206" />
+      <path
+        d="M194 180c-20 8-28 32-30 62v118"
+        fill="none"
+        stroke="#2a1206"
+        strokeWidth="6"
         strokeLinecap="round"
       />
-      <ellipse cx="172" cy="602" rx="126" ry="14" fill="#2a2523" />
-      <path d="M104 500h136l-18 100h-100z" fill="#cf8f4c" />
-      <circle cx="172" cy="474" r="64" fill="#fbf4e6" />
+      <ellipse cx="160" cy="530" rx="120" ry="14" fill="#2a2523" />
+      <path d="M98 434h126l-17 94h-92z" fill="#c08440" />
+      <circle cx="162" cy="410" r="60" fill="#f4ead9" />
       <path
-        d="M112 458c20-52 100-52 120 0-8 26-18 8-28 30-10-26-22 12-34-8-12 24-22-10-30 10-10-20-20 0-28-32z"
-        fill="#2d1408"
+        d="M106 396c18-50 94-50 112 0-8 24-17 8-26 28-9-24-21 11-32-7-11 22-21-9-28 9-9-18-19 0-26-30z"
+        fill="#2a1206"
       />
     </svg>
   );

@@ -235,7 +235,7 @@ export function PageVisit({ visit, settings }: PageProps) {
               }}
             >
               <div className="eyebrow" style={{ marginBottom: 10 }}>
-                L’Affogato Italia · Sede principale
+                L’Affogato Italia · Merkez
               </div>
               <div
                 style={{
@@ -396,7 +396,7 @@ export function PageVisit({ visit, settings }: PageProps) {
       <section className="section">
         <div className="wrap-wide">
           <SectionHead
-            eyebrow="Il locale · tarihi köşk"
+            eyebrow="Tarihi köşk"
             title={
               <>
                 <span className="script">Mekan</span>
@@ -497,7 +497,7 @@ export function PageVisit({ visit, settings }: PageProps) {
           data-row="private-row"
         >
           <div className="reveal">
-            <div className="eyebrow on-dark">Eventi privati</div>
+            <div className="eyebrow on-dark">Özel etkinlik</div>
             <h2
               className="h1"
               style={{ marginTop: 16, color: "var(--ink-on-dark)" }}

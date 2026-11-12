@@ -197,6 +197,78 @@ describe("the scene is a good guest", () => {
   });
 });
 
+/**
+ * Operator, 12 Kas 2026: "yapay zekaymış gibi gözükmesin". The first cut
+ * carried the marks of a generated scene (a glow inside the bean, orbit
+ * lines, sparkles, dust in the air, beads left hanging, cups that bobbed).
+ * docs/REDESIGN-ROAST.md "A photograph of things" is the rule; these are
+ * the lines a later "make it livelier" pass would cross first.
+ */
+describe("the scenes are photographs of things, not effects", () => {
+  it("has no sprite, no point cloud and nothing that adds light", () => {
+    const imports = SCENE.slice(0, SCENE.indexOf('} from "three";'));
+    expect(imports).not.toMatch(
+      /\b(Sprite|SpriteMaterial|Points|PointsMaterial|PointLight)\b/,
+    );
+    expect(SCENE).not.toMatch(/AdditiveBlending|emissive/);
+    expect(SCENE).not.toMatch(/glowTexture|sparkTexture|wispTexture/);
+  });
+
+  it("moves only liquid in the two bands: a cup and a pitcher stand still", () => {
+    const from = (name: string) => {
+      const start = SCENE.indexOf(`function ${name}(`);
+      const body = SCENE.slice(start, SCENE.indexOf("\n}\n", start));
+      return body.slice(body.indexOf("const update = (time: number) => {"));
+    };
+    for (const name of ["drawPour", "drawAffogato"]) {
+      const update = from(name);
+      expect(update.length).toBeGreaterThan(100);
+      // Nothing solid is given a place or a turn per frame.
+      expect(update).not.toMatch(
+        /\b(cup|filter|pitcher|saucer|plate)\.(position|rotation)\b/,
+      );
+    }
+  });
+
+  it("pours espresso as thin streams and tips the pitcher like a hand does", () => {
+    // Two streams, one per spout, each pinned to its spout and the crema.
+    expect(SCENE).toMatch(/const streams = spouts\.map\(/);
+    expect(SCENE).toMatch(/const gauge = \(u: number\) => 0\.034 - /);
+    // Past level a glass is empty: the pitcher is tipped under a right angle
+    // and its espresso stands level with the lip it leaves by.
+    const tilt = Number(/const TILT = ([\d.]+);/.exec(SCENE)?.[1]);
+    expect(tilt).toBeGreaterThan(0.6);
+    expect(tilt).toBeLessThan(Math.PI / 2);
+    expect(SCENE).toMatch(
+      /new Plane\(new Vector3\(0, -1, 0\), lip\.y \+ 0\.012\)/,
+    );
+  });
+
+  it("reads glass by its edge and makes metal of a room with a dark side", () => {
+    // No body colour and almost no body: an edge and a highlight.
+    expect(SCENE).toMatch(/diffuseColor\.a = clamp\(0\.006 \+ edge \* 0\.7/);
+    // In an evenly white room polished metal is simply white.
+    expect(SCENE).toMatch(/const wall = lerp\(1, lerp\(0\.46, 1\.12, behind\)/);
+  });
+
+  it("draws the hero's bean at the size of the words it stands between", () => {
+    // The scene repeats the stylesheet's word size; the two must agree.
+    expect(CSS).toContain(
+      "--roast-word: min(12.5rem, calc((50vw - var(--hero-pad)) / 3.68));",
+    );
+    expect(SCENE).toContain(
+      "const word = Math.min(200, (width / 2 - pad) / 3.68);",
+    );
+    // The row starts where the stylesheet starts it.
+    expect(CSS).toMatch(/@media \(min-width: 640px\) \{\n  \.roast-hero \{/);
+    expect(SCENE).toContain("const tall = width < 640;");
+  });
+
+  it("roasts no two far beans alike", () => {
+    expect(SCENE).toMatch(/farBeans\.setColorAt\(/);
+  });
+});
+
 describe("the type is the page's, not the canvas's", () => {
   const html = renderToStaticMarkup(
     createElement(HomeRoast, { onMenu: () => {}, onVisit: () => {} }),
@@ -208,7 +280,9 @@ describe("the type is the page's, not the canvas's", () => {
     for (const word of ["Uyan", "Kahve", "Hazır"]) {
       expect(html).toContain(`<span class="sr-only">${word}</span>`);
     }
-    expect(html).toContain("Bölüm 1: Bologna 1897’den Tuzla’ya");
+    expect(html).toContain("Bologna 1897’den Tuzla’ya");
+    // 12 Kas 2026: no chapter numbers ("Bölüm 1:"), here or below.
+    expect(html).not.toMatch(/Bölüm \d/);
     expect(html).toMatch(
       /<a class="btn btn-ghost btn-sm roast-hero-go" href="\/menu"/,
     );

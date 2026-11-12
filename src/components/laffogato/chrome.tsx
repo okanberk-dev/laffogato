@@ -1516,7 +1516,11 @@ export function Footer({ navigate, settings }: FooterProps) {
         </div>
 
         <div className="footer-meta">
-          <span>
+          {/* The year is read on the server and again in the browser: on
+              the night of 31 December, or on a machine whose clock is in
+              another year, the two differ, and that alone must not fail
+              the whole page's hydration. */}
+          <span suppressHydrationWarning>
             © {year} {SITE_LEGAL_NAME}
           </span>
           <span className="footer-meta-end">

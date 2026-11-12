@@ -74,9 +74,10 @@ formülüyle (WCAG 2.1) hesaplandı; aynı test bu çiftleri AA'da (4.5:1) tutar
   `--shadow-frap`). `--glass-*` adları durur ve opaktır (`--glass-blur:
   none`); yarı saydam tek malzeme **buzlu krem**dir (`--frost`,
   `--frost-chrome`, `--frost-blur` 12px, `--frost-line`): üst çubuk ve buzlu
-  kart (`.frost-card`). Bölüm mobilyası: hayalet rakam (`.ghost-n`), üç
-  nokta (`.dots-trio`), kaydırma ipucu (`.scroll-hint`), yaprak gölgesi
-  zemini (`/brand/roast-shadow.svg`).
+  kart (`.frost-card`). Bölüm mobilyası: kaydırma ipucu (`.scroll-hint`),
+  yaprak gölgesi zemini (`/brand/roast-shadow.svg`). Hayalet rakam, üç
+  nokta ve "Bölüm N:" sayacı 12 Kas 2026'da kalktı (bir kafe ziyaretçisine
+  bölüm numarası bir şey söylemez; şablon gibi okunuyordu).
 - **Üst çubuk:** sayfanın başında saydam; 30px kaydırınca buzlu krem olur
   (zemin %95 + 12px bulanıklık, `--shadow-nav`, taş ince çizgi) ve daralır:
   68 → 60 px, 768px'ten 84 → 64, 1024px'ten 96 → 68. İçerik 80rem, yan
@@ -311,8 +312,8 @@ iştir.
 (`.eyebrow`), düğme ve menü bağlantısı 11-12px kalın büyük harfle, üç ayrı
 aralıkla yazılır (`--caps-kicker` 0.16em, `--caps-button` 0.05em,
 `--caps-nav` 0.12em). Büyük harf yine CSS'tedir; markup cümle düzeninde
-kalır ("Bölüm 2: …"). 25 Eyl - 11 Kas 2026 arasında etiketler cümle
-düzenindeydi.
+kalır ("İmza ürün"). Etiket bir sözcüktür, bölüm numarası değil (12 Kas
+2026). 25 Eyl - 11 Kas 2026 arasında etiketler cümle düzenindeydi.
 
 `.script` bir yazı tipi değil, **başlıktaki vurgu kelimesi**: başlığın kendi
 sesi (Abril Fatface), `--accent` rengi (karamel), koyu zeminde
@@ -512,6 +513,16 @@ ve her çizimin yerini tutar.
   portafiltreden yivli fincana), B bandında **affogato** (`affogato`: küçük
   sürahiden yenen kupadaki fior di latte'ye). Sitede beş saniyeden uzun
   süren hareket bunlardır, bu yüzden:
+  - **bir fikrin çizimi değil, eşyanın fotoğrafıdır** (operatör, 12 Kas 2026:
+    _"yapay zekaymış gibi gözükmesin"_). Parlama, yörünge çizgisi, kıvılcım,
+    havada asılı toz ya da boncuk damla yoktur; iki bantta yalnız sıvı
+    hareket eder (fincan tabağında durur, portafiltre asılıdır, akış titrer,
+    köpük sürüklenir), yalnız girişin çekirdeği ve demliği havadadır.
+    Malzemeler gerçeğidir: dokulu döküm alüminyum, krom çelik, bakalit, sırlı
+    kil ve mat taş tabak, saten koyu kavrum, kenarından okunan şeffaf cam;
+    espresso iki ince akışla dökülür, sürahi bir elin eğdiği kadar eğiktir.
+    Kural ve gerekçesi `docs/REDESIGN-ROAST.md` "A photograph of things";
+    `tests/home-roast.test.ts` tutar;
   - her çizimin yanında bir **durdur düğmesi** vardır (`<RoastPause />`,
     "Hareketi durdur" / "Hareketi başlat", `aria-pressed`; 36px daire, 44px
     dokunma alanı). Tek anahtardır: biri basılınca üç çizim de durur, sonradan
@@ -682,6 +693,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 6 Kas 2026  | **Kahve vadisi, ikinci tur** (sahip: "menü kısmını çıkart ... kahve çekirdeği ekle ... L'Affogato yazısını estetik yap ... yeşil bordo beyaz"): vadinin altındaki içecek bandı (operatörün slaytları) anasayfadan kalktı, slaytlar panelde durur ve `/admin/anasayfa-hero` bunu söyler; canlı açık/kapalı satırı vadiye taşındı. Kavrulmuş çekirdekler öne çıktı (daha çok, daha büyük, havada süzülen ve düşenler), yapraklar küçük kaldı. İsim Poppins değil, uygulamanın logo yazısından düzgünleştirilmiş vektör maske (`public/brand/laffogato-wordmark.svg`), beyazdan kreme, yumuşak parıltı, soldan açılış (ilk harf baştan görünür, LCP beklemez). Renkler ev yeşili gece, bordo ufuk ışığı, beyaz çiçek ve yazı, bordo kiraz; pirinç yalnız çekirdek parıltısında. |
 | 6 Kas 2026  | **Ana sayfa ve başlık** (sahibin brifleri): hero köşkün gece fotoğrafında, tam genişlikte "L'Affogato" ve önünde slaydın içeceği, sistem serifiyle bir satır, `--night`'a inen ve hiçbir yerde %66'nın altına düşmeyen karartma (slaytlar ve panel akışı aynı); "Evde L'Affogato" (mağazadan bir paket kahve, canlı üründen); uygulama bölümü (çizilmiş telefon, üç fayda kartı, `--bg-cream`); başlıkta Menü, Mağaza ve Ziyaret tam genişlikte açılan panel, kaydırınca krem bar; 404'te bahçede tabela; ödeme sayfalarında küçük ödeme çizimi. |
 | 11 Kas 2026 | **Roast** (operatör: "siteyi tamamen coffee-beans-swart.vercel.app ... gibi ... yap, three js vs. ne varsa kullan"): krem zemin `#faf7f2`, mürekkep, dolu düğme, bant ve footer için tek espresso `#23120b` (token adları yerinde, `--green-*` ailesi artık espresso), amber `#de853a` dolgu ve koyu zeminde vurgu, karamel `#a35019` krem üstünde vurgu metni, `--matcha` tek yeşil (yalnız olumlu durum), Abril Fatface başlık + Plus Jakarta Sans metin (Poppins emekli), 16px kart, espresso tonlu gölge, buzlu krem üst çubuk, kaydırmayla ilerleyen three.js girişi (çekirdek) ve iki three.js bandı (dökülen espresso, affogato kupası); kahve vadisi kalktı. Tasarım kaydı `docs/REDESIGN-ROAST.md`; güncel değerler §0. |
+| 12 Kas 2026 | **Roast, ikinci geçiş** (operatör: "ince ayar yap ve yapay zekaymış gibi gözükmesin"): üç three.js çizimi eşyanın fotoğrafı olacak biçimde yeniden kuruldu. Çekirdeğin içindeki altın ışık, turuncu yörünge çizgileri, kıvılcımlar, havadaki toz, asılı boncuk damlalar, kahverengi buhar, kalın karamel şerit ve espressoya sarılı beyaz "krema" kaldırıldı; yerine ıslak espresso gövdesi ve uçuş yönünde uzayan damlalar, dokulu döküm alüminyum demlik, krom portafiltre ve iki ince akış, espresso sırlı yivli fincan, kenarından okunan şeffaf cam sürahi ve tek ince akış geldi. İki bantta fincan ve sürahi artık kıpırdamaz. Stüdyo kameranın durduğu yanda koyu (metal metal gibi okunsun diye). `tests/home-roast.test.ts` "the scenes are photographs of things, not effects" tutar. |
 
 **5 Kas - 11 Kas 2026: kafe-perakende düzeni (tarihçe; 11 Kas 2026'ya kadar
 bu belgenin §0'ıydı).** Operatör: _"sitenin görselini ... starbucks tarzı

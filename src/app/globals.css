@@ -2198,25 +2198,6 @@ summary:focus-visible,
    Section furniture - the reference's small parts
    ───────────────────────────────────────────────────────────── */
 
-/* The numeral behind a section opener ("05"): the title face at 15 % ink.
-   Decoration - the markup hides it from a screen reader. */
-.ghost-n {
-  font-family: var(--headline);
-  font-weight: 400;
-  font-size: clamp(48px, 9vw, 128px);
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--ink-ghost);
-  -webkit-user-select: none;
-  user-select: none;
-}
-.ghost-n.sm {
-  font-size: clamp(36px, 4.4vw, 48px);
-}
-[data-ground="dark"] .ghost-n {
-  color: rgba(250, 247, 242, 0.16);
-}
-
 /* The floating card: the one content surface that is real frost (cream at
    80 % over a 12px blur, a stone hairline, the large soft shadow). */
 .frost-card {
@@ -2233,24 +2214,6 @@ summary:focus-visible,
   .frost-card {
     background: var(--bg);
   }
-}
-
-/* Three dots beside a section opener: where you are in the page. */
-.dots-trio {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-.dots-trio i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid rgba(35, 18, 11, 0.6);
-}
-.dots-trio i.on {
-  background: var(--ink);
-  border-color: var(--ink);
 }
 
 /* "Kaydır ve keşfet": the label over a mouse outline whose wheel dips. Six
@@ -2484,30 +2447,36 @@ summary:focus-visible,
   }
 }
 
-/* From 640px: one row, the first word on the left, the other two stacked on
-   the right, each side given 46 % and allowed to overrun it (the bean sits
-   over the overlap). */
+/* From 640px: one row, the first word left of the middle, the other two
+   stacked right of it, and the bean in the gap between them, which stays
+   on the middle of the screen at every width. The two sides are not the
+   same length ("UYAN" is 2.46em wide, "KAHVE" 3.34em), so the size is set
+   by the longer one: as large as lets "KAHVE" end one margin short of the
+   screen's edge, and never above the reference's 12.5rem. Until 12 Kas 2026
+   the sizes were fixed steps (7.5 / 8.5 / 11 / 12.5rem) inside an 80rem
+   row, and from 640px to about 1500px the right-hand words ran off the
+   screen: "KAHV" on a 1366px laptop and on every tablet. */
 @media (min-width: 640px) {
   .roast-hero {
     --hero-pad: 32px;
     height: 360vh;
   }
   .roast-hero-words {
-    flex-direction: row;
+    --roast-word: min(12.5rem, calc((50vw - var(--hero-pad)) / 3.68));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     align-items: center;
-    max-width: 80rem;
     height: auto;
-    margin: 0 auto;
     padding: 0;
   }
   .roast-hero-side {
-    flex: 1;
+    width: max-content;
     align-items: flex-start;
-    max-width: 46%;
     text-align: left;
   }
   .roast-hero-side--left {
-    padding-right: 0.5rem;
+    justify-self: end;
+    padding-right: calc(var(--roast-word) * 0.32);
     transform: translate3d(
       calc(var(--hp, 0) * -28vw),
       calc(var(--hp, 0) * -6vh),
@@ -2515,7 +2484,8 @@ summary:focus-visible,
     );
   }
   .roast-hero-side--right {
-    padding-left: 0.5rem;
+    justify-self: start;
+    padding-left: calc(var(--roast-word) * 0.32);
     transform: translate3d(
       calc(var(--hp, 0) * 28vw),
       calc(var(--hp, 0) * 6vh),
@@ -2527,7 +2497,7 @@ summary:focus-visible,
     font-size: 12px;
   }
   .roast-word {
-    font-size: 7.5rem;
+    font-size: var(--roast-word);
     line-height: 0.86;
     letter-spacing: -0.03em;
   }
@@ -2535,31 +2505,12 @@ summary:focus-visible,
     line-height: 0.84;
   }
 }
-@media (min-width: 768px) {
-  .roast-word {
-    font-size: 8.5rem;
-  }
-}
 @media (min-width: 1024px) {
   .roast-hero {
     --hero-pad: 56px;
   }
-  .roast-hero-side--left {
-    padding-right: 1.5rem;
-  }
-  .roast-hero-side--right {
-    padding-left: 1.5rem;
-  }
   .roast-hero-kicker {
     font-size: 14px;
-  }
-  .roast-word {
-    font-size: 11rem;
-  }
-}
-@media (min-width: 1280px) {
-  .roast-word {
-    font-size: 12.5rem;
   }
 }
 
@@ -2606,6 +2557,12 @@ summary:focus-visible,
 @media (min-width: 761px) {
   .roast-hero-foot {
     bottom: 2rem;
+  }
+  /* Clear the floating order button (.frap: its inset, 56px and a 12px
+     gap), which otherwise sat on the arrow of "Menüyü keşfet". A margin on
+     the actions, not on the foot, keeps the scroll hint centred. */
+  .roast-hero-actions {
+    margin-right: calc(clamp(16px, 2.4vw, 32px) + 68px - var(--hero-pad));
   }
 }
 
@@ -2802,11 +2759,12 @@ summary:focus-visible,
   gap: 10px;
   margin-top: 6px;
 }
-/* The numbered kicker of the sections after the two bands ("06 BÖLÜM 6:
-   KARAOKE …"). The number is a counter that Band B starts at 5
-   (`.cup-band`), so a section the panel leaves out (no karaoke facts, no
-   bag in stock) leaves no gap. The ghost numeral is decoration and is kept
-   from a screen reader where the alt syntax is understood. */
+/* The kicker of the sections after the two bands. Until 12 Kas 2026 each
+   carried a ghost numeral and "Bölüm N:" from a counter ("06 BÖLÜM 6:
+   KARAOKE …"), the reference's furniture: a chapter number tells a café's
+   visitor nothing, and printed twice in two sizes it read as a templated
+   landing (operator: "yapay zekaymış gibi gözükmesin"). The counters in the
+   section rules below are left in place and print nothing. */
 .bolum-kicker,
 .home-karaoke-kicker,
 .take-home-eyebrow {
@@ -2820,31 +2778,6 @@ summary:focus-visible,
   letter-spacing: var(--caps-kicker);
   text-transform: uppercase;
   color: var(--ink);
-}
-.bolum-kicker::before,
-.home-karaoke-kicker::before,
-.take-home-eyebrow::before {
-  order: -2;
-  flex: none;
-  margin-right: 12px;
-  content: counter(bolum, decimal-leading-zero);
-  content: counter(bolum, decimal-leading-zero) / "";
-  font-family: var(--headline);
-  font-size: clamp(36px, 4.4vw, 48px);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--ink-ghost);
-}
-.bolum-kicker::after,
-.home-karaoke-kicker::after,
-.take-home-eyebrow::after {
-  order: -1;
-  flex: none;
-  content: "Bölüm " counter(bolum) ":\00a0";
-}
-[data-ground="dark"] .bolum-kicker::before {
-  color: rgba(250, 247, 242, 0.16);
 }
 
 /* Band A, "the pour" ────────────────────────────────────────────
@@ -3100,11 +3033,17 @@ summary:focus-visible,
   max-width: 290px;
 }
 
-/* Between the stacked layout and a wide screen the drawing is drawn
-   smaller and a little left of centre, so its cup clears the bar's copy. */
-@media (min-width: 1024px) and (max-width: 1279px) {
+/* From the side-by-side layout up the drawing stands a little left of
+   centre, so its saucer clears the bar's copy (centred, it covered the
+   first letters of three lines at 1440); between that and a wide screen it
+   is also drawn smaller. */
+@media (min-width: 1024px) {
   .pour-art {
     left: 44%;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .pour-art {
     width: min(800px, 62vw);
   }
 }
@@ -3727,11 +3666,13 @@ summary:focus-visible,
 }
 /* A word is never broken (each is one mask), so on the narrowest phones
    the title follows the width: "ÖĞRENDİKLERİMİZ" at 36px is 327px wide and
-   a 320px screen has 288. */
+   a 320px screen has 288. A little smaller than the width alone asks for,
+   so "GECE 02:00'YE" holds one line on a 360-390px phone instead of leaving
+   "KADAR" alone on the next (12 Kas 2026). */
 @media (max-width: 480px) {
   .page-hero-title,
   .page-hero-frame.has-art .page-hero-title {
-    font-size: clamp(1.875rem, 9.2vw, 2.25rem);
+    font-size: clamp(1.7rem, 8.6vw, 2.25rem);
   }
 }
 
@@ -4030,13 +3971,6 @@ summary:focus-visible,
 .cup-copy {
   max-width: 600px;
 }
-/* Three dots in the left margin: where you are in the page. */
-.cup-dots {
-  position: absolute;
-  top: 50%;
-  left: calc(var(--gutter) / 2 - 5px);
-  translate: 0 -50%;
-}
 .cup-art {
   position: absolute;
   z-index: 0;
@@ -4090,9 +4024,6 @@ summary:focus-visible,
     translate: none;
     -webkit-mask-image: linear-gradient(to bottom, #000 95%, transparent);
     mask-image: linear-gradient(to bottom, #000 95%, transparent);
-  }
-  .cup-dots {
-    display: none;
   }
 }
 
@@ -7163,17 +7094,11 @@ summary:focus-visible,
   height: auto;
   margin: 0 auto 20px;
 }
-/* The principle's number: the reference's ghost numeral, small. */
+/* The principle's number: hidden (12 Kas 2026; six principles numbered
+   01-06 counted nothing). The data stays: tests/site-illustrations.test.ts
+   reads it. */
 .value-num {
-  display: block;
-  font-family: var(--headline);
-  font-weight: 400;
-  font-size: 48px;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-feature-settings: "lnum";
-  color: var(--ink-ghost);
-  margin-bottom: 16px;
+  display: none;
 }
 .value-card p {
   margin-top: 10px;
@@ -7564,9 +7489,6 @@ select {
 @media (max-width: 540px) {
   .value-card {
     padding: 22px;
-  }
-  .value-num {
-    margin-bottom: 16px;
   }
 }
 

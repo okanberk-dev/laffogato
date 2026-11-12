@@ -136,9 +136,10 @@ outlined-fills-on-hover, `.btn-outline` quiet outlined, `.btn-light` /
 `.btn-glass-dark` on dark, `.btn-amber` the one warm button, `.btn-gold`
 brass for rewards only. 44px tall (touch floor), `.btn-sm` 36px.
 
-**Furniture** (globals.css "Section furniture"): `.ghost-n` (+ `.sm`),
-`.frost-card`, `.dots-trio` (`<i class="on">`), `.scroll-hint` +
-`.scroll-hint-mouse`. Background leaf shadows: `/brand/roast-shadow.svg`
+**Furniture** (globals.css "Section furniture"): `.frost-card`,
+`.scroll-hint` + `.scroll-hint-mouse`. The ghost numeral (`.ghost-n`), the
+dot trio (`.dots-trio`) and the "Bölüm N:" counter went on 12 Nov 2026
+(below). Background leaf shadows: `/brand/roast-shadow.svg`
 (use as `background: var(--bg) url(...) center / cover`).
 
 **Motion kit.**
@@ -173,9 +174,32 @@ stage carries a flat SVG drawing of the same subject, so the page is
 composed before and without WebGL. A band's drawing starts only when the
 band nears the screen; a phone gets no shadow pass, no pointer and no far
 beans.
-Subjects: `bean` = bean → light → espresso burst → moka pot between two
-beans; `pour` = portafilter stream into a fluted cup; `affogato` = espresso
-from a small glass pitcher over fior di latte in the waffle cup.
+Subjects: `bean` = the bean parts along its crease → the espresso it holds
+bursts out → a moka pot comes up through it between two beans; `pour` = a
+chromed portafilter's two thin streams into a fluted, espresso-glazed cup;
+`affogato` = espresso from a small glass pitcher over fior di latte in the
+waffle cup.
+
+**A photograph of things, not an illustration of an idea** (operator, 12 Nov
+2026: _"yapay zekaymış gibi gözükmesin"_). The first cut had the marks of a
+generated scene: a golden glow inside the bean, amber orbit lines, sparkles,
+dust motes, bead-like drops left hanging in the air, a thick caramel ribbon
+for a pour, a white strand of "cream" wound round the espresso, cups that
+bobbed. All of it is gone. The rules the scenes are now drawn by:
+
+- Nothing glows, orbits or sparkles; nothing is in the air that would not be
+  there. A burst is liquid: a body of espresso, a crown of short tongues,
+  drops drawn out along their flight that fall and are gone.
+- What moves is what moves in a bar: liquid. A cup stands still on its
+  saucer, the portafilter hangs where the group head holds it, a stream
+  wavers and a foam drifts. Only the hero's bean and pot float.
+- Real materials: cast aluminium with its grain (in a room that is darker
+  where the camera stands: in an evenly white room polished metal is simply
+  white), chromed steel, bakelite, glazed clay and satin stoneware, a satin
+  dark roast, glass lit "bright field" (clear body, dark edge, a small white
+  highlight). Espresso falls as two thin streams with tawny stripes, and a
+  pitcher is tipped as a hand tips it, its espresso level with the lip.
+- No two far beans are one colour.
 
 ## 3. The landing, section by section
 
@@ -186,8 +210,16 @@ from a small glass pitcher over fior di latte in the waffle cup.
 | 5-6 | Band B, the cup | `affogato` drawing beside: the **signature** ("İçilir, sonra kupası yenir", stats, panel body) and the **rewards** (stamps) openers |
 | after | (none) | Our other features, in the same language (ghost numeral, kicker, title, paragraph, pill): karaoke, campaigns banner, bar rail, take-home, app, visit |
 
-Kickers follow the reference's numbering ("Bölüm 2: …"), sentence case in the
-markup.
+Kickers are plain words in sentence case in the markup ("Menü", "İmza
+ürün", "Bologna 1897’den Tuzla’ya"). Until 12 Nov 2026 they followed the
+reference's numbering ("Bölüm 2: …") beside a ghost numeral, with a dot
+trio in the margin: a chapter number tells a café's visitor nothing, and
+printed twice in two sizes it read as a templated landing (operator: _"yapay
+zekaymış gibi gözükmesin"_). The same pass put /hikayemiz and /ziyaret into
+Turkish (their kickers and two headings were Italian and English), dropped a
+stat row whose figures were wrong ("93°C servis sıcaklığı") or not figures
+("∅0"), and made the hero's words fluid: from 640px to about 1500px the
+fixed steps ran "KAHVE" off the right edge.
 
 ## 4. What guards it
 

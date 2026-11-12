@@ -180,15 +180,15 @@ export function Slide({
   loaded: boolean;
 }) {
   const isLight = slide.textTheme === "light";
-  const overlay = slide.imageUrl
-    ? isLight
-      ? "linear-gradient(to right, rgba(35,18,11,0.55), rgba(35,18,11,0.24) 60%, rgba(35,18,11,0.55))"
-      : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))"
-    : // No photo: a solid colour block - the espresso band, or the stone
-      // cream (5 Kas 2026: colour-block, no gradient fills).
-      isLight
-      ? "var(--roast)"
-      : "var(--bg-stone)";
+  // The ground is a colour: the espresso band under light type, the stone
+  // cream under dark (5 Kas 2026: colour-block, no gradient fills). Until
+  // 12 Kas 2026 it was handed to background-image, where a colour is not
+  // valid, so a slide without a photo had no ground at all and its cream
+  // title stood on the cream page at 1.12:1.
+  const ground = isLight ? "var(--roast)" : "var(--bg-stone)";
+  const overlay = isLight
+    ? "linear-gradient(to right, rgba(35,18,11,0.55), rgba(35,18,11,0.24) 60%, rgba(35,18,11,0.55))"
+    : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))";
 
   const words = slide.title.trim().split(/\s+/);
   const lead = words.slice(0, -1).join(" ");
@@ -209,8 +209,10 @@ export function Slide({
         // design already uses for a slide with no photo, so an unloaded slide
         // looks deliberate rather than broken. The photo goes in quoted and
         // escaped (css-url.ts): the address is the panel's free text.
-        backgroundImage:
-          slide.imageUrl && loaded
+        backgroundColor: ground,
+        backgroundImage: !slide.imageUrl
+          ? undefined
+          : loaded
             ? `${overlay}, ${cssUrl(slide.imageUrl)}`
             : overlay,
       }}

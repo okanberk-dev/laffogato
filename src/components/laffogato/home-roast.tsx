@@ -23,9 +23,10 @@ const EASE = 0.14;
  * allows - "UYAN" on the left, "KAHVE HAZIR" on the right - with one
  * roasted bean between them. The section is three and a half screens tall
  * and its content is pinned: scrolling does not move the page, it plays
- * the drawing (the bean opens on a golden light, bursts into espresso and
- * settles as a moka pot between two beans), and over the last stretch the
- * words part and fade as the drawing comes forward.
+ * the drawing (the bean parts along its crease, the espresso it holds
+ * bursts out, and a moka pot comes up through it between two beans), and
+ * over the last stretch the words part and fade as the drawing comes
+ * forward.
  *
  * The words never wait for the scene. They, the kicker, the live
  * open/closed line, the way to the menu and the scroll hint are
@@ -119,7 +120,7 @@ export function HomeRoast({
               as="p"
               on="load"
               className="roast-hero-kicker"
-              text="Bölüm 1: Bologna 1897’den Tuzla’ya"
+              text="Bologna 1897’den Tuzla’ya"
             />
             <RevealText as="span" on="load" delay={250} className="roast-word">
               Uyan

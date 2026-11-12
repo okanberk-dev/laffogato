@@ -167,14 +167,18 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             }}
             data-row="story-stats"
           >
-            <Stat n="1897" l="Anno fondazione" d="Bologna · 1897" />
-            <Stat n="1994" l="Brevetto edible cup" d="Mancuso ailesi patenti" />
+            <Stat n="1897" l="Kuruluş" d="Bologna · 1897" />
+            <Stat
+              n="1994"
+              l="Yenilebilir kup patenti"
+              d="Mancuso ailesi patenti"
+            />
             <Stat
               n="2026"
               l="İstanbul açılışı"
               d="Tuzla · ilk yurt dışı şube"
             />
-            <Stat n="III" l="Generazione" d="Eda Mancuso · 3. kuşak" />
+            <Stat n="III" l="Kuşak" d="Eda Mancuso · 3. kuşak" />
           </div>
         </div>
       </section>
@@ -261,12 +265,12 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
       >
         <div className="wrap-wide">
           <div className="reveal" style={{ marginBottom: 70 }}>
-            <div className="eyebrow on-dark">Linea del tempo</div>
+            <div className="eyebrow on-dark">Zaman çizelgesi</div>
             <h2
               className="h1"
               style={{ marginTop: 16, color: "var(--ink-on-dark)" }}
             >
-              How we got <span className="script">here</span>
+              Buraya nasıl <span className="script">geldik</span>
             </h2>
           </div>
           <div className="timeline">
@@ -313,7 +317,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
         <div className="wrap">
           <SectionHead
             alignment="center"
-            eyebrow="Cosa contiamo"
+            eyebrow="İlkeler"
             title={
               <>
                 Koruduğumuz <span className="script">altı ilke</span>
@@ -341,10 +345,10 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
         <div className="wrap">
           <SectionHead
             alignment="center"
-            eyebrow="Il rituale · 27 secondi"
+            eyebrow="Ritüel · 27 saniye"
             title={
               <>
-                The <span className="script">pour</span>
+                Dört adımda <span className="script">döküş</span>
               </>
             }
           />
@@ -383,10 +387,10 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           <div className="wrap">
             <SectionHead
               alignment="center"
-              eyebrow="Press · stamping kindly"
+              eyebrow="Basında"
               title={
                 <>
-                  People <span className="script">talking</span>
+                  Hakkımızda <span className="script">yazılanlar</span>
                 </>
               }
             />
@@ -435,25 +439,13 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
         <div className="wrap-narrow" style={{ textAlign: "center" }}>
           {/* The whole brand in one picture: the cup, bitten. */}
           <Illustration name="story-kupa" className="story-close-art reveal" />
-          <div className="eyebrow reveal" style={{ marginBottom: 24 }}>
-            Per chiudere
-          </div>
-          <h2 className="h1 reveal r1">
-            “Drink it. <span className="script">Eat the cup.</span>
-            <br />
-            That’s the whole brand”
+          {/* The registered slogan, in its own language (lang="en": the
+              page is Turkish, and its upper case would dot every i). The
+              "1897" signature and the "That’s the whole brand" line went on
+              12 Kas 2026: the timeline dates the edible cup to 1994. */}
+          <h2 className="h1 reveal r1" lang="en">
+            “Drink it. <span className="script">Eat the cup</span>”
           </h2>
-          <div
-            className="reveal r2"
-            style={{
-              marginTop: 24,
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--ink-mute)",
-            }}
-          >
-            Giancarlo Mancuso · 1897
-          </div>
         </div>
       </section>
     </div>
