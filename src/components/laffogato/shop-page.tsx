@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
-import { parsePriceLabel } from "@/lib/utils/format";
+import { parsePriceLabel, priceLabel } from "@/lib/utils/format";
 
 import { PRODUCTS } from "./data";
 import type { Product } from "./data";
@@ -241,7 +241,7 @@ export function PageShop({
       <div className="shop-filter-block">
         <h2 className="shop-filter-title">Fiyat aralığı</h2>
         <div className="shop-price-readout tabular">
-          {priceMin}₺ - {priceTop}₺
+          {priceLabel(priceMin * 100)} - {priceLabel(priceTop * 100)}
         </div>
         <div className="shop-price-track">
           <div className="shop-price-rail" />

@@ -755,6 +755,15 @@ export function tinLabel(label: string): {
   return { lines: two, size, note, noteSize };
 }
 
+/**
+ * What a pack prints of the shelf tag: its kind and its weight ("Çekirdek ·
+ * 1 kg"). Anything the shop adds after them ("· Kargo dahil") is the
+ * shelf's note, and at this size it ran off both sides of the label.
+ */
+function packLine(sub: string): string {
+  return sub.split(" · ").slice(0, 2).join(" · ");
+}
+
 export function CoffeeBag({
   size = "100%",
   label = "Sirena",
@@ -766,7 +775,17 @@ export function CoffeeBag({
   sub?: string;
   tone?: string;
 }) {
-  const fit = tinLabel(label);
+  const line = packLine(sub);
+  const drawn = tinLabel(label);
+  // A qualifier the pack line already prints ("1 kg" under "Çekirdek ·
+  // 1 kg") is not printed twice; "Espresso Harmanı" under Sirena stays.
+  const fit =
+    drawn.note &&
+    line
+      .toLocaleLowerCase("tr-TR")
+      .includes(drawn.note.toLocaleLowerCase("tr-TR"))
+      ? { ...drawn, note: null, noteSize: 0 }
+      : drawn;
   // The name block is centred in the band between the label's top rule
   // (155) and the weight line under it (~199), shrunk if it would not fit.
   const CAP = 0.72;
@@ -885,7 +904,7 @@ export function CoffeeBag({
         fill={ink}
         opacity="0.7"
       >
-        {sub}
+        {line}
       </text>
       <line
         x1="92"

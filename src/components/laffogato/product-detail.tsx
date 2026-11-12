@@ -203,7 +203,13 @@ export function ProductDetail({
             </>
           )}
           <span aria-hidden>/</span>
-          <span aria-current="page">{shortProductName(p.name)}</span>
+          <span aria-current="page">
+            {/* The short name, unless it is the shelf's own label ("Çekirdek
+                Kahve / Çekirdek Kahve"): then the whole name says which. */}
+            {category?.breadcrumbLabel === shortProductName(p.name)
+              ? p.name
+              : shortProductName(p.name)}
+          </span>
         </nav>
 
         <div className="pdp-grid">
@@ -312,7 +318,7 @@ export function ProductDetail({
                       >
                         {v.name}
                         {v.priceDelta
-                          ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺`
+                          ? ` · ${v.priceDelta > 0 ? "+" : ""}${priceLabel(Math.round(v.priceDelta * 100))}`
                           : ""}
                         {vOut ? " (tükendi)" : ""}
                       </button>
@@ -396,13 +402,9 @@ export function ProductDetail({
                     ? ` ${freeFrom} ve üzeri siparişlerde kargo ücretsizdir.`
                     : null}{" "}
                   Sipariş durumunu{" "}
-                  <Link href="/uye/hesap/siparislerim">
-                    üyelik hesabından
-                  </Link>{" "}
+                  <Link href="/uye/hesap/siparislerim">üyelik hesabından</Link>{" "}
                   takip edebilirsin. Ayrıntılar:{" "}
-                  <Link href="/hukuk/teslimat-ve-kargo">
-                    Teslimat ve Kargo
-                  </Link>
+                  <Link href="/hukuk/teslimat-ve-kargo">Teslimat ve Kargo</Link>
                   .
                 </p>
               </Accordion>

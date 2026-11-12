@@ -16,7 +16,11 @@ import {
   type ProductFact,
 } from "./product-facts";
 import { ProductSurface } from "./visuals";
-import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
+import {
+  parsePriceLabel,
+  priceLabel,
+  shortProductName,
+} from "@/lib/utils/format";
 import { cx } from "./cx";
 
 export interface CartItem {
@@ -146,6 +150,16 @@ const SHOP_CAT_LABELS: Record<string, string> = {
   pantry: "Kiler",
 };
 
+/**
+ * The word a drawn pack carries: the first word of the product's short
+ * name, or the first two when the first is too short to stand alone
+ * ("Cold Brew", "Uji Matcha"): a pack that reads "Cold" names nothing.
+ */
+function packLabel(name: string): string {
+  const [first = "", second] = name.split(" ");
+  return second && first.length <= 4 ? `${first} ${second}` : first;
+}
+
 export function ProductCard({
   product,
   idx = 0,
@@ -160,7 +174,7 @@ export function ProductCard({
     p.lowStockThreshold !== undefined &&
     p.stock <= p.lowStockThreshold;
   const name = shortProductName(p.name);
-  const label = name.split(" ")[0];
+  const label = packLabel(name);
   const href = p.slug ? productPath(p.slug) : undefined;
   // A product sold in variants cannot go in from the card: the "+" opens it
   // so the variant is chosen first (toCartItem refuses a line without one).
@@ -580,7 +594,7 @@ export function CartDrawer({
                     </div>
                     <div className="cart-item-side">
                       <div className="cart-item-price tabular">
-                        {Math.round(lineTotal)}₺
+                        {priceLabel(Math.round(lineTotal * 100))}
                       </div>
                       <button
                         type="button"
@@ -621,7 +635,8 @@ function FreeShippingBar({
           </>
         ) : (
           <>
-            <strong>{Math.round(remaining)}₺</strong> daha ekle, kargo bizden
+            <strong>{priceLabel(Math.round(remaining * 100))}</strong> daha
+            ekle, kargo bizden
           </>
         )}
       </div>
@@ -644,7 +659,9 @@ function CartFooter({
     <footer className="cart-drawer-foot">
       <div className="cart-sum-row">
         <span>Ara toplam</span>
-        <span className="cart-sum tabular">{Math.round(total)}₺</span>
+        <span className="cart-sum tabular">
+          {priceLabel(Math.round(total * 100))}
+        </span>
       </div>
       <div className="cart-sum-note">
         <span>Kargo</span>
@@ -795,7 +812,7 @@ function ProductModalBody({
   isAuthenticated?: boolean;
   contact?: ShopContact;
 }) {
-  const label = shortProductName(p.name).split(" ")[0];
+  const label = packLabel(shortProductName(p.name));
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
   const variants = activeVariants(p);
   const facts = productFacts(p);
@@ -878,7 +895,7 @@ function ProductModalBody({
               fontSize: 28,
             }}
           >
-            {Math.round(unitPrice)}₺
+            {priceLabel(Math.round(unitPrice * 100))}
           </span>
           {discount && (
             <span
@@ -921,7 +938,7 @@ function ProductModalBody({
                   >
                     {v.name}
                     {v.priceDelta
-                      ? ` · ${v.priceDelta > 0 ? "+" : ""}${Math.round(v.priceDelta)}₺`
+                      ? ` · ${v.priceDelta > 0 ? "+" : ""}${priceLabel(Math.round(v.priceDelta * 100))}`
                       : ""}
                   </button>
                 );
@@ -1002,7 +1019,7 @@ function ProductModalBody({
               "Tükendi"
             ) : (
               <>
-                Sepete ekle · {Math.round(unitPrice * qty)}₺{" "}
+                Sepete ekle · {priceLabel(Math.round(unitPrice * qty * 100))}{" "}
                 <span className="arrow">→</span>
               </>
             )}
