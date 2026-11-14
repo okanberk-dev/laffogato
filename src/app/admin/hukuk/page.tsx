@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Card, PageHeader } from "@/components/admin/forms";
 import {
   ActionMenu,
@@ -10,6 +8,7 @@ import {
 } from "@/components/admin/ui";
 import { AdminIcon } from "@/components/admin/ui/icons";
 import { ROW_CONTROL } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import type { AdminTone } from "@/lib/admin/tone";
 import { LEGAL_DOCS } from "@/lib/legal/documents";

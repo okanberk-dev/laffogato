@@ -1,8 +1,7 @@
-import Link from "next/link";
-
 import { Card, PageHeader } from "@/components/admin/forms";
 import { CategoryForm } from "@/components/admin/category-form";
 import { BUTTON } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { freeCategorySlugs } from "@/lib/admin/category-schema";
 import { listCategories } from "@/lib/admin/store";

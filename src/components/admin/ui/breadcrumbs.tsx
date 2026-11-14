@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { breadcrumbTrail, type NavLink } from "@/lib/admin/nav-match";
 
 /**

@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useActionState, useId, useRef, useState, type ReactNode } from "react";
 
 import { listSearchAction } from "@/app/admin/liste-arama/actions";
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { activeDatePreset, datePresets } from "@/lib/admin/date-presets";
 import {
   DEFAULT_PAGE_PARAM,

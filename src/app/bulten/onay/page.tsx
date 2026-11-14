@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 
 import { confirmNewsletterAction } from "@/app/newsletter/actions";
 import { LafMark } from "@/components/laffogato/brand-mark";
 import { Illustration } from "@/components/laffogato/illustration";
+import Link from "@/components/link";
 import { NEWSLETTER_LINK_COOKIES } from "@/lib/newsletter/link-token";
 
 export const metadata = {

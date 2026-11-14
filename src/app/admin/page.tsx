@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { PageHeader } from "@/components/admin/forms";
@@ -29,6 +28,7 @@ import { WeekMetrics } from "@/components/admin/dashboard/week-metrics";
 import type { AdminHue } from "@/components/admin/ui/hues";
 import type { AdminIconName } from "@/components/admin/ui/icons";
 import { settingsTabHref } from "@/app/admin/ayarlar/settings-core";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import {
   CHANNEL_MIX,

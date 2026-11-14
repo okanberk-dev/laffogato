@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import Link from "@/components/link";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
 import { LafMark } from "./brand-mark";

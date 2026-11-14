@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import {
   ActionForm,
   FormFieldError,
@@ -10,6 +8,7 @@ import {
 } from "@/components/admin/action-form";
 import { Card, Field, TextInput } from "@/components/admin/forms";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
+import Link from "@/components/link";
 import {
   SAVE_AND_NEW_FIELD,
   SAVE_AND_NEW_VALUE,

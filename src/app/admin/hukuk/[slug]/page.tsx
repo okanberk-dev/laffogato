@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LegalDocForm } from "@/components/admin/legal-doc-form";
 import { PageHeader } from "@/components/admin/forms";
 import { BUTTON, TONE_SOFT } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { recordedConsentVersion } from "@/lib/admin/legal-schema";
 import { findLegalDoc } from "@/lib/legal/documents";

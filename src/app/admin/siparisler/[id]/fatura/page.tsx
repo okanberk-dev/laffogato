@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BackLink } from "@/components/admin/back-link";
@@ -6,6 +5,7 @@ import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
 import { InvoiceWizard } from "@/components/admin/invoice-wizard";
 import { PageShell } from "@/components/admin/ui";
 import { BUTTON } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import {
   expectedTotalMinor,

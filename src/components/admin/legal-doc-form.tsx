@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRef } from "react";
 
+import Link from "@/components/link";
 import type { ActionResult } from "@/lib/admin/action-result";
 import { LEGAL_LIMITS } from "@/lib/admin/legal-schema";
 

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import {
   PageHeader,
   formatDateTime,
@@ -18,6 +16,7 @@ import {
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
 import { listSearchView } from "@/lib/admin/list-search";

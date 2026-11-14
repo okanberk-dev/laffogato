@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import Link from "@/components/link";
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LegalMarkdown } from "@/lib/legal/markdown";

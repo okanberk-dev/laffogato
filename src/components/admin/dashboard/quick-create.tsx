@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Fragment } from "react";
 
+import Link from "@/components/link";
 import { CREATE_ENTRIES } from "@/lib/admin/palette-core";
 import { canAccess, type AdminRole } from "@/lib/admin/roles";
 

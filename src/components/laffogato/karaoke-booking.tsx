@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   startTransition,
   useActionState,
@@ -42,6 +41,7 @@ import { PageHero } from "./page-hero";
 // Type-only: karaoke-core builds Zod schemas at load, and a value import from
 // it ships all of Zod to the browser. The quote maths comes from the
 // dependency-free module instead.
+import Link from "@/components/link";
 import type { KaraokeAvailability } from "@/lib/mobile/karaoke-core";
 import {
   karaokeParams,

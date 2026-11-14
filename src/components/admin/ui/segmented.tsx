@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 
 import { LinkPending } from "./link-pending";
 import { COMPACT } from "./styles";

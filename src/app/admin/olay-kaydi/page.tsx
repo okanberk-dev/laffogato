@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import {
   Badge,
@@ -13,6 +11,7 @@ import {
   PageShell,
   Pagination,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import {
   countAuditLogs,
   listAuditLogs,

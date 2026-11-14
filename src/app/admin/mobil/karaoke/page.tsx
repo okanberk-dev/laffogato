@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import { KaraokeWeekCalendar } from "@/components/admin/karaoke-calendar";
 import { KaraokeTable } from "@/components/admin/karaoke-panel";
@@ -13,6 +11,7 @@ import {
   StatusTabs,
 } from "@/components/admin/ui";
 import { SegmentedLinks } from "@/components/admin/ui/segmented";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import {
   addDays,

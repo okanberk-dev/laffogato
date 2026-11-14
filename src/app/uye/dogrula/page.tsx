@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import { verifyCustomerEmail } from "@/lib/customer/store";
 
 export const metadata = { title: "E-posta doğrulama · L'Affogato" };

@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import {
   type AdminMenuItem,
   MENU_CATEGORY_KEYS,

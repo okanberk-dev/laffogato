@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { createContext, useContext, type ReactNode } from "react";
+
+import Link from "@/components/link";
 
 /**
  * Where "the panel" is for the signed-in role: /admin for most, /admin/kasa

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
 import { LafMark } from "@/components/laffogato/brand-mark";
+import Link from "@/components/link";
 import { getActiveCustomer } from "@/lib/customer/auth";
 
 import { ForgotPasswordForm } from "./forgot-form";

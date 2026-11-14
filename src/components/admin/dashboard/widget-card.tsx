@@ -1,8 +1,9 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Card } from "../forms";
 import { CARD_TITLE } from "../ui/styles";
+
+import Link from "@/components/link";
 
 /**
  * A widget's link to the list behind it ("Tümünü gör →"): 44 px tall on a

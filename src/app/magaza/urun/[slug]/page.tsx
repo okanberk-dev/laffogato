@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import Link from "@/components/link";
 import { isDegradedRequest } from "@/lib/db/health";
 
 import type { Product } from "@/components/laffogato/data";

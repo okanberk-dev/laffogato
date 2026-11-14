@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useCallback,
   useRef,
@@ -25,6 +24,7 @@ import {
 } from "@/components/admin/forms";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
 import { Slide } from "@/components/laffogato/shop-hero-slider";
+import Link from "@/components/link";
 import { SHOP_HERO_LIMITS as L } from "@/lib/admin/shop-hero-schema";
 
 export interface SlideDefaults {

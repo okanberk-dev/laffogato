@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { Metadata } from "next";
 
 import {
@@ -7,6 +6,7 @@ import {
   type IllustrationName,
 } from "@/components/laffogato/illustration";
 import { PageHero } from "@/components/laffogato/page-hero";
+import Link from "@/components/link";
 import { guideHubLd } from "@/lib/seo/guide-structured-data";
 import { GUIDES } from "@/lib/seo/guides";
 import { SITE } from "@/lib/seo/site";

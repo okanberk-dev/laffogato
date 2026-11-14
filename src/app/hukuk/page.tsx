@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
+import Link from "@/components/link";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { PageHero } from "@/components/laffogato/page-hero";

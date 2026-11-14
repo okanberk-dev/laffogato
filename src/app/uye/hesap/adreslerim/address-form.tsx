@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 
+import Link from "@/components/link";
 import type { CustomerAddress } from "@/lib/customer/store";
 
 import { BusyDots } from "@/components/laffogato/busy-dots";

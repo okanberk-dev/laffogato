@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import {
   ActionMenu,
@@ -11,6 +9,7 @@ import {
   EmptyState,
   PageShell,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { categoryDeleteBlocker } from "@/lib/admin/category-schema";
 import { listCategories, listProductsForPanel } from "@/lib/admin/store";

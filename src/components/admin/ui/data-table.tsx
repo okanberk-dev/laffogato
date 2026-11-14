@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import {
   DEFAULT_DIR_PARAM,
   DEFAULT_PAGE_PARAM,

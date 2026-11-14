@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 
@@ -16,6 +15,7 @@ import {
   type ProductFact,
 } from "./product-facts";
 import { ProductSurface } from "./visuals";
+import Link from "@/components/link";
 import {
   parsePriceLabel,
   priceLabel,

@@ -1,10 +1,10 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { formatTRY } from "@/components/admin/forms";
 import { StatCard } from "@/components/admin/dashboard/stat-card";
 import { Badge, NUMERIC_STYLE, Section } from "@/components/admin/ui";
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import type { DayCloseSummary } from "@/lib/admin/day-close";
 
 const TH =

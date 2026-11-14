@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { accountMenuStateAction, logoutAction } from "@/app/uye/actions";
+import Link from "@/components/link";
 import { CONSENT_OPEN_EVENT } from "@/lib/consent/script";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";

@@ -1,7 +1,6 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import { BUTTON } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { tableQrSvg } from "@/lib/admin/cafe-table-qr";
 import { cafeTableIdSchema } from "@/lib/admin/cafe-table-schema";

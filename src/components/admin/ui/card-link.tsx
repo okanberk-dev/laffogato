@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 
 /**
  * The phone card's title, stretched over its card: a tap anywhere on the

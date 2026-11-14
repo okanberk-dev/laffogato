@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -33,6 +32,7 @@ import {
   type SummaryChip,
 } from "@/components/admin/ui/summary-card";
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
 import {

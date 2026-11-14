@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import Link from "next/link";
-
 import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import {
@@ -9,6 +7,7 @@ import {
   type ManualProduct,
 } from "@/components/admin/manual-order-form";
 import { BUTTON, EmptyState, PageShell } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings, listProducts } from "@/lib/admin/store";

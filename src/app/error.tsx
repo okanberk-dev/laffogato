@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
@@ -8,6 +7,7 @@ import {
   isStaleActionError,
   STALE_ACTION_MESSAGE,
 } from "@/components/laffogato/stale-action";
+import Link from "@/components/link";
 
 /**
  * Route-segment error boundary. Catches render-time throws from server

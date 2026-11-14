@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { formatDateTime, PageHeader } from "@/components/admin/forms";
 import {
   ActionMenuLink,
@@ -15,6 +13,7 @@ import {
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { listCafeTables, type CafeTable } from "@/lib/admin/cafe-tables";
 import {

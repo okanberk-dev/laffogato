@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { isValidElement, useId, type ReactNode } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { parsePublishInstant } from "@/lib/admin/publish-window";
 
 import { ActionMenu } from "./ui/action-menu";

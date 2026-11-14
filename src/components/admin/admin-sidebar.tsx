@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link, { useLinkStatus } from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   Suspense,
@@ -22,6 +22,7 @@ import {
 import { invoiceAttentionSignalAction } from "@/app/admin/faturalar/actions";
 import { karaokeTodaySignalAction } from "@/app/admin/mobil/karaoke/actions";
 import { openOrderSignalAction } from "@/app/admin/siparisler/actions";
+import Link from "@/components/link";
 import {
   readSignalAnswer,
   type PanelSignalAnswer,

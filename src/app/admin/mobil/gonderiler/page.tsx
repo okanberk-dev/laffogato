@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import {
   ActionMenu,
@@ -13,6 +11,7 @@ import {
   PageShell,
   StatusTabs,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { appPublishStatus } from "@/lib/admin/app-content-schema";
 import { requireRole } from "@/lib/admin/auth";
 import { canAccess } from "@/lib/admin/roles";

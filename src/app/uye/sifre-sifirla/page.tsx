@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 
 import { DegradedAuthNotice } from "@/components/customer/degraded-auth-notice";
 import { LafMark } from "@/components/laffogato/brand-mark";
+import Link from "@/components/link";
 import { RESET_TOKEN_COOKIE } from "@/lib/customer/reset-link";
 
 import { ResetPasswordForm } from "./reset-form";

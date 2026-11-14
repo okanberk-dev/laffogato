@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import type { AdminTone } from "@/lib/admin/tone";
 
 import { HUE_INK, HUE_SOFT, type AdminHue } from "../ui/hues";

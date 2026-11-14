@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatTRY } from "@/components/admin/forms";
 import { PaymentsArt } from "@/components/laffogato/payments-art";
 import { PixelConversion } from "@/components/laffogato/pixel-events";
+import Link from "@/components/link";
 import { getOrder } from "@/lib/admin/store";
 import { orderConversion } from "@/lib/consent/meta-pixel";
 import { getActiveCustomer } from "@/lib/customer/auth";

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { KpiStrip } from "@/components/admin/dashboard/kpi-strip";
 import { EmailText } from "@/components/admin/ui/email-text";
 import {
@@ -24,6 +22,7 @@ import {
 } from "@/components/admin/ui";
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { countCustomers, listCustomerPage } from "@/lib/admin/customer-list";
 import {

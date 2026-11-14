@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { Badge, BUTTON, EmptyState } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { findLegalDoc } from "@/lib/legal/documents";
 import { LegalMarkdown } from "@/lib/legal/markdown";

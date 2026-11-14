@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -21,6 +20,7 @@ import { ImageUpload } from "@/components/admin/image-upload";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
 import { DateTimeField } from "@/components/admin/ui/date-time-field";
 import { SCENES } from "@/components/laffogato/scenes";
+import Link from "@/components/link";
 import {
   HOME_HERO_BUNDLED_IMAGES,
   HOME_HERO_LIMITS as L,

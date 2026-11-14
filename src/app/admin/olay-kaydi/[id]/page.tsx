@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BackLink } from "@/components/admin/back-link";
@@ -11,6 +10,7 @@ import {
   type KeyValueItem,
 } from "@/components/admin/ui";
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import { getAuditLog } from "@/lib/admin/audit";
 import {
   AUDIT_ACTION_LABELS,

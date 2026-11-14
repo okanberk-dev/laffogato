@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -10,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
+import Link from "@/components/link";
 import { QUICK_LOOK_PARAM, sameListAddress } from "@/lib/admin/quick-look-core";
 
 import { AdminIcon } from "./icons";

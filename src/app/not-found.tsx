@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { SCENES, type SceneKey } from "@/components/laffogato/scenes";
+import Link from "@/components/link";
 import { getSiteSettings } from "@/lib/seo/site-data";
 import { footerSettings } from "@/lib/seo/contact";
 
