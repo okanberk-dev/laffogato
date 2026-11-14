@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import {
@@ -10,6 +9,7 @@ import {
   setMenuItemActiveAction,
   type BulkMenuActionState,
 } from "@/app/admin/menu/actions";
+import Link from "@/components/link";
 import { actionError, actionOk } from "@/lib/admin/action-result";
 import {
   MENU_PATH,

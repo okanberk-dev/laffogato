@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { foldChips } from "@/lib/admin/quick-look-core";
 
 import { HUE_TILE, type AdminHue } from "./hues";

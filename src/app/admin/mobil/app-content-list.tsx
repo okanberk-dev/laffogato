@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import { ActionButton } from "@/components/admin/action-form";
 import { formatDateTime } from "@/components/admin/forms";
 import { MoveButtons } from "@/components/admin/move-buttons";
 import { Badge, type ModalAction, type StatusTab } from "@/components/admin/ui";
+import Link from "@/components/link";
 import {
   APP_PUBLISH_STATUS_LABELS,
   APP_PUBLISH_STATUS_TONES,

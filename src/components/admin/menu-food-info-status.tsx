@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { TONE_RULE, TONE_SOFT } from "@/components/admin/ui/tone";
+import Link from "@/components/link";
 import { normalizeMenuAllergens } from "@/lib/menu/allergens";
 import {
   menuPricesDateLabel,

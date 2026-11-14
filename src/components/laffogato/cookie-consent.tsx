@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import Link from "@/components/link";
 import {
   CONSENT_DENIED,
   CONSENT_VERSION,

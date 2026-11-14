@@ -1,7 +1,8 @@
-import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import styles from "./arc.module.css";
+
+import Link from "@/components/link";
 
 // Arc UI's free `donut-chart` (https://uiarc.dev/r/donut-chart.json), ported
 // for the panel: the ring geometry (`sector`, rounded annular sectors with an

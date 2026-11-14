@@ -1,7 +1,8 @@
-import Link from "next/link";
 import type { MouseEvent } from "react";
 
 import type { CheckoutDocSlug } from "./checkout-documents";
+
+import Link from "@/components/link";
 
 /**
  * The confirmations a distance sale needs before the order exists

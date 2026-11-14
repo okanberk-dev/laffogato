@@ -1,8 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import Link from "@/components/link";
 import { guideGraphLd, recipeStepId } from "@/lib/seo/guide-structured-data";
 import { GUIDES, findGuide, relatedGuides } from "@/lib/seo/guides";
 import { SITE, brandedTitle, metaDescription } from "@/lib/seo/site";

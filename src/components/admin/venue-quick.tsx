@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
@@ -8,6 +7,7 @@ import {
   saveVenueQuickAction,
   venueQuickSignalAction,
 } from "@/app/admin/mobil/canli-durum/actions";
+import Link from "@/components/link";
 import type { ActionResult } from "@/lib/admin/action-result";
 import {
   choiceAfterStep,

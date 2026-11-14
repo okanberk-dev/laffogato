@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BackLink } from "@/components/admin/back-link";
 import { CampaignSendLog } from "@/components/admin/campaign-send-log";
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { campaignAudienceCount } from "@/lib/admin/campaign-mail";
 import {

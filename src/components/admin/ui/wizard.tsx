@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   createContext,
   useCallback,
@@ -14,6 +13,8 @@ import {
 import { GhostButton, PrimaryButton } from "../forms";
 import { AdminIcon } from "./icons";
 import { BUTTON, CARD } from "./styles";
+
+import Link from "@/components/link";
 
 /**
  * The panel's step-by-step form (22 Oct 2026, operator: "fatura oluşturma

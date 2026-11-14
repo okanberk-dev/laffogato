@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useRef } from "react";
 
 import type { CustomerActionState } from "@/app/admin/musteriler/actions";
+import Link from "@/components/link";
 import type { AdminCustomer } from "@/lib/customer/store";
 
 import {

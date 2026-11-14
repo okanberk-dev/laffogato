@@ -729,6 +729,32 @@ rezervasyona göre optimize etmek. Tam anlatım: `docs/META-PIXEL.md`.
   yönlendirme yerine `checkout` durumu döner (`BookKaraokeState.checkout`);
   izinsiz ziyaretçi eskisi gibi `redirect` edilir.
 
+## Vercel kullanım sınırı ve bağlantılar (14 Kas 2026)
+
+Site 14 Kas 2026'da kapandı, kod çökmemişti: Vercel, Hobby planının kullanım
+sınırı aşılınca hesaptaki **bütün** projeleri durdurdu (laffogato.net "This
+deployment is temporarily paused", dağıtım adresleri `402
+DEPLOYMENT_DISABLED`; lafmaliyet ve gnbsite de). Son dağıtım `READY`'di.
+Hobby planında aşım siteyi durdurur ve plan ticari kullanım için değildir;
+ödeme alan bir site Pro'da durur (aşım faturalanır, site açık kalır).
+Pro'da Spend Management'ın "projeleri durdur" seçeneği aynı kapanmayı geri
+getirir: orada yalnız bildirim. Sorun Vercel'deyse ilk bakılacak yer
+Usage sayfası ve dağıtım adresinin `x-vercel-error` başlığı.
+
+- **Bağlantılar görünürken önceden yüklemez.** `next/link` doğrudan import
+  edilmez; her bağlantı `@/components/link`'ten gelir. O, bağlantıyı
+  ekrana girdiğinde değil, fare üstüne gelince ya da parmak dokununca
+  önceden yükler; `prefetch`'i kendisi seçen bağlantı seçimini korur.
+  Sayfaların neredeyse hepsi dinamik (`ƒ`) olduğu için varsayılan prefetch
+  anasayfanın bir ziyaretini 12-13 sunucu çizimine (her biri bir fonksiyon
+  ve bir proxy çalışması) çeviriyordu; şimdi belge ve karaoke uygunluğu, 2
+  istek. Panelin kenar çubuğu da aynısını kendi sayfalarıyla yapıyordu.
+  `useLinkStatus` yine `next/link`'ten gelir. `tests/link-prefetch.test.ts`
+  tutar.
+- Sayfa yüküne yeni bir istek ya da yeni bir yoklama (polling) eklerken
+  Vercel çağrısını say: panelin yoklamaları kapalı saatte seyrelir
+  (`ORDER_ALERT_IDLE_POLL_MS`), yenisi de öyle yazılır.
+
 ## Geliştirme Komutları
 
 ```bash

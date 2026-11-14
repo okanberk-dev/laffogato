@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import type { ShopCategorySlug } from "@/lib/admin/category-schema";
 import type { AdminCategory } from "@/lib/admin/store";
 

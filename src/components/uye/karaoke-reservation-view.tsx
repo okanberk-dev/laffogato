@@ -1,7 +1,6 @@
-import Link from "next/link";
-
 import { kdvIncludedParts } from "@/components/laffogato/kdv-note";
 import { karaokeInstantLabel } from "@/components/laffogato/karaoke-terms";
+import Link from "@/components/link";
 import {
   formatReservationDate,
   formatReservationTime,

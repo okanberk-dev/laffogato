@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ActionButton } from "@/components/admin/action-form";
@@ -20,6 +19,7 @@ import {
   retryInvoiceAction,
   setInvoiceBillingAction,
 } from "@/app/admin/faturalar/actions";
+import Link from "@/components/link";
 import type { InvoiceRow, InvoiceSourceKind } from "@/lib/invoice/invoice-core";
 import {
   invoiceCardHref,

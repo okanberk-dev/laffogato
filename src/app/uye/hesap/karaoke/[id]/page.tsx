@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PixelConversion } from "@/components/laffogato/pixel-events";
+import Link from "@/components/link";
 import { AccountCard, AccountShell } from "@/components/uye/account-shell";
 import {
   KaraokeReservationView,

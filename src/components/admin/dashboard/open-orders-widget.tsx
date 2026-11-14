@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES } from "@/lib/admin/order-ui";
 import type { DashboardStats } from "@/lib/admin/store";
 

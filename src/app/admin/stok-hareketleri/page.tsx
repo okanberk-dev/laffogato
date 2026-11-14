@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { EmailText } from "@/components/admin/ui/email-text";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { StockAdjustForm } from "@/components/admin/stock-adjust-form";
@@ -13,6 +11,7 @@ import {
   PageShell,
   Pagination,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import {
   firstParam,

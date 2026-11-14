@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { Card, formatDateTime } from "@/components/admin/forms";
 import {
   Badge,
@@ -7,6 +5,7 @@ import {
   ConfirmButton,
   EmptyState,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { findLegalDoc } from "@/lib/legal/documents";
 import type { LegalOverrideArchiveSummary } from "@/lib/legal/store";
 

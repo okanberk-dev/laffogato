@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useActionState,
   useEffect,
@@ -14,6 +13,7 @@ import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { productStepAnchor } from "@/lib/admin/products-panel";
 import { skuPrefix } from "@/lib/admin/sku";
 import {

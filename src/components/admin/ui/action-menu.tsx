@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useEffect,
   useId,
@@ -12,6 +11,7 @@ import {
 } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 
 import { BUTTON, COMPACT, ROW_CONTROL } from "./styles";
 

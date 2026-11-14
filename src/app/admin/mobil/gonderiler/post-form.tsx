@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import { GuardedActionForm } from "@/components/admin/guarded-action-form";
@@ -16,6 +15,7 @@ import {
 } from "@/components/admin/forms";
 import type { ModalAction } from "@/components/admin/ui";
 import { DateTimeField } from "@/components/admin/ui/date-time-field";
+import Link from "@/components/link";
 import {
   APP_POST_KIND_LABELS,
   APP_POST_KINDS,

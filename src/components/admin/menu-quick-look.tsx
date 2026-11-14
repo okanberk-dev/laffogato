@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import type { AdminAuditLog } from "@/lib/admin/audit";
 import { AUDIT_LOG_PATH } from "@/lib/admin/audit-view";
 import { auditActorLabel } from "@/lib/admin/karaoke-panel";

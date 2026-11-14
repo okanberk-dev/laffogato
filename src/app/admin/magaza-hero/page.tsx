@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ActionButton } from "@/components/admin/action-form";
 import { PageHeader } from "@/components/admin/forms";
 import { MoveButtons } from "@/components/admin/move-buttons";
@@ -14,6 +12,7 @@ import {
   EmptyState,
   PageShell,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import { heroImagePath, servedImage } from "@/lib/admin/image-url";

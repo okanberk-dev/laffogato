@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 
 import { LafMark } from "@/components/laffogato/brand-mark";
+import Link from "@/components/link";
 import { decodeEmailLink, EMAIL_LINK_COOKIE } from "@/lib/customer/email-link";
 
 import { confirmEmailLinkAction } from "./actions";

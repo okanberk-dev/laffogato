@@ -1,8 +1,7 @@
-import Link from "next/link";
-
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { BUTTON, PageShell } from "@/components/admin/ui";
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { stockLinks } from "@/lib/admin/dashboard-core";
 import { loadDayClose } from "@/lib/admin/day-close";

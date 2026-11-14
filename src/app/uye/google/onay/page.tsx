@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LafMark } from "@/components/laffogato/brand-mark";
+import Link from "@/components/link";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { sameSitePath } from "@/lib/http/same-site-path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";

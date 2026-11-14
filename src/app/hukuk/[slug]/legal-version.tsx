@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import Link from "@/components/link";
 import type { LegalSection } from "@/lib/legal/documents";
 import { LegalMarkdown } from "@/lib/legal/markdown";
 import { isVersionPrefix } from "@/lib/legal/version-core";

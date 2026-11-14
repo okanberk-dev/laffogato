@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import {
@@ -9,6 +8,7 @@ import {
   SubmitButton,
 } from "@/components/admin/action-form";
 import { BUTTON } from "@/components/admin/ui";
+import Link from "@/components/link";
 
 // The pieces the slide, announcement and post forms share: a field with its
 // refusal under it, and the form's last row.

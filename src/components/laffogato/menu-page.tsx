@@ -2,8 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 
-import Link from "next/link";
-
+import Link from "@/components/link";
 import { menuAllergenWords } from "@/lib/menu/allergens";
 import { menuPriceNote } from "@/lib/menu/price-list";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";

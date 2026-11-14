@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ActionButton } from "@/components/admin/action-form";
@@ -9,6 +8,7 @@ import {
   BUTTON,
   ConfirmButton,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { tableUrl } from "@/lib/admin/cafe-tables-core";
 import type { CafeTable } from "@/lib/admin/cafe-tables";
 import {

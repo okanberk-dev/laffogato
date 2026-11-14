@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -32,6 +31,7 @@ import {
   type SummaryChip,
 } from "@/components/admin/ui/summary-card";
 import { MONO_STYLE, NUMERIC_STYLE } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { listKaraokeAudit } from "@/lib/admin/karaoke-audit";
 import {

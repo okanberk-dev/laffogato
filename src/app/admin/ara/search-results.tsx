@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { startTransition, useEffect, useRef } from "react";
 
 import {
@@ -13,6 +12,7 @@ import { useNoResetSubmit } from "@/components/admin/action-form";
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import { EmptyState, Section } from "@/components/admin/ui/detail";
 import { NUMERIC_STYLE } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import {
   SEARCH_LIMIT,
   SEARCH_MIN_LENGTH,

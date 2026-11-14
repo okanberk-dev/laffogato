@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import {
   TABLE_CALL_REASON_LABELS,
   type PanelTableCall,

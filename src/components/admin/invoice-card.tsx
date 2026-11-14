@@ -1,7 +1,6 @@
-import Link from "next/link";
-
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import { Badge, KeyValueGrid, Section } from "@/components/admin/ui";
+import Link from "@/components/link";
 import type { EarsivMode } from "@/lib/invoice/config";
 import type {
   InvoiceLine,

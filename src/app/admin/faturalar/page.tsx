@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import {
   ActionButton,
   ActionForm,
@@ -27,6 +25,7 @@ import {
   Section,
   StatusTabs,
 } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import {
   EARSIV_MODE_LABELS,

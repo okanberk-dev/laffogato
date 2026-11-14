@@ -1,7 +1,7 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 
 /**
  * "← Kampanyalar": the way back over a sub-page, in the Masalar and karaoke

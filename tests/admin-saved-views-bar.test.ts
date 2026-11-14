@@ -253,6 +253,9 @@ describe("what the bar loads statically", () => {
       [
         "@/app/admin/liste-arama/actions",
         "@/components/laffogato/cx",
+        // next/link without prefetch on sight (14 Kas 2026): imports only
+        // next/link and react (tests/link-prefetch.test.ts).
+        "@/components/link",
         // The date presets' links (UI-14): pure, no imports of their own.
         "@/lib/admin/date-presets",
         "@/lib/admin/list-params",
@@ -269,7 +272,6 @@ describe("what the bar loads statically", () => {
         // chunk itself is reached by import() alone.
         "./widget-loader",
         "next/dynamic",
-        "next/link",
         "react",
       ].sort(),
     );

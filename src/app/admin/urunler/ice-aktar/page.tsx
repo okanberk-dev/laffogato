@@ -1,8 +1,7 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import { ProductImportForm } from "@/components/admin/product-import-form";
 import { BUTTON } from "@/components/admin/ui";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 
 export const metadata = { title: "Admin · Ürünleri içe aktar" };

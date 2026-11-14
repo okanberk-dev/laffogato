@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BackLink } from "@/components/admin/back-link";
@@ -16,6 +15,7 @@ import {
   Section,
 } from "@/components/admin/ui";
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import { productImagePath, servedImage } from "@/lib/admin/image-url";

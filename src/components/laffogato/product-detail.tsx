@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
+import Link from "@/components/link";
 import { shopParams, trackPixelForPage } from "@/lib/consent/meta-pixel";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import {

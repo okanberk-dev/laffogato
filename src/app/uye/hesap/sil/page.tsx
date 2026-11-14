@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { LafMark } from "@/components/laffogato/brand-mark";
+import Link from "@/components/link";
 import { AccountCard, AccountShell } from "@/components/uye/account-shell";
 import { DeletionRequestNotice } from "@/components/uye/deletion-request-notice";
 import { getActiveCustomer } from "@/lib/customer/auth";

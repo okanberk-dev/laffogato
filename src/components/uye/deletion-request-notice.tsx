@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 
 import {
@@ -8,6 +7,7 @@ import {
   type DeletionRequestState,
 } from "@/app/uye/actions";
 import { BusyDots } from "@/components/laffogato/busy-dots";
+import Link from "@/components/link";
 
 const initial: DeletionRequestState = {};
 

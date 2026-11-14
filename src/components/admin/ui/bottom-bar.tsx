@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link, { useLinkStatus } from "next/link";
+import { useLinkStatus } from "next/link";
 import type { MouseEvent } from "react";
 
 import { cx } from "@/components/laffogato/cx";
+import Link from "@/components/link";
 import {
   BOTTOM_BAR_HIDE,
   BOTTOM_BAR_MORE_LABEL,

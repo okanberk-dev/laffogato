@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 import { listSearchAction } from "@/app/admin/liste-arama/actions";
+import Link from "@/components/link";
 import {
   LIST_SEARCH_FIELDS,
   listSearchFor,

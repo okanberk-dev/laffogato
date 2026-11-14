@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import Link from "@/components/link";
 import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
 

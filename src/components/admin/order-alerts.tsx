@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -14,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import { transitionOrderAction } from "@/app/admin/siparisler/actions";
 import { ackTableCallAction } from "@/app/admin/siparisler/call-actions";
+import Link from "@/components/link";
 import {
   ORDER_ALERT_ACK_KEY,
   ORDER_ALERT_PATH,

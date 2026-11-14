@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import Link from "@/components/link";
 import { MENU_TAG_LABEL } from "@/lib/admin/menu-panel";
 import {
   productEditHref,

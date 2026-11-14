@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import {
   applyProductImportAction,
   previewProductImportAction,
 } from "@/app/admin/urunler/ice-aktar/actions";
+import Link from "@/components/link";
 import {
   EMPTY_IMPORT_STATE,
   IMPORT_NEED_LABEL,

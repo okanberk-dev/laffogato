@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ActionButton } from "@/components/admin/action-form";
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
 import { MoveButtons } from "@/components/admin/move-buttons";
@@ -16,6 +14,7 @@ import {
   PageShell,
 } from "@/components/admin/ui";
 import { SCENES } from "@/components/laffogato/scenes";
+import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { homeSlidePhoto, listHomeHeroSlides } from "@/lib/admin/home-hero";
 import {

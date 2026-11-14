@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Fragment } from "react";
 
+import Link from "@/components/link";
 import { venueContact, type VenueContact } from "@/lib/seo/contact";
 import type { FaqEntry } from "@/lib/seo/faq";
 import { GUIDE_LINKS } from "@/lib/seo/guide-nav";

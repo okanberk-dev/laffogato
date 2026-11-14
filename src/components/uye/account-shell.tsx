@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
+import Link from "@/components/link";
 import type { PublicCustomer } from "@/lib/customer/store";
 
 import { logoutAction } from "@/app/uye/actions";

@@ -76,7 +76,11 @@ describe("which pages are wizards", () => {
     const kit = read("src/components/admin/ui/wizard.tsx");
     expect(kit.startsWith('"use client";')).toBe(true);
     for (const m of kit.matchAll(/from "([^"]+)"/g)) {
-      expect(m[1], m[1]).toMatch(/^(react|next\/link|\.\.?\/)/);
+      // @/components/link is next/link without prefetch on sight: it
+      // imports only react and next/link (tests/link-prefetch.test.ts).
+      expect(m[1], m[1]).toMatch(
+        /^(react|next\/link|@\/components\/link$|\.\.?\/)/,
+      );
     }
   });
 });
