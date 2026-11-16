@@ -51,7 +51,7 @@ function headerSafe(raw: string): string {
   return raw.replace(/[\r\n]+/g, " ").trim();
 }
 
-/** `ed**@example.com` - enough to recognise a row, not enough to be one. */
+/** `ed**@<domain>` - enough to recognise a row, not enough to be one. */
 function maskEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";

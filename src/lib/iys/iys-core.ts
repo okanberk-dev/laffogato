@@ -275,7 +275,7 @@ export function iysDueLabel(dueAt: string, now: Date): string {
 
 // ── Addresses ──────────────────────────────────────────────────────────────
 
-// An apostrophe is valid inside an address (o'brien@example.com) and both
+// An apostrophe is valid inside an address (an O'Brien-style local part) and both
 // the member and the bulletin validators accept it; only a leading one (a
 // spreadsheet's text marker) is stripped before this test.
 const EMAIL_RE = /^[^\s@,;"<>]+@[^\s@,;"<>]+\.[^\s@,;"<>]+$/;
@@ -285,7 +285,7 @@ export function iysExcludedAddress(email: string): boolean {
   return /@(laffogato|anon)\.local$/i.test(email);
 }
 
-/** `ah***@example.com`: enough to recognise a row, not to be one. */
+/** `ah***@<domain>`: enough to recognise a row, not to be one. */
 export function maskIysEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";
@@ -338,7 +338,7 @@ export function toIysConsentRequest(event: IysExportEvent): {
  * One cell of the İYS file, quoted when it holds a comma, a quote or a line
  * break. Never prefixed: the shared csvField puts a ' before a cell that
  * starts with = + - @ (a spreadsheet guard), and İYS would read
- * `'+promo@example.com` as the recipient, refusing the row or registering
+ * `'+promo@<domain>` as the recipient, refusing the row or registering
  * a different address. Every other column is a fixed code or a date.
  */
 function iysCell(value: string): string {

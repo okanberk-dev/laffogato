@@ -6,8 +6,11 @@ uygulama içeriği seed'leri. Bunların hiçbiri canlı veritabanına dokunmaz;
 **Neon'daki satırlar olduğu gibi durur.** Bu belge o satırları bulmak ve
 isterseniz silmek için.
 
-> Bu belgedeki hiçbir sorgu bir oturumda çalıştırılmadı (veritabanı bağlantısı
-> yoktu). Önce **yalnız SELECT'leri** çalıştırın, listeyi gözle okuyun, silmeyi
+> Sorgular canlı veritabanında **çalıştırılmadı** (bağlantı yoktu). Yerelde
+> `db/schema.sql` ile kurulmuş boş bir Postgres 16'ya sahte satırlar eklenerek
+> denendi: bölüm 1'deki SELECT'ler, bölüm 4'teki keşif sorgusu ve silme şablonu
+> (faturalı sipariş koruması dahil) beklenen satırları verdi. Yine de önce
+> **yalnız SELECT'leri** çalıştırın, listeyi gözle okuyun, silmeyi
 > `begin` ... `rollback` içinde deneyin, doğruysa `commit` yazın. Önce Neon'da
 > bir dal (branch) açıp orada deneyin.
 
@@ -81,3 +84,76 @@ rollback;
 -- beklediğiniz sayıysa rollback yerine:
 -- commit;
 ```
+
+## 4. Yalnız `@example.com` ile biten kayıtlar
+
+Adres hangi tabloda geçiyor? Aşağıdaki sorgu e-posta tutan her metin kolonunda
+`@example.com` ile biten satırları sayar (yalnız okur):
+
+```sql
+select table_name, column_name,
+  (xpath('/row/c/text()', query_to_xml(
+     format('select count(*) as c from public.%I where %I ilike %L',
+            table_name, column_name, '%@example.com'),
+     false, true, '')))[1]::text::int as adet
+from information_schema.columns
+where table_schema = 'public' and data_type = 'text' and column_name ilike '%email%'
+order by adet desc, table_name;
+```
+
+Sayı yalnız `customers`, `orders`, `karaoke_reservations` gibi müşteri
+tablolarında çıkıyorsa aşağıdaki şablon hepsini tek işlemde siler. Şablon
+`@example.com` ile biten adreslerin kayıtlarını siler. Adresi `example.com`
+olan gerçek bir müşteriniz varsa onun kayıtları da gider; bu yüzden önce
+bölüm 1'deki D sorgusuyla listeyi okuyun.
+
+Bilerek **silinmeyenler**: `wallet_transactions` (para defteri),
+`customer_consents` (rıza kanıtı), `audit_logs`, `invoices`, `iys_*`,
+`campaign_email_sends`, `email_suppressions` ve ayar tabloları. Keşif sorgusu
+bunlarda sayı veriyorsa her biri ayrı bir karardır. Siparişlerden birinin
+faturası kesilmişse şablon hata verip durur (`ERROR: ... faturası var`), hiçbir
+şey silinmez.
+
+```sql
+begin;
+
+create temp table _ex_orders on commit drop as
+  select id from public.orders where "customerEmail" ilike '%@example.com';
+
+-- Faturası kesilmiş sipariş varsa dur (Paraşüt'te kalan fatura sahipsiz kalır).
+do $$
+begin
+  if exists (select 1 from public.invoices
+             where "sourceId" in (select id from _ex_orders)) then
+    raise exception 'example.com siparişlerinin faturası var; silme, önce muhasebeyle konuş';
+  end if;
+end $$;
+
+with
+  a as (delete from public.payment_transactions where "orderId" in (select id from _ex_orders) returning 1),
+  b as (delete from public.order_notice_emails  where "orderId" in (select id from _ex_orders) returning 1),
+  c as (delete from public.order_push_notices   where "orderId" in (select id from _ex_orders) returning 1),
+  d as (delete from public.orders               where id        in (select id from _ex_orders) returning 1),
+  e as (delete from public.karaoke_reservations where "customerEmail" ilike '%@example.com' or "contactEmail" ilike '%@example.com' returning 1),
+  f as (delete from public.customer_coupons     where "customerEmail" ilike '%@example.com' returning 1),
+  g as (delete from public.customer_devices     where "customerEmail" ilike '%@example.com' returning 1),
+  h as (delete from public.loyalty_stamps       where "customerEmail" ilike '%@example.com' returning 1),
+  i as (delete from public.customer_milestone_rewards where "customerEmail" ilike '%@example.com' returning 1),
+  j as (delete from public.table_calls          where "customerEmail" ilike '%@example.com' returning 1),
+  k as (delete from public.counter_tokens       where "customerEmail" ilike '%@example.com' returning 1),
+  l as (delete from public.feature_consents     where "customerEmail" ilike '%@example.com' returning 1),
+  m as (delete from public.newsletter_subscribers where email ilike '%@example.com' returning 1),
+  n as (delete from public.customers            where email ilike '%@example.com' returning 1)
+select (select count(*) from a) as odeme,       (select count(*) from b) as siparis_eposta,
+       (select count(*) from c) as siparis_push, (select count(*) from d) as siparis,
+       (select count(*) from e) as karaoke,      (select count(*) from f) as kupon,
+       (select count(*) from g) as cihaz,        (select count(*) from h) as damga,
+       (select count(*) from i) as odul,         (select count(*) from j) as masa_cagri,
+       (select count(*) from k) as sayac_jeton,  (select count(*) from l) as ozellik_riza,
+       (select count(*) from m) as bulten,       (select count(*) from n) as musteri;
+
+rollback;   -- sayılar beklediğiniz gibiyse bu satırı "commit;" yapın
+```
+
+Son `select` her tablodan kaç satır sildiğini tek satırda gösterir; `rollback`
+satırıyla bırakırsanız hiçbir şey kalıcı olmaz.

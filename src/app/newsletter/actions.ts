@@ -116,7 +116,7 @@ async function forgetLinkToken(path: NewsletterLinkPath): Promise<void> {
   }
 }
 
-/** "ayse@example.com" → "a***@example.com": enough to recognise, not to log. */
+/** "ayse@<domain>" → "a***@<domain>": enough to recognise, not to log. */
 function maskedAddress(email: string): string {
   const [local, domain] = email.split("@");
   if (!domain) return "";

@@ -176,7 +176,7 @@ function checkErr(error: DbError | null, ctx: string): void {
   if (error) raiseDbError(ctx, error, error.code === "" ? 0 : 400);
 }
 
-/** `ed**@example.com` - enough to recognise a row in a log, not to be one. */
+/** `ed**@<domain>` - enough to recognise a row in a log, not to be one. */
 function maskEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";

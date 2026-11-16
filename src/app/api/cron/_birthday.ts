@@ -206,7 +206,7 @@ export async function runBirthdayGreetings(
   return result;
 }
 
-/** `ed**@example.com` - enough to recognise a row, not enough to be one. */
+/** `ed**@<domain>` - enough to recognise a row, not enough to be one. */
 function maskEmail(address: string): string {
   const at = address.indexOf("@");
   if (at < 1) return "***";
