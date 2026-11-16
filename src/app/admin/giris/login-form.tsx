@@ -65,7 +65,7 @@ export function LoginForm({ next }: { next?: string }) {
           required
           maxLength={254}
           autoComplete="email"
-          placeholder="merhaba@example.com"
+          placeholder="E-posta adresi"
         />
       </Field>
 

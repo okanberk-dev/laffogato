@@ -476,7 +476,7 @@ export function ImageUpload({
               addUrl();
             }
           }}
-          placeholder="https://images.example.com/sirena-1.jpg"
+          placeholder="https:// ile başlayan görsel bağlantısı"
           className="min-h-11 min-w-0 flex-[1_1_10rem] rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-base outline-none focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-primary)]/25 sm:text-sm pointer-fine:min-h-9"
         />
         <button

@@ -357,7 +357,7 @@ export function GrantBaristaForm() {
           name="email"
           required
           autoComplete="off"
-          placeholder="barista@ornek.com"
+          placeholder="Personelin e-posta adresi"
         />
       </Field>
       <Notice state={state} />

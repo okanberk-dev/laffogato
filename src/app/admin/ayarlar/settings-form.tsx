@@ -682,7 +682,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
               name="notificationEmail"
               type="email"
               defaultValue={settings.notificationEmail}
-              placeholder="operasyon@ornek.com"
+              placeholder="Operasyon e-posta adresi"
             />
           </SettingsField>
           {/* Fieldsets, not <Field>: Field is a <label>, and each checkbox
@@ -723,7 +723,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
             <Textarea
               name="orderNotifyEmails"
               defaultValue={settings.orderNotifyEmails ?? ""}
-              placeholder={"mutfak@ornek.com\nbar@ornek.com"}
+              placeholder="Her satıra bir e-posta adresi"
               rows={3}
             />
           </SettingsField>
@@ -832,7 +832,7 @@ function EmailTab({
               name="testEmailTo"
               type="email"
               defaultValue={settings.notificationEmail || settings.email}
-              placeholder="sen@ornek.com"
+              placeholder="Testin gideceği e-posta adresi"
             />
           </SettingsField>
           <SaveBar

@@ -39,7 +39,7 @@ export function RegisterForm() {
           required
           defaultValue={v.email}
           autoComplete="email"
-          placeholder="merhaba@example.com"
+          placeholder="E-posta adresin"
         />
       </div>
       <div className="auth-field">

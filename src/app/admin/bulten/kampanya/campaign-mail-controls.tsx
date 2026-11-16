@@ -96,7 +96,7 @@ export function CampaignTestForm({
         name="to"
         type="email"
         defaultValue={defaultTo}
-        placeholder="ornek@laffogato.net"
+        placeholder="Test alıcısının e-posta adresi"
         aria-label="Test alıcısı"
       />
       <GhostButton type="submit" disabled={pending}>

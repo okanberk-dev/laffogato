@@ -543,7 +543,7 @@ export function ManualOrderForm({
                   name="customerEmail"
                   type="email"
                   maxLength={MANUAL_ORDER_LIMITS.customerEmail}
-                  placeholder="ornek@eposta.com"
+                  placeholder="Müşterinin e-posta adresi"
                 />
               </Field>
               {errorFor("customerEmail")}

@@ -313,7 +313,7 @@ export function SlideForm({
               autoComplete="off"
               aria-label="Görsel bağlantısı (https)"
               value={isDataUrl ? "" : imageUrl}
-              placeholder="https://images.example.com/hero.jpg"
+              placeholder="https:// ile başlayan görsel bağlantısı"
               onChange={(e) => setImageUrl(e.target.value)}
               className="min-w-0 flex-1 rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
             />

@@ -25,7 +25,7 @@ export function ForgotPasswordForm() {
           name="email"
           required
           autoComplete="email"
-          placeholder="merhaba@example.com"
+          placeholder="E-posta adresin"
           disabled={pending}
         />
       </label>
