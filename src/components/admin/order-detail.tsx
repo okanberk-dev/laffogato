@@ -115,7 +115,6 @@ interface Props {
 const PROVIDER_LABELS: Record<string, string> = {
   paynkolay: "PayNkolay (kart)",
   wallet: "Uygulama cüzdanı",
-  mock: "Test sağlayıcısı",
   free: "Ücretsiz (₺0)",
 };
 

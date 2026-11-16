@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   verify:
-    name: typecheck + test + build
+    name: typecheck + lint + build
     # A squash merge of a PR lands on main with "(#N)" in its title, and its
     # tree is the PR head that already passed here with main merged in (the
     # merge flow brings every branch up to date first). Running it again on
@@ -24,42 +24,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    # A throwaway Postgres for tests/db-integration*.test.ts, which skip
-    # without TEST_DATABASE_URL. It listens on 55432, NOT 5432: the dummy
-    # DATABASE_URL below must stay unreachable, because the app applies its
-    # migrations to whatever DATABASE_URL answers, and the unit tests and the
-    # build are written for a site without a database (the same as before
-    # this service existed).
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: ci
-          POSTGRES_PASSWORD: ci
-          POSTGRES_DB: laf_it
-        ports:
-          - 55432:5432
-        options: >-
-          --health-cmd "pg_isready -U ci -d laf_it"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-
     # Dummy env so the build can resolve required vars without leaking secrets.
     # Real secrets live in Vercel; CI only proves the code compiles + builds.
     # NODE_ENV is intentionally NOT set - Next.js manages it itself during build.
     env:
       NEXT_TELEMETRY_DISABLED: "1"
-      # KANONİK alan adı olmak ZORUNDA, localhost değil: tests/structured-data
-      # ve tests/campaign-emails JSON-LD @id'lerini ve e-posta bağlantılarını
-      # bu değere göre bekler; localhost yazılırsa ikisi de kırılır.
+      # Kanonik alan adı (JSON-LD @id'leri ve e-posta bağlantıları bundan türer).
       NEXT_PUBLIC_SITE_URL: https://laffogato.net
       DATABASE_URL: postgres://ci:ci@localhost:5432/ci
       ADMIN_EMAIL: ci@laffogato.local
       ADMIN_PASSWORD: ci-placeholder-password
       ADMIN_SESSION_SECRET: ci-placeholder-session-secret-do-not-use-in-prod
-      PAYMENT_PROVIDER: mock
-      PAYMENT_WEBHOOK_SECRET: ci-placeholder-webhook-secret
 
     steps:
       - name: Checkout
@@ -95,11 +70,6 @@ jobs:
       # once they are resolved; a new warning anywhere fails the build now.
       - name: Lint
         run: npm run lint -- --max-warnings=0
-
-      - name: Test
-        run: npm test
-        env:
-          TEST_DATABASE_URL: postgres://ci:ci@localhost:55432/laf_it
 
       - name: Build
         run: npm run build

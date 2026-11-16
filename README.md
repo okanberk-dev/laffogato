@@ -13,7 +13,7 @@ Vercel'de barındırılır. Sağlayıcıya özel bağımlılık yok; taşınma b
 | **Rehber**  | Arama verisine dayalı 5 uzun içerik - `/rehber`                                                                                             |
 | **Hukuk**   | 25 sözleşme ve politika - `/hukuk`, tek kaynaktan doldurulan yasal kimlikle                                                                 |
 | **Admin**   | Ürün / menü / kategori / sipariş / müşteri / promosyon / içerik yönetimi, stok hareketleri, ciro raporları, olay kaydı, RBAC, TOTP 2FA      |
-| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **PayNkolay**, geliştirmede mock. Üretimde mock'a düşmez - açıkça reddeder                          |
+| **Ödeme**   | Sağlayıcı bağımsız soyutlama; sanal POS **PayNkolay**; `PAYMENT_PROVIDER` her ortamda açıkça verilir, sahte sağlayıcı yok                          |
 | **Rıza**    | Consent Mode v2 (KVKK) · mesafeli satış onayı kanıtla · 6563 bülten onayı ve tek tıkla çıkış                                                |
 
 ---
@@ -40,23 +40,10 @@ Veritabanı kurulumu, sağlayıcı geçmişi ve taşıma yordamı: **[docs/DATAB
 | `npm run dev`        | Geliştirme sunucusu                               |
 | `npm run build`      | Production build                                  |
 | `npm run typecheck`  | `tsc --noEmit`                                    |
-| `npm test`           | Vitest                                            |
 | `npm run lint`       | ESLint                                            |
 | `npm run format`     | Prettier yazar                                    |
 | `npm run db:migrate` | `db/migrations/*.sql` dosyalarını sırayla uygular |
 | `npm run db:bundle`  | `db/schema.sql`'i migration'lardan yeniden üretir |
-
-Veritabanına dokunan testler yalnızca `TEST_DATABASE_URL` verilince çalışır:
-
-```bash
-TEST_DATABASE_URL=postgres://user@host:5432/db npm test
-```
-
-Bu adres **yalnız tek kullanımlık bir test veritabanını** göstermeli: testler
-tabloları geniş silmelerle temizler (ör. ödeme bekleyen bütün siparişler), bu
-yüzden Neon'u ya da üretimdeki herhangi bir veritabanını asla vermeyin. CI bu
-testleri her çalıştırmada kendi `postgres:16` servisine karşı koşar
-(`.github/workflows/ci.yml`).
 
 ---
 
@@ -71,7 +58,7 @@ src/components/
 src/lib/
   db/                    pg havuzu · sorgu kurucu · SQL derleyici · sağlık
   admin/ · customer/     Veri katmanı ve iş kuralları
-  payment/               PaymentProvider · MockPaymentProvider · PaynkolayPaymentProvider
+  payment/               PaymentProvider · PaynkolayPaymentProvider
   legal/                 Yasal kimlik (tek kaynak) · 25 sözleşme · render · meta
   consent/               Çerez rızası durumu + Consent Mode v2 bootstrap
   newsletter/            6563 onay kaydı + tek tıkla çıkış
@@ -80,7 +67,6 @@ db/migrations/           Sıralı SQL migration'lar
 docs/                    DATABASE.md · SEO.md · AUDIT.md · PROMPT.md ·
                          FRONTEND-SINIR.md (ön yüz ↔ arka yüz sınırı) ·
                          API-MOBILE.md (mobil sözleşme, lafmobil ile aynı)
-tests/                   Vitest
 ```
 
 ### Bilmeye değer beş tasarım kararı
@@ -128,8 +114,7 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 | `NEXT_PUBLIC_SITE_URL`           | Kanonik site adresi                                 |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin girişi                                        |
 | `ADMIN_SESSION_SECRET`           | İmzalı cookie anahtarı (≥32 karakter)               |
-| `PAYMENT_PROVIDER`               | `mock` \| `paynkolay`                               |
-| `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (yalnız `mock`)            |
+| `PAYMENT_PROVIDER`               | `paynkolay`                                         |
 | `RESEND_API_KEY`                 | Sipariş, doğrulama ve şifre sıfırlama e-postaları   |
 | `SUPABASE_SECRET_KEY`            | Sıfırlanan parolayı Supabase'e de yazar             |
 
@@ -145,12 +130,6 @@ PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,
 `PAYNKOLAY_SX_CANCEL`, `PAYNKOLAY_MERCHANT_SECRET_KEY`,
 `PAYNKOLAY_MERCHANT_NO`, `PAYNKOLAY_BASE_URL`, `PAYNKOLAY_SUCCESS_URL` ve
 `PAYNKOLAY_FAIL_URL` - hepsinin ne olduğu `.env.example` içinde yazılı.
-
-> **PayNkolay henüz canlıya alınmadı.** Sağlayıcı kodu, hash formülleri ve
-> testleri hazır; panel anahtarları ve canlı deneme bekliyor - kurulum
-> [docs/PAYNKOLAY.md](docs/PAYNKOLAY.md) §13, canlı ölçüm listesi §12. O zamana kadar
-> `PAYMENT_PROVIDER=mock` ile yalnızca geliştirmede çalışılır; üretimde mock
-> reddedilir.
 
 > **PayNkolay webhook göndermez.** Sunucudan sunucuya bildirim yoktur; ödeme
 > kararı, müşterinin tarayıcısının getirdiği alanlardan değil, sağlayıcıya

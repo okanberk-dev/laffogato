@@ -1,6 +1,5 @@
 import { SAVED_CARDS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
 
-import { MockPaymentProvider } from "./mock";
 import { PaynkolayPaymentProvider } from "./paynkolay";
 import type { PaymentProvider } from "./provider";
 
@@ -30,39 +29,18 @@ function paynkolayCheckoutMode(): "hosted" | "direct" {
 export function getPaymentProvider(): PaymentProvider {
   if (cached) return cached;
 
-  // Fail closed. The mock provider settles an order as paid without taking any
-  // money, so defaulting to it means a forgotten env var on production turns
-  // every checkout into a free order. Outside development the provider must be
-  // named explicitly.
-  const configured = process.env.PAYMENT_PROVIDER;
-  if (!configured) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "PAYMENT_PROVIDER is not set. Refusing to fall back to the mock " +
-          "provider in production - it would mark orders paid without charging.",
-      );
-    }
-    console.warn(
-      "[payment] PAYMENT_PROVIDER unset — using the mock provider (development only).",
-    );
-  }
-  const providerName = configured ?? "mock";
-
-  // A production deployment must never run the mock, even if it is named.
-  if (providerName === "mock" && process.env.NODE_ENV === "production") {
+  // Fail closed: the provider must be named explicitly in every environment.
+  // There is no stand-in provider that settles an order without taking money;
+  // development uses PayNkolay's test host (PAYNKOLAY_BASE_URL).
+  const providerName = process.env.PAYMENT_PROVIDER;
+  if (!providerName) {
     throw new Error(
-      "PAYMENT_PROVIDER=mock is not allowed in production: the mock settles " +
-        "orders as paid without taking payment.",
+      "PAYMENT_PROVIDER is not set. Set PAYMENT_PROVIDER=paynkolay " +
+        "(docs/PAYNKOLAY.md).",
     );
   }
 
   switch (providerName) {
-    case "mock": {
-      cached = new MockPaymentProvider(
-        required("PAYMENT_WEBHOOK_SECRET", "mock"),
-      );
-      return cached;
-    }
     case "paynkolay": {
       // Üretim sağlayıcısı (docs/PAYNKOLAY.md). Test ve canlı yalnızca host ve
       // anahtarlarla ayrışıyor, bu yüzden NODE_ENV'e değil PAYNKOLAY_BASE_URL'e

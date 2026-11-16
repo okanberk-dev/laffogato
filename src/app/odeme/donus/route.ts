@@ -16,7 +16,6 @@ import {
 import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
 import {
   karaokeReturnDestination,
-  settleKaraokeMockReturn,
   settleKaraokeReturn,
 } from "@/lib/mobile/karaoke-return";
 import { isIssuedCheckoutRef } from "@/lib/mobile/orders";
@@ -26,14 +25,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Payment return handler. The provider redirects the customer back here after
- * checkout.
+ * Payment return handler (GET). The provider redirects the customer back here
+ * after checkout.
  *
- * DEV-ONLY auto-confirm: ONLY the mock provider may settle a payment from this
- * browser return. Return-URL params are user-controllable, so a real POS must
- * NEVER be trusted here - it confirms money via its signed webhook
- * (src/app/api/webhooks/payment/route.ts). For mock we additionally require the
- * order to belong to the returning, signed-in customer.
+ * Nothing is settled from a GET: return-URL params are user-controllable, so
+ * a payment is confirmed only by the POS return (POST below), which asks the
+ * provider what the posted token settled.
  *
  * An order placed from the mobile app (docs/API-MOBILE.md §3) ends in the
  * app, not on the web success page: the checkout was opened in an in-app
@@ -46,7 +43,6 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl;
   const base = url.origin;
   const orderId = url.searchParams.get("orderId") ?? "";
-  const status = url.searchParams.get("status") ?? "";
   const providerRef = url.searchParams.get("providerRef") ?? "";
   const promo = url.searchParams.get("promo") ?? "";
 
@@ -57,19 +53,7 @@ export async function GET(req: NextRequest) {
   const provider = safeProvider();
   // A karaoke booking (`krk-`, docs/API-MOBILE.md §7): its own settle and its
   // own landing page; nothing below is order-shaped enough for it.
-  if (isKaraokeRef(orderId)) {
-    let proved = false;
-    if (provider && status === "success") {
-      const customer = await getActiveCustomer();
-      proved = await settleKaraokeMockReturn({
-        ref: orderId,
-        providerRef,
-        provider,
-        customerEmail: customer?.email ?? null,
-      });
-    }
-    return karaokeRedirect(orderId, base, proved);
-  }
+  if (isKaraokeRef(orderId)) return karaokeRedirect(orderId, base);
   const [customer, order] = await Promise.all([
     getActiveCustomer(),
     safeGetOrder(orderId),
@@ -84,25 +68,6 @@ export async function GET(req: NextRequest) {
     !!provider &&
     orderChannel(order) === "app" &&
     (await isIssuedCheckoutRef(orderId, provider.name, providerRef));
-
-  if (
-    provider?.name === "mock" &&
-    status === "success" &&
-    order &&
-    (ownedOnWeb || issuedForApp)
-  ) {
-    const res = await applyPaymentSucceeded({
-      orderId,
-      provider: provider.name,
-      providerRef: providerRef || `mock_${orderId}`,
-      amountMinor: order.totalMinor,
-      currency: "TRY",
-      raw: { source: "mock_return" },
-    });
-    if (!res.ok) {
-      console.error("[odeme/donus] mock confirm failed", res.error);
-    }
-  }
 
   // `app=1` on the URL used to be enough to reach the deep link, whose
   // `?status=success|failed` says whether that order was paid - an

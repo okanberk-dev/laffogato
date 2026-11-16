@@ -223,8 +223,6 @@ export function paymentMethodLabel(provider: string): string {
       return "Cüzdan";
     case "free":
       return "Ödeme yok (kupon tutarı karşıladı)";
-    case "mock":
-      return "Test ödemesi";
     default:
       return provider ? `Kart (${provider})` : "Kart";
   }

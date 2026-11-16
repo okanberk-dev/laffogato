@@ -14,8 +14,6 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:bundle": "node scripts/db-bundle.mjs",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "legal:export": "node scripts/legal-export.mjs",

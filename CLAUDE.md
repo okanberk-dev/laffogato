@@ -5,6 +5,23 @@
 Bu dosya, Claude Code'un bu projede tutarlı çalışması için gerekli bağlamı
 içerir. Next.js'in bu sürümüne özgü kurallar için `AGENTS.md`'yi de oku.
 
+> **Test verisi kaldırıldı (16 Kas 2026, operatör: _"laffogato reposundaki tüm
+> test verilerini kaldır ve maine gönder"_).** Repodan çıkanlar: `tests/`
+> klasörü (558 dosya, Vitest) ve `vitest.config.mts`; sahte ödeme sağlayıcısı
+> (`MockPaymentProvider`, `/odeme/donus` GET'indeki sahte onay);
+> `SEED_DEMO_ORDERS` demo siparişleri; paketteki ürün (`PRODUCTS`), menü
+> kalemi (`MENU[*].items`), mağaza hero, uygulama slayt / duyuru / gönderi
+> seed'leri. **Kalanlar** test verisi sayılmadı: kategori kabukları (menü
+> başlıkları, beş mağaza kategorisi), `HOME_SLIDES`, `STORY`, `LOCATION`,
+> `BRAND` (site metni ve kimliği). Bu dosyanın aşağısındaki `tests/*.test.ts`
+> atıfları ve "testi tutar" cümleleri **tarihçedir**: kontrat koruması artık
+> CI'da koşmaz; form sözleşmesi, mobil v1 sözleşmesi, kontrast ve hukuk metni
+> kuralları elle ve kod incelemesiyle korunur. Eski testler
+> `git show 5d777bb:tests/<dosya>` ile okunur. Canlı veritabanındaki test
+> satırlarına dokunulmadı: `docs/TEST-VERISI-TEMIZLIK.md`. `vitest` hâlâ
+> `package.json`'da (kilit dosyası yeniden üretilmesin diye); kaldırmak ayrı
+> bir iştir.
+
 ## Proje Özeti
 
 **Laffogato** (marka: **L'Affogato**) İstanbul Tuzla'da açılan kafenin kurumsal
@@ -30,7 +47,8 @@ yapılır.
   iki adım: Teslimat → Ödeme), uygulamada `/odeme/paynkolay`'da girilir,
   sunucu onu yalnızca PayNkolay'a iletir ve müşteri doğrudan bankanın
   3D ekranına gider (`PAYNKOLAY_CHECKOUT_MODE=direct`). **Kart saklanmaz**:
-  kural 28, `docs/PAYNKOLAY.md` §15. Geliştirmede `MockPaymentProvider`.
+  kural 28, `docs/PAYNKOLAY.md` §15. Sahte sağlayıcı yok (16 Kas 2026): geliştirmede
+  de PayNkolay test hostu (`PAYNKOLAY_BASE_URL`).
   iyzico 15 Eki 2026'da koddan kaldırıldı; hukuki metinler 16 Eki 2026'da
   PayNkolay'a çevrildi (`docs/LEGAL-REDLINES-2026-09.md` başındaki durum
   tablosu; `tests/legal-docs.test.ts` metinde iyzico, uzun tire, "kart
@@ -366,8 +384,6 @@ db/
   migrations/                → SQL migration'lar (`npm run db:migrate`)
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
-tests/                       → Vitest (110+ dosya; form sözleşmesi, kontrast,
-                               mobil sözleşme, ödeme, DB derleyicisi …)
 docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                SEO.md · PROMPT.md · AUDIT.md ·
                                API-MOBILE.md (mobil sözleşme) · AUTH-BRIDGE.md ·
@@ -761,7 +777,6 @@ Usage sayfası ve dağıtım adresinin `x-vercel-error` başlığı.
 npm run dev          # Geliştirme sunucusu
 npm run build        # Production build
 npm run typecheck    # tsc --noEmit
-npm test             # vitest
 npm run lint         # eslint
 npm run format       # prettier yaz
 npm run db:migrate   # Migration'ları uygula (DATABASE_URL gerekir)
@@ -769,22 +784,15 @@ npm run db:bundle    # db/schema.sql'i yeniden üret
 ```
 
 CI her PR'da ve `main`'e doğrudan yapılan her push'ta `npm run typecheck` +
-`npm test` + `npm run build` koşar; başlığında "(#N)" olan squash merge
-push'unda koşmaz (o ağaç PR'da `main` güncelken zaten test edildi; Actions
-ücretsiz kotası 19 Eki 2026'da bu yüzden doldu). GitHub Actions çalışmıyorsa
-(kota, ödeme) aynı adımlar yerelde koşturulur: typecheck, lint
-`--max-warnings=0`, `TEST_DATABASE_URL` ile gerçek Postgres 16'ya karşı tam
-`vitest run`, `npm run build` (Turbopack symlink'li `node_modules`'ta
-çöker: APFS kopyası `cp -cR` kullan). Bu ortamda `NODE_ENV=development` tanımlıysa build
+`npm run lint -- --max-warnings=0` + `npm run build` koşar (test adımı yok:
+`tests/` kaldırıldı); başlığında "(#N)" olan squash merge push'unda koşmaz
+(o ağaç PR'da `main` güncelken zaten denendi; Actions ücretsiz kotası 19 Eki
+2026'da bu yüzden doldu). GitHub Actions çalışmıyorsa (kota, ödeme) aynı
+adımlar yerelde koşturulur: typecheck, lint `--max-warnings=0`,
+`npm run build` (Turbopack symlink'li `node_modules`'ta çöker: APFS kopyası
+`cp -cR` kullan). Bu ortamda `NODE_ENV=development` tanımlıysa build
 `/_global-error` prerender'ında düşer; yerelde
 `NODE_ENV=production npm run build` kullan (CI değişkeni hiç set etmez).
-
-Veritabanına dokunan testler (`tests/db-integration.test.ts`) yalnızca
-`TEST_DATABASE_URL` verilince çalışır, aksi hâlde atlanır:
-
-```bash
-TEST_DATABASE_URL=postgres://user@host:5432/db npm test
-```
 
 ## Env Variables
 
@@ -794,7 +802,7 @@ TEST_DATABASE_URL=postgres://user@host:5432/db npm test
 | -------------------------------- | --------------------------------------------------------- |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin giriş kimliği                                       |
 | `ADMIN_SESSION_SECRET`           | Cookie HMAC anahtarı (≥32 karakter)                       |
-| `PAYMENT_PROVIDER`               | `mock` (varsayılan)                                       |
+| `PAYMENT_PROVIDER`               | `paynkolay` (her ortamda zorunlu)                         |
 | `PAYMENT_WEBHOOK_SECRET`         | Webhook HMAC anahtarı                                     |
 | `DATABASE_URL`                   | Postgres bağlantı dizesi (sağlayıcının pooled endpoint'i) |
 | `NEXT_PUBLIC_SITE_URL`           | metadataBase                                              |
@@ -811,8 +819,9 @@ derler. Tanımlayıcılar `sql.ts`'te doğrulanır, değerler orada parametrelen
 Şema eski doküman modelini korur: **camelCase quoted kolonlar**, iç içe alanlar
 (`variants`, `items`, `refunds`, `addresses`, `weeklyHours`) **JSONB**, tarihler
 **ISO-8601 metin** (string sıralaması = kronolojik). Sıralı ID'ler (`prd-0001`,
-`orderNo` 10001+) `next_seq()` ile **atomik**. Tablo boşsa ilk istekte
-**idempotent seed**.
+`orderNo` 10001+) `next_seq()` ile **atomik**. Paketten ürün, menü kalemi,
+sipariş ya da panel içeriği seed'lenmez; yalnız beş mağaza kategorisinin
+kabuğu (geliştirmede) ve tek `settings` satırı ilk istekte yazılır.
 
 Tablolar ve SQL fonksiyonları `db/schema.sql`'de (tek kaynak; sayıyı buraya
 yazma, eskiyor). Sayaç fonksiyonları: `next_seq` / `claim_order_stock` /
@@ -959,9 +968,9 @@ durum bozulmaya uygundur.
     `JSON.stringify` `<` karakterini kaçırmaz; veritabanından gelen bir ürün
     adı script etiketini kapatabilir. Ham `dangerouslySetInnerHTML` ile ld+json
     yazma
-17. **Ödeme sağlayıcısı fail-closed** — `PAYMENT_PROVIDER` tanımsızsa ya da
-    üretimde `mock` ise uygulama başlamayı reddeder. Mock, para almadan
-    siparişi `paid` yapar
+17. **Ödeme sağlayıcısı fail-closed** — `PAYMENT_PROVIDER` hiçbir ortamda
+    varsayılana düşmez; tanımsızsa ya da `paynkolay` dışında bir değerse
+    `getPaymentProvider()` fırlatır (sahte sağlayıcı kaldırıldı)
 18. **Rıza olmadan ölçüm yok** — Consent Mode v2 varsayılanları GTM'den önce
     basılır, rızaya bağlı her sinyal `denied` başlar. Yeni bir etiket veya
     piksel eklerken bunu baypas etme

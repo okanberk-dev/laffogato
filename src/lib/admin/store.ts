@@ -99,7 +99,6 @@ import {
   type PricePoint,
 } from "@/lib/shop/discount";
 import {
-  EMPTY_FOOD_LABEL,
   FOOD_LABEL_KEYS,
   foodLabelOf,
   type FoodLabelText,
@@ -120,7 +119,6 @@ import {
 } from "./image-url";
 import {
   MENU as SEED_MENU,
-  PRODUCTS as SEED_PRODUCTS,
   PRESS as SEED_PRESS,
   STORY as SEED_STORY,
   type MenuCategory as DesignMenuCategory,
@@ -179,16 +177,6 @@ import {
  * İç-içe alanlar (variants, items, refunds, ...) JSONB kolonlarda tutulur;
  * tarih alanları ISO-8601 metni olarak saklanır.
  */
-
-/**
- * Whether the seed writes the two demo orders.
- *
- * Off everywhere by default. Set `SEED_DEMO_ORDERS=1` in a local `.env.local`
- * when you want the admin panel to have something to look at; a real shop's
- * first day should start from zero, not from two invented ₺740 orders that
- * count as revenue and two invented customers in the CRM.
- */
-const SEED_DEMO_ORDERS = process.env.SEED_DEMO_ORDERS === "1";
 
 export type ShopCategoryId = "beans" | "gift" | "gear" | "merch" | "pantry";
 
@@ -837,10 +825,10 @@ function seedMarkerId(table: string): string {
 }
 
 /**
- * Whether the bundled catalogue (demo products, categories, the printed
- * menu) may be written: never in a production build, Vercel previews
- * included (decision D17). A live shop starts from what the operator enters;
- * the demo products were sellable, at bundled prices, with stock 25.
+ * Whether the bundled shop categories may be written: never in a production
+ * build, Vercel previews included (decision D17). A live shop starts from what
+ * the operator enters. No products, menu items, orders or panel content are
+ * bundled any more; only these five category shells.
  */
 function catalogSeedAllowed(): boolean {
   return process.env.NODE_ENV !== "production";
@@ -885,13 +873,6 @@ async function seedOnce(
 }
 
 // ─── ID + slug helpers ────────────────────────────────────────────────────
-
-function parsePrice(price: string): number {
-  // "320₺" → 32000 (minor units)
-  const numeric = parseFloat(price.replace(/[^\d.,-]/g, "").replace(",", "."));
-  if (!Number.isFinite(numeric)) return 0;
-  return Math.round(numeric * 100);
-}
 
 function slugifyId(prefix: string, n: number): string {
   return `${prefix}-${String(n).padStart(4, "0")}`;
@@ -1005,62 +986,8 @@ function defaultSettings(): AdminSettings {
 const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
   {
     const sb = getDb();
-    const now = new Date().toISOString();
 
     const catalog = { allowed: catalogSeedAllowed() };
-
-    await seedOnce(TABLES.products, async () => {
-      const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
-        id: slugifyId("prd", i + 1),
-        name: p.name,
-        slug: slugify(p.name) || `urun-${i + 1}`,
-        sku: deriveSku(p.name, i + 1),
-        tag: p.tag,
-        priceMinor: parsePrice(p.price),
-        compareAtPriceMinor: 0,
-        costMinor: 0,
-        desc: p.desc,
-        cat: p.cat as ShopCategoryId,
-        img: p.img,
-        images: [],
-        // The seed marks the one product that carries an allergen (the
-        // pistachio biscotti); `/admin/urunler` marks the rest.
-        tags: p.tags ? [...p.tags] : [],
-        // Null: the category's default. The seed sets it only where that
-        // default is wrong (the edible cup box is food under "gift").
-        taxRatePct: typeof p.taxRatePct === "number" ? p.taxRatePct : null,
-        // Filled per product in /admin/urunler; empty draws nothing new.
-        brand: "",
-        notes: [],
-        // The label is copied from the pack in /admin/urunler; nothing is
-        // guessed, so a food page asks the customer to write until then.
-        allergens: null,
-        ...EMPTY_FOOD_LABEL,
-        discountStartsAt: null,
-        discountEndsAt: null,
-        // No photo yet, so no scene pick and no cutout.
-        ...NO_BACKDROP,
-        stock: 25,
-        lowStockThreshold: 5,
-        weightGrams: 250,
-        featured: Boolean(p.featured),
-        isNew: Boolean(p.isNew),
-        isActive: true,
-        seoTitle: "",
-        seoDescription: "",
-        variants: [],
-        updatedAt: now,
-      }));
-      if (seeded.length > 0) {
-        check(
-          await sb
-            .from(TABLES.products)
-            .upsert(seeded, { onConflict: "id", ignoreDuplicates: true }),
-          "seed.products",
-        );
-        await setCounter("prd", seeded.length);
-      }
-    }, catalog);
 
     await seedOnce(TABLES.categories, async () => {
       const seededCats: AdminCategory[] = [
@@ -1109,41 +1036,6 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
       await setCounter("cat", seededCats.length);
     }, catalog);
 
-    await seedOnce(TABLES.menuItems, async () => {
-      let counter = 0;
-      const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
-        SEED_MENU[key].items.map((it, idx) => {
-          counter += 1;
-          return {
-            id: slugifyId("mnu", counter),
-            categoryKey: key,
-            name: it.name,
-            desc: it.desc,
-            priceMinor: parsePrice(it.price),
-            priceMinorL: it.priceL ? parsePrice(it.priceL) : 0,
-            hue: it.hue,
-            image: it.image ?? "",
-            tags: it.tags ? [...it.tags] : [],
-            isActive: true,
-            sortOrder: idx,
-            // The bundled photos get their pick from
-            // scripts/backfill-backdrops.mjs, like every stored photo.
-            ...NO_BACKDROP,
-            updatedAt: now,
-          };
-        }),
-      );
-      if (seededMenu.length > 0) {
-        check(
-          await sb
-            .from(TABLES.menuItems)
-            .upsert(seededMenu, { onConflict: "id", ignoreDuplicates: true }),
-          "seed.menu",
-        );
-        await setCounter("mnu", counter);
-      }
-    }, catalog);
-
     // The one settings row is not a seed that can be emptied: every page
     // needs it, so it is written whenever it is missing.
     if ((await countRows(TABLES.settings)) === 0) {
@@ -1156,113 +1048,6 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
           ),
         "seed.settings",
       );
-    }
-
-    // Demo orders are for a local walk-through of the panel, nothing else.
-    // They used to be written on every fresh database, production included,
-    // where two invented ₺740 orders became the shop's opening revenue figure
-    // and two invented customers its CRM.
-    if (SEED_DEMO_ORDERS && (await countRows(TABLES.orders)) === 0) {
-      const demoOrders: AdminOrder[] = [
-        {
-          id: slugifyId("ord", 1),
-          orderNo: 10_001,
-          customerName: "Ali Yılmaz",
-          customerEmail: "ali@example.com",
-          customerPhone: "+90 532 111 22 33",
-          shippingAddress:
-            "Kadıköy Mah. Bağdat Cd. No: 142 Daire 7\nKadıköy / İstanbul 34710",
-          internalNote: "",
-          status: "preparing",
-          items: [
-            {
-              productName: "Sirena - Espresso Blend",
-              qty: 1,
-              unitPriceMinor: 32000,
-              status: "pending",
-            },
-            {
-              productName: "Edible Cups - 6 Box",
-              qty: 1,
-              unitPriceMinor: 24000,
-              status: "ready",
-            },
-          ],
-          subtotalMinor: 56000,
-          discountMinor: 0,
-          promoCode: "",
-          shippingMinor: 0,
-          totalMinor: 56000,
-          refunds: [],
-          createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-        },
-        {
-          id: slugifyId("ord", 2),
-          orderNo: 10_002,
-          customerName: "Merve Kaya",
-          customerEmail: "merve@example.com",
-          customerPhone: "+90 533 222 33 44",
-          shippingAddress:
-            "Etiler Mah. Nispetiye Cd. No: 38\nBeşiktaş / İstanbul 34337",
-          internalNote: "Hediye paketi istendi. Kart: 'İyi ki varsın 🤍'",
-          status: "paid",
-          items: [
-            {
-              productName: "Affogato Kit - For Two",
-              qty: 1,
-              unitPriceMinor: 78000,
-              status: "pending",
-            },
-          ],
-          subtotalMinor: 78000,
-          discountMinor: 0,
-          promoCode: "",
-          shippingMinor: 0,
-          totalMinor: 78000,
-          refunds: [],
-          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        },
-        {
-          id: slugifyId("ord", 3),
-          orderNo: 10_003,
-          customerName: "Deniz Aydın",
-          customerEmail: "deniz@example.com",
-          customerPhone: "+90 535 444 55 66",
-          shippingAddress:
-            "Cihangir Mah. Akarsu Yokuşu No: 22\nBeyoğlu / İstanbul 34433",
-          internalNote: "",
-          status: "completed",
-          items: [
-            {
-              productName: "Uji Matcha - Ceremonial",
-              qty: 1,
-              unitPriceMinor: 42000,
-              status: "ready",
-            },
-            {
-              productName: "Bambu Chasen",
-              qty: 1,
-              unitPriceMinor: 32000,
-              status: "ready",
-            },
-          ],
-          subtotalMinor: 74000,
-          discountMinor: 0,
-          promoCode: "",
-          shippingMinor: 0,
-          totalMinor: 74000,
-          refunds: [],
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-        },
-      ];
-      check(
-        await sb
-          .from(TABLES.orders)
-          .upsert(demoOrders, { onConflict: "id", ignoreDuplicates: true }),
-        "seed.orders",
-      );
-      await setCounter("ord", demoOrders.length);
-      await setCounter("orderNo", 10_003);
     }
   }
 });
@@ -5140,7 +4925,7 @@ export async function applyPaymentSucceeded(input: {
     // payment the run cuts itself: a wallet or zero-total order is invoiced
     // by hand, and it settles from the app's routes, whose 15 s limit the
     // hook's run would outlast (the daily run sees every order anyway).
-    if (automatedProvider(input.provider, false)) {
+    if (automatedProvider(input.provider)) {
       scheduleInvoiceWork(order.id);
     }
   }
@@ -8690,51 +8475,7 @@ export interface AdminShopHeroSlide {
   updatedAt: string;
 }
 
-const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
-  {
-    id: "shero-001",
-    title: "Eve servis · İtalyan ritüeli",
-    subtitle:
-      "Bütün mağaza ürünleri 500₺ üzeri ücretsiz kargo, İstanbul içi aynı gün.",
-    imageUrl: "",
-    ctaLabel: "Mağazaya gir",
-    ctaHref: "#products",
-    textTheme: "light",
-    sortOrder: 0,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "shero-002",
-    title: "Yenilebilir kup koleksiyonu",
-    subtitle: "1994 patentli waffle kup - 6'lı ve 12'li hediye kutuları.",
-    imageUrl: "",
-    ctaLabel: "Edible Cups",
-    ctaHref: "#products",
-    textTheme: "light",
-    sortOrder: 1,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const ensureShopHeroSeed = memoizeUntilRejected(async (): Promise<void> => {
-  await seedOnce(TABLES.shopHeroSlides, async () => {
-    const sb = getDb();
-    check(
-      await sb.from(TABLES.shopHeroSlides).upsert(
-        SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
-        { onConflict: "id", ignoreDuplicates: true },
-      ),
-      "seed.shopHeroSlides",
-    );
-  });
-});
-
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
-  await ensureShopHeroSeed();
   const sb = getDb();
   return rows<AdminShopHeroSlide>(
     await sb
@@ -8775,7 +8516,6 @@ export async function listActiveShopHeroSlidesLive(): Promise<
 export async function getShopHeroSlide(
   id: string,
 ): Promise<AdminShopHeroSlide | null> {
-  await ensureShopHeroSeed();
   const sb = getDb();
   return one<AdminShopHeroSlide>(
     await sb.from(TABLES.shopHeroSlides).select("*").eq("id", id).maybeSingle(),
@@ -8816,7 +8556,6 @@ function normalizeSlide(input: ShopHeroSlideInput): ShopHeroSlideInput {
 export async function createShopHeroSlide(
   input: ShopHeroSlideInput,
 ): Promise<AdminShopHeroSlide> {
-  await ensureShopHeroSeed();
   const sb = getDb();
   const now = new Date().toISOString();
   const slide: AdminShopHeroSlide = {
@@ -8836,7 +8575,6 @@ export async function updateShopHeroSlide(
   id: string,
   input: ShopHeroSlideInput,
 ): Promise<AdminShopHeroSlide | null> {
-  await ensureShopHeroSeed();
   const sb = getDb();
   const update = {
     ...normalizeSlide(input),
@@ -8851,7 +8589,6 @@ export async function updateShopHeroSlide(
 
 /** True when a slide was removed (false: it was already gone). */
 export async function deleteShopHeroSlide(id: string): Promise<boolean> {
-  await ensureShopHeroSeed();
   const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.shopHeroSlides).delete().eq("id", id).select("id"),
@@ -8865,7 +8602,6 @@ export async function setShopHeroSlideActive(
   id: string,
   isActive: boolean,
 ): Promise<boolean> {
-  await ensureShopHeroSeed();
   return setRowActive(
     TABLES.shopHeroSlides,
     id,
@@ -8879,7 +8615,6 @@ export async function moveShopHeroSlide(
   id: string,
   direction: "up" | "down",
 ): Promise<MoveOutcome> {
-  await ensureShopHeroSeed();
   return moveRowInList(
     TABLES.shopHeroSlides,
     await listOrder(TABLES.shopHeroSlides, "moveShopHeroSlide"),
@@ -9147,131 +8882,6 @@ export interface AdminAppAnnouncement {
  * and the two blur into one another; the app's carousel shows the edges of
  * neighbouring slides, so the ordering matters visually.
  */
-const SEED_APP_SLIDES: AdminAppSlide[] = [
-  {
-    id: "aslide-001",
-    eyebrow: "EVİN İMZASI",
-    title: "L'Affogato",
-    body: "Bir top fior di latte üzerine Sirena espresso. Yenilebilir waffle kupada servis edilir.",
-    ctaLabel: "Menüde gör",
-    ctaRoute: "/menu",
-    tone: "premium",
-    image: "",
-    sortOrder: 1,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "aslide-002",
-    eyebrow: "TUZLA",
-    title: "200 yıllık bir köşkte",
-    body: "1897 Bologna'dan İstanbul'a. İtalya dışındaki tek L'Affogato.",
-    ctaLabel: "Ziyaret",
-    ctaRoute: "/ziyaret",
-    tone: "paper",
-    image: "",
-    sortOrder: 2,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "aslide-003",
-    eyebrow: "MATCHA BAR",
-    title: "Strawberry Aşkı",
-    body: "Uji ceremonial grade matcha, siparişten sonra çırpılır. Sezon boyunca menüde.",
-    ctaLabel: "Matcha Bar",
-    ctaRoute: "/menu",
-    tone: "brand",
-    image: "",
-    sortOrder: 3,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "aslide-004",
-    eyebrow: "RİTÜEL",
-    title: "Drink it. Eat the cup.",
-    body: "Waffle kupanın glaze kaplaması 1994'te patentlendi. Bugün hâlâ aynı reçete.",
-    ctaLabel: "",
-    ctaRoute: "",
-    tone: "inverse",
-    image: "",
-    sortOrder: 4,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const SEED_APP_ANNOUNCEMENTS: AdminAppAnnouncement[] = [
-  {
-    id: "aann-001",
-    kind: "hours",
-    title: "Hafta sonu 24:00'e kadar",
-    body: "Cuma ve cumartesi köşk bir saat daha uzun açık.",
-    sortOrder: 1,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "aann-002",
-    kind: "campaign",
-    title: "Yeni: Çıtır Latte",
-    body: "Karamelize çıtır katmanlı buzlu latte menüye eklendi.",
-    sortOrder: 2,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
-  const sb = getDb();
-  await seedOnce(TABLES.appHeroSlides, async () => {
-    check(
-      await sb.from(TABLES.appHeroSlides).upsert(
-        SEED_APP_SLIDES.map((s) => ({ ...s })),
-        { onConflict: "id", ignoreDuplicates: true },
-      ),
-      "seed.appHeroSlides",
-    );
-  });
-  await seedOnce(TABLES.appAnnouncements, async () => {
-    check(
-      await sb.from(TABLES.appAnnouncements).upsert(
-        SEED_APP_ANNOUNCEMENTS.map((a) => ({ ...a })),
-        { onConflict: "id", ignoreDuplicates: true },
-      ),
-      "seed.appAnnouncements",
-    );
-  });
-  await seedOnce(TABLES.appPosts, async () => {
-    check(
-      await sb.from(TABLES.appPosts).upsert(
-        SEED_APP_POSTS.map((p) => ({ ...p })),
-        { onConflict: "id", ignoreDuplicates: true },
-      ),
-      "seed.appPosts",
-    );
-  });
-});
-
 // Publish windows live in ./publish-window, which carries no "server-only":
 // the /admin/mobil forms are client components and render the same instants.
 export {
@@ -9287,7 +8897,6 @@ import {
 } from "./publish-window";
 
 export async function listAppSlides(): Promise<AdminAppSlide[]> {
-  await ensureAppContentSeed();
   const sb = getDb();
   return rows<AdminAppSlide>(
     await sb
@@ -9308,7 +8917,6 @@ export async function listActiveAppSlides(): Promise<AdminAppSlide[]> {
 }
 
 export async function getAppSlide(id: string): Promise<AdminAppSlide | null> {
-  await ensureAppContentSeed();
   const sb = getDb();
   return one<AdminAppSlide>(
     await sb.from(TABLES.appHeroSlides).select("*").eq("id", id).maybeSingle(),
@@ -9357,7 +8965,6 @@ function normalizeAppSlide(input: AppSlideInput): AppSlideInput {
 export async function createAppSlide(
   input: AppSlideInput,
 ): Promise<AdminAppSlide> {
-  await ensureAppContentSeed();
   const sb = getDb();
   const now = new Date().toISOString();
   const slide: AdminAppSlide = {
@@ -9374,7 +8981,6 @@ export async function updateAppSlide(
   id: string,
   input: AppSlideInput,
 ): Promise<AdminAppSlide | null> {
-  await ensureAppContentSeed();
   const sb = getDb();
   check(
     await sb
@@ -9391,7 +8997,6 @@ export async function updateAppSlide(
 
 /** True when a slide was removed (false: it was already gone). */
 export async function deleteAppSlide(id: string): Promise<boolean> {
-  await ensureAppContentSeed();
   const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.appHeroSlides).delete().eq("id", id).select("id"),
@@ -9405,7 +9010,6 @@ export async function setAppSlideActive(
   id: string,
   isActive: boolean,
 ): Promise<boolean> {
-  await ensureAppContentSeed();
   return setRowActive(TABLES.appHeroSlides, id, isActive, "setAppSlideActive");
 }
 
@@ -9414,7 +9018,6 @@ export async function moveAppSlide(
   id: string,
   direction: "up" | "down",
 ): Promise<MoveOutcome> {
-  await ensureAppContentSeed();
   return moveRowInList(
     TABLES.appHeroSlides,
     await listOrder(TABLES.appHeroSlides, "moveAppSlide"),
@@ -9470,39 +9073,6 @@ export interface AppPostInput {
   endsAt: string;
 }
 
-const SEED_APP_POSTS: AdminAppPost[] = [
-  {
-    id: "apost-001",
-    kind: "campaign",
-    title: "Sabah ritüeli",
-    body: "Hafta içi 09:00-11:00 arası tüm içeceklerde ikincisi yarı fiyatına.",
-    image: "",
-    linkUrl: "",
-    linkLabel: "",
-    sortOrder: 0,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "apost-002",
-    kind: "event",
-    title: "Karaoke geceleri",
-    body: "Cuma ve cumartesi 21:00'den sonra üst kattaki karaoke odası açık. Rezervasyon öneriyoruz.",
-    image: "",
-    linkUrl: "",
-    linkLabel: "",
-    sortOrder: 1,
-    isActive: true,
-    startsAt: "",
-    endsAt: "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 /**
  * Fails closed on anything that is not plainly an https URL.
  *
@@ -9543,7 +9113,6 @@ function normalizeAppPost(input: AppPostInput): AppPostInput {
 }
 
 export async function listAppPosts(): Promise<AdminAppPost[]> {
-  await ensureAppContentSeed();
   const sb = getDb();
   return rows<AdminAppPost>(
     await sb
@@ -9564,7 +9133,6 @@ export async function listActiveAppPosts(): Promise<AdminAppPost[]> {
 }
 
 export async function getAppPost(id: string): Promise<AdminAppPost | null> {
-  await ensureAppContentSeed();
   const sb = getDb();
   return one<AdminAppPost>(
     await sb.from(TABLES.appPosts).select("*").eq("id", id).maybeSingle(),
@@ -9575,7 +9143,6 @@ export async function getAppPost(id: string): Promise<AdminAppPost | null> {
 export async function createAppPost(
   input: AppPostInput,
 ): Promise<AdminAppPost> {
-  await ensureAppContentSeed();
   const sb = getDb();
   const now = new Date().toISOString();
   const post: AdminAppPost = {
@@ -9592,7 +9159,6 @@ export async function updateAppPost(
   id: string,
   input: AppPostInput,
 ): Promise<AdminAppPost | null> {
-  await ensureAppContentSeed();
   const sb = getDb();
   check(
     await sb
@@ -9632,7 +9198,6 @@ export async function setAppPostEmailCampaign(
 
 /** True when a post was removed (false: it was already gone). */
 export async function deleteAppPost(id: string): Promise<boolean> {
-  await ensureAppContentSeed();
   const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.appPosts).delete().eq("id", id).select("id"),
@@ -9650,7 +9215,6 @@ export async function setAppPostActive(
   id: string,
   isActive: boolean,
 ): Promise<boolean> {
-  await ensureAppContentSeed();
   return setRowActive(TABLES.appPosts, id, isActive, "setAppPostActive");
 }
 
@@ -9659,7 +9223,6 @@ export async function moveAppPost(
   id: string,
   direction: "up" | "down",
 ): Promise<MoveOutcome> {
-  await ensureAppContentSeed();
   return moveRowInList(
     TABLES.appPosts,
     await listOrder(TABLES.appPosts, "moveAppPost"),
@@ -9670,7 +9233,6 @@ export async function moveAppPost(
 }
 
 export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
-  await ensureAppContentSeed();
   const sb = getDb();
   return rows<AdminAppAnnouncement>(
     await sb
@@ -9694,7 +9256,6 @@ export async function listActiveAppAnnouncements(): Promise<
 export async function getAppAnnouncement(
   id: string,
 ): Promise<AdminAppAnnouncement | null> {
-  await ensureAppContentSeed();
   const sb = getDb();
   return one<AdminAppAnnouncement>(
     await sb
@@ -9735,7 +9296,6 @@ function normalizeAppAnnouncement(
 export async function createAppAnnouncement(
   input: AppAnnouncementInput,
 ): Promise<AdminAppAnnouncement> {
-  await ensureAppContentSeed();
   const sb = getDb();
   const now = new Date().toISOString();
   const row: AdminAppAnnouncement = {
@@ -9755,7 +9315,6 @@ export async function updateAppAnnouncement(
   id: string,
   input: AppAnnouncementInput,
 ): Promise<AdminAppAnnouncement | null> {
-  await ensureAppContentSeed();
   const sb = getDb();
   check(
     await sb
@@ -9772,7 +9331,6 @@ export async function updateAppAnnouncement(
 
 /** True when an announcement was removed (false: it was already gone). */
 export async function deleteAppAnnouncement(id: string): Promise<boolean> {
-  await ensureAppContentSeed();
   const sb = getDb();
   const deleted = rows<{ id: string }>(
     await sb.from(TABLES.appAnnouncements).delete().eq("id", id).select("id"),
@@ -9786,7 +9344,6 @@ export async function setAppAnnouncementActive(
   id: string,
   isActive: boolean,
 ): Promise<boolean> {
-  await ensureAppContentSeed();
   return setRowActive(
     TABLES.appAnnouncements,
     id,
@@ -9800,7 +9357,6 @@ export async function moveAppAnnouncement(
   id: string,
   direction: "up" | "down",
 ): Promise<MoveOutcome> {
-  await ensureAppContentSeed();
   return moveRowInList(
     TABLES.appAnnouncements,
     await listOrder(TABLES.appAnnouncements, "moveAppAnnouncement"),

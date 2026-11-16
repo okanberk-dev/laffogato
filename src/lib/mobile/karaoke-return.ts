@@ -12,7 +12,6 @@ import { getReservation } from "./karaoke";
 import { paymentStatusOf, type KaraokeReservation } from "./karaoke-core";
 import { KARAOKE_LINK_PATH } from "./karaoke-link";
 import { applyKaraokePaymentSucceeded } from "./karaoke-payment";
-import { isIssuedCheckoutRef } from "./checkout-ref";
 
 /**
  * The karaoke half of `/odeme/donus` - the browser coming back from the bank
@@ -75,44 +74,6 @@ export async function settleKaraokeReturn(
   } catch (err) {
     console.error("[odeme/donus] karaoke apply threw", err);
   }
-}
-
-/**
- * The dev-only mock return (GET): settles only for the signed-in member who
- * owns the booking, or with the exact reference this server opened for it.
- * True when that proof held (the destination may then trust the row).
- */
-export async function settleKaraokeMockReturn(args: {
-  ref: string;
-  providerRef: string;
-  provider: Pick<PaymentProvider, "name">;
-  customerEmail: string | null;
-}): Promise<boolean> {
-  if (args.provider.name !== "mock") return false;
-  const r = await safeReservation(args.ref);
-  if (!r || paymentStatusOf(r) !== "pending") return false;
-  const owned =
-    !!args.customerEmail &&
-    !r.guest &&
-    r.customerEmail.toLowerCase() === args.customerEmail.toLowerCase();
-  const issued = await isIssuedCheckoutRef(
-    r.id,
-    args.provider.name,
-    args.providerRef,
-  );
-  if (!owned && !issued) return false;
-  const applied = await applyKaraokePaymentSucceeded({
-    reservationId: r.id,
-    provider: args.provider.name,
-    providerRef: args.providerRef || `mock_${r.id}`,
-    amountMinor: r.totalMinor,
-    currency: "TRY",
-    raw: { source: "mock_return" },
-  });
-  if (!applied.ok) {
-    console.error("[odeme/donus] karaoke mock confirm failed", applied.error);
-  }
-  return true;
 }
 
 /** Paid, or confirmed: what the app may call a success. */

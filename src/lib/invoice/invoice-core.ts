@@ -436,11 +436,8 @@ export interface InvoicePlan {
 }
 
 /** Whether a payment provider is one the site invoices by itself. */
-export function automatedProvider(
-  provider: string,
-  production: boolean,
-): boolean {
-  return provider === "paynkolay" || (!production && provider === "mock");
+export function automatedProvider(provider: string): boolean {
+  return provider === "paynkolay";
 }
 
 function providerReason(provider: string): string {
@@ -452,9 +449,6 @@ function providerReason(provider: string): string {
   }
   if (provider.startsWith("manual:")) {
     return "Ödeme panelden elle işlendi (kasa, havale ya da diğer): faturası elle kesilir.";
-  }
-  if (provider === "mock") {
-    return "Deneme ödemesi (mock): canlıda fatura kesilmez.";
   }
   return `"${provider.slice(0, 40)}" ile alınan ödemenin faturası otomatik kesilmez.`;
 }
@@ -571,7 +565,7 @@ export function planOrderInvoice(input: OrderPlanInput): InvoicePlan | null {
     );
   }
   const other = succeeded.find(
-    (p) => !automatedProvider(p.provider, input.production),
+    (p) => !automatedProvider(p.provider),
   );
   if (other)
     return manual("payment_method", providerReason(other.provider), timing);
@@ -789,7 +783,7 @@ export function planKaraokeInvoice(
     };
   }
   const other = succeeded.find(
-    (p) => !automatedProvider(p.provider, input.production),
+    (p) => !automatedProvider(p.provider),
   );
   if (other) {
     return {

@@ -5,10 +5,10 @@ description: Seed or reset the Laffogato Postgres database with test data (categ
 
 # Veritabanını Seed Et
 
-Uygulama **kendi kendini seed eder**: `src/lib/admin/store.ts` içindeki
-`ensureSeed()` / `ensureShopHeroSeed()` / içerik seed'i, ilgili tablo boşsa ilk
-istekte `SEED_*` sabitlerini idempotent şekilde (`ON CONFLICT DO NOTHING`) yazar.
-Yani çoğu durumda ayrı bir seed adımı **gerekmez**.
+**Paketten test verisi yok (16 Kas 2026).** Ürün, menü kalemi, sipariş, mağaza
+hero ve uygulama içeriği seed'leri kaldırıldı; boş bir veritabanı boş bir
+mağaza ve boş bir menüyle açılır. İlk istek yalnız beş mağaza kategorisinin
+kabuğunu (geliştirmede) ve tek `settings` satırını yazar.
 
 ## Sıfırdan bir ortam
 
@@ -17,22 +17,12 @@ Yani çoğu durumda ayrı bir seed adımı **gerekmez**.
    ```bash
    DATABASE_URL='postgres://...' npm run db:migrate
    ```
-3. `npm run dev` ile siteyi aç - ilk istek tabloları doldurur.
+3. `npm run dev` ile siteyi aç, ürünleri ve menüyü `/admin`'den gir.
 
-## Seed verisini değiştirmek
+## Canlıdaki test kayıtları
 
-Seed sabitleri `src/lib/admin/store.ts` içinde (`SEED_PRODUCTS`,
-`SEED_CATEGORIES`, `SEED_MENU`, `SEED_SHOP_HERO_SLIDES`, `defaultSettings()`).
-Tasarımın orijinal statik verisi ise `src/components/laffogato/data.ts`.
-
-## Bir tabloyu yeniden seed etmek
-
-Seed yalnızca tablo **boşken** çalışır. Yeniden çalıştırmak için önce tabloyu
-boşalt - bunu yapmadan önce **kullanıcıya sor**, canlı veri kaybı olabilir:
-
-```sql
-truncate table products;   -- örnek; siparişler/müşteriler için ASLA
-```
+Repodaki değişiklik canlı veritabanına dokunmaz. Neon'daki test siparişlerini
+ve hesaplarını bulmak ve silmek için `docs/TEST-VERISI-TEMIZLIK.md`.
 
 `orders`, `customers`, `payment_transactions`, `audit_logs` gerçek kayıt tutar;
-bunları temizleme.
+bunları temizlemeden önce **kullanıcıya sor**.
