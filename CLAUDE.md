@@ -830,8 +830,8 @@ Usage sayfası ve dağıtım adresinin `x-vercel-error` başlığı.
   tutar.
 - **Yolculuğun filmi 5 istektir** (17 Kas 2026): kareler tek tek değil,
   kesim başına beş pakette ve `_next/static/media` altında (değişmez
-  önbellek, proxy'siz) gelir; tam yolculuk geniş ekranda yaklaşık WIDE_MB,
-  telefonda TALL_MB indirir (`docs/JOURNEY.md` §6). Kare sayısını ya da
+  önbellek, proxy'siz) gelir; tam yolculuk geniş ekranda yaklaşık 1.44 MB,
+  telefonda 1.17 MB indirir (`docs/JOURNEY.md` §6). Kare sayısını ya da
   çözünürlüğü artırmadan önce bu rakama bak.
 - Sayfa yüküne yeni bir istek ya da yeni bir yoklama (polling) eklerken
   Vercel çağrısını say: panelin yoklamaları kapalı saatte seyrelir

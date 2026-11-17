@@ -2483,6 +2483,19 @@ html[data-journey="over"] .site-header:not(.is-sheet-open) .nav-burger span {
   left: 30%;
   right: 30%;
 }
+/* The disc grows with the design's unit; its two lines stay in its middle. */
+html[data-journey="over"]
+  .site-header:not(.is-sheet-open)
+  .nav-burger
+  span:nth-child(1) {
+  top: calc(50% - 5px);
+}
+html[data-journey="over"]
+  .site-header:not(.is-sheet-open)
+  .nav-burger
+  span:nth-child(2) {
+  top: calc(50% + 2px);
+}
 /* The cart: the design's white button, its count in a disc at the end. */
 html[data-journey="over"] .site-header:not(.is-sheet-open) .nav-cart {
   height: max(36px, calc(41 * var(--journey-u)));

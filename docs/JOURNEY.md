@@ -178,11 +178,11 @@ Measured on the packs in the repository (`pack.py` prints them):
 
 | Cut | Frames | Colour | Whole film |
 |---|---|---|---|
-| wide | 61 | 1440 x 810 (from the mouth on, and the first three), 960 x 540 (deep inside) | WIDE_MB |
-| tall | 61 | 720 x 1280, 480 x 854 | TALL_MB |
+| wide | 61 | 1440 x 810 (from the mouth on, and the first three), 960 x 540 (deep inside) | 1.44 MB |
+| tall | 61 | 720 x 1280, 480 x 854 | 1.17 MB |
 
 Five requests per visit for the film, plus two font files. A visitor who
-leaves before the sheet has gone has fetched pack 0 only (PACK0_KB).
+leaves before the sheet has gone has fetched pack 0 only (about 90 KB).
 
 ## 7. What guards it
 
