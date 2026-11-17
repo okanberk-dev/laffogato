@@ -144,10 +144,11 @@ pirinç `#cba258` yalnız ödül anında; sitede kalan tek yeşil `--matcha`
 400, büyük harf CSS'le), gerisi Plus Jakarta Sans; Poppins emekli. 16px
 kart, espresso tonlu gölge (`rgba(35, 18, 11, …)`, siyah değil), tam hap
 düğme ve basınca 0.95, başta saydam olup kaydırınca buzlu kreme dönen üst
-çubuk, sağ altta yüzen sipariş düğmesi (`.frap`). Anasayfa kaydırmayla
-ilerleyen bir three.js girişiyle açılır ve iki three.js bandı taşır
-(`home-roast.tsx`, `roast-stage.tsx`, `roast-scene.ts`; `three` yalnız
-`import()` ile). Başka markanın yeşili ve emekli renkler kullanılmaz
+çubuk, sağ altta yüzen sipariş düğmesi (`.frap`). Anasayfa 17 Kas 2026'dan
+beri **yolculukla** açılır (hemen aşağıda; 11-17 Kas arası girişi
+kaydırmayla ilerleyen bir three.js çekirdeğiydi, `home-roast.tsx`, kaldırıldı)
+ve iki three.js bandı taşır (`roast-stage.tsx`, `roast-scene.ts`; `three`
+yalnız `import()` ile). Başka markanın yeşili ve emekli renkler kullanılmaz
 (`tests/brand-theme.test.ts`). Tasarım kaydı `docs/REDESIGN-ROAST.md`,
 değerler `docs/BRAND.md` §0. Panel (`/admin`) değişmedi. E-posta, bağlantı
 önizlemesi, ikonlar ve PayNkolay köprüsü eski (logo yeşili) palette.
@@ -193,6 +194,54 @@ döndü; koyu mod sınıf kancalarıyla (`em-card`, `em-t1`… ;
 e-postası (`docs/email/`) aynı iskelette; panele elle yapıştırılır.
 `tests/brand-theme.test.ts` ve `tests/email-templates.test.ts` tutar. Tam
 kılavuz ve geçmiş: `docs/BRAND.md`.
+
+**Anasayfanın girişi: yolculuk (17 Kas 2026; operatör: _"sitede aşağıdaki
+promptu uygula ve kahveciye uygun hale getir sonra maine gönder"_, ardından
+"alpha project" build promptu).** Anasayfa tek bir sabitlenmiş ekranla
+açılır (380vh kaydırma): kaydırmanın oynattığı bir film (120 adımlık zaman
+çizgisi, her iki adımda bir kare: kesim başına 61 kare), kavrulmuş çekirdek
+yığınının içinden çıkıp bardaki bisküvi kupalı affogatoya gider; her
+karenin derinlik haritası olduğu için görüntü imleçle paralaks yapar
+(WebGL 1). Kaydırma sürerken iki komşu kare birbirine karışır, durunca tek
+kareye oturur. Üstünde krem bir ön yükleyici sayar
+(0-100) ve ortadan dışa **yanarak** açılır; sonra üst çubuk yükselir,
+başlık kelime kelime bulanıklıktan çıkar; kaydırdıkça ikinci blok, iki cam
+kart ve üçüncü blok gelir; resmin üstünde halka imleç dolaşır. Kod
+`src/components/laffogato/journey/`, kayıt `docs/JOURNEY.md` (promptun
+neyi aynen alındı, neyi kahveciye çevrildi, sitenin kuralları neyi
+değiştirdi). Unutulmaması gerekenler:
+
+- **Film bizim.** Kareler Blender'da (Cycles) `docs/journey/scene.py` ile
+  çizildi, `grade.py` derecelendirdi, `pack.py` paketledi. Promptun buz
+  mağarası kullanılmadı (son karesi başka bir firmanın logosu). İki kesim:
+  `wide` (16:9) ve `tall` (9:16, telefon).
+- **Kareler tek tek dosya değildir.** Her kesim beş pakettir
+  (`journey/frames/*.bin`, karelerin WebP baytları uç uca;
+  `frames/index.json` nerede başladıklarını söyler) ve `new URL(…,
+  import.meta.url)` ile bağlanır: paketleyici onları içerik damgasıyla
+  `_next/static/media` altına yazar (bir yıl önbellek, proxy dışında). Bir
+  ziyaret film için 5 istek atar, 240 değil; kareleri `public/` altına tek
+  tek koymak Vercel'in istek sayacını doldurur (aşağıda "Vercel kullanım
+  sınırı"). Eksik adımlar (tek numaralı kareler) sonradan çizilip aynı
+  paketlere eklenebilir, kod değişmez: paket hangi kareleri taşıdığını
+  kendisi söyler. Film baştan çizilirse `FRAME_COUNT`, paketler ve
+  `index.json` birlikte değişir.
+- **Yazı tipi istisnası.** Yolculuk, sitede Instrument Sans (%91 genişlik)
+  ve Instrument Serif italikle yazılan tek yerdir; yüz çifti promptundur.
+  `src/app/page.tsx`'te yüklenir (yalnız anasayfa önceden yükler) ve resim
+  altındayken üst çubuğa da ulaşır. Sitenin geri kalanı iki sesinde kalır.
+- **Üst çubuk sitenin kendisidir.** Resim altındayken
+  (`html[data-journey="over"]`, globals.css "Journey") buzsuz, beyaz
+  mürekkepli, bağlantıları cam hapın içinde, sepeti beyaz düğme olarak
+  çizilir; ön yükleyicinin altında gizlidir (`data-journey-phase`, script
+  çalışmadan önce `:has()`), girişle birlikte yükselir
+  (`data-journey-intro`). Telefonun sekme çubuğu koyu cama döner, yüzen
+  sepet düğmesi resim boyunca gizlenir. Ayrı bir gezinme yazılmadı.
+- Ön yükleyici sayfa yükü başına bir kez gösterilir; anasayfaya istemci
+  tarafında dönüşte ve sayfa yolculuğun altında açıldığında gösterilmez.
+  Çerez kartı açıkken metin kartın üstünde durur (`--j-lift`). Azaltılmış
+  harekette yanma, giriş animasyonu ve paralaks yok; WebGL yoksa kareler
+  düz çizilir; script yoksa ön yükleyici hiç çizilmez.
 
 **Karamel ile espresso asla üst üste yazılmaz** (11 Kas 2026'ya kadar:
 "bordo ile yeşil"). `--accent` `#a35019` krem üstünde metindir (5.28:1);
@@ -250,6 +299,8 @@ yeterlidir. Tersi de kuraldır: amber krem üstünde metin olmaz (2.61:1).
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
+                               + yolculuğun iki yüzü (Instrument Sans /
+                               Serif), yalnız bu rota için
     layout.tsx               → next/font ile iki ses (Abril Fatface başlık,
                                tek kesim 400; Plus Jakarta Sans metin,
                                değişken 200-800) + Consent
@@ -319,16 +370,26 @@ src/
       visuals.tsx            → SVG illüstrasyonlar + HUES yüzey paleti
       product-detail.tsx     → Ürün detay (PDP)
       shop-hero-slider.tsx   → Mağaza hero karuseli
-      home-roast.tsx         → Anasayfanın ilk ekranı: Roast girişi
-                               ("UYAN / KAHVE HAZIR"), kaydırmayla ilerleyen
-                               çekirdek çizimi
-      roast-stage.tsx        → <RoastStage kind="bean|pour|affogato"> canlı
+      journey/               → Anasayfanın girişi: yolculuk (docs/JOURNEY.md)
+        home-journey.tsx     → Sahne: ön yükleyici, yanma, giriş, kaydırma
+                               döngüsü (tek mount effect'i)
+        journey-copy.tsx     → Bir metin bloğu (iki satır başlık + paragraf)
+        journey-cursor.tsx   → Halka imleç (yalnız sahne üstünde)
+        sequence.ts          → Kare paketlerini yükler, en yakın kareyi verir
+        depth-renderer.ts    → WebGL 1: kareyi derinlik paralaksıyla çizer
+                               (WebGL yoksa düz 2D)
+        burn-renderer.ts     → WebGL 1: ön yükleyicinin yanan krem kâğıdı
+        glass-blur.ts        → Cam kartların arkasındaki bulanık kopya
+        config.ts · motion.ts→ Hareket sayıları · clamp/lerp/damp, blok durumu
+        frames.ts + frames/  → Paketlerin adresleri · *.bin + index.json
+        journey.module.css   → Sahnenin tüm stilleri (tasarım pikseli `--u`)
+      roast-stage.tsx        → <RoastStage kind="pour|affogato"> canlı
                                çizimin sahnesi (altında düz SVG çizim) +
                                <RoastPause> durdur düğmesi; roast-scene'i
                                yalnız `import()` ile, yükten ve boş andan
-                               sonra yükler
-      roast-scene.ts         → three.js'i import eden TEK modül (üç sahne;
-                               home-roast testi)
+                               sonra yükler ("bean" türü 17 Kas 2026'dan
+                               beri kullanılmıyor)
+      roast-scene.ts         → three.js'i import eden TEK modül (üç sahne)
       reveal-text.tsx        → <RevealText>: maskeden yükselen başlık /
                                paragraf (sunucuda çizilir)
       scramble-text.tsx      → <ScrambleText>: soldan sağa çözülen üst etiket
@@ -767,6 +828,11 @@ Usage sayfası ve dağıtım adresinin `x-vercel-error` başlığı.
   istek. Panelin kenar çubuğu da aynısını kendi sayfalarıyla yapıyordu.
   `useLinkStatus` yine `next/link`'ten gelir. `tests/link-prefetch.test.ts`
   tutar.
+- **Yolculuğun filmi 5 istektir** (17 Kas 2026): kareler tek tek değil,
+  kesim başına beş pakette ve `_next/static/media` altında (değişmez
+  önbellek, proxy'siz) gelir; tam yolculuk geniş ekranda yaklaşık WIDE_MB,
+  telefonda TALL_MB indirir (`docs/JOURNEY.md` §6). Kare sayısını ya da
+  çözünürlüğü artırmadan önce bu rakama bak.
 - Sayfa yüküne yeni bir istek ya da yeni bir yoklama (polling) eklerken
   Vercel çağrısını say: panelin yoklamaları kapalı saatte seyrelir
   (`ORDER_ALERT_IDLE_POLL_MS`), yenisi de öyle yazılır.
@@ -871,7 +937,8 @@ durum bozulmaya uygundur.
   tek yeşil), `--rose` (uyarı — marka değil) ve `--info` (kobalt). Bir tonun
   saydam hâli `color-mix()` ile token'dan türetilir, `rgba()` ile yeniden
   yazılmaz.
-- **Yazı:** iki ses. Başlık ve gösterim rakamı Abril Fatface (`--headline`):
+- **Yazı:** iki ses (tek istisna anasayfanın yolculuğu: Instrument Sans ve
+  Instrument Serif italik, yukarıda). Başlık ve gösterim rakamı Abril Fatface (`--headline`):
   **tek kesim 400, asla kalın** (`html` `font-synthesis-weight: none`
   taşır), 20px ve üstü, asla cümle; büyük harf CSS'le
   (`text-transform: uppercase`, Türkçe büyük harf `lang="tr"`'den), çok
@@ -896,13 +963,14 @@ durum bozulmaya uygundur.
   altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez. Başlık
   maskesinin içinden harf harf yükselir (`<RevealText>`, yalnız `transform`:
   en büyük yazı opaklıkla solmaz), üst etiket soldan sağa çözülür
-  (`<ScrambleText>`; sunucu bitmiş satırı basar). Anasayfanın üç canlı
-  çizimi (11 Kas 2026, three.js: giriş çekirdeği, dökülen espresso, affogato)
-  sitenin sürekli hareketidir: her birinin yanında durdur düğmesi
+  (`<ScrambleText>`; sunucu bitmiş satırı basar). Anasayfanın iki canlı
+  çizimi (11 Kas 2026, three.js: dökülen espresso, affogato; girişteki
+  çekirdeğin yerini 17 Kas 2026'da yolculuk aldı, o kendi kendine oynamaz,
+  kaydırmayı izler) sitenin sürekli hareketidir: her birinin yanında durdur
+  düğmesi
   (`<RoastPause>`, tek anahtar hepsini durdurur), ekran dışında ve gizli
   sekmede çizim yok, azaltılmış harekette tek kare, WebGL yoksa aynı yerde
-  düz SVG çizim. `three` statik import edilmez
-  (`tests/client-bundle-weight.test.ts`, `tests/home-roast.test.ts`).
+  düz SVG çizim. `three` statik import edilmez.
 - **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
   Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
   `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart

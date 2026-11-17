@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Instrument_Sans, Instrument_Serif } from "next/font/google";
 
 import { LaffogatoApp } from "@/components/laffogato/app";
 import { SeoContent } from "@/components/laffogato/seo-content";
@@ -12,6 +13,26 @@ import { JsonLd } from "@/lib/seo/json-ld";
 import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
+
+// The two faces of the home page's journey (operator, 17 Kas 2026;
+// docs/JOURNEY.md): Instrument Sans, set at 91 % width, and Instrument
+// Serif italic. Loaded here and not in the root layout, so they are
+// preloaded for this route alone; every other page stays on the site's two
+// voices. `block`: the preloader's counter must never flash in a fallback
+// serif, and the sheet waits for both faces anyway. Turkish via latin-ext.
+const journeySans = Instrument_Sans({
+  subsets: ["latin", "latin-ext"],
+  axes: ["wdth"],
+  variable: "--font-journey-sans",
+  display: "block",
+});
+const journeySerif = Instrument_Serif({
+  subsets: ["latin", "latin-ext"],
+  weight: "400",
+  style: "italic",
+  variable: "--font-journey-serif",
+  display: "block",
+});
 
 // Keyword-first local title (≤60 chars); `absolute` bypasses the layout title
 // template so the brand isn't appended twice. The same string is used for
@@ -59,7 +80,7 @@ interface PageProps {
 
 export default async function HomePage({ searchParams }: PageProps) {
   // No `withHomeHero`: the panel's home slides are not on the page while
-  // the roast hero opens it (home-roast.tsx), so they are not read.
+  // the journey opens it (journey/home-journey.tsx), so they are not read.
   const [
     { cart, item, available, hesap },
     { settings, menu, products, appProps, contact },
@@ -96,22 +117,30 @@ export default async function HomePage({ searchParams }: PageProps) {
   return (
     <>
       <JsonLd data={graph} />
-      <LaffogatoApp
-        {...appProps}
-        notice={notice}
-        seoSlot={<SeoContent faq={FAQ} contact={contact} />}
-        // The karaoke band says what the panel says: the room's
-        // size, hours, price and the top tier's discount (presentation only;
-        // the booking re-reads every one of them on the server).
-        karaoke={{
-          capacity: settings.karaokeCapacity,
-          hourlyMinor: settings.karaokeHourlyMinor,
-          closeHour: settings.mobileApp.karaoke.closeHour,
-          rubyDiscountPct: settings.mobileApp.karaoke.oroDiscountPct,
-          rubyLabel: TIER_LABELS.oro,
-          prepay: settings.karaokePrepay,
-        }}
-      />
+      {/* The journey's faces reach the top bar too (it takes them while the
+          picture is under it), so the variables sit above the whole shell.
+          `display: contents`: the wrapper has no box of its own. */}
+      <div
+        className={`${journeySans.variable} ${journeySerif.variable}`}
+        style={{ display: "contents" }}
+      >
+        <LaffogatoApp
+          {...appProps}
+          notice={notice}
+          seoSlot={<SeoContent faq={FAQ} contact={contact} />}
+          // The karaoke band says what the panel says: the room's
+          // size, hours, price and the top tier's discount (presentation only;
+          // the booking re-reads every one of them on the server).
+          karaoke={{
+            capacity: settings.karaokeCapacity,
+            hourlyMinor: settings.karaokeHourlyMinor,
+            closeHour: settings.mobileApp.karaoke.closeHour,
+            rubyDiscountPct: settings.mobileApp.karaoke.oroDiscountPct,
+            rubyLabel: TIER_LABELS.oro,
+            prepay: settings.karaokePrepay,
+          }}
+        />
+      </div>
     </>
   );
 }

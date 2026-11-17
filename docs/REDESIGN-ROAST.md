@@ -50,8 +50,9 @@ underlined with a 2px ink rule. Right: 36px round search button, "LOG IN" as
 text, an outlined pill with a label and a three-line icon. Phone: mark +
 one round menu button.
 
-**Hero.** 360vh tall (330vh phone), content pinned for the whole of it. See
-`home-roast.tsx` and "Roast hero" in globals.css: built, do not rebuild.
+**Hero.** 360vh tall (330vh phone), content pinned for the whole of it. Ours
+was `home-roast.tsx` from 11 Kas to 17 Kas 2026; the home page now opens on
+the journey instead (`docs/JOURNEY.md`), and the roast hero is gone.
 
 **Band A (their sections 2-4): the pour.** Three stacked blocks under one
 tall drawing that overlays all three, centred, `max-width 800px`, 9:16,
@@ -205,7 +206,7 @@ bobbed. All of it is gone. The rules the scenes are now drawn by:
 
 | # | Reference | Ours |
 |---|---|---|
-| 1 | Hero "WAKE / THE BEANS" | `HomeRoast`: "UYAN / KAHVE HAZIR", kicker "Bölüm 1: Bologna 1897'den Tuzla'ya", open/closed line (a still dot), scroll hint, "Menüyü keşfet"; 330vh, 360vh from 640px, one screen under reduced motion |
+| 1 | Hero "WAKE / THE BEANS" | Until 17 Kas 2026 `HomeRoast` ("UYAN / KAHVE HAZIR"). Since then the journey (`journey/home-journey.tsx`, `docs/JOURNEY.md`): a film the scroll plays from inside a mound of beans to the affogato, under a sheet that burns open; 380vh. Its foot meets Band A as a rounded cream sheet. |
 | 2-4 | Band A, the pour | `pour` drawing over: a short band; the **statement** (panel kicker + lede, `home-intro`) as the small opener with the **four doors** as the frosted card's rows; the **bar** opener ("Şimdi barda") with the way to the menu |
 | 5-6 | Band B, the cup | `affogato` drawing beside: the **signature** ("İçilir, sonra kupası yenir", stats, panel body) and the **rewards** (stamps) openers |
 | after | (none) | Our other features, in the same language (ghost numeral, kicker, title, paragraph, pill): karaoke, campaigns banner, bar rail, take-home, app, visit |
@@ -227,6 +228,8 @@ fixed steps ran "KAHVE" off the right edge.
   the bans on every retired colour and face (re-pinned on 11 Kas 2026).
 - `tests/contrast.test.ts`: AA for every ink on its ground, the caramel /
   amber split.
+- (the hero these tests named is gone since 17 Kas 2026; see
+  `docs/JOURNEY.md` §7 for what guards the journey)
 - `tests/home-roast.test.ts`: three.js only through `import()`, the scene's
   manners (off screen, hidden tab, pause, reduced motion, disposal), the
   server-rendered words, one pause control per drawing.

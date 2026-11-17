@@ -8,10 +8,10 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
 import { HomeAppIntro } from "./home-app-intro";
-import { HomeRoast } from "./home-roast";
 import { HomeKaraoke } from "./home-karaoke";
 import { HomeTakeHome, pickTakeHomeProduct } from "./home-take-home";
 import { Illustration } from "./illustration";
+import { HomeJourney } from "./journey/home-journey";
 import { karaokeDoorLine } from "./karaoke-today";
 import { MENU, LOCATION } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
@@ -274,22 +274,20 @@ export function PageHome({
       {/* The page's one h1. The hero's three words are a slogan, not the
           page's subject, and a home page with no h1 at all is what the
           audit found. Visually hidden; it names the business and what it
-          does, which is what the heading is for. */}
+          does, which is what the heading is for. The journey's three
+          headlines under it are h2s. */}
       <h1 className="sr-only">
         L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
         mağaza, karaoke ve ziyaret bilgileri
       </h1>
 
-      {/* The first screen: three words and a roasted bean that the scroll
-          wakes (three.js, loaded after the page; the type is
-          server-rendered). It is the whole entrance, as the valley was
-          from 6 Kas to 11 Kas 2026: the operator's slides
+      {/* The first screen, and the three after it: the journey (operator,
+          17 Kas 2026). A film the scroll plays, from inside a mound of
+          roasted beans to the affogato on the bar, under a sheet that burns
+          open (journey/home-journey.tsx). It is the whole entrance, as the
+          roast hero was from 11 Kas to 17 Kas 2026: the operator's slides
           (/admin/anasayfa-hero) are not on the page. */}
-      <HomeRoast
-        hours={hours}
-        onMenu={() => navigate("menu")}
-        onVisit={() => navigate("visit")}
-      />
+      <HomeJourney hours={hours} onMenu={() => navigate("menu")} />
 
       {/* Band A, "the pour" (docs/REDESIGN-ROAST.md §1): three stacked
           blocks under one tall live drawing, the portafilter's stream

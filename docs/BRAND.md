@@ -19,6 +19,14 @@
 > §0'dadır; §1-§4'te onlarla çelişen eski değerler (porselen, kafe-perakende)
 > tarihçedir. 5 Kas 2026 kafe-perakende düzeni ve önceki paletler §9'da.
 >
+> **Yolculuk (17 Kas 2026, operatör).** Talimat: _"sitede aşağıdaki promptu
+> uygula ve kahveciye uygun hale getir sonra maine gönder"_ ("alpha project"
+> build promptu). Anasayfanın girişi, kaydırmanın oynattığı 120 karelik bir
+> filmdir: kavrulmuş çekirdek yığınının içinden bardaki affogatoya. Girişteki
+> three.js çekirdeğinin yerini aldı; sayfanın geri kalanı ve diğer sayfalar
+> Roast'tır. Sitede Instrument Sans ve Instrument Serif italikle yazılan tek
+> yer burasıdır. Tasarım kaydı `docs/JOURNEY.md`, özet §0'ın sonunda.
+>
 > Nöbetçi testler: `tests/brand-theme.test.ts` (paletin kaymasını engeller) ve
 > `tests/contrast.test.ts` (okunabilirliği engeller). Önceki (Köşk) palet §9'da.
 
@@ -406,8 +414,8 @@ radyal yeşil, krem L'Af, pirinç çekirdek. Üstte uygulama kartı ve bülten.
 | `.seo-block`                   | Sayfa sonu SSS           | Gruplu liste SSS + rehber çipleri.                                            |
 | `.auth-page` / `.auth-card`    | `/uye/*` giriş sayfaları | Porselen üzerinde tek cam kart, başında L'Af.                                 |
 | `.nf-*`                        | 404 ve hata sınırı       | Harflerin içinden kahve yükselen L'Af (uygulamanın açılışı).                  |
-| `.roast-hero` (`home-roast.tsx`) | Anasayfanın ilk ekranı   | Roast girişi (11 Kas 2026): "UYAN / KAHVE HAZIR" (Abril, harf harf yükselir), çözülen üst etiket, canlı açık/kapalı, "Menüyü keşfet", kaydırma ipucu; arkasında kaydırmayla ilerleyen çekirdek çizimi (`<RoastStage kind="bean">`). Anasayfanın tek girişi. |
-| `<RoastStage>` + `<RoastPause>` (`roast-stage.tsx`) | Giriş ve iki bant | Canlı three.js çizimi (`bean` · `pour` · `affogato`) ve durdur düğmesi; altında aynı konunun düz SVG çizimi (§7). |
+| `<HomeJourney>` (`journey/home-journey.tsx`) | Anasayfanın ilk ekranı   | Yolculuk (17 Kas 2026, `docs/JOURNEY.md`): krem ön yükleyici sayar ve yanarak açılır; sabitlenmiş sahnede kaydırmanın oynattığı film (çekirdek yığınından affogatoya, derinlik paralaksı), üç metin bloğu ("Çekirdekten başlar. / Kupada biter." …), iki cam kart, canlı açık/kapalı, "Menüyü keşfet", halka imleç. Anasayfanın tek girişi. 11-17 Kas 2026 arası buradaki Roast girişi ("UYAN / KAHVE HAZIR", `home-roast.tsx`) kaldırıldı. |
+| `<RoastStage>` + `<RoastPause>` (`roast-stage.tsx`) | İki bant | Canlı three.js çizimi (`pour` · `affogato`; `bean` 17 Kas 2026'dan beri kullanılmıyor) ve durdur düğmesi; altında aynı konunun düz SVG çizimi (§7). |
 | `.home-intro`                  | Anasayfa, A bandı        | Panelin "Hero üst etiket" + "Hero açıklama" metni: ilk cümle küçük başlık (Abril, büyük harf), devamı üç satıra kırpılır. |
 | `.roast-status`                | Anasayfa girişi          | Canlı "Şu an açık · Kapanış 02:00"; /ziyaret'in saat satırıyla aynı kaynak.   |
 | `.ghost-n` · `.frost-card` · `.dots-trio` · `.scroll-hint` | Bölüm açılışları | Referansın küçük parçaları: hayalet rakam, buzlu kart, üç nokta, kaydırma ipucu. |
@@ -521,16 +529,17 @@ ve her çizimin yerini tutar.
     Malzemeler gerçeğidir: dokulu döküm alüminyum, krom çelik, bakalit, sırlı
     kil ve mat taş tabak, saten koyu kavrum, kenarından okunan şeffaf cam;
     espresso iki ince akışla dökülür, sürahi bir elin eğdiği kadar eğiktir.
-    Kural ve gerekçesi `docs/REDESIGN-ROAST.md` "A photograph of things";
-    `tests/home-roast.test.ts` tutar;
+    Kural ve gerekçesi `docs/REDESIGN-ROAST.md` "A photograph of things"
+    (yolculuğun filmi de aynı kuralla çizildi: `docs/JOURNEY.md` §3);
   - her çizimin yanında bir **durdur düğmesi** vardır (`<RoastPause />`,
     "Hareketi durdur" / "Hareketi başlat", `aria-pressed`; 36px daire, 44px
     dokunma alanı). Tek anahtardır: biri basılınca üç çizim de durur, sonradan
     başlayan da durmuş başlar (WCAG 2.2.2). Çizim gerçekten çalışmıyorsa
     düğme de yoktur;
   - çizim **ekran dışındayken ve sekme gizliyken hiç çizilmez**;
-    `prefers-reduced-motion` altında **tek durgun karedir** ve giriş tek
-    ekrana iner (`.roast-hero { height: auto }`);
+    `prefers-reduced-motion` altında **tek durgun karedir**. Girişteki
+    yolculuk kendi kendine oynamaz (kaydırmayı izler); azaltılmış harekette
+    yanma, giriş animasyonu ve paralaksı yoktur;
   - three.js ilk yüklemede yoktur: yalnız `import()` ile, `load` olayından ve
     boş bir andan sonra gelir; bantların çizimi bant ekrana yaklaşınca başlar.
     WebGL 2 yoksa, "veri tasarrufu" açıksa ya da çizim henüz gelmediyse aynı
@@ -593,8 +602,11 @@ ve her çizimin yerini tutar.
    uygulamanın paletini izlemez. Bir değeri değiştirmek operatör kararı ister.
 5. three.js yalnız `roast-scene.ts`'te ve yalnız `import()` ile yüklenir;
    yeni bir canlı çizim `<RoastStage>` ile ve yanında `<RoastPause />` ile
-   gelir (`tests/home-roast.test.ts`, `tests/client-bundle-weight.test.ts`).
-6. Bu belgeyi de güncelle.
+   gelir.
+6. Anasayfanın yolculuğu kendi kaydına bağlıdır (`docs/JOURNEY.md`): iki
+   yüzü (Instrument Sans, Instrument Serif italik) yalnız orada kullanılır,
+   kareleri tek tek dosya olarak değil paket olarak yüklenir.
+7. Bu belgeyi de güncelle.
 
 ---
 
@@ -694,6 +706,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 6 Kas 2026  | **Ana sayfa ve başlık** (sahibin brifleri): hero köşkün gece fotoğrafında, tam genişlikte "L'Affogato" ve önünde slaydın içeceği, sistem serifiyle bir satır, `--night`'a inen ve hiçbir yerde %66'nın altına düşmeyen karartma (slaytlar ve panel akışı aynı); "Evde L'Affogato" (mağazadan bir paket kahve, canlı üründen); uygulama bölümü (çizilmiş telefon, üç fayda kartı, `--bg-cream`); başlıkta Menü, Mağaza ve Ziyaret tam genişlikte açılan panel, kaydırınca krem bar; 404'te bahçede tabela; ödeme sayfalarında küçük ödeme çizimi. |
 | 11 Kas 2026 | **Roast** (operatör: "siteyi tamamen coffee-beans-swart.vercel.app ... gibi ... yap, three js vs. ne varsa kullan"): krem zemin `#faf7f2`, mürekkep, dolu düğme, bant ve footer için tek espresso `#23120b` (token adları yerinde, `--green-*` ailesi artık espresso), amber `#de853a` dolgu ve koyu zeminde vurgu, karamel `#a35019` krem üstünde vurgu metni, `--matcha` tek yeşil (yalnız olumlu durum), Abril Fatface başlık + Plus Jakarta Sans metin (Poppins emekli), 16px kart, espresso tonlu gölge, buzlu krem üst çubuk, kaydırmayla ilerleyen three.js girişi (çekirdek) ve iki three.js bandı (dökülen espresso, affogato kupası); kahve vadisi kalktı. Tasarım kaydı `docs/REDESIGN-ROAST.md`; güncel değerler §0. |
 | 12 Kas 2026 | **Roast, ikinci geçiş** (operatör: "ince ayar yap ve yapay zekaymış gibi gözükmesin"): üç three.js çizimi eşyanın fotoğrafı olacak biçimde yeniden kuruldu. Çekirdeğin içindeki altın ışık, turuncu yörünge çizgileri, kıvılcımlar, havadaki toz, asılı boncuk damlalar, kahverengi buhar, kalın karamel şerit ve espressoya sarılı beyaz "krema" kaldırıldı; yerine ıslak espresso gövdesi ve uçuş yönünde uzayan damlalar, dokulu döküm alüminyum demlik, krom portafiltre ve iki ince akış, espresso sırlı yivli fincan, kenarından okunan şeffaf cam sürahi ve tek ince akış geldi. İki bantta fincan ve sürahi artık kıpırdamaz. Stüdyo kameranın durduğu yanda koyu (metal metal gibi okunsun diye). `tests/home-roast.test.ts` "the scenes are photographs of things, not effects" tutar. |
+| 17 Kas 2026 | **Yolculuk** (operatör: "sitede aşağıdaki promptu uygula ve kahveciye uygun hale getir", "alpha project" build promptu): anasayfanın girişi sabitlenmiş tek ekran oldu; kaydırmanın oynattığı 120 karelik film (Blender'da çizildi: çekirdek yığınının içinden bardaki bisküvi kupalı affogatoya, gece, ip ışıkları altında), derinlik haritasıyla paralaks, krem ön yükleyici ve yanma geçişi, kelime kelime gelen üç başlık, iki cam kart, halka imleç. Yazı Instrument Sans + Instrument Serif italik (yalnız burada). Üst çubuk resim üstünde tasarımın diline çevrilir. Kareler kesim başına beş pakette (5 istek). Roast girişi (`home-roast.tsx`) kaldırıldı. Kayıt `docs/JOURNEY.md`. |
 
 **5 Kas - 11 Kas 2026: kafe-perakende düzeni (tarihçe; 11 Kas 2026'ya kadar
 bu belgenin §0'ıydı).** Operatör: _"sitenin görselini ... starbucks tarzı
