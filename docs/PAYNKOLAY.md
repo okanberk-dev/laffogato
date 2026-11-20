@@ -1186,6 +1186,11 @@ durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
 > `SAVED_CARDS_IN_LEGAL_TEXTS = true` (LEGAL-REDLINES §38). Kalan: metin
 > yayına girince Vercel'de `PAYNKOLAY_CARD_STORAGE=on` ve yeniden yayın
 > (aşağıdaki 3. adım).
+>
+> **19 Kas 2026:** Vercel'in değişken listesinde `PAYNKOLAY_CARD_STORAGE`
+> Production'a 5 Kas 2026'da eklenmiş görünüyor (değeri okunmadı). O günden
+> beri yazılmış üye anahtarları açık metindi; §16.3 onları ilk okunuşta
+> şifreler.
 
 **Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on` **ve**
 `SAVED_CARDS_IN_LEGAL_TEXTS = true` (`src/lib/legal/meta.ts`). PayNkolay kart
@@ -1261,8 +1266,96 @@ CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
   yanında "Sil".
 - Hesap kapanınca (`deleteMe`, web ve uygulama) önce PayNkolay'daki kartlar
   silinir, sonra anahtar temizlenir. POS'a ulaşılamazsa kapanış durmaz;
-  anahtar elle temizlik için loglanır (kişisel veri değil).
+  19 Kas 2026'dan beri anahtar loga yazılmaz, şifreli olarak silme kuyruğuna
+  girer (§16.3).
 - Ödeme kaydına (`payment_transactions.raw`) **kart sahibinin adı yazılmaz**
   (`withoutHolderName`; KVKK veri en aza indirme, hukuki metinler Ö7).
 - `CardStorageCardRegister` (kart numarasıyla, ödemesiz saklama) hiçbir
   yerde çağrılmaz (`tests/saved-cards.test.ts`).
+
+### 16.3 E-ticaret düzeni ve şifreleme (19 Kas 2026)
+
+**Operatör talimatı (19 Kas 2026):** _"Sistemde kayıt yerimiz var kart için
+buna göre e ticaret sitelerinde nasıl oluyosa öyle ilerle ve en iyi şekilde
+şifrele yine detaylar bizde olmasın paynkolay ile en güvenlikli şekilde
+ilerle"_. Kart yine PayNkolay'da durur; bu bölüm bizde kalan tek değeri
+şifreler ve kayıtlı kartı alışılmış e-ticaret düzenine getirir. Hukuk
+metinleri değişmedi: "biz yalnız rastgele üye anahtarını tutarız" hâlâ
+doğrudur, şimdi o anahtar da şifrelidir.
+
+**Bizde ne var, ne yok.**
+
+| Değer                                          | Nerede                                                    |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| Kart numarası, son kullanma, CVV               | Hiçbir yerde (yalnız o isteğin belleğinde, §15.2)         |
+| Kart token'ı (`csToken`)                       | Yalnız PayNkolay'da; sunucu her ödemede listeden okur     |
+| Maskeli numara, banka, marka, kartın adı       | PayNkolay'da; tarayıcıya yalnız son 4 hane gider          |
+| Üye anahtarı (`csCustomerKey`, 11 karakter)    | `customers."cardUserKey"`'de **AES-256-GCM ile şifreli**  |
+| Şifreleme anahtarı                             | Yalnız Vercel ortamında (`CARD_VAULT_KEY`), DB'de asla    |
+
+**Üye anahtarının şifrelenmesi** (`src/lib/payment/card-vault.ts`).
+
+- AES-256-GCM (kimlik doğrulamalı), her yazımda yeni 96 bit IV. Biçim
+  `cv1.<kid>.<iv>.<şifreli>.<etiket>` (base64url).
+- Anahtar HKDF-SHA256 ile `CARD_VAULT_KEY`'den türetilir (en az 32
+  karakter; `openssl rand -base64 48`). Tanımlı değilse
+  `PAYNKOLAY_MERCHANT_SECRET_KEY`'den **ayrı bir HKDF etiketiyle**
+  türetilir: değer ilk yayından itibaren şifrelidir. `CARD_VAULT_KEY`
+  sonradan girilince her satır bir sonraki okunuşunda yeni anahtara geçer.
+  Önerilen: kendi anahtarı (POS sırrı döndürülürse eski değerler açılmaz).
+- GCM'in ek verisi müşteri satırının `id`'sidir: bir satırın şifreli değeri
+  başka bir üyenin satırına kopyalanırsa açılmaz.
+- Döndürme: yeni değer `CARD_VAULT_KEY`'e, eskisi `CARD_VAULT_KEY_PREVIOUS`'a
+  yazılır, yeniden yayınlanır. Her değer kendi anahtarını (`kid`, tek yönlü
+  parmak izi) taşır; eski anahtarla şifreli satır okunduğunda yenisiyle
+  yeniden şifrelenir. Bütün satırlar geçtikten sonra `_PREVIOUS` kaldırılır.
+- Açık metin (5-19 Kas 2026 arasında yazılmış) anahtarlar ilk okunuşta
+  şifrelenir (karşılaştır-ve-yaz).
+- Açılamayan bir değer (anahtar silinmiş, değer bozulmuş) **üzerine
+  yazılmaz**: o ödeme kayıtlı kartsız sürer, liste "şu an gösterilemiyor"
+  der; yapılandırma düzelince kartlar geri gelir. `CARD_VAULT_KEY` 32
+  karakterden kısaysa kart saklama tamamen kapanır (yanlış değer sessizce
+  zayıf anahtar olmaz).
+
+**Açma şartı** artık üçlüdür (`src/lib/payment/index.ts`):
+`PAYNKOLAY_CARD_STORAGE=on` **ve** `SAVED_CARDS_IN_LEGAL_TEXTS` **ve**
+`cardVaultReady()`.
+
+**E-ticaret düzeni.**
+
+- **Hesabım › Kayıtlı kartlarım** (`/uye/hesap/kartlarim`): kartlar son 4
+  hane, banka, marka ve kartın adıyla listelenir; "Sil" iki adımlıdır
+  (sorar, sonra siler), `card-delete` bütçesiyle sınırlıdır ve kartı oturumdaki
+  üyenin kendi anahtarıyla, PayNkolay'dan taze okunan listeden bulur
+  (`deleteAccountSavedCardAction` → `deleteCheckoutSavedCard`). Sayfada "kart
+  ekle" formu yoktur: kart yalnız ödeme sırasında, bankanın 3D onayından
+  geçerek kaydedilir (`CardStorageCardRegister` 3D'siz ve ödemesizdir,
+  kullanılmaz).
+- **Kartın adı:** "Bu kartı kaydet" işaretlenince "Kartına bir ad ver
+  (isteğe bağlı)" alanı açılır (`cardAlias`, en çok 20 karakter; harf, rakam,
+  boşluk). Boşsa "Kartım 1234". Kart numarası ad olarak yazılmışsa atılır
+  (`cardAliasFrom`). Uygulamanın sayfasında alan betiksiz, CSS `:has` ile
+  açılır.
+- **Aynı kart iki kez kaydedilmez:** kaydetme istenince liste (en çok 2,5 sn)
+  okunur; ilk 6 + son 4 hanesi aynı bir kart varsa `csAutoSave` gönderilmez,
+  ödeme yine yapılır (`isSameSavedCard`). Liste zamanında gelmezse kart
+  kaydedilir.
+- **Sınır:** üye başına en çok 10 kart (`MAX_SAVED_CARDS`). Sınırda "Bu
+  kartı kaydet" yerine "önce birini sil" notu çıkar; rota da sınırı uygular.
+
+**Hesap kapanınca silme kuyruğu** (`card_vault_purges`,
+`src/lib/payment/card-purge.ts`, migration
+`20261119175128_card_vault_purges.sql`). `deleteMe` kartları 6 sn içinde
+POS'tan silemezse üye anahtarı, kuyruk satırının kimliğine bağlanarak
+yeniden şifrelenir ve kuyruğa girer; satırda e-posta, ad ya da müşteri
+kimliği yoktur. Günlük iş (`/api/cron/daily`, adım `card-purge`) her gün en
+çok 25 satırı yeniden dener, kartlar silinince satırı siler. Loga yalnız
+tek yönlü parmak izi (`memberKeyFingerprint`) yazılır, anahtar asla.
+`unreadable` sayısı sıfırdan büyükse şifreleme anahtarı kaybolmuştur:
+o satırların kartları PayNkolay panelinden elle silinir.
+
+**Operatör adımı:** Vercel → Production'a `CARD_VAULT_KEY` (en az 32
+karakter, rastgele) eklenip yeniden yayınlanır. Eklenmezse sistem yine
+şifreler (POS sırrından türetilen anahtarla); eklenince satırlar okundukça
+ona geçer. Anahtar kaybolursa kayıtlı kartlar listeden düşer ve üyeler
+kartlarını yeniden kaydeder; anahtarı parola kasasında yedekleyin.

@@ -8,6 +8,12 @@ import type { DbError } from "@/lib/db";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 import {
+  cardVaultReady,
+  customerScope,
+  openMemberKey,
+  sealMemberKey,
+} from "@/lib/payment/card-vault";
+import {
   newPaynkolayMemberKey,
   PAYNKOLAY_MEMBER_KEY,
 } from "@/lib/payment/paynkolay";
@@ -1048,43 +1054,136 @@ export async function setCustomerDefaultAddress(
  * §16): a random 11-character value this server generates, sent to the POS as
  * `csCustomerKey`. Not a card, not a national ID or phone number.
  *
+ * Stored ENCRYPTED (`src/lib/payment/card-vault.ts`, §16.3): the column holds
+ * AES-256-GCM ciphertext bound to the customer row's id, and the key that
+ * opens it lives only in the deployment's environment. These three functions
+ * are the only place the column is read or written in a usable form.
+ *
  * Server-only on purpose. It is deliberately NOT part of `PublicCustomer` and
  * never reaches `/me`: the app has no use for it, and a value that only the
  * server needs is a value the client should never be handed. It does point at
  * stored cards, so it is treated as identifying data and cleared when the
  * account is closed (after the cards themselves are deleted at the POS).
  */
-export async function getCardUserKey(email: string): Promise<string> {
-  const row = await fetchCustomer(normalizeEmail(email));
-  const key = (row as { cardUserKey?: unknown } | null)?.cardUserKey;
-  return typeof key === "string" ? key : "";
+
+/** A stored card key no configured vault key opens (§16.3). */
+export class CardKeyUnreadableError extends Error {
+  constructor() {
+    super("saved-card key does not open with the configured vault keys");
+    this.name = "CardKeyUnreadableError";
+  }
+}
+
+/** The row's id and the column exactly as stored. */
+async function cardKeyRow(
+  needle: string,
+): Promise<{ id: string; stored: string } | null> {
+  const row = await fetchCustomer(needle);
+  if (!row) return null;
+  const stored = (row as { cardUserKey?: unknown }).cardUserKey;
+  return { id: row.id, stored: typeof stored === "string" ? stored : "" };
 }
 
 /**
- * The member's card key, created on first use.
+ * Writes `next` only while the column still holds `expected`
+ * (compare-and-set); a concurrent writer wins and this write is a no-op.
+ */
+async function swapCardKey(
+  needle: string,
+  expected: string,
+  next: string,
+  ctx: string,
+): Promise<void> {
+  const { error } = await getDb()
+    .from(TABLES.customers)
+    .update({ cardUserKey: next, updatedAt: new Date().toISOString() })
+    .eq("email", needle)
+    .eq("cardUserKey", expected);
+  checkErr(error, ctx);
+}
+
+/**
+ * Opens the row's stored key, moving it to its current sealed form when it
+ * is in the clear (legacy) or under an older vault key. The move is best
+ * effort: a failed write leaves the readable value where it was.
+ */
+async function openCardKey(
+  needle: string,
+  row: { id: string; stored: string },
+): Promise<string | null> {
+  const scope = customerScope(row.id);
+  const opened = openMemberKey(row.stored, scope);
+  if (!opened.ok) return null;
+  if (opened.key && opened.reseal) {
+    try {
+      await swapCardKey(
+        needle,
+        row.stored,
+        sealMemberKey(opened.key, scope),
+        "resealCardUserKey",
+      );
+    } catch (err) {
+      console.error(
+        "[cards] card key not re-sealed",
+        err instanceof Error ? err.message : "unknown",
+      );
+    }
+  }
+  return opened.key;
+}
+
+/**
+ * The member's card key, or "" when they have none. Throws
+ * `CardKeyUnreadableError` when one is stored but does not open: callers
+ * show "kayıtlı kartların şu an gösterilemiyor" rather than "no cards".
+ */
+export async function getCardUserKey(email: string): Promise<string> {
+  const needle = normalizeEmail(email);
+  if (!needle) return "";
+  const row = await cardKeyRow(needle);
+  if (!row || !row.stored) return "";
+  const key = await openCardKey(needle, row);
+  if (key === null) throw new CardKeyUnreadableError();
+  return key;
+}
+
+/**
+ * The member's card key, created (and sealed) on first use.
  *
- * Compare-and-set: the new key is written only while the column still holds
- * what was read, then the stored value is read back. Two checkouts opened at
- * once by the same member therefore end up with ONE key - with a plain write
- * the second would overwrite the first, and a card saved under the first key
- * would vanish from the member's list.
+ * Compare-and-set: the new value is written only while the column still
+ * holds what was read, then the stored value is read back. Two checkouts
+ * opened at once by the same member therefore end up with ONE key - with a
+ * plain write the second would overwrite the first, and a card saved under
+ * the first key would vanish from the member's list.
+ *
+ * A stored value that does not open is never overwritten (the vault key may
+ * come back; overwriting would orphan the member's cards at the POS): this
+ * payment then goes without saved cards, and "" is returned.
  */
 export async function ensureCardUserKey(email: string): Promise<string> {
   const needle = normalizeEmail(email);
   if (!needle) return "";
-  const current = await getCardUserKey(needle);
-  if (PAYNKOLAY_MEMBER_KEY.test(current)) return current;
-  const { error } = await getDb()
-    .from(TABLES.customers)
-    .update({
-      cardUserKey: newPaynkolayMemberKey(),
-      updatedAt: new Date().toISOString(),
-    })
-    .eq("email", needle)
-    .eq("cardUserKey", current);
-  checkErr(error, "ensureCardUserKey");
-  const stored = await getCardUserKey(needle);
-  return PAYNKOLAY_MEMBER_KEY.test(stored) ? stored : "";
+  const row = await cardKeyRow(needle);
+  if (!row) return "";
+  if (row.stored) {
+    const key = await openCardKey(needle, row);
+    if (key === null) {
+      console.error("[cards] stored card key unreadable; not replaced");
+      return "";
+    }
+    if (key) return key;
+  }
+  if (!cardVaultReady()) return "";
+  await swapCardKey(
+    needle,
+    row.stored,
+    sealMemberKey(newPaynkolayMemberKey(), customerScope(row.id)),
+    "ensureCardUserKey",
+  );
+  const after = await cardKeyRow(needle);
+  if (!after) return "";
+  const opened = openMemberKey(after.stored, customerScope(after.id));
+  return opened.ok ? opened.key : "";
 }
 
 /**
@@ -1093,7 +1192,7 @@ export async function ensureCardUserKey(email: string): Promise<string> {
  * Absent means the buyer did not ask to save a card, and absent must never
  * erase a key stored earlier - the member would silently lose the cards they
  * had saved. Writing the same key again is a no-op, so this is safe on every
- * settlement.
+ * settlement. Sealed like every other write of the column.
  */
 export async function rememberCardUserKey(
   email: string,
@@ -1101,13 +1200,29 @@ export async function rememberCardUserKey(
 ): Promise<void> {
   const key = cardUserKey.trim();
   const needle = normalizeEmail(email);
-  if (!key || !needle) return;
-  if ((await getCardUserKey(needle)) === key) return;
-  const { error } = await getDb()
-    .from(TABLES.customers)
-    .update({ cardUserKey: key, updatedAt: new Date().toISOString() })
-    .eq("email", needle);
-  checkErr(error, "rememberCardUserKey");
+  if (!PAYNKOLAY_MEMBER_KEY.test(key) || !needle) return;
+  const row = await cardKeyRow(needle);
+  if (!row) return;
+  const opened = openMemberKey(row.stored, customerScope(row.id));
+  if (opened.ok && opened.key === key) return;
+  if (!opened.ok || !cardVaultReady()) return;
+  await swapCardKey(
+    needle,
+    row.stored,
+    sealMemberKey(key, customerScope(row.id)),
+    "rememberCardUserKey",
+  );
+}
+
+/**
+ * The row's id and stored (sealed) card key, for the account closure: it
+ * moves the sealed value to the purge queue without opening it here.
+ */
+export async function getSealedCardUserKey(
+  email: string,
+): Promise<{ customerId: string; stored: string } | null> {
+  const row = await cardKeyRow(normalizeEmail(email));
+  return row && row.stored ? { customerId: row.id, stored: row.stored } : null;
 }
 
 // ─── Wishlist ─────────────────────────────────────────────────────────────

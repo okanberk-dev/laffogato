@@ -166,6 +166,9 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   invoices: [TAG_INVOICES],
   invoice_state: NONE,
   invoice_contacts: NONE,
+  // Closed accounts' saved cards still at the POS (20261119175128): read
+  // by the daily purge only, never cached.
+  card_vault_purges: NONE,
 };
 
 /**

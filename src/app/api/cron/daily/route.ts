@@ -8,6 +8,7 @@ import { runInvoices } from "@/lib/invoice/run";
 import { recordShownLegalVersions } from "@/lib/legal/store";
 import { chargeSettledResales } from "@/lib/mobile/karaoke";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
+import { runCardPurges } from "@/lib/payment/card-purge";
 import { checkPushReceipts } from "@/lib/push/order-push";
 import {
   destructionEnabled,
@@ -123,6 +124,10 @@ export async function GET(request: Request) {
   // Apple or Google say reaches no device is forgotten, and the tokens kept
   // beside the tickets are cleared (src/lib/push/order-push.ts).
   const pushReceipts = await step("push-receipts", () => checkPushReceipts());
+  // Saved cards of accounts closed while PayNkolay did not answer: asked
+  // again until they are gone (src/lib/payment/card-purge.ts,
+  // docs/PAYNKOLAY.md §16.3). Counts only, never a key.
+  const cardPurge = await step("card-purge", () => runCardPurges());
   // Every legal text as shown today, stored once per hash (decision
   // D-VERSIONS-TABLE): a coded text no consent reads (KVKK, the İşlem
   // Rehberi) is kept within a day of the deploy that changed it. Before
@@ -193,6 +198,7 @@ export async function GET(request: Request) {
       karaokeResale,
       orders,
       pushReceipts,
+      cardPurge,
       legalVersions,
       retention,
       invoices,

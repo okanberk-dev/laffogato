@@ -12,6 +12,16 @@
 
 export type SchemeMarkName = "visa" | "mastercard" | "troy" | "amex";
 
+/** The mark for a saved card's brand as PayNkolay names it, if there is one. */
+export function schemeOfBrand(brand: string): SchemeMarkName | null {
+  const b = brand.toLowerCase();
+  if (b.includes("visa")) return "visa";
+  if (b.includes("master")) return "mastercard";
+  if (b.includes("troy")) return "troy";
+  if (b.includes("amex") || b.includes("american")) return "amex";
+  return null;
+}
+
 const FRAME = (
   <rect
     x="0.5"

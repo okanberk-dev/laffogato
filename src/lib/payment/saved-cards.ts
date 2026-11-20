@@ -153,6 +153,43 @@ export async function checkoutPaymentSetup(
   }
 }
 
+/** How long the account's card page waits for PayNkolay's list. */
+const ACCOUNT_LIST_WAIT_MS = 5_000;
+
+export type AccountSavedCards =
+  /** Card storage is not on here: the page says so, lists nothing. */
+  | { status: "off" }
+  | { status: "ok"; cards: CheckoutSavedCard[] }
+  /** The key or the list could not be read; nothing is said about cards. */
+  | { status: "unavailable" };
+
+/**
+ * The signed-in member's saved cards for Hesabım › Kayıtlı kartlarım: the
+ * same token-free view the checkout gets, read with the key of the account
+ * the session belongs to.
+ */
+export async function accountSavedCards(
+  email: string,
+): Promise<AccountSavedCards> {
+  const provider = directProvider();
+  if (!provider || !provider.cardStorageEnabled) return { status: "off" };
+  try {
+    const member = await getCardUserKey(email);
+    if (!member) return { status: "ok", cards: [] };
+    const cards = await withDeadline(
+      provider.listSavedCards(member),
+      ACCOUNT_LIST_WAIT_MS,
+    );
+    return { status: "ok", cards: publicSavedCards(cards) };
+  } catch (err) {
+    console.error(
+      "[uye/kartlarim] saved cards unreadable",
+      err instanceof Error ? err.message : "unknown",
+    );
+    return { status: "unavailable" };
+  }
+}
+
 export type SavedCardDeletion =
   | { ok: true; cards: CheckoutSavedCard[] }
   | { ok: false; reason: "not_found" | "failed" };

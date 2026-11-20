@@ -1,5 +1,6 @@
 import { SAVED_CARDS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
 
+import { cardVaultReady } from "./card-vault";
 import { PaynkolayPaymentProvider } from "./paynkolay";
 import type { PaymentProvider } from "./provider";
 
@@ -63,15 +64,18 @@ export function getPaymentProvider(): PaymentProvider {
         successUrl: required("PAYNKOLAY_SUCCESS_URL", "paynkolay"),
         failUrl: required("PAYNKOLAY_FAIL_URL", "paynkolay"),
         checkoutMode: paynkolayCheckoutMode(),
-        // Kart saklama iki şart ister: PayNkolay'ın yetkisi (değişken) ve
-        // onu anlatan hukuk metni (`SAVED_CARDS_IN_LEGAL_TEXTS`, §16).
+        // Kart saklama üç şart ister: PayNkolay'ın yetkisi (değişken), onu
+        // anlatan hukuk metni (`SAVED_CARDS_IN_LEGAL_TEXTS`, §16) ve üye
+        // anahtarını şifreleyecek bir anahtar (`cardVaultReady`, §16.3).
         // Değişken tek başına açamaz: metin söylemeden üye anahtarı
-        // üretilmez, POS'a `cs*` alanı gitmez.
+        // üretilmez, POS'a `cs*` alanı gitmez; şifrelenemeyen anahtar hiç
+        // yazılmaz.
         cardStorage:
           SAVED_CARDS_IN_LEGAL_TEXTS &&
           ["1", "true", "on"].includes(
             (process.env.PAYNKOLAY_CARD_STORAGE ?? "").trim().toLowerCase(),
-          ),
+          ) &&
+          cardVaultReady(),
       });
       return cached;
     }

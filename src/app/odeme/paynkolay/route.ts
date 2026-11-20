@@ -22,7 +22,11 @@ import {
   type SavedCard,
 } from "@/lib/payment/paynkolay";
 import {
+  CARD_ALIAS_FIELD,
   CARD_FORM_FIELDS,
+  cardAliasFrom,
+  isSameSavedCard,
+  MAX_SAVED_CARDS,
   parseCardForm,
   type CardField,
 } from "@/lib/payment/paynkolay-card";
@@ -284,12 +288,18 @@ export async function POST(req: NextRequest) {
       );
     }
     const wantsSave = read("saveCard") === "1" && !!post.member;
-    method = wantsSave
-      ? {
-          card: check.card,
-          save: { alias: `Kartım ${check.card.number.slice(-4)}` },
-        }
-      : { card: check.card };
+    method =
+      wantsSave && (await shouldSaveCard(savedCards(), check.card.number))
+        ? {
+            card: check.card,
+            save: {
+              alias: cardAliasFrom(
+                read(CARD_ALIAS_FIELD),
+                check.card.number.slice(-4),
+              ),
+            },
+          }
+        : { card: check.card };
   }
 
   // Kart denemesine (çalıntı kart listesini sınama) karşı iki bütçe
@@ -414,6 +424,32 @@ async function savedCardsOf(
     );
     return [];
   }
+}
+
+/** "Bu kartı kaydet"te listeye bakmanın üst süresi (ms). */
+const SAVE_LIST_WAIT_MS = 2_500;
+
+/**
+ * "Bu kartı kaydet" işaretliyken kart gerçekten saklansın mı (§16.3): aynı
+ * kart zaten kayıtlıysa ikinci satır açılmaz, üye sınırdaysa
+ * (`MAX_SAVED_CARDS`) yenisi eklenmez. Ödeme her durumda yapılır. Liste
+ * zamanında gelmezse kart saklanır: kaydetme isteği bir okuma hatası
+ * yüzünden sessizce düşmesin.
+ */
+async function shouldSaveCard(
+  saved: Promise<SavedCard[]>,
+  number: string,
+): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cards = await Promise.race([
+    saved,
+    new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), SAVE_LIST_WAIT_MS);
+    }),
+  ]).finally(() => clearTimeout(timer));
+  if (!cards) return true;
+  if (cards.length >= MAX_SAVED_CARDS) return false;
+  return !cards.some((c) => isSameSavedCard(c.maskedPan, number));
 }
 
 /** Tarayıcıya giden kart listesi: token'sız. */

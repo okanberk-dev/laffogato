@@ -14,7 +14,10 @@ import { cx } from "@/components/laffogato/cx";
 import type { CheckoutReturnField } from "@/lib/checkout/return-codes";
 import type { CheckoutSavedCard } from "@/lib/checkout/start";
 import {
+  CARD_ALIAS_FIELD,
+  CARD_ALIAS_MAX,
   CARD_FORM_FIELDS,
+  MAX_SAVED_CARDS,
   cardBrand,
   cardFieldErrors,
   cvvLength,
@@ -23,7 +26,7 @@ import {
   type CardField,
 } from "@/lib/payment/paynkolay-card";
 
-import { SchemeMark, type SchemeMarkName } from "./scheme-marks";
+import { SchemeMark, schemeOfBrand } from "./scheme-marks";
 
 /**
  * The card part of /odeme - the one client component the card is typed in
@@ -88,15 +91,6 @@ const RETURN_MESSAGE: Record<CardField, string> = {
   cvv: "Güvenlik kodunu kontrol et.",
 };
 
-function schemeOfSaved(brand: string): SchemeMarkName | null {
-  const b = brand.toLowerCase();
-  if (b.includes("visa")) return "visa";
-  if (b.includes("master")) return "mastercard";
-  if (b.includes("troy")) return "troy";
-  if (b.includes("amex") || b.includes("american")) return "amex";
-  return null;
-}
-
 export interface CardPaymentProps {
   /** `card`: typed here. `redirect`: the provider takes it on its own page. */
   mode: "card" | "redirect";
@@ -154,6 +148,8 @@ export function CardPayment({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [cardsNote, setCardsNote] = useState<string | null>(null);
+  /** "Bu kartı kaydet" is ticked: the card's name field shows. */
+  const [saving, setSaving] = useState(false);
 
   const typesCard = mode === "card" && !nothingToPay;
   const isNew = choice === "new";
@@ -265,7 +261,7 @@ export function CardPayment({
           <legend className="co-label">Kayıtlı kartların</legend>
           {cards.map((card, i) => {
             const id = `saved-card-${i}`;
-            const mark = schemeOfSaved(card.brand);
+            const mark = schemeOfBrand(card.brand);
             const meta = [card.bank, card.brand, card.alias]
               .filter(Boolean)
               .join(" · ");
@@ -556,16 +552,47 @@ export function CardPayment({
               </div>
             </div>
 
-            {canSave ? (
+            {canSave && cards.length >= MAX_SAVED_CARDS ? (
+              <p className="co-quiet">
+                En çok {MAX_SAVED_CARDS} kart kaydedebilirsin. Bu kartı da
+                kaydetmek için önce kayıtlı kartlarından birini sil.
+              </p>
+            ) : canSave ? (
               <div className="co-save">
                 <label className="co-check">
-                  <input type="checkbox" name="saveCard" value="1" />
+                  <input
+                    type="checkbox"
+                    name="saveCard"
+                    value="1"
+                    onChange={(e) => setSaving(e.currentTarget.checked)}
+                  />
                   <span>Bu kartı sonraki ödemeler için kaydet</span>
                 </label>
+                {saving ? (
+                  <div className="co-field co-save-alias">
+                    <label className="co-label" htmlFor="cc-alias">
+                      Kartına bir ad ver{" "}
+                      <span className="co-optional">(isteğe bağlı)</span>
+                    </label>
+                    <input
+                      id="cc-alias"
+                      name={CARD_ALIAS_FIELD}
+                      className="input"
+                      type="text"
+                      autoComplete="off"
+                      spellCheck={false}
+                      maxLength={CARD_ALIAS_MAX}
+                      placeholder="Örn. Maaş kartım"
+                      disabled={!isNew}
+                    />
+                  </div>
+                ) : null}
                 <p className="co-quiet">
                   Kart, ödeme kuruluşu PayNkolay&apos;ın kart saklama hizmetinde
-                  saklanır; biz kart bilgisini tutmayız. Kayıtlı kartını bu
-                  sayfadan istediğin zaman silebilirsin.
+                  saklanır; biz kart numarasını, son kullanma tarihini ve
+                  güvenlik kodunu tutmayız. Kayıtlı kartını bu sayfadan ya da
+                  Hesabım › Kayıtlı kartlarım&apos;dan istediğin zaman
+                  silebilirsin.
                 </p>
               </div>
             ) : null}

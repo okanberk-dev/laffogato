@@ -361,4 +361,5 @@ export const TABLES = {
   invoiceState: "invoice_state",
   invoiceContacts: "invoice_contacts",
   tableCalls: "table_calls",
+  cardVaultPurges: "card_vault_purges",
 } as const;

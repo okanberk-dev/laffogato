@@ -7,7 +7,13 @@ import {
 
 import { priceLabel } from "@/lib/utils/format";
 
-import { CARD_FORM_FIELDS, type CardField } from "./paynkolay-card";
+import {
+  CARD_ALIAS_FIELD,
+  CARD_ALIAS_MAX,
+  CARD_FORM_FIELDS,
+  MAX_SAVED_CARDS,
+  type CardField,
+} from "./paynkolay-card";
 import { paynkolayAmountToMinor, PAYNKOLAY_BRIDGE_PATH } from "./paynkolay";
 
 /**
@@ -109,6 +115,10 @@ font-size:.85rem;font-weight:500;text-decoration:underline;border-radius:8px}
 margin:0 0 .25rem}
 .check input{width:auto;margin:.2rem 0 0;accent-color:#1d6d56}
 .hint{margin:0 0 1rem;font-size:.8rem;color:#564d46}
+.alias{margin:.5rem 0 0 1.5rem}
+.alias small{font-weight:400;color:#564d46}
+.save:not(:has(input[name=saveCard]:checked)) .alias{display:none}
+#del-card{display:none}
 .ok{margin:0 0 1rem;padding:.75rem 1rem;border-radius:12px;background:#e6f0ec;
 color:#16503f;font-size:.9rem}`;
 
@@ -344,10 +354,21 @@ export function renderCardForm(state: CardFormState): PaynkolayPage {
   // sunucunun doğrulamasına kalır.
   const hasSaved = (state.savedCards ?? []).length > 0;
   const req = hasSaved ? " data-req" : " data-req required";
-  const save = state.canSave
-    ? `<label class="check"><input type="checkbox" name="saveCard" value="1"> Bu kartı sonraki ödemeler için kaydet</label>
-<p class="hint">Kart, ödeme kuruluşu PayNkolay'ın kart saklama hizmetinde saklanır; biz kart bilgisini tutmayız. Kayıtlı kartını bu sayfadan istediğin zaman silebilirsin.</p>`
-    : "";
+  // Kart adı alanı yalnız kutu işaretliyken görünür (CSS `:has`, betiksiz);
+  // görünmese de boş gider ve sunucu "Kartım 1234" der (`cardAliasFrom`).
+  const atLimit = (state.savedCards ?? []).length >= MAX_SAVED_CARDS;
+  const save = !state.canSave
+    ? ""
+    : atLimit
+      ? `<p class="hint">En çok ${MAX_SAVED_CARDS} kart kaydedebilirsin. Bu kartı da kaydetmek için önce kayıtlı kartlarından birini sil.</p>`
+      : `<div class="save">
+<label class="check"><input type="checkbox" name="saveCard" value="1"> Bu kartı sonraki ödemeler için kaydet</label>
+<div class="alias">
+<label for="cc-alias">Kartına bir ad ver <small>(isteğe bağlı)</small></label>
+<input id="cc-alias" name="${CARD_ALIAS_FIELD}" autocomplete="off" spellcheck="false" maxlength="${CARD_ALIAS_MAX}" placeholder="Örn. Maaş kartım">
+</div>
+<p class="hint">Kart, ödeme kuruluşu PayNkolay'ın kart saklama hizmetinde saklanır; biz kart numarasını, son kullanma tarihini ve güvenlik kodunu tutmayız. Kayıtlı kartını bu sayfadan ya da sitede Hesabım › Kayıtlı kartlarım'dan istediğin zaman silebilirsin.</p>
+</div>`;
   return page({
     title: "Kartla öde · L'Affogato",
     formAction: "'self'",

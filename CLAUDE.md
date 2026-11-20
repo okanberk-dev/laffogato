@@ -1092,7 +1092,15 @@ durum bozulmaya uygundur.
     (operatör, 15 Eki 2026; `docs/PAYNKOLAY.md` §16): biz yalnız rastgele
     11 karakterlik üye anahtarını (`customers."cardUserKey"`) tutarız, token
     tarayıcıya gitmez, kaydetme kutusu işaretsiz gelir, hesap kapanınca
-    kartlar POS'tan silinir. `CardStorageCardRegister` (kart numarasıyla
+    kartlar POS'tan silinir (POS cevap vermezse anahtar şifreli kuyruğa,
+    `card_vault_purges`, günlük iş siler). Üye anahtarı veritabanında
+    **AES-256-GCM ile şifreli** durur (19 Kas 2026, `card-vault.ts`;
+    anahtar `CARD_VAULT_KEY`, yoksa POS sırrından ayrı etiketle türetilir;
+    satır kimliğine bağlı): sütunu yalnız `customer/store.ts`'in üç
+    fonksiyonu okur ve yazar, açık metin anahtar ne DB'ye ne loga yazılır.
+    Üye kartlarını Hesabım › Kayıtlı kartlarım'da görür ve siler
+    (`/uye/hesap/kartlarim`); kart yalnız ödemede, 3D'den geçerek kaydedilir.
+    `CardStorageCardRegister` (kart numarasıyla
     ödemesiz saklama) kullanılmaz; ortak ödeme sayfasında `customerKey` boş;
     şemada kart alanı yok; ödeme kaydında kart sahibinin adı tutulmaz. `tests/saved-cards.test.ts` + `tests/paynkolay-card-page.test.ts`
     tutar. Ödeme sayfası sitenin genel CSP'si dışındadır ve kendi, daha dar

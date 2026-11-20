@@ -17,6 +17,7 @@ import { getDeletionRequest } from "@/lib/customer/deletion-request";
 import {
   getCardUserKey,
   getCustomerByEmail,
+  getSealedCardUserKey,
   updateCustomerProfile,
   updateNotificationPrefs,
   usualColumnValue,
@@ -27,6 +28,7 @@ import {
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
+import { queueCardPurge } from "@/lib/payment/card-purge";
 import { PaynkolayPaymentProvider } from "@/lib/payment/paynkolay";
 import {
   subscribeNewsletter,
@@ -538,22 +540,24 @@ async function redactPaymentPayloads(
  * Asks PayNkolay to delete the cards it stores for this member (docs/
  * PAYNKOLAY.md §16) before the key that points at them is cleared below.
  *
- * Best effort: a POS that cannot be reached must not keep a member from
- * closing their account. The key is logged on failure so the cards can be
- * removed by hand - it is a random 11-character value, not personal data.
+ * Best effort here, certain in the end: a POS that cannot be reached must
+ * not keep a member from closing their account, so on any failure the
+ * member key moves, sealed, to the purge queue (`card_vault_purges`, §16.3)
+ * and the daily run deletes the cards. The key itself never reaches a log.
  */
 /** Hesap kapanırken POS'taki kart silmenin üst süresi (ms). */
 const SAVED_CARD_DELETE_DEADLINE_MS = 6_000;
 
 async function deleteSavedCardsAtPos(email: string): Promise<void> {
-  let key = "";
   try {
-    key = await getCardUserKey(email);
+    const key = await getCardUserKey(email);
     if (!key) return;
     const provider = getPaymentProvider();
-    if (!(provider instanceof PaynkolayPaymentProvider)) return;
-    // Hesap kapatma bu uca bağlı kalmaz: POS yavaşsa kartlar silinmemiş
-    // olarak loglanır ve anonimleştirme yine yapılır (uç `maxDuration = 15`).
+    if (!(provider instanceof PaynkolayPaymentProvider)) {
+      throw new Error("payment provider is not PayNkolay");
+    }
+    // Hesap kapatma bu uca bağlı kalmaz: POS yavaşsa kartlar kuyruğa alınır
+    // ve anonimleştirme yine yapılır (uç `maxDuration = 15`).
     let timer: ReturnType<typeof setTimeout> | undefined;
     await Promise.race([
       provider.deleteAllSavedCards(key),
@@ -564,12 +568,17 @@ async function deleteSavedCardsAtPos(email: string): Promise<void> {
         );
       }),
     ]).finally(() => clearTimeout(timer));
+    return;
   } catch (err) {
     console.error(
-      `[deleteMe] saved cards not deleted at the POS key=${key || "?"}:`,
+      "[deleteMe] saved cards not deleted at the POS; queued for the daily purge:",
       err instanceof Error ? err.message : "unknown error",
     );
   }
+  // Read again: `getCardUserKey` may have just moved the stored value to
+  // its current sealed form.
+  const stored = await getSealedCardUserKey(email).catch(() => null);
+  if (stored) await queueCardPurge(stored.customerId, stored.stored);
 }
 
 async function linkedIdentityId(email: string): Promise<string> {

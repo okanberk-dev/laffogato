@@ -63,7 +63,7 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | ----------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `startCheckoutAction` (16 Eki 2026'dan beri) | `src/app/odeme/checkout.tsx` (sipariş formu, kart YOK) | `items` (JSON), `legalConsent`, `customerName`, `customerPhone`, `shippingAddress`, `promoCode`, `reuseOrderId`, `reuseData`, `reuseSignature`, `reuseCartKey` |
 | `previewPromoAction` | `src/app/odeme/checkout.tsx` | `code`, `subtotal` |
-| `POST /odeme/paynkolay` (yerli form, action değil) | `src/app/odeme/card-payment.tsx` | `d`, `s`, `return=checkout`, `cardChoice`, `saveCard` + `CARD_FORM_FIELDS` |
+| `POST /odeme/paynkolay` (yerli form, action değil) | `src/app/odeme/card-payment.tsx` | `d`, `s`, `return=checkout`, `cardChoice`, `saveCard`, `cardAlias` + `CARD_FORM_FIELDS` |
 | `registerAction`                                | `src/app/uye/kayit/register-form.tsx`                 | `email`, `name`, `phone`, `password`, `passwordConfirm`, `acceptedTerms`, `marketing`, `newsletter` |
 | `loginAction`                                   | `src/app/uye/giris/login-form.tsx`                    | `email`, `password`, `next` (gizli; sayfa `?next=` ile açıldıysa - ödemeye/karaoke'ye geri döner) |
 | `requestPasswordResetAction`                    | `src/app/uye/sifremi-unuttum/forgot-form.tsx`         | `email`                                                                          |
@@ -72,6 +72,7 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `changePasswordAction`                          | `src/app/uye/hesap/sifre/password-form.tsx`           | `currentPassword`, `newPassword`, `newPasswordConfirm`                           |
 | `createAddressAction` / `updateAddressAction`   | `src/app/uye/hesap/adreslerim/address-form.tsx`       | `label`, `recipientName`, `phone`, `line1`, `line2`, `district`, `city`, `zip`, `isDefault` |
 | `deleteAddressAction` / `setDefaultAddressAction` | `src/app/uye/hesap/adreslerim/page.tsx`             | `addressId`                                                                      |
+| `deleteAccountSavedCardAction`                    | `src/app/uye/hesap/kartlarim/saved-card-list.tsx`   | `tranId`                                                                         |
 | `toggleWishlistAction`                          | `src/components/laffogato/ui.tsx`, `…/favorilerim/page.tsx` | `productId`, `back` (yalnız site içi yol; dışarısı yok sayılır)            |
 | `updateNotificationsAction`                     | `src/app/uye/hesap/bildirimler/notifications-form.tsx` | `orderUpdates`, `marketing`, `newsletter`                                       |
 | `requestAccountDeletionAction` (18 Eki 2026'dan beri; site artık hesabı kendisi silmez, ekibe talep gider) | `src/app/uye/hesap/sil/deletion-request-form.tsx` | `reason` (isteğe bağlı, 500 karakter), `confirm` (işaretsiz başlar) |

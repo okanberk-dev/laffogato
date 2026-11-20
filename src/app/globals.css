@@ -8406,6 +8406,90 @@ select {
   border-top: 1px solid var(--ink-line);
 }
 
+/* Kayıtlı kartlarım (docs/PAYNKOLAY.md §16.3) */
+.account-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.account-saved-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  background: var(--surface);
+}
+.account-saved-card-face {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.account-saved-card-mark {
+  flex: none;
+  width: 44px;
+  height: auto;
+}
+.account-saved-card-mark.is-plain {
+  height: 28px;
+  border: 1px solid var(--ink-line-strong);
+  border-radius: 4px;
+}
+.account-saved-card-name {
+  font-weight: 700;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.account-saved-card-number {
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+.account-saved-card-meta {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.account-saved-card-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.account-saved-card-delete {
+  color: var(--rose);
+}
+.account-cards-note,
+.account-cards-error {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  font-size: 14px;
+}
+.account-cards-note {
+  background: color-mix(in srgb, var(--matcha) 10%, var(--surface));
+  color: var(--matcha);
+}
+.account-cards-error {
+  background: color-mix(in srgb, var(--rose) 10%, var(--surface));
+  color: var(--rose);
+}
+.account-cards-facts {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
 /* Form field */
 .account-field {
   display: grid;
@@ -14504,6 +14588,12 @@ button.co-steps-link {
   height: 20px;
   margin: 1px 0 0;
   accent-color: var(--green);
+}
+.co-save-alias {
+  margin: 0 0 6px 30px;
+}
+.co-optional {
+  font-weight: 400;
 }
 .co-installment {
   margin: 0;

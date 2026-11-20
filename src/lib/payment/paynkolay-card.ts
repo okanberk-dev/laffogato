@@ -318,3 +318,55 @@ export function cardFieldErrors(
   }
   return errors;
 }
+
+// ── Kayıtlı kart (§16) ──────────────────────────────────────────────────────
+
+/**
+ * Bir üyenin PayNkolay'da tutabileceği en çok kart. Sınırdayken "Bu kartı
+ * kaydet" sunulmaz; yeni kart için önce biri silinir (Kayıtlı kartlarım).
+ */
+export const MAX_SAVED_CARDS = 10;
+
+/** Kartın adı (`csCardAlias`): en çok bu kadar karakter. */
+export const CARD_ALIAS_MAX = 20;
+
+/** Kartın adını yazan alanın form adı (iki form da aynısını kullanır). */
+export const CARD_ALIAS_FIELD = "cardAlias";
+
+/**
+ * Müşterinin kartına verdiği ad, POS'a gidecek biçimde: harf, rakam ve tek
+ * boşluk; en çok `CARD_ALIAS_MAX` karakter. Boş ya da kullanılamaz bir ad
+ * yerine "Kartım 1234" (kartın son dört hanesi; `last4` dört rakam değilse
+ * yalnız "Kartım"). Kart numarası ad olarak yazılmışsa (12+ rakam) ad
+ * atılır: kartın kendisi PayNkolay'ın ad alanına girmez.
+ */
+export function cardAliasFrom(raw: string | null, last4: string): string {
+  const fallback = /^\d{4}$/.test(last4) ? `Kartım ${last4}` : "Kartım";
+  const cleaned = (raw ?? "")
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{N} ]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, CARD_ALIAS_MAX)
+    .trim();
+  if (!cleaned) return fallback;
+  if ((cleaned.match(/\d/g) ?? []).length >= 12) return fallback;
+  return cleaned;
+}
+
+/**
+ * Yeni yazılan kart, üyenin zaten kayıtlı bir kartı mı. PayNkolay'ın
+ * maskeli numarası (`41556501****6111`) ilk altı ve son dört haneyle
+ * karşılaştırılır; aynı kartı ikinci kez kaydetmek listede iki satır açardı.
+ */
+export function isSameSavedCard(maskedPan: string, number: string): boolean {
+  const digits = number.replace(/\D/g, "");
+  const masked = maskedPan.replace(/[^\d*]/g, "");
+  const head = masked.match(/^\d+/)?.[0] ?? "";
+  const tail = masked.match(/\d+$/)?.[0] ?? "";
+  if (head.length < 6 || tail.length < 4 || digits.length < 12) return false;
+  return (
+    digits.slice(0, 6) === head.slice(0, 6) &&
+    digits.slice(-4) === tail.slice(-4)
+  );
+}

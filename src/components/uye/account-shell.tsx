@@ -82,6 +82,7 @@ export type AccountSection =
   | "bilgilerim"
   | "siparislerim"
   | "adreslerim"
+  | "kartlarim"
   | "favorilerim"
   | "promosyonlar"
   | "bildirimler"
@@ -115,6 +116,12 @@ export const ACCOUNT_NAV: AccountNavItem[] = [
     href: "/uye/hesap/adreslerim",
     label: "Adreslerim",
     hint: "Teslimat adresleri",
+  },
+  {
+    key: "kartlarim",
+    href: "/uye/hesap/kartlarim",
+    label: "Kayıtlı kartlarım",
+    hint: "PayNkolay'da saklı kartlar",
   },
   {
     key: "favorilerim",
