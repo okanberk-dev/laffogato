@@ -1359,3 +1359,10 @@ karakter, rastgele) eklenip yeniden yayınlanır. Eklenmezse sistem yine
 şifreler (POS sırrından türetilen anahtarla); eklenince satırlar okundukça
 ona geçer. Anahtar kaybolursa kayıtlı kartlar listeden düşer ve üyeler
 kartlarını yeniden kaydeder; anahtarı parola kasasında yedekleyin.
+
+**Testler (20 Kas 2026).** `tests/saved-cards/` (6 dosya, 45 test; tablo
+`tests/saved-cards/README.md`), `npm run test:saved-cards` ile yerel bir
+Postgres, PayNkolay'ı taklit eden sunucu ve uygulamanın derlenmiş hâline
+karşı koşar. CI'da koşmaz. Gerçek PayNkolay test ortamına karşı DEĞİLDİR:
+kartın 3D'den sonra saklanması, Türkçe harfli kart adı ve aynı kartın ikinci
+kez kaydedilmemesi ilk gerçek kayıtta gözle denetlenir.

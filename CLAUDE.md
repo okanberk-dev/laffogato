@@ -20,7 +20,9 @@ içerir. Next.js'in bu sürümüne özgü kurallar için `AGENTS.md`'yi de oku.
 > `git show 5d777bb:tests/<dosya>` ile okunur. Canlı veritabanındaki test
 > satırlarına dokunulmadı: `docs/TEST-VERISI-TEMIZLIK.md`. `vitest` hâlâ
 > `package.json`'da (kilit dosyası yeniden üretilmesin diye); kaldırmak ayrı
-> bir iştir.
+> bir iştir. **İstisna (20 Kas 2026, operatör):** kayıtlı kartın testleri
+> `tests/saved-cards/`'ta, `npm run test:saved-cards` ile yerel Postgres ve
+> PayNkolay taklidine karşı koşar (CI'da değil; `tests/saved-cards/README.md`).
 
 ## Proje Özeti
 

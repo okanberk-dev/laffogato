@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
+    "test:saved-cards": "bash scripts/test-saved-cards.sh",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:bundle": "node scripts/db-bundle.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",
