@@ -549,7 +549,7 @@ function KaraokeBlock({
       <div className="wrap-wide karaoke-block">
         <div className="media ratio-16-9">
           <Image
-            src="/illustrations/karaoke-room.webp"
+            src="/photos/hero-karaoke.webp"
             alt=""
             fill
             sizes="(max-width: 1200px) 100vw, 1216px"

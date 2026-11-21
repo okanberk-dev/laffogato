@@ -718,7 +718,7 @@ export function KaraokeBooking({
       data-wizard-step={s.enhanced ? current : undefined}
     >
       <PageHero
-        image={{ src: "/illustrations/karaoke-room.webp", position: "50% 40%" }}
+        image={{ src: "/photos/hero-karaoke.webp" }}
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", `gece ${hourToLabel(closeHour)} kadar`]}
         lede={
