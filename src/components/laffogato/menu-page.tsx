@@ -73,28 +73,24 @@ export function PageMenu({ menu, settings }: PageProps) {
     /* Not <main>: app.tsx already renders one around this, and a nested
        <main> is two landmarks with the same role. */
     <div className="page" data-screen-label="02 Menu">
-      <div className="menu-page">
-        <PageHero
-          image={{ src: "/photos/hero-menu.webp" }}
-          eyebrow={`Menü · ${activeLabel}`}
-          /* The category's own name, not a fixed tuple. Every menu category
-             is an indexable URL and they were all shipping the same H1. */
-          title={
-            active === "all" ? ["Bugün ne", "içiyoruz?"] : `${activeLabel}.`
-          }
-          lede="İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini barda söyle."
-        />
+      <PageHero
+        image={{ src: "/photos/hero-menu.webp" }}
+        eyebrow={active === "all" ? undefined : "Menü"}
+        /* The category's own name: every menu category is an indexable URL
+           and they must not all ship the same H1. */
+        title={active === "all" ? "Menü" : (activeLabel ?? "Menü")}
+        lede="İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini barda söyle."
+      />
+      <section className="section collection menu-page">
         <div className="wrap">
-          <div className="menu-filter-row">
-            {/* Real links, one per category URL: six of the twelve menu
-                pages used to have no link anywhere but the sitemap, and a
-                category page could not reach its siblings. On /menu itself a
-                click filters in place (the page is already holding every
-                category); on a category page it navigates. */}
-            <nav className="menu-tabs scroller" aria-label="Menü kategorileri">
+          <div className="collection-head">
+            {/* Real links, one per category URL. On /menu itself a click
+                filters in place (the page already holds every category); on
+                a category page it navigates. */}
+            <nav className="chip-row collection-cats" aria-label="Menü kategorileri">
               <Link
                 href="/menu"
-                className={`menu-tab ${active === "all" ? "on" : ""}`}
+                className="chip"
                 aria-current={active === "all" ? "page" : undefined}
                 onClick={
                   scoped
@@ -105,8 +101,8 @@ export function PageMenu({ menu, settings }: PageProps) {
                       }
                 }
               >
-                <span>Tümü</span>
-                {!scoped && <span className="count">{totalCount}</span>}
+                Tümü
+                {!scoped && <span className="chip-count tabular">{totalCount}</span>}
               </Link>
               {MENU_CATEGORY_ROUTES.map((r) => {
                 const cat = liveMenu[r.menuKey];
@@ -116,7 +112,7 @@ export function PageMenu({ menu, settings }: PageProps) {
                   <Link
                     key={r.slug}
                     href={`/menu/${r.slug}`}
-                    className={`menu-tab ${on ? "on" : ""}`}
+                    className="chip"
                     aria-current={on ? "page" : undefined}
                     onClick={
                       scoped
@@ -127,44 +123,30 @@ export function PageMenu({ menu, settings }: PageProps) {
                           }
                     }
                   >
-                    <span>{cat?.title ?? r.breadcrumbLabel}</span>
-                    {cat && <span className="count">{cat.items.length}</span>}
+                    {cat?.title ?? r.breadcrumbLabel}
+                    {cat && (
+                      <span className="chip-count tabular">{cat.items.length}</span>
+                    )}
                   </Link>
                 );
               })}
             </nav>
-            <div className="menu-search">
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="7"
-                  cy="7"
-                  r="5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                />
-                <path
-                  d="M11 11 L14 14"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
+            <div className="search-input">
+              <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.2" />
               </svg>
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Menüde ara…"
+                placeholder="Menüde ara"
                 aria-label="Menüde ara"
               />
               {query && (
                 <button
-                  className="menu-search-clear"
+                  type="button"
+                  className="search-input-clear"
                   onClick={() => setQuery("")}
                   aria-label="Aramayı temizle"
                 >
@@ -176,14 +158,14 @@ export function PageMenu({ menu, settings }: PageProps) {
 
           {items.length === 0 && query.trim() ? (
             /* A search with no match. */
-            <div className="menu-empty">
-              <h2 className="h3">Aradığın tatla eşleşen ürün yok</h2>
-              <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
+            <div className="collection-empty">
+              <h2 className="t-title">Aradığın tatla eşleşen ürün yok</h2>
+              <p className="t-body t-muted">
                 Farklı bir kelime dene ya da filtreleri sıfırla.
               </p>
               <button
-                className="btn btn-ghost"
-                style={{ marginTop: 22 }}
+                type="button"
+                className="btn btn-wide"
                 onClick={() => {
                   setQuery("");
                   setActive("all");
@@ -193,25 +175,20 @@ export function PageMenu({ menu, settings }: PageProps) {
               </button>
             </div>
           ) : items.length === 0 ? (
-            /* No search, and still nothing: every item of this category is
-               off the menu today (the panel's switch). It used to say the
-               search found nothing and offered to clear a filter nobody
-               had set. */
-            <div className="menu-empty">
-              <h2 className="h3">
+            /* Every item of this category is off the menu today (the
+               panel's switch). */
+            <div className="collection-empty">
+              <h2 className="t-title">
                 {active === "all"
                   ? "Menüde şu an ürün yok"
                   : "Bu kategoride şu an ürün yok"}
               </h2>
               {active !== "all" && (
                 <>
-                  <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
-                    Menünün geri kalanına göz at.
-                  </p>
+                  <p className="t-body t-muted">Menünün geri kalanına göz at.</p>
                   <Link
                     href="/menu"
-                    className="btn btn-ghost"
-                    style={{ marginTop: 22 }}
+                    className="btn btn-wide"
                     onClick={
                       scoped
                         ? undefined
@@ -228,84 +205,52 @@ export function PageMenu({ menu, settings }: PageProps) {
             </div>
           ) : (
             <>
-              {/* The cards are h3s; without a heading between them and the
-                page's h1 the outline skipped a level. */}
+              {/* The cards are h3s. */}
               <h2 className="sr-only">
                 {active === "all" ? "Tüm menü" : activeLabel}
               </h2>
-              <div className="menu-grid" ref={gridRef}>
+              <div className="product-grid product-grid--4" ref={gridRef}>
                 {items.map((it) => {
                   const badge = it.tags
                     ?.map((t) => MENU_TAG_LABELS[t])
                     .find(Boolean);
                   // TGK Etiketleme Yön. m.15/5: the item's own allergens,
-                  // once the panel has them. Never clamped like the
-                  // description: an allergen is not cut to fit.
+                  // once the panel has them. Never clamped.
                   const allergens = menuAllergenWords(it.allergens);
                   const guide = menuItemGuide(it.name);
                   return (
-                    <article
-                      className="rail-card"
-                      key={`${it.catKey}:${it.name}`}
-                    >
-                      <div className="rail-card-media menu-card-media">
-                        <MenuPlate
-                          hue={it.hue}
-                          name={it.name}
-                          cat={it.catKey}
-                          image={it.image}
-                        />
-                        {badge && (
-                          <span
-                            className={`rail-card-badge ${badge === "YENİ" ? "new" : ""}`}
-                          >
-                            {badge}
-                          </span>
-                        )}
+                    <article className="p-card" key={`${it.catKey}:${it.name}`}>
+                      <div className="media ratio-5-4 p-card-media">
+                        <MenuPlate image={it.image} />
+                        {badge && <span className="badge">{badge}</span>}
                       </div>
-                      <div className="rail-card-body">
-                        <div>
-                          <span className="rail-card-cat">{it.catLabel}</span>
-                          <h3 className="rail-card-name menu-card-name">
-                            {it.name}
-                          </h3>
-                          <p className="rail-card-desc">{it.desc}</p>
-                          {guide && (
-                            <Link
-                              href={`/rehber/${guide}`}
-                              className="menu-card-guide"
-                            >
-                              Rehberde oku
-                              <span className="arrow" aria-hidden="true">
-                                →
-                              </span>
-                            </Link>
+                      <div className="p-card-head">
+                        <h3 className="t-title">{it.name}</h3>
+                        <span className="t-price tabular">
+                          {it.priceL ? (
+                            <>
+                              <span className="size-key">M</span> {it.price}{" "}
+                              <span className="size-key">L</span> {it.priceL}
+                            </>
+                          ) : (
+                            it.price
                           )}
-                          {allergens && (
-                            <p className="menu-card-allergens">
-                              <span className="menu-card-allergens-key">
-                                Alerjenler:
-                              </span>{" "}
-                              {allergens.length > 0
-                                ? allergens.join(", ")
-                                : "yok"}
-                            </p>
-                          )}
-                        </div>
-                        <div className="rail-card-foot">
-                          <span className="rail-card-price">
-                            {it.priceL ? (
-                              <>
-                                <span className="size-key">M</span> {it.price}
-                                <span className="size-sep">·</span>
-                                <span className="size-key">L</span> {it.priceL}
-                              </>
-                            ) : (
-                              it.price
-                            )}
-                          </span>
-                        </div>
+                        </span>
                       </div>
+                      <p className="t-small">{it.desc}</p>
+                      {allergens && (
+                        <p className="t-small t-muted">
+                          Alerjenler:{" "}
+                          {allergens.length > 0 ? allergens.join(", ") : "yok"}
+                        </p>
+                      )}
+                      <p className="t-small t-muted">{it.catLabel}</p>
+                      {guide && (
+                        <Link href={`/rehber/${guide}`} className="link-u">
+                          Rehberde oku
+                          <span className="sr-only">: {it.name}</span>
+                        </Link>
+                      )}
                     </article>
                   );
                 })}
@@ -314,64 +259,59 @@ export function PageMenu({ menu, settings }: PageProps) {
               {/* Fiyat Etiketi Yön. m.5/2-c, d: prices include every tax,
                   and the day they started to apply (Ayarlar > Vergi). A
                   table's QR code opens this list (/masa/<kod>). */}
-              <p className="menu-price-note">
+              <p className="t-small t-muted menu-price-note">
                 {menuPriceNote(settings?.menuPricesEffectiveDate)}
               </p>
             </>
           )}
         </div>
+      </section>
 
-        {/* Allergen and provenance notes - not decoration: someone with a
-            gluten intolerance needs to read this before they order at the
-            bar. */}
-        <section className="section-tight menu-notes-band">
-          <div className="wrap menu-notes" data-row="menu-notes">
-            <div>
-              <div className="eyebrow muted">Self-servis</div>
-              <p>
+      {/* Allergen and provenance notes: someone with a gluten intolerance
+          needs to read this before they order at the bar. */}
+      <section className="section section--band" aria-label="Notlar">
+        <div className="wrap">
+          <ul className="fact-row fact-row--quiet menu-notes" role="list">
+            <li>
+              <p className="t-label">Self-servis</p>
+              <p className="t-small">
                 Menüye buradan göz at, beğendiğini barda söyle. Sipariş ve
-                servis bardan verilir - garson beklemeden.
+                servis bardan verilir, garson beklemeden.
               </p>
-            </div>
-            <div>
-              <div className="eyebrow muted">Alerjenler</div>
-              {/* The card says what the item contains once the panel has it;
-                  the cross-contact line is the kitchen's and holds for all.
-                  The table of the fourteen groups is in the food safety
-                  document (§7). */}
-              <p>
+            </li>
+            <li>
+              <p className="t-label">Alerjenler</p>
+              {/* The card says what the item contains once the panel has
+                  it; the cross-contact line is the kitchen's and holds for
+                  all. */}
+              <p className="t-small">
                 Ürünün içerdiği alerjenler kartında yazar; yazmıyorsa siparişten
                 önce baristaya sor. Mutfağımızda süt, gluten, kuruyemiş ve soya
                 ile çapraz temas olabilir. Çölyak ya da ciddi bir alerjin varsa
                 baristaya söyle.
               </p>
-              <p>
-                <Link
-                  href="/hukuk/gida-guvenligi-ve-alerjen"
-                  className="link-more"
-                >
-                  Alerjen ve gıda güvenliği bilgisi
-                </Link>
-              </p>
-            </div>
-            <div>
-              <div className="eyebrow muted">Köken</div>
-              <p>
+              <Link href="/hukuk/gida-guvenligi-ve-alerjen" className="link-u">
+                Alerjen ve gıda güvenliği bilgisi
+              </Link>
+            </li>
+            <li>
+              <p className="t-label">Köken</p>
+              <p className="t-small">
                 Espresso: Sirena harmanı (Bologna kavurma). Matcha: Uji
                 ceremonial grade. Pistacchio: Bronte IGP. Süt: Tuzla yerel
                 mandıra.
               </p>
-            </div>
-            <div>
-              <div className="eyebrow muted">Servis</div>
-              <p>
+            </li>
+            <li>
+              <p className="t-label">Servis</p>
+              <p className="t-small">
                 Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Köpekler hoş
                 geldi.
               </p>
-            </div>
-          </div>
-        </section>
-      </div>
+            </li>
+          </ul>
+        </div>
+      </section>
     </div>
   );
 }

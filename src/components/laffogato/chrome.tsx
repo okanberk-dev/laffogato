@@ -72,7 +72,6 @@ const LINKS: LinkEntry[] = [
   { href: "/menu", label: "Menü", route: "menu", dropdown: "menu" },
   { href: "/magaza", label: "Mağaza", route: "shop", dropdown: "shop" },
   { href: "/karaoke", label: "Karaoke" },
-  { href: "/kampanyalar", label: "Kampanyalar" },
   {
     href: "/ziyaret",
     label: "Ziyaret & keşfet",
@@ -89,6 +88,7 @@ const VISIT_LINKS: Array<{ href: string; label: string; sub: string }> = [
     sub: b.hoursLabel || "Yeni şube",
   })),
   { href: "/hikayemiz", label: "Hikayemiz", sub: "Bologna 1897'den" },
+  { href: "/kampanyalar", label: "Kampanyalar", sub: "Köşkte bu ay" },
   { href: "/rehber", label: "Rehber", sub: "Barın arkasında öğrendiklerimiz" },
 ];
 
@@ -274,7 +274,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     <>
       <div className="announce">
         <p className="t-micro">
-          Uygulamadan sipariş ver, her siparişte damga topla{" "}
+          Her siparişte damga topla{" "}
           <span aria-hidden="true">|</span>{" "}
           <Link href="/kampanyalar" className="announce-link">
             Kampanyalar

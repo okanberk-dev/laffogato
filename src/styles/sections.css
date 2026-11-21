@@ -479,3 +479,11 @@
     min-height: 0;
   }
 }
+
+/* "Görseller temsilidir" under a row of menu photographs. */
+.menu-photo-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 16px;
+}

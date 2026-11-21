@@ -254,6 +254,9 @@ export function PageHome({
       {/* A bag to take home ──────────────────────────────────── */}
       {takeHome ? <TakeHome product={takeHome} /> : null}
 
+      {/* The karaoke room ────────────────────────────────────── */}
+      {karaoke ? <KaraokeBlock facts={karaoke} today={karaokeToday} /> : null}
+
       {/* The app and its stamps ──────────────────────────────── */}
       <AppBlock
         stampTarget={stampTarget}
@@ -262,13 +265,10 @@ export function PageHome({
         intro={introLead ? [introLead, introMore].filter(Boolean).join(" ") : ""}
       />
 
-      {/* The karaoke room ────────────────────────────────────── */}
-      {karaoke ? <KaraokeBlock facts={karaoke} today={karaokeToday} /> : null}
-
       {/* The guides ──────────────────────────────────────────── */}
       {guides.length > 0 && (
         <section
-          className="section section--band"
+          className="section"
           aria-labelledby="home-guides-title"
         >
           <div className="wrap">
@@ -309,7 +309,10 @@ export function PageHome({
       )}
 
       {/* The visit ───────────────────────────────────────────── */}
-      <section className="section" aria-labelledby="home-visit-title">
+      <section
+        className="section section--band"
+        aria-labelledby="home-visit-title"
+      >
         <div className="wrap">
           <div className="section-head">
             <h2 id="home-visit-title" className="t-display">
