@@ -25,11 +25,12 @@ export const PAGE_WIDTHS: Record<PageWidth, string> = {
 };
 
 /**
- * The page's own padding: 16 px on a phone, 20 px from `sm` (Innex's
- * content padding). PageHeader's strip meets it with negative margins.
+ * The page's own padding: 16 px on a phone, 20 px from `sm`, 24 px from
+ * `lg` (the frame's side padding, StorageBox), lined up with the top bar.
  * The pages that draw their own `<main>` use the same string.
  */
-export const PAGE_PAD = "w-full px-4 pt-5 pb-10 sm:px-5";
+export const PAGE_PAD =
+  "w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 lg:px-6 lg:pt-6";
 
 export interface PageShellProps {
   /** Default `list`. */

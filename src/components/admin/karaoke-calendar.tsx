@@ -139,7 +139,7 @@ export function KaraokeWeekCalendar({
       </div>
 
       {/* From md: the grid. */}
-      <div className="hidden overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+      <div className="hidden overflow-hidden rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] md:block">
         <div className="grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] border-b border-[var(--admin-border)] bg-[var(--admin-surface-2)]">
           <span aria-hidden="true" />
           {days.map((d) => {
@@ -270,7 +270,7 @@ export function KaraokeWeekCalendar({
           return (
             <li
               key={d}
-              className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4"
+              className="rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-4"
             >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-[var(--admin-text)]">

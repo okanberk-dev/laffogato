@@ -5,14 +5,9 @@ import type { AdminTone } from "@/lib/admin/tone";
 import { HUE_INK, HUE_SOFT, type AdminHue } from "../ui/hues";
 import { AdminIcon, type AdminIconName } from "../ui/icons";
 import { TONE_INK } from "../ui/tone";
-import {
-  CARD as CARD_FRAME,
-  EYEBROW,
-  MONO_STYLE,
-  NUMERIC_STYLE,
-} from "../ui/styles";
+import { CARD as CARD_FRAME, EYEBROW, MONO_STYLE } from "../ui/styles";
 
-const CARD = `@container flex min-w-0 flex-col gap-2 p-4 print:border-[var(--admin-border-strong)] ${CARD_FRAME}`;
+const CARD = `@container flex min-w-0 flex-col gap-2 p-4 sm:p-5 print:border-[var(--admin-border-strong)] ${CARD_FRAME}`;
 
 /**
  * A figure on a tile: the dashboard's and the report's. Server-safe.
@@ -60,7 +55,7 @@ export function StatCard({
           <span
             aria-hidden="true"
             className={cx(
-              "grid size-7 shrink-0 place-items-center rounded-lg print:hidden",
+              "grid size-8 shrink-0 place-items-center rounded-full print:hidden",
               hue ? HUE_SOFT[hue] : "bg-[var(--admin-panel)]",
               tone
                 ? TONE_INK[tone]
@@ -79,13 +74,12 @@ export function StatCard({
       <span
         title={value}
         className={cx(
-          "leading-tight font-bold tracking-[-0.01em]",
+          "admin-display leading-[1.1] font-normal tracking-[-0.03em]",
           money
-            ? "text-[clamp(1rem,11cqi,1.5rem)] [overflow-wrap:anywhere]"
-            : "truncate text-xl sm:text-2xl",
+            ? "text-[clamp(1.25rem,12cqi,1.875rem)] [overflow-wrap:anywhere]"
+            : "truncate text-2xl sm:text-[1.875rem]",
           tone ? TONE_INK[tone] : "text-[var(--admin-text)]",
         )}
-        style={money ? NUMERIC_STYLE : undefined}
       >
         {value}
       </span>
@@ -102,8 +96,8 @@ export function StatCard({
       href={href}
       className={cx(
         CARD,
-        "transition-colors duration-150 hover:border-[var(--admin-border-field)] hover:bg-[var(--admin-surface-2)]",
-        "focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none",
+        "transition-colors duration-150 hover:border-[var(--admin-border-strong)]",
+        "focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none",
       )}
     >
       {body}

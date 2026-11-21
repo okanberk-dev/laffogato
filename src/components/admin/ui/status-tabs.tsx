@@ -62,9 +62,9 @@ export function StatusTabs({
     <nav
       aria-label={label}
       data-focus-inset=""
-      className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+      className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0"
     >
-      <ul className="inline-flex min-w-max gap-1.5 sm:max-w-full sm:min-w-0 sm:flex-wrap">
+      <ul className="inline-flex min-w-max gap-2 sm:max-w-full sm:min-w-0 sm:flex-wrap">
         {tabs.map((tab) => {
           const active = (tab.value ?? null) === (current ?? null);
           return (
@@ -76,22 +76,24 @@ export function StatusTabs({
                   pathname,
                 )}
                 aria-current={active ? "page" : undefined}
+                // StorageBox's filter pills: white on the canvas, the
+                // current one the dark pill the sidebar's current row is.
                 className={cx(
-                  "relative inline-flex min-h-9 items-center gap-1.5 rounded-lg border bg-[var(--admin-surface)] px-2.5 text-[13px] whitespace-nowrap transition-[color,border-color] duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-coarse:min-h-11",
+                  "relative inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 text-sm whitespace-nowrap transition-[color,background-color,border-color] duration-150 focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none pointer-coarse:min-h-11",
                   COMPACT.minH8,
                   active
-                    ? "border-[var(--admin-text)] font-semibold text-[var(--admin-text)]"
-                    : "border-[var(--admin-border)] font-medium text-[var(--admin-text-soft)] hover:border-[var(--admin-border-field)] hover:text-[var(--admin-text)]",
+                    ? "border-[var(--admin-inverse)] bg-[var(--admin-inverse)] font-medium text-[var(--admin-inverse-ink)]"
+                    : "border-[var(--admin-card-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)]",
                 )}
               >
                 {tab.label}
                 {tab.count !== undefined ? (
                   <span
                     className={cx(
-                      "min-w-5 rounded-md px-1.5 py-px text-center text-xs leading-4 font-medium",
+                      "min-w-5 rounded-full px-1.5 py-0.5 text-center text-xs leading-4 font-medium",
                       active
-                        ? "bg-[var(--admin-text)] text-white"
-                        : "bg-[var(--admin-panel)] text-[var(--admin-text-soft)]",
+                        ? "bg-white/20 text-white"
+                        : "bg-[var(--admin-surface-2)] text-[var(--admin-text-soft)]",
                     )}
                     style={MONO_STYLE}
                   >

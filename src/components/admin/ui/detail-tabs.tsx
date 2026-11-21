@@ -162,7 +162,7 @@ export function DetailTabs({
               {tab.count !== undefined ? (
                 <span
                   className={cx(
-                    "min-w-5 rounded-md px-1.5 py-px text-center text-xs leading-4 font-medium",
+                    "min-w-5 rounded-full px-1.5 py-px text-center text-xs leading-4 font-medium",
                     current
                       ? "bg-[var(--admin-text)] text-white"
                       : "bg-[var(--admin-panel)] text-[var(--admin-text-soft)]",

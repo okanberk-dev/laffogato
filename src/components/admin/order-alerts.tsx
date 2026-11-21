@@ -574,12 +574,12 @@ export function OrderAlerts({
               ? "Yeni sipariş sesi açık. Kapatmak için bas."
               : "Yeni sipariş sesi kapalı. Açmak için bas."
           }
-          className="relative grid h-11 w-11 place-items-center rounded-l-lg border border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] aria-pressed:text-[var(--admin-primary)] pointer-fine:h-9 pointer-fine:w-9"
+          className="relative grid h-11 w-11 place-items-center rounded-l-full bg-[var(--admin-panel)] text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel-hover)] hover:text-[var(--admin-text)] aria-pressed:text-[var(--admin-primary)]"
         >
           <BellIcon muted={!soundOn} />
           {pending.length > 0 ? (
             <span
-              className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--admin-danger)] px-1 text-[11px] leading-none font-semibold text-white"
+              className="absolute -top-1.5 -right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--admin-count)] px-1 text-xs leading-none font-medium text-white"
               aria-hidden="true"
             >
               {pending.length}
@@ -592,7 +592,7 @@ export function OrderAlerts({
           aria-expanded={menuOpen}
           aria-controls={MENU_ID}
           aria-label="Sipariş uyarısı ayarları"
-          className="grid h-11 w-8 place-items-center rounded-r-lg border border-l-0 border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+          className="ml-0.5 grid h-11 w-9 place-items-center rounded-r-full bg-[var(--admin-panel)] text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel-hover)] hover:text-[var(--admin-text)]"
         >
           <svg
             width="14"

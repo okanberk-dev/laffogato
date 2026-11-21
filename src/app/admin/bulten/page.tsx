@@ -272,7 +272,7 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
           ) : null}
 
           {activeEmails.length > 0 ? (
-            <details className="mt-6 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
+            <details className="mt-6 rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-4">
               <summary
                 className={`${EYEBROW} flex min-h-11 cursor-pointer items-center pointer-fine:min-h-9`}
                 style={MONO_STYLE}

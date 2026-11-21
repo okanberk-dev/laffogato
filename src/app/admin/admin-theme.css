@@ -1,0 +1,353 @@
+/*
+ * The panel's design tokens (21 Kas 2026, operator: "laffogato admin
+ * panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda
+ * yap"). The look is Madame Coco Kenya's panel (RiosenBeq/madamecoco-kenya
+ * DESIGN.md, itself measured from the "StorageBox" SaaS screens): a pale
+ * grey frame, thin-lined white cards with 24 px corners, every control a
+ * pill (button, field, badge, tab, page button), a navy-black ink, one
+ * vivid blue for the primary action, the current nav row a dark pill.
+ * Titles and big figures are DM Sans 400 (`.admin-display`), the rest
+ * Inter. Recipe and decisions: docs/ADMIN-STORAGEBOX.md.
+ *
+ * Values apply only under [data-admin-root]: the customer site keeps its
+ * own palette and faces (docs/BRAND.md). Light only: the tokens are plain
+ * hex so a dark system scheme never flips the panel.
+ *
+ *   --admin-bg        the ground outside the frames
+ *   --admin-canvas    inside the page frame, under the cards
+ *   --admin-surface   card, menu, dialog, field, white button
+ *   --admin-surface-2 hovered row, neutral badge, a segment's current option
+ *   --admin-panel     grey pill: search, round button, quiet button, page button
+ *   --admin-primary   the one solid blue
+ *   --admin-inverse   dark pill: current nav row, checked box, account button
+ */
+[data-admin-root] {
+  color-scheme: light;
+  letter-spacing: -0.01em;
+
+  /* Corners: the kit's rounded-sm/md/lg/xl/2xl are mapped to these below. */
+  --admin-r-sm: 0.5rem;
+  --admin-r-md: 0.75rem;
+  --admin-r-lg: 1rem;
+  --admin-r-xl: 1.5rem;
+  --admin-r-2xl: 1.75rem;
+  --admin-frame-r: 1.75rem;
+  --admin-frame-gap: 0.5rem;
+
+  /* Type scale (DESIGN.md §1, "Orta"; wider screens below). */
+  --admin-h1: 1.625rem;
+  --admin-kpi: 2rem;
+  --admin-card-title: 1.125rem;
+
+  /* Grounds and lines. */
+  --admin-bg: #fafafa;
+  --admin-canvas: #f7f7f7;
+  --admin-frame-border: #e9e9e9;
+  --admin-surface: #ffffff;
+  --admin-surface-2: #f2f2f5;
+  --admin-panel: #ededf0;
+  --admin-panel-hover: #e2e2e7;
+  --admin-border: #e7e7eb;
+  --admin-card-border: #ebebef;
+  --admin-border-strong: #dbdbe1;
+  --admin-divider: #ececf0;
+  /* A field's outline: StorageBox draws #dbdbe1 (1.4:1 on white), and an
+     empty field on a white card all but vanished. The panel keeps a darker
+     line (2.5:1); "Daha fazla karşıtlık" below takes it past 3:1. */
+  --admin-border-field: #a3a5b2;
+
+  /* Ink. --admin-text-mute is a shade deeper than the source's #717383 so it
+     holds 4.5:1 on the grey pills (#ededf0) as well as on white. */
+  --admin-text: #1f212d;
+  --admin-text-soft: #525361;
+  --admin-text-mute: #636575;
+
+  /* Actions. */
+  --admin-primary: #122aff;
+  --admin-primary-hover: #0a1fdb;
+  --admin-ring: rgb(18 42 255 / 0.28);
+  --admin-inverse: #1f212d;
+  --admin-inverse-ink: #ffffff;
+  --admin-danger: #e02d30;
+  --admin-count: #e02d30;
+  --admin-shadow-lg:
+    0 18px 40px -16px rgb(31 33 45 / 0.22), 0 6px 14px -8px rgb(31 33 45 / 0.08);
+  --admin-overlay: rgb(31 33 45 / 0.45);
+
+  /*
+   * Tones (components/admin/ui/tone.ts): the soft ground is StorageBox's
+   * badge ground; the ink is its deep counterpart (madamecoco's sentence
+   * inks), so a badge reads at AA (4.5:1) on its ground and on white. The
+   * source's pale badge inks (#25c166 on #defde2 is 2.1:1) are not used:
+   * the operator asked for a panel that is easy to read.
+   */
+  --admin-neutral-soft: #f2f2f5;
+  --admin-primary-soft: #eff2fe;
+  --admin-accent: #6d43f0;
+  --admin-accent-ink: #5b34d6;
+  --admin-accent-soft: #f3effe;
+  --admin-info: #2c44d9;
+  --admin-info-soft: #eff2fe;
+  --admin-success: #0b7a3c;
+  --admin-success-soft: #defde2;
+  --admin-warning: #a8540a;
+  --admin-warning-soft: #fef4e8;
+  --admin-danger-ink: #c42626;
+  --admin-danger-soft: #ffebeb;
+
+  /* The nav groups' colours (ui/hues.ts): the stat cards' round icons. */
+  --admin-hue-blue: #122aff;
+  --admin-hue-blue-soft: #eff2fe;
+  --admin-hue-amber: #a8540a;
+  --admin-hue-amber-soft: #fef4e8;
+  --admin-hue-rose: #c42626;
+  --admin-hue-rose-soft: #ffebeb;
+  --admin-hue-violet: #5b34d6;
+  --admin-hue-violet-soft: #f3effe;
+  --admin-hue-green: #0b7a3c;
+  --admin-hue-green-soft: #defde2;
+
+  /* Chart: one soft blue line over a fill that fades to nothing. */
+  --admin-chart-line: #5566f9;
+  --admin-chart-fill: rgb(85 102 249 / 0.18);
+  --admin-chart-grid: #e7e7eb;
+
+  scrollbar-color: color-mix(in oklab, var(--admin-text-mute) 45%, transparent)
+    transparent;
+}
+
+@media (min-width: 640px) {
+  [data-admin-root] {
+    --admin-h1: 1.875rem;
+    --admin-kpi: 2.25rem;
+    --admin-card-title: 1.25rem;
+  }
+}
+@media (min-width: 1440px) {
+  [data-admin-root] {
+    --admin-h1: 2rem;
+    --admin-kpi: 2.5rem;
+    --admin-card-title: 1.375rem;
+    --admin-frame-r: 2rem;
+  }
+}
+
+/* "Daha fazla karşıtlık" in the OS: deeper lines and greys. */
+@media (prefers-contrast: more) {
+  [data-admin-root] {
+    --admin-text-mute: #4f5160;
+    --admin-border-field: #7d7f8c;
+    --admin-border-strong: #b9bac4;
+    --admin-card-border: #c9cad3;
+  }
+}
+
+/*
+ * Corners: the panel writes Tailwind's rounded-* classes, whose values are
+ * fixed at build time; inside the panel they take the panel's scale (the
+ * shop is not affected). Card 24, inner box 16, small box 12; buttons,
+ * badges and one-line fields are pills (rounded-full, their own class).
+ */
+[data-admin-root] .rounded-sm {
+  border-radius: var(--admin-r-sm);
+}
+[data-admin-root] .rounded-md {
+  border-radius: var(--admin-r-md);
+}
+[data-admin-root] .rounded-lg {
+  border-radius: var(--admin-r-lg);
+}
+[data-admin-root] .rounded-xl {
+  border-radius: var(--admin-r-xl);
+}
+[data-admin-root] .rounded-2xl {
+  border-radius: var(--admin-r-2xl);
+}
+[data-admin-root] .rounded-t-xl {
+  border-top-left-radius: var(--admin-r-xl);
+  border-top-right-radius: var(--admin-r-xl);
+}
+[data-admin-root] .rounded-b-xl {
+  border-bottom-right-radius: var(--admin-r-xl);
+  border-bottom-left-radius: var(--admin-r-xl);
+}
+[data-admin-root] .rounded-t-lg {
+  border-top-left-radius: var(--admin-r-lg);
+  border-top-right-radius: var(--admin-r-lg);
+}
+[data-admin-root] .rounded-b-lg {
+  border-bottom-right-radius: var(--admin-r-lg);
+  border-bottom-left-radius: var(--admin-r-lg);
+}
+/* The few variants the remap above would otherwise beat (it is unlayered):
+   an open disclosure's square bottom, a stretched link's hit area, a file
+   button. */
+[data-admin-root] .group[open] > .group-open\:rounded-b-none {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+[data-admin-root] .after\:rounded-xl::after {
+  border-radius: var(--admin-r-xl);
+}
+[data-admin-root] .file\:rounded-lg::file-selector-button {
+  border-radius: var(--admin-r-lg);
+}
+@media (min-width: 640px) {
+  [data-admin-root] .sm\:rounded-xl {
+    border-radius: var(--admin-r-xl);
+  }
+  [data-admin-root] .sm\:rounded-lg {
+    border-radius: var(--admin-r-lg);
+  }
+}
+@media (min-width: 1024px) {
+  [data-admin-root] .admin-frame {
+    border-radius: var(--admin-frame-r);
+  }
+  [data-admin-root] .lg\:rounded-xl {
+    border-radius: var(--admin-r-xl);
+  }
+  [data-admin-root] .lg\:rounded-t-xl {
+    border-top-left-radius: var(--admin-frame-r);
+    border-top-right-radius: var(--admin-frame-r);
+  }
+}
+
+/*
+ * A field that draws its own focus (the blue edge and the soft 3 px ring of
+ * FIELD_INPUT, FIELD_TEXTAREA and TOOLBAR_FIELD) drops the panel's global
+ * outline (globals.css `[data-admin-root] :focus-visible`): on a pill the
+ * two drew a thick double ring. Every other control keeps the outline.
+ */
+[data-admin-root] .focus\:ring-\[3px\]:focus-visible {
+  outline: none;
+}
+
+/*
+ * Titles and big figures: DM Sans, light (400) and tight. In the components
+ * layer, so an element's own tracking-* class can still win.
+ */
+@layer components {
+  [data-admin-root] .admin-display {
+    font-family:
+      var(--font-admin-display), var(--font-admin-sans), ui-sans-serif,
+      system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/*
+ * The select's arrow: a thin chevron 14 px in (the source's), not the
+ * browser's. A multiple select keeps its own look.
+ */
+[data-admin-root] select:not([multiple]) {
+  appearance: none;
+  padding-inline-end: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23525361' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.875rem center;
+  background-repeat: no-repeat;
+  background-size: 1.125rem 1.125rem;
+}
+@media (forced-colors: active) {
+  [data-admin-root] select:not([multiple]) {
+    appearance: auto;
+    background-image: none;
+  }
+}
+
+/*
+ * Check boxes and radios: a white box with a thin line; checked, a dark
+ * ground and a white mark, drawn with clip-path (no image, no CSP). Every
+ * box in the panel looks the same whatever its own size classes say.
+ */
+[data-admin-root] input[type="checkbox"],
+[data-admin-root] input[type="radio"] {
+  appearance: none;
+  display: inline-grid;
+  flex: none;
+  place-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  border: 1px solid var(--admin-border-field);
+  border-radius: 0.4375rem;
+  background-color: var(--admin-surface);
+  vertical-align: middle;
+  cursor: pointer;
+  transition:
+    background-color 120ms,
+    border-color 120ms,
+    box-shadow 120ms;
+}
+[data-admin-root] input[type="radio"] {
+  border-radius: 9999px;
+}
+[data-admin-root] input[type="checkbox"]::before,
+[data-admin-root] input[type="radio"]::before {
+  content: "";
+  width: 0.825rem;
+  height: 0.825rem;
+  background-color: var(--admin-inverse-ink);
+  clip-path: polygon(8% 52%, 20% 40%, 40% 59%, 80% 17%, 92% 29%, 40% 83%);
+  transform: scale(0);
+  transition: transform 120ms ease-out;
+}
+[data-admin-root] input[type="radio"]::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  clip-path: none;
+}
+[data-admin-root] input[type="checkbox"]:indeterminate::before {
+  clip-path: inset(41% 6% 41% 6% round 1px);
+}
+[data-admin-root] input[type="checkbox"]:hover,
+[data-admin-root] input[type="radio"]:hover {
+  border-color: var(--admin-text-mute);
+}
+[data-admin-root] input[type="checkbox"]:checked,
+[data-admin-root] input[type="checkbox"]:indeterminate,
+[data-admin-root] input[type="radio"]:checked {
+  border-color: var(--admin-inverse);
+  background-color: var(--admin-inverse);
+}
+[data-admin-root] input[type="checkbox"]:checked::before,
+[data-admin-root] input[type="checkbox"]:indeterminate::before,
+[data-admin-root] input[type="radio"]:checked::before {
+  transform: scale(1);
+}
+[data-admin-root] input[type="checkbox"]:disabled,
+[data-admin-root] input[type="radio"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/* A visually hidden box stays hidden at its 1 px. */
+[data-admin-root] input:is([type="checkbox"], [type="radio"]).sr-only {
+  width: 1px;
+  height: 1px;
+}
+@media (forced-colors: active) {
+  [data-admin-root] input[type="checkbox"],
+  [data-admin-root] input[type="radio"] {
+    appearance: auto;
+  }
+  [data-admin-root] input[type="checkbox"]::before,
+  [data-admin-root] input[type="radio"]::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-admin-root] input[type="checkbox"]::before,
+  [data-admin-root] input[type="radio"]::before {
+    transition: none;
+  }
+}
+
+/* The empty part of a stock bar: two greys, 135°. */
+[data-admin-root] .admin-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #f2f2f5 0 4px,
+    #f9f9fa 4px 8px
+  );
+}

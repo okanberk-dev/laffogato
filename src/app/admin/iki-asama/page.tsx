@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { AuthCard } from "@/components/admin/auth-card";
 import { TwoFAVerifyForm } from "@/components/admin/twofa-verify-form";
 import { getPendingSession } from "@/lib/admin/auth";
 import { adminNextPath } from "@/lib/admin/next-path";
@@ -18,26 +19,19 @@ export default async function TwoFAPage({ searchParams }: PageProps) {
   const next = adminNextPath((await searchParams).next) ?? "";
 
   return (
-    <main className="mx-auto grid min-h-[70vh] max-w-md place-items-center px-4 py-10 sm:px-6">
-      <div className="w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-6 sm:p-8">
-        <h1
-          className="text-2xl text-[var(--admin-text)] sm:text-3xl"
-          style={{
-            fontFamily: "var(--font-admin-sans), var(--sans)",
-            fontWeight: 600,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          İki adımlı doğrulama
-        </h1>
-        <p className="mt-2 text-sm break-words text-[var(--admin-text-soft)]">
-          {session.email} için doğrulama uygulamandaki 6 haneli kodu gir. Kod 30
-          saniyede bir yenilenir.
-        </p>
-        <div className="mt-6">
-          <TwoFAVerifyForm next={next} />
-        </div>
-      </div>
-    </main>
+    <AuthCard
+      title="İki adımlı doğrulama"
+      description={
+        <>
+          <span className="font-medium text-[var(--admin-text)]">
+            {session.email}
+          </span>{" "}
+          için doğrulama uygulamandaki 6 haneli kodu gir. Kod 30 saniyede bir
+          yenilenir.
+        </>
+      }
+    >
+      <TwoFAVerifyForm next={next} />
+    </AuthCard>
   );
 }

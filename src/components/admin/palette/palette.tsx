@@ -141,8 +141,10 @@ function useRecordSearch(text: string): SearchState {
 const SECTION_CLASS = "pb-1";
 const HEADER_CLASS =
   "px-4 pt-3 pb-1 text-xs font-medium text-[var(--admin-text-mute)]";
+// A plain list: the row under the keys or the pointer turns grey, no
+// coloured highlight.
 const ITEM_CLASS =
-  "mx-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--admin-text)] outline-none data-[focused]:bg-[var(--admin-primary-soft)] data-[focused]:text-[var(--admin-primary)] data-[hovered]:bg-[var(--admin-surface-2)]";
+  "mx-2 flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm text-[var(--admin-text)] outline-none data-[focused]:bg-[var(--admin-surface-2)] data-[hovered]:bg-[var(--admin-surface-2)]";
 
 function Row({
   label,
@@ -272,7 +274,7 @@ export function Palette({
       ),
     );
   }
-  if (all) section("go", "Git", entryItems(go));
+  if (all) section("go", "Sayfalar", entryItems(go));
   section("create", "Oluştur", entryItems(create));
   if (all) section("settings", "Ayarlar içinde", entryItems(settings));
   for (const g of hitGroups) {
@@ -308,9 +310,9 @@ export function Palette({
         ),
       );
     }
-    section(`records:${g.section}`, `Kayıtlar · ${g.label}`, rows);
+    section(`records:${g.section}`, g.label, rows);
   }
-  if (all) section("commands", "Komutlar", entryItems(commands));
+  if (all) section("commands", "Tercihler", entryItems(commands));
 
   // This render's entries: onAction below is this render's too.
   const run = (key: string) => {
@@ -360,20 +362,19 @@ export function Palette({
               }
               e.continuePropagation();
             }}
-            // The box is the whole row: its line and its magnifier turn
-            // blue while the field has the focus, instead of the panel's
-            // ring drawing a second box inside the first (22 Eki 2026).
-            className="group/box flex min-h-14 shrink-0 items-center gap-4 border-b border-[var(--admin-border)] px-4 transition-colors focus-within:border-[var(--admin-primary)]"
+            // The box is the whole row, a plain line under it (21 Kas
+            // 2026: no blue glow, nothing that reads as a prompt); the
+            // caret shows where the focus is, and the panel's ring is off
+            // on the input (inline style below) so no second box appears.
+            className="group/box flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--admin-border)] px-4"
           >
-            <span className="text-[var(--admin-text-soft)] group-focus-within/box:text-[var(--admin-primary)]">
+            <span className="text-[var(--admin-text-mute)]">
               <SearchIcon />
             </span>
             {/* Autocomplete sets autocomplete, autocorrect and spellcheck
                 off and the Enter key's hint itself. */}
             <Input
-              placeholder={
-                all ? "Sayfa, kayıt ya da komut ara" : "Ne oluşturulsun?"
-              }
+              placeholder={all ? "Ara" : "Yeni kayıt türü"}
               maxLength={80}
               className="-mx-2 min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-base text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-text-mute)]"
               // The panel's ring (globals.css) is unlayered: only an inline
@@ -393,7 +394,7 @@ export function Palette({
               type="button"
               onClick={close}
               aria-label="Kapat"
-              className="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] pointer-fine:h-9 pointer-fine:w-9"
+              className="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] pointer-fine:h-9 pointer-fine:w-9"
             >
               <svg
                 width="18"

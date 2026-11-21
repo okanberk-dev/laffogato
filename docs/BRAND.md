@@ -610,9 +610,22 @@ ve her çizimin yerini tutar.
 
 ---
 
-## Admin paneli görünümü (Innex, 22 Eki 2026)
+## Admin paneli görünümü (StorageBox, 21 Kas 2026)
 
 Bu belgedeki palet ve yazı yalnız **müşteri sitesi** içindir. Yönetim paneli
+(`/admin`) 21 Kas 2026'dan beri Madame Coco Kenya panelinin StorageBox
+dilini izler (operatör: _"laffogato admin panelini madamecoco reposundaki
+admin panel ile aynı tarz tasarımda yap"_): açık gri çerçevede ince çizgili
+beyaz kartlar (köşe 24), hap biçimli kontroller, mürekkep `#1f212d`, tek
+mavi birincil `#122aff`, etkin menü satırı koyu hap, başlık ve büyük rakam
+DM Sans 400, metin Inter. Tarif, değerler ve kaynaktan sapmalar
+`docs/ADMIN-STORAGEBOX.md`'de, token'lar `src/app/admin/admin-theme.css`'te.
+Aşağıdaki Innex anlatımı tarihçedir; düzenler (kayıt sayfaları, hızlı bakış,
+sihirbazlar) aynen kaldı.
+
+### Tarihçe: Innex (22 Eki - 21 Kas 2026)
+
+Yönetim paneli
 (`/admin`) operatör kararıyla (22 Eki 2026: _"İnnexe geç"_) Filllo'nun
 Dribbble'daki **Innex** otel yönetim paneli serisinin tasarım sistemini
 izler; ölçülmüş tarif `docs/ADMIN-INNEX.md`'de. 21 Eki 2026'da alınan
@@ -707,6 +720,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 11 Kas 2026 | **Roast** (operatör: "siteyi tamamen coffee-beans-swart.vercel.app ... gibi ... yap, three js vs. ne varsa kullan"): krem zemin `#faf7f2`, mürekkep, dolu düğme, bant ve footer için tek espresso `#23120b` (token adları yerinde, `--green-*` ailesi artık espresso), amber `#de853a` dolgu ve koyu zeminde vurgu, karamel `#a35019` krem üstünde vurgu metni, `--matcha` tek yeşil (yalnız olumlu durum), Abril Fatface başlık + Plus Jakarta Sans metin (Poppins emekli), 16px kart, espresso tonlu gölge, buzlu krem üst çubuk, kaydırmayla ilerleyen three.js girişi (çekirdek) ve iki three.js bandı (dökülen espresso, affogato kupası); kahve vadisi kalktı. Tasarım kaydı `docs/REDESIGN-ROAST.md`; güncel değerler §0. |
 | 12 Kas 2026 | **Roast, ikinci geçiş** (operatör: "ince ayar yap ve yapay zekaymış gibi gözükmesin"): üç three.js çizimi eşyanın fotoğrafı olacak biçimde yeniden kuruldu. Çekirdeğin içindeki altın ışık, turuncu yörünge çizgileri, kıvılcımlar, havadaki toz, asılı boncuk damlalar, kahverengi buhar, kalın karamel şerit ve espressoya sarılı beyaz "krema" kaldırıldı; yerine ıslak espresso gövdesi ve uçuş yönünde uzayan damlalar, dokulu döküm alüminyum demlik, krom portafiltre ve iki ince akış, espresso sırlı yivli fincan, kenarından okunan şeffaf cam sürahi ve tek ince akış geldi. İki bantta fincan ve sürahi artık kıpırdamaz. Stüdyo kameranın durduğu yanda koyu (metal metal gibi okunsun diye). `tests/home-roast.test.ts` "the scenes are photographs of things, not effects" tutar. |
 | 17 Kas 2026 | **Yolculuk** (operatör: "sitede aşağıdaki promptu uygula ve kahveciye uygun hale getir", "alpha project" build promptu): anasayfanın girişi sabitlenmiş tek ekran oldu; kaydırmanın oynattığı 120 karelik film (Blender'da çizildi: çekirdek yığınının içinden bardaki bisküvi kupalı affogatoya, gece, ip ışıkları altında), derinlik haritasıyla paralaks, krem ön yükleyici ve yanma geçişi, kelime kelime gelen üç başlık, iki cam kart, halka imleç. Yazı Instrument Sans + Instrument Serif italik (yalnız burada). Üst çubuk resim üstünde tasarımın diline çevrilir. Kareler kesim başına beş pakette (5 istek). Roast girişi (`home-roast.tsx`) kaldırıldı. Kayıt `docs/JOURNEY.md`. |
+| 21 Kas 2026 | **Admin paneli StorageBox** (operatör: "laffogato admin panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda yap"): açık gri çerçevede ince çizgili beyaz kartlar (köşe 24), hap kontroller, koyu etkin menü hapı, tek mavi `#122aff`, DM Sans başlık ve rakam, ayrı rakam kartları; köşk çipi kalktı (açık/kapalı saatlerden), arama sade kutu (`docs/ADMIN-STORAGEBOX.md`); müşteri sitesi değişmedi. |
 
 **5 Kas - 11 Kas 2026: kafe-perakende düzeni (tarihçe; 11 Kas 2026'ya kadar
 bu belgenin §0'ıydı).** Operatör: _"sitenin görselini ... starbucks tarzı

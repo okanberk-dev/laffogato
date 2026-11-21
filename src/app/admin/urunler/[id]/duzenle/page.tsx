@@ -30,7 +30,7 @@ export default async function EditProductPage({ params }: PageProps) {
   const boundUpdate = updateProductAction.bind(null, product.id);
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         eyebrow={`SKU ${product.sku} · son güncelleme ${formatDateTime(product.updatedAt)}`}
         title={product.name}

@@ -65,12 +65,23 @@ export function Field({
   );
 }
 
-// The panel's field, Innex's: 8 px corners, 44 px tall on a phone and 40 px
-// from `sm` (14 px text). The outline is --admin-border-field (3:1 against
-// the white card and the field's own fill, so an empty field can be found)
-// and the placeholder is the full label ink, not a faded one (it was
-// 2.41:1). Focus is Innex's blue edge with a soft ring.
-export const FIELD_INPUT = `w-full rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-3 focus:ring-[var(--admin-primary)]/15 sm:py-2 sm:text-sm ${COMPACT.fieldPy}`;
+// The panel's field (StorageBox, 21 Kas 2026): a white pill, 44 px tall on
+// a phone and 40 px from `sm` (14 px text), 16 px in from its edges. The
+// outline is --admin-border-field (darker than the source's, so an empty
+// field can be found on a white card) and darkens under the pointer; the placeholder is the
+// muted ink. Focus is the blue edge with a soft 3 px ring. A multi-line
+// field (Textarea) takes 16 px corners instead of the pill.
+const FIELD_BASE = `w-full border border-[var(--admin-border-field)] bg-[var(--admin-surface)] text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] hover:border-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-[3px] focus:ring-[var(--admin-ring)] sm:text-sm`;
+export const FIELD_INPUT = `${FIELD_BASE} rounded-full px-4 py-2.5 sm:py-2 ${COMPACT.fieldPy}`;
+export const FIELD_TEXTAREA = `${FIELD_BASE} rounded-2xl px-4 py-3`;
+
+/**
+ * A list toolbar's search box (StorageBox): a grey filled pill with no
+ * line, white with the blue edge once focused. Its own string, not
+ * FIELD_INPUT plus overrides: two background utilities in one class list
+ * are settled by the stylesheet's order, not by the list's.
+ */
+export const TOOLBAR_FIELD = `w-full rounded-full border border-transparent bg-[var(--admin-panel)] py-2.5 pr-4 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-[3px] focus:ring-[var(--admin-ring)] sm:py-2 sm:text-sm ${COMPACT.fieldPy}`;
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -84,7 +95,7 @@ export function Textarea(
   return (
     <textarea
       {...props}
-      className={`${FIELD_INPUT} min-h-[100px] ${props.className ?? ""}`}
+      className={`${FIELD_TEXTAREA} min-h-[100px] ${props.className ?? ""}`}
     />
   );
 }
@@ -162,7 +173,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`${CARD} p-4 sm:p-5 print:border-[var(--admin-border-strong)] ${COMPACT.p4} ${className ?? ""}`}
+      className={`${CARD} p-4 sm:p-6 print:border-[var(--admin-border-strong)] ${COMPACT.p4} ${className ?? ""}`}
       style={style}
     >
       {children}
@@ -262,16 +273,9 @@ export function PageHeader({
   menuLabel = "Diğer işlemler",
   className,
 }: PageHeaderProps) {
-  // Innex's page title: 18 px semibold, the size of the strip it heads.
+  // The StorageBox page title: DM Sans 400 at 26-32 px, tight.
   const heading = (
-    <h1
-      className="text-lg leading-7 text-[var(--admin-text)]"
-      style={{
-        fontFamily: "var(--font-admin-sans), var(--sans)",
-        fontWeight: 600,
-        letterSpacing: "-0.01em",
-      }}
-    >
+    <h1 className="admin-display text-[length:var(--admin-h1)] leading-[1.15] font-normal text-[var(--admin-text)]">
       {title}
     </h1>
   );
@@ -280,12 +284,12 @@ export function PageHeader({
   // row of its own under the description, a lone button in the open.
   const menuOnly = Boolean(menu) && !primary && !secondary && !action;
   return (
-    // Innex's header strip: the page's full width under the top bar, a 1 px
-    // line below it. The negative margins meet the page's own padding
-    // (PageShell, px-4 / sm:px-5), so the line runs card edge to card edge.
+    // The StorageBox page head: the title on the left, the page's buttons
+    // on the right on the same line, open space below (no rule: the cards
+    // on the grey canvas already mark where the page starts).
     <header
       className={cx(
-        "-mx-4 mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-[var(--admin-border)] px-4 pb-4 sm:-mx-5 sm:px-5",
+        "mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 lg:mb-8",
         className,
       )}
     >
@@ -311,7 +315,7 @@ export function PageHeader({
           heading
         )}
         {description && (
-          <p className="mt-0.5 max-w-2xl text-[13px] leading-5 text-[var(--admin-text-mute)]">
+          <p className="mt-1 max-w-2xl text-sm leading-5 text-[var(--admin-text-soft)]">
             {description}
           </p>
         )}
@@ -380,7 +384,7 @@ export function PageHeader({
             />
             Nasıl çalışır?
           </summary>
-          <div className="mt-1 max-w-2xl rounded-[10px] bg-[var(--admin-panel)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
+          <div className="mt-1 max-w-2xl rounded-lg border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
             {help}
           </div>
         </details>
