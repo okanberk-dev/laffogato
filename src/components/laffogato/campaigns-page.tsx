@@ -1,6 +1,6 @@
-import { Illustration, type IllustrationName } from "./illustration";
+import Link from "@/components/link";
+
 import { PageHero } from "./page-hero";
-import { sceneBackground, type SceneKey } from "./scenes";
 
 export interface CampaignPost {
   id: string;
@@ -19,30 +19,11 @@ const KIND_LABEL: Record<CampaignPost["kind"], string> = {
 };
 
 /**
- * A post the panel published without a photo gets a drawing of its kind -
- * a ticket and a bean, two cups toasting, a garland over a calendar page -
- * on that kind's light, instead of the bare L'Af on a green board.
- */
-const KIND_ART: Record<
-  CampaignPost["kind"],
-  { name: IllustrationName; scene: SceneKey }
-> = {
-  campaign: { name: "kampanya-campaign", scene: "citrus" },
-  collab: { name: "kampanya-collab", scene: "strawberry" },
-  event: { name: "kampanya-event", scene: "pistachio" },
-};
-
-/**
- * `/kampanyalar` - the offers page, in the reference's language.
- *
- * A cream page hero with the green disc behind a display headline, then the
- * two house programmes as full-width green banners, then whatever the panel
- * is running as a card grid.
- *
- * Everything here is operator-controlled: the banners answer to
- * `campaignCards` switches and the cards are `/app-content` posts - the same
- * two sources the app's Kampanyalar screen reads, so publishing once moves
- * both.
+ * `/kampanyalar`. The house programmes (stamps, invites) as the reference's
+ * ruled feature rows, then whatever the panel is running as a card grid.
+ * Everything is operator-controlled: the programmes answer to
+ * `campaignCards` switches and the cards are `/app-content` posts, the same
+ * two sources the app's Kampanyalar screen reads.
  */
 export function CampaignsPage({
   posts,
@@ -57,42 +38,53 @@ export function CampaignsPage({
 }) {
   const campaigns = posts.filter((p) => p.kind === "campaign");
   const others = posts.filter((p) => p.kind !== "campaign");
+  const programmes = [
+    cards.loyalty
+      ? {
+          key: "loyalty",
+          label: "Ödül programı",
+          title: `${stampTarget} damgada 1 ${rewardTitle.toLocaleLowerCase("tr-TR")}`,
+          body: "Uygulamadan verdiğin 140 TL ve üzeri kafe siparişi damga kazandırır: 320 TL'ye kadar bir, 640 TL'ye kadar iki damga. Kart dolduğunda ödülün kuponlarına düşer.",
+          href: "/uye/hesap",
+          cta: "Kartımı gör",
+        }
+      : null,
+    cards.invite
+      ? {
+          key: "invite",
+          label: "Davet",
+          title: "Arkadaşını çağır, ikiniz de kazanın",
+          body: "Davet kodunu paylaş; arkadaşın ilk siparişini verdiğinde ikinizin de hesabına ödül düşer.",
+          href: "/uye/hesap/promosyonlar",
+          cta: "Davet kodum",
+        }
+      : null,
+  ].filter((p): p is NonNullable<typeof p> => p !== null);
 
   return (
     <>
       <PageHero
-        scene="citrus"
-        eyebrow="Köşkte bu ay"
-        title={["Kampanyalar", "ve etkinlikler"]}
-        art={<Illustration name="kampanya-lights" priority />}
-        lede="Sezon kampanyaları, iş birlikleri ve köşkte olan biten. Damga programı ve davet ödülü de burada - ikisi de uygulamada ve web'de aynı hesaba işler."
+        title="Kampanyalar ve etkinlikler"
+        lede="Sezon kampanyaları, iş birlikleri ve köşkte olan biten. Damga programı ve davet ödülü de burada: ikisi de uygulamada ve web'de aynı hesaba işler."
+        image={{ src: "/rehber/tiramisu-tarifi.webp" }}
       />
 
-      <section className="home-section">
-        <div className="wrap">
-          <div className="promo-stack">
-            {cards.loyalty && (
-              <PromoBanner
-                eyebrow="Ödül programı"
-                title={`${stampTarget} damgada 1 ${rewardTitle.toLocaleLowerCase("tr-TR")}`}
-                body="Uygulamadan verdiğin 140 TL ve üzeri kafe siparişi damga kazandırır: 320 TL'ye kadar bir, 640 TL'ye kadar iki damga. Kart dolduğunda ödülün kuponlarına düşer."
-                href="/uye/hesap"
-                cta="Kartımı gör"
-              />
-            )}
-            {cards.invite && (
-              <PromoBanner
-                eyebrow="Davet"
-                title="Arkadaşını çağır, ikiniz de kazanın"
-                body="Davet kodunu paylaş; arkadaşın ilk siparişini verdiğinde ikinizin de hesabına ödül düşer."
-                href="/uye/hesap/promosyonlar"
-                cta="Davet kodum"
-                tone="gold"
-              />
-            )}
+      {programmes.length > 0 && (
+        <section className="section section--band" aria-label="Programlar">
+          <div className="wrap programme-row">
+            {programmes.map((p) => (
+              <article key={p.key} className="programme">
+                <p className="t-label">{p.label}</p>
+                <h2 className="t-display">{p.title}</h2>
+                <p className="t-body">{p.body}</p>
+                <a className="btn btn-wide" href={p.href}>
+                  {p.cta}
+                </a>
+              </article>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {campaigns.length > 0 && (
         <CardGrid title="Şu an geçerli" posts={campaigns} />
@@ -101,19 +93,16 @@ export function CampaignsPage({
         <CardGrid title="İş birlikleri ve etkinlikler" posts={others} />
       )}
 
-      {posts.length === 0 && !cards.loyalty && !cards.invite && (
-        <section className="home-section home-section-last">
+      {posts.length === 0 && programmes.length === 0 && (
+        <section className="section">
           <div className="wrap">
-            <div className="campaign-empty">
-              <Illustration
-                name="kampanya-empty"
-                className="campaign-empty-art"
-              />
-              <p>
-                Şu an yayında bir kampanya yok. Yeni sezon menüsü için menüye
-                göz atabilirsin.
-              </p>
-            </div>
+            <p className="t-body">
+              Şu an yayında bir kampanya yok. Yeni sezon menüsü için menüye göz
+              atabilirsin.
+            </p>
+            <Link className="btn btn-wide campaign-empty-cta" href="/menu">
+              Menüyü gör
+            </Link>
           </div>
         </section>
       )}
@@ -121,104 +110,42 @@ export function CampaignsPage({
   );
 }
 
-/**
- * The banner: an espresso board (`green` is the tone's historical name;
- * `gold` the brass one, for the reward) with a soft wave across it and a
- * single pill on the right.
- */
-function PromoBanner({
-  eyebrow,
-  title,
-  body,
-  href,
-  cta,
-  tone = "green",
-}: {
-  eyebrow: string;
-  title: string;
-  body: string;
-  href: string;
-  cta: string;
-  tone?: "green" | "gold";
-}) {
-  return (
-    <a className={`promo-banner ${tone}`} href={href}>
-      {/* The wave is the reference's, drawn rather than shipped as an image so
-          it takes the band's own colours. */}
-      <svg
-        className="promo-banner-wave"
-        viewBox="0 0 1200 220"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path d="M0 150 C 220 60, 420 210, 660 130 S 1000 40, 1200 96 L1200 220 L0 220 Z" />
-      </svg>
-      <span className="promo-banner-copy">
-        <span className="promo-banner-eyebrow">{eyebrow}</span>
-        <span className="promo-banner-title">{title}</span>
-        <span className="promo-banner-body">{body}</span>
-      </span>
-      <span className="promo-banner-cta">{cta}</span>
-    </a>
-  );
-}
-
 function CardGrid({ title, posts }: { title: string; posts: CampaignPost[] }) {
   return (
-    <section className="home-section">
+    <section className="section">
       <div className="wrap">
-        <h2 className="section-title">{title}</h2>
-        <div className="campaign-grid">
-          {posts.map((p, i) => (
-            /* The site's own scroll-reveal driver (RevealMotion), not a
-               second one: it is already mounted in the layout, it is already
-               safe for SSR, no-JS and reduced motion, and `r1..r4` are the
-               stagger it ships. A bespoke observer here would have hidden
-               cards that were already on screen and flashed them. */
-            <article
-              key={p.id}
-              className={`campaign-card reveal r${(i % 4) + 1}`}
-            >
-              {p.image ? (
-                <div className="campaign-card-photo">
-                  {/* The campaign photo is a panel URL whose host is not
-                      known at build time; next/image would need a wildcard
-                      remotePattern to load it. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.image} alt="" loading="lazy" />
-                </div>
-              ) : (
-                <div
-                  className="campaign-card-photo empty"
-                  style={{
-                    background: sceneBackground(KIND_ART[p.kind].scene),
-                  }}
-                  aria-hidden="true"
-                >
-                  <Illustration name={KIND_ART[p.kind].name} />
-                </div>
-              )}
-              <div className="campaign-card-body">
-                <span className="campaign-card-kind">{KIND_LABEL[p.kind]}</span>
-                <h3 className="campaign-card-title">{p.title}</h3>
-                <p className="campaign-card-text">{p.body}</p>
-                {p.linkUrl ? (
-                  <a
-                    className="campaign-card-link"
-                    href={p.linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {p.linkLabel || "Ayrıntılar"}{" "}
-                    <span className="arrow out" aria-hidden="true">
-                      ↗
-                    </span>
-                  </a>
-                ) : null}
-              </div>
-            </article>
-          ))}
+        <div className="section-head">
+          <h2 className="t-display">{title}</h2>
         </div>
+        <ul className="post-grid" role="list">
+          {posts.map((p) => (
+            <li key={p.id} className="post-card">
+              <div className="media ratio-4-3">
+                {p.image ? (
+                  // A panel URL whose host is not known at build time.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.image} alt="" loading="lazy" />
+                ) : (
+                  <span className="media-empty" aria-hidden="true" />
+                )}
+                <span className="badge">{KIND_LABEL[p.kind]}</span>
+              </div>
+              <h3 className="t-title">{p.title}</h3>
+              <p className="t-small">{p.body}</p>
+              {p.linkUrl ? (
+                <a
+                  className="link-u"
+                  href={p.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {p.linkLabel || "Ayrıntılar"}
+                  <span className="sr-only"> (yeni sekme)</span>
+                </a>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

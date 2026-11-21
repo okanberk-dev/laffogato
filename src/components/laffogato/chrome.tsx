@@ -14,12 +14,9 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { SITE } from "@/lib/seo/site";
 import { addressLines } from "@/lib/utils/format";
 
-import { AppStoreLinks } from "./app-links";
 import { LafMark } from "./brand-mark";
-import { FooterKosk, FooterSky } from "./footer-night";
 import { NewsletterForm } from "./newsletter-form";
 import { ROUTE_PATHS, type Route } from "./route-paths";
-import { SCENES, sceneForHue } from "./scenes";
 import { cx } from "./cx";
 import { useOpenStatus } from "./use-open-status";
 
@@ -28,50 +25,37 @@ export type { Route };
     New server-side code should import directly from `./route-paths`. */
 export { ROUTE_PATHS };
 
+/*
+ * The site's chrome (21 Kas 2026), in the reference's language: a thin
+ * announcement line, then the bar - the destinations on the left in tracked
+ * capitals, the mark in the middle, search, account and bag on the right -
+ * on the band. A destination with more behind it opens a full-width panel
+ * under the bar. Below the wide layout the bar keeps the mark in the
+ * middle, the menu button takes the left, and a row of quick links follows.
+ * The footer is the charcoal block.
+ */
+
 export interface DropdownEntry {
   slug: string;
   label: string;
-  italian: string;
-  hue: "caramel" | "dark" | "cream" | "matcha" | "strawberry" | "pistachio";
+  sub: string;
 }
 
-/**
- * Built from the real category routes, so a nav entry cannot point at a page
- * that does not exist. `nav` marks the six categories that get a tile in the
- * header; the other six are listed under them, so every /menu/<slug> page has
- * a door in the chrome (six of the twelve used to be reachable only through
- * the sitemap).
- */
-const MENU_DROPDOWN: DropdownEntry[] = MENU_CATEGORY_ROUTES.filter(
+/** Every /menu/<slug> page has a door in the chrome, built from the real
+ *  category routes so an entry cannot point at a page that does not exist. */
+const MENU_LINKS: DropdownEntry[] = MENU_CATEGORY_ROUTES.filter(
   (c) => c.nav,
-).map((c) => ({
-  slug: c.slug,
-  label: c.nav!.label,
-  italian: c.nav!.italian,
-  hue: c.nav!.hue,
-}));
+).map((c) => ({ slug: c.slug, label: c.nav!.label, sub: c.nav!.italian }));
+const MENU_MORE: DropdownEntry[] = MENU_CATEGORY_ROUTES.filter(
+  (c) => !c.nav,
+).map((c) => ({ slug: c.slug, label: c.breadcrumbLabel, sub: "" }));
 
-const MENU_MORE = MENU_CATEGORY_ROUTES.filter((c) => !c.nav).map((c) => ({
-  slug: c.slug,
-  label: c.breadcrumbLabel,
-}));
-
-const SHOP_DROPDOWN: DropdownEntry[] = [
-  {
-    slug: "cekirdek",
-    label: "Çekirdek Kahve",
-    italian: "Caffè in grani",
-    hue: "dark",
-  },
-  {
-    slug: "hediye",
-    label: "Hediye Seti",
-    italian: "Confezioni regalo",
-    hue: "cream",
-  },
-  { slug: "ekipman", label: "Ekipman", italian: "Strumenti", hue: "caramel" },
-  { slug: "giyim", label: "Giyim", italian: "Capi d'autore", hue: "dark" },
-  { slug: "kiler", label: "Kiler", italian: "Dispensa", hue: "matcha" },
+const SHOP_LINKS: DropdownEntry[] = [
+  { slug: "cekirdek", label: "Çekirdek kahve", sub: "Bologna'da kavrulur" },
+  { slug: "hediye", label: "Hediye setleri", sub: "Kutusunda hazır" },
+  { slug: "ekipman", label: "Ekipman", sub: "Moka pot, chasen" },
+  { slug: "giyim", label: "Giyim", sub: "Önlük, tişört" },
+  { slug: "kiler", label: "Kiler", sub: "Matcha, şurup" },
 ];
 
 type DropdownKey = "menu" | "shop" | "visit";
@@ -79,93 +63,78 @@ type DropdownKey = "menu" | "shop" | "visit";
 interface LinkEntry {
   href: string;
   label: string;
-  /** SPA section this link opens, when it is one (lets the SPA navigate
-      without a full page load). */
+  /** SPA section this link opens, when it is one. */
   route?: Route;
   dropdown?: DropdownKey;
 }
 
-/**
- * The header's destinations. No "Anasayfa": the mark is the way home, as on
- * every Apple-style bar. Karaoke and Kampanyalar are real routes outside the
- * SPA; they now light up like the others when you are on them.
- */
 const LINKS: LinkEntry[] = [
   { href: "/menu", label: "Menü", route: "menu", dropdown: "menu" },
   { href: "/magaza", label: "Mağaza", route: "shop", dropdown: "shop" },
-  { href: "/kampanyalar", label: "Kampanyalar" },
   { href: "/karaoke", label: "Karaoke" },
-  { href: "/hikayemiz", label: "Hikayemiz", route: "story" },
-  { href: "/ziyaret", label: "Ziyaret", route: "visit", dropdown: "visit" },
+  { href: "/kampanyalar", label: "Kampanyalar" },
+  {
+    href: "/ziyaret",
+    label: "Ziyaret & keşfet",
+    route: "visit",
+    dropdown: "visit",
+  },
 ];
 
-/** The "see everything" link at the head of each panel and sheet group. */
-const ALL_LABEL: Record<DropdownKey, string> = {
-  menu: "Tüm menü",
-  shop: "Tüm mağaza",
-  visit: "Adres ve saatler",
-};
-
-/**
- * Ziyaret's panel: the houses first (the Tuzla köşk and every branch in
- * src/lib/seo/branches.ts, each to its card on /ziyaret), then what is in
- * the köşk. Only routes and anchors that exist.
- */
-const VISIT_BRANCHES: Array<{ href: string; label: string; sub: string }> = [
-  { href: "/ziyaret", label: "Tuzla köşkü", sub: "Postane, Tuzla" },
+const VISIT_LINKS: Array<{ href: string; label: string; sub: string }> = [
+  { href: "/ziyaret", label: "Tuzla köşkü", sub: "Adres ve saatler" },
   ...OTHER_BRANCHES.map((b) => ({
     href: `/ziyaret#${b.id}`,
     label: b.name,
     sub: b.hoursLabel || "Yeni şube",
   })),
-];
-const VISIT_MORE: Array<{ href: string; label: string }> = [
-  { href: "/ziyaret#map", label: "Yol tarifi" },
-  { href: "/karaoke", label: "Karaoke odası" },
-  { href: "/hikayemiz", label: "Hikayemiz" },
-  { href: "/rehber", label: "Rehber" },
+  { href: "/hikayemiz", label: "Hikayemiz", sub: "Bologna 1897'den" },
+  { href: "/rehber", label: "Rehber", sub: "Barın arkasında öğrendiklerimiz" },
 ];
 
-/**
- * The card on the right of each panel: one picture and one door. Photos
- * from public/, words the site already says elsewhere (the home rail's
- * "Sezon · Strawberry Aşkı", the shop's weekly Bologna roast, the köşk's
- * address).
- */
+/** The picture and the door on the right of each panel. */
 const PANEL_FEATURE: Record<
   DropdownKey,
-  { src: string; kicker: string; title: string; href: string }
+  { src: string; title: string; href: string; cta: string }
 > = {
   menu: {
     src: "/menu/strawberry-matcha.webp",
-    kicker: "Barda bu sezon",
-    title: "Strawberry Aşkı, matcha barında",
+    title: "Matcha barı",
     href: "/menu/matcha",
+    cta: "Matcha menüsü",
   },
   shop: {
     src: "/menu/espresso.webp",
-    kicker: "Evde L'Affogato",
-    title: "Çekirdek kahve, Bologna'da haftalık kavrulur",
+    title: "Evde L'Affogato",
     href: "/magaza/cekirdek",
+    cta: "Çekirdek kahveler",
   },
   visit: {
     src: "/photos/facade-day.webp",
-    kicker: "Tuzla köşkü",
-    title: "200 yıllık köşkte bir masa, bahçede bir fincan",
+    title: "Tuzla köşkü",
     href: "/ziyaret",
+    cta: "Ziyaret bilgileri",
   },
 };
+
+const ALL_LABEL: Record<DropdownKey, { href: string; label: string }> = {
+  menu: { href: "/menu", label: "Tüm menü" },
+  shop: { href: "/magaza", label: "Tüm mağaza" },
+  visit: { href: "/ziyaret", label: "Ziyaret" },
+};
+
+/** The quick links under the bar on a phone (the reference's chips). */
+const QUICK_LINKS = [
+  { href: "/menu", label: "Menü" },
+  { href: "/karaoke", label: "Karaoke" },
+  { href: "/magaza", label: "Mağaza" },
+  { href: "/kampanyalar", label: "Kampanyalar" },
+];
 
 function isActivePath(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-/** A category's swatch: the scene colour for that family, a flat disc. */
-function swatchStyle(hue: DropdownEntry["hue"]): React.CSSProperties {
-  const s = SCENES[sceneForHue(hue === "dark" ? "espresso" : hue)];
-  return { background: s.mid };
 }
 
 interface NavProps {
@@ -184,18 +153,14 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
-  // The panel last shown: it stays in the closing panel while it folds.
-  const [panelKey, setPanelKey] = useState<DropdownKey>("menu");
-  if (openDropdown && openDropdown !== panelKey) setPanelKey(openDropdown);
   const caretRefs = useRef<Partial<Record<DropdownKey, HTMLButtonElement>>>({});
   const [mobileSection, setMobileSection] = useState<DropdownKey | null>(null);
-  const [scrolled, setScrolled] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
-  // A new page closes whatever the last one left open. Adjusted during
-  // render when the URL changes (react.dev "adjusting state when a prop
-  // changes") rather than in an effect.
+  // A new page closes whatever the last one left open (adjusted during
+  // render when the URL changes, not in an effect).
   const [shownPath, setShownPath] = useState(pathname);
   if (pathname !== shownPath) {
     setShownPath(pathname);
@@ -206,21 +171,16 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   useEffect(() => {
     document.body.classList.toggle("is-no-scroll", open);
     if (!open) return;
+    // The sheet opens right under the bar, wherever the bar is: under the
+    // announcement line at the top of the page, at the top once scrolled.
+    const bottom = headerRef.current?.getBoundingClientRect().bottom ?? 0;
+    sheetRef.current?.style.setProperty("--sheet-top", `${Math.max(0, bottom)}px`);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
-
-  // The bar is transparent at the top of every page; once the page has
-  // moved 30px it turns to frost and tightens (globals.css .is-scrolled).
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     if (!openDropdown) return;
@@ -263,7 +223,6 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
     setOpenDropdown(key);
   };
-
   const onHoverClose = () => {
     if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
     closeTimerRef.current = window.setTimeout(() => setOpenDropdown(null), 180);
@@ -285,8 +244,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     else router.push("/magaza?ara=1");
   };
 
-  // ⌘K / Ctrl+K anywhere, and "/" when the visitor is not typing: the
-  // keyboard way into search that the header's pill advertises.
+  // ⌘K / Ctrl+K anywhere, and "/" when the visitor is not typing.
   const openSearchRef = useRef(openSearch);
   useEffect(() => {
     openSearchRef.current = openSearch;
@@ -310,15 +268,21 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
   }, []);
 
   const home = { href: "/", route: "home" as Route };
+  const panelKey = openDropdown;
 
   return (
     <>
+      <div className="announce">
+        <p className="t-micro">
+          Uygulamadan sipariş ver, her siparişte damga topla{" "}
+          <span aria-hidden="true">|</span>{" "}
+          <Link href="/kampanyalar" className="announce-link">
+            Kampanyalar
+          </Link>
+        </p>
+      </div>
       <header
-        className={cx(
-          "site-header",
-          (scrolled || open) && "is-scrolled",
-          open && "is-sheet-open",
-        )}
+        className={cx("site-header", open && "is-sheet-open")}
         ref={headerRef}
         onMouseLeave={onHoverClose}
         onBlur={(e) => {
@@ -328,604 +292,287 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
             setOpenDropdown(null);
         }}
       >
-        <nav className="nav" aria-label="Ana gezinme">
-          <Link
-            href="/"
+        <div className="nav">
+          <button
+            type="button"
+            className="icon-btn nav-burger"
+            aria-expanded={open}
+            aria-controls="mobile-sheet"
+            aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? <CloseGlyph /> : <BurgerGlyph />}
+          </button>
+
+          <nav className="nav-links" aria-label="Ana menü">
+            <ul role="list">
+              {LINKS.map((l) => {
+                const active = isActivePath(pathname, l.href);
+                const isOpen = l.dropdown && openDropdown === l.dropdown;
+                return (
+                  <li
+                    key={l.href}
+                    className="nav-link-wrap"
+                    onMouseEnter={
+                      l.dropdown
+                        ? () => onHoverOpen(l.dropdown!)
+                        : () => setOpenDropdown(null)
+                    }
+                  >
+                    <a
+                      href={l.href}
+                      onClick={go(l)}
+                      className={cx("t-nav nav-link", isOpen && "is-open")}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      {l.label}
+                    </a>
+                    {l.dropdown ? (
+                      <button
+                        type="button"
+                        ref={(el) => {
+                          if (el) caretRefs.current[l.dropdown!] = el;
+                        }}
+                        className="nav-caret"
+                        aria-expanded={!!isOpen}
+                        aria-controls="nav-panel"
+                        aria-label={`${l.label} alt menüsü`}
+                        onClick={() =>
+                          setOpenDropdown(isOpen ? null : l.dropdown!)
+                        }
+                      >
+                        <ChevronGlyph />
+                      </button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <a
+            href={home.href}
             onClick={go(home)}
             className="nav-brand"
-            aria-label="L'Affogato anasayfası"
+            aria-label="L'Affogato ana sayfa"
           >
-            <LafMark tone="ink" />
-            {/* The link is already named; the wordmark is for the eye.
-                Capitals are CSS. */}
-            <span className="nav-wordmark" aria-hidden="true">
-              <span>L&apos;Affogato</span>
-              <span>Tuzla.</span>
-            </span>
-          </Link>
+            <LafMark tone="duo" />
+          </a>
 
-          <div className="nav-center">
-            {LINKS.map((link) => {
-              const active = isActivePath(pathname, link.href);
-              const key = link.dropdown;
-              const isOpen = key !== undefined && openDropdown === key;
-              return (
-                <div
-                  key={link.href}
-                  className={cx("nav-link-wrap", key && "has-dropdown")}
-                  onMouseEnter={key ? () => onHoverOpen(key) : undefined}
-                >
-                  <a
-                    href={link.href}
-                    onClick={go(link)}
-                    className={cx(
-                      "nav-link",
-                      active && "active",
-                      isOpen && "is-open",
-                    )}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    {link.label}
-                  </a>
-                  {/* The caret is its own control: the link still navigates,
-                      the button opens the panel - so a keyboard user can
-                      reach it and `aria-expanded` tells the truth. */}
-                  {key && (
-                    <button
-                      type="button"
-                      ref={(el) => {
-                        if (el) caretRefs.current[key] = el;
-                      }}
-                      className={cx("nav-link-caret-btn", isOpen && "is-open")}
-                      aria-expanded={isOpen}
-                      aria-controls="nav-panel"
-                      aria-label={`${link.label} bölümünü ${isOpen ? "kapat" : "aç"}`}
-                      onClick={() => setOpenDropdown(isOpen ? null : key)}
-                    >
-                      <Chevron className="nav-link-caret" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="nav-right">
-            {/* The app, one tap away on a wide screen (App Store only: no
-                Android app is promised). */}
-            {APP_STORE_URL ? (
-              <a
-                className="nav-app"
-                href={APP_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <PhoneMark />
-                <span>Uygulamayı indir</span>
-              </a>
-            ) : null}
-            {/* A round outlined button, the glyph alone. ⌘K / Ctrl+K / "/"
-                open it from anywhere. */}
+          <div className="nav-tools">
             <button
               type="button"
-              className="nav-search"
-              aria-label="Menüde ve mağazada ara"
-              aria-keyshortcuts="Control+K Meta+K /"
+              className="icon-btn"
               onClick={openSearch}
+              aria-label="Ara"
             >
               <SearchGlyph />
             </button>
             <AccountMenu />
             <button
               type="button"
-              className="nav-cart"
-              aria-label={`Sepetim - ${cartCount} ürün`}
+              className="icon-btn nav-cart"
               onClick={openCart}
+              aria-label={
+                cartCount > 0 ? `Sepet, ${cartCount} ürün` : "Sepet, boş"
+              }
             >
-              <span className="nav-cart-label">Sepet</span>
-              <span
-                className={cx("nav-cart-count", cartCount > 0 && "has-items")}
-                aria-hidden="true"
-              >
-                {cartCount}
-              </span>
-            </button>
-            <button
-              type="button"
-              className={cx("nav-burger", open && "open")}
-              onClick={() => setOpen((v) => !v)}
-              aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
-              aria-expanded={open}
-              aria-controls="mobile-sheet"
-            >
-              <span />
-              <span />
+              <BagGlyph />
+              {cartCount > 0 ? (
+                <span className="nav-cart-count tabular" aria-hidden="true">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              ) : null}
             </button>
           </div>
+        </div>
+
+        {/* The quick links: a phone's row under the bar. */}
+        <nav className="nav-quick" aria-label="Hızlı bağlantılar">
+          <ul role="list">
+            {QUICK_LINKS.map((q) => (
+              <li key={q.href}>
+                <Link
+                  href={q.href}
+                  className="chip"
+                  aria-current={isActivePath(pathname, q.href) ? "page" : undefined}
+                >
+                  {q.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
 
-        {/* The expanding panel: full width under the bar, one per section
-            with sub-links (Menü, Mağaza, Ziyaret). Hover or the caret opens
-            it; Esc, a click outside or tabbing out folds it. It keeps its
-            last content while it folds, inert. */}
+        {/* The panel under the bar. It stays mounted so the hover can move
+            from the link into it; inert while closed. */}
         <div
           id="nav-panel"
-          className={cx("nav-panel", openDropdown && "open")}
-          inert={!openDropdown}
+          className={cx("nav-panel", panelKey && "open")}
+          inert={!panelKey}
           onMouseEnter={() => {
             if (closeTimerRef.current)
               window.clearTimeout(closeTimerRef.current);
           }}
         >
-          <div className="nav-panel-clip">
-            <NavPanel
-              kind={panelKey}
-              href={LINKS.find((l) => l.dropdown === panelKey)!.href}
-              onClose={() => setOpenDropdown(null)}
-            />
-          </div>
+          {panelKey ? (
+            <NavPanel panel={panelKey} onPick={() => setOpenDropdown(null)} />
+          ) : null}
         </div>
       </header>
 
-      {/* The small-screen sheet: kicker titles over plain rows on hairlines,
-          the two catalogues expandable in place. */}
+      {/* The phone's menu: a full-height sheet under the bar. */}
       <div
         id="mobile-sheet"
+        ref={sheetRef}
         className={cx("mobile-sheet", open && "open")}
-        aria-hidden={!open}
         inert={!open}
+        aria-hidden={open ? undefined : true}
       >
-        <div className="mobile-sheet-scroll">
-          <p className="sheet-title" id="sheet-title-explore">
-            Keşfet
-          </p>
-          <ul className="sheet-group" aria-labelledby="sheet-title-explore">
-            <li>
-              <Link
-                href="/"
-                onClick={go(home)}
-                className={cx("sheet-row", pathname === "/" && "active")}
-              >
-                <span>Anasayfa</span>
-                <Chevron className="sheet-chev" dir="right" />
-              </Link>
-            </li>
-            {(["menu", "shop", "visit"] as const).map((key) => {
-              const link = LINKS.find((l) => l.dropdown === key)!;
-              const expanded = mobileSection === key;
-              const entries =
-                key === "menu"
-                  ? MENU_DROPDOWN
-                  : key === "shop"
-                    ? SHOP_DROPDOWN
-                    : [];
+        <nav aria-label="Mobil menü">
+          <ul className="sheet-list" role="list">
+            {LINKS.map((l) => {
+              const expanded = l.dropdown && mobileSection === l.dropdown;
               return (
-                <li key={key}>
-                  <button
-                    type="button"
-                    className={cx(
-                      "sheet-row",
-                      isActivePath(pathname, link.href) && "active",
-                    )}
-                    onClick={() => setMobileSection(expanded ? null : key)}
-                    aria-expanded={expanded}
-                  >
-                    <span>{link.label}</span>
-                    <Chevron className={cx("sheet-chev", expanded && "open")} />
-                  </button>
-                  <div className={cx("sheet-sub", expanded && "open")}>
-                    <div className="sheet-sub-inner">
-                      <a
-                        href={link.href}
-                        onClick={go(link)}
-                        className="sheet-sub-all"
+                <li key={l.href}>
+                  {l.dropdown ? (
+                    <>
+                      <button
+                        type="button"
+                        className="sheet-row t-nav"
+                        aria-expanded={!!expanded}
+                        onClick={() =>
+                          setMobileSection(expanded ? null : l.dropdown!)
+                        }
                       >
-                        {ALL_LABEL[key]}
-                      </a>
-                      {key === "visit" &&
-                        [...VISIT_BRANCHES.slice(1), VISIT_MORE[0]].map((v) => (
+                        {l.label}
+                        <ChevronGlyph className={cx("sheet-chev", expanded && "open")} />
+                      </button>
+                      <ul
+                        className={cx("sheet-sub", expanded && "open")}
+                        role="list"
+                        hidden={!expanded}
+                      >
+                        <li>
                           <a
-                            key={v.href}
-                            href={v.href}
-                            onClick={() => setOpen(false)}
-                            className="sheet-sub-link sheet-sub-link--plain"
+                            href={ALL_LABEL[l.dropdown].href}
+                            onClick={go({
+                              href: ALL_LABEL[l.dropdown].href,
+                              route: l.route,
+                            })}
                           >
-                            <span className="sheet-sub-label">{v.label}</span>
+                            {ALL_LABEL[l.dropdown].label}
                           </a>
-                        ))}
-                      {entries.map((entry) => (
-                        <a
-                          key={entry.slug}
-                          href={`${link.href}/${entry.slug}`}
-                          onClick={() => setOpen(false)}
-                          className="sheet-sub-link"
-                        >
-                          <span
-                            className="sheet-swatch"
-                            style={swatchStyle(entry.hue)}
-                            aria-hidden="true"
-                          />
-                          <span className="sheet-sub-text">
-                            <span className="sheet-sub-label">
-                              {entry.label}
-                            </span>
-                            <span className="sheet-sub-it">
-                              {entry.italian}
-                            </span>
-                          </span>
-                        </a>
-                      ))}
-                      {key === "menu" && (
-                        <div className="sheet-sub-more">
-                          {MENU_MORE.map((m) => (
-                            <a
-                              key={m.slug}
-                              href={`/menu/${m.slug}`}
-                              onClick={() => setOpen(false)}
-                              className="chip-link"
-                            >
-                              {m.label}
+                        </li>
+                        {panelLinks(l.dropdown).map((e) => (
+                          <li key={e.href}>
+                            <a href={e.href} onClick={() => setOpen(false)}>
+                              {e.label}
                             </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <a
+                      href={l.href}
+                      onClick={go(l)}
+                      className="sheet-row t-nav"
+                      aria-current={
+                        isActivePath(pathname, l.href) ? "page" : undefined
+                      }
+                    >
+                      {l.label}
+                    </a>
+                  )}
                 </li>
               );
             })}
-            {LINKS.filter((l) => !l.dropdown).map((link) => (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  onClick={go(link)}
-                  className={cx(
-                    "sheet-row",
-                    isActivePath(pathname, link.href) && "active",
-                  )}
-                >
-                  <span>{link.label}</span>
-                  <Chevron className="sheet-chev" dir="right" />
-                </a>
-              </li>
-            ))}
+          </ul>
+          <ul className="sheet-account" role="list">
             <li>
-              <Link
-                href="/rehber"
-                onClick={() => setOpen(false)}
-                className={cx(
-                  "sheet-row",
-                  isActivePath(pathname, "/rehber") && "active",
-                )}
-              >
-                <span>Rehber</span>
-                <Chevron className="sheet-chev" dir="right" />
+              <a href="/uye/hesap" onClick={() => setOpen(false)}>
+                Hesabım
+              </a>
+            </li>
+            <li>
+              <Link href="/uye/hesap/siparislerim" onClick={() => setOpen(false)}>
+                Siparişlerim
               </Link>
             </li>
+            {APP_STORE_URL ? (
+              <li>
+                <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                  Uygulamayı indir
+                </a>
+              </li>
+            ) : null}
           </ul>
-
-          <p className="sheet-title">Hesap</p>
-          <div className="sheet-actions">
-            <a
-              href="/uye/hesap"
-              onClick={() => setOpen(false)}
-              className="btn btn-primary btn-lg"
-            >
-              Hesabım
-            </a>
-            <a
-              href="/uye/kayit"
-              onClick={() => setOpen(false)}
-              className="btn btn-ghost btn-lg"
-            >
-              Üye ol
-            </a>
-          </div>
-
-          <div className="sheet-app">
-            <LafMark tone="green" height={30} />
-            <div>
-              <p className="sheet-app-title">L&apos;Affogato uygulaması</p>
-              <AppStoreLinks />
-            </div>
-          </div>
-
-          <p className="sheet-foot">
-            Tuzla · İstanbul <span aria-hidden="true">·</span> Her gün 09:00 -
-            02:00
-          </p>
-        </div>
+        </nav>
       </div>
-
-      {/* The small-screen tab bar: a floating frosted capsule - the selected
-          tab takes the espresso over one amber dot. */}
-      <nav className="tab-bar" aria-label="Mobil gezinme">
-        <Link
-          href="/"
-          onClick={go(home)}
-          className={cx("tab-item", pathname === "/" && "active")}
-          aria-current={pathname === "/" ? "page" : undefined}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3.75 10.4 12 3.75l8.25 6.65" />
-            <path d="M5.75 9.1v9.9c0 .7.55 1.25 1.25 1.25h3.25v-5.5h3.5v5.5H17c.7 0 1.25-.55 1.25-1.25V9.1" />
-          </svg>
-          <span>Anasayfa</span>
-        </Link>
-        <Link
-          href="/menu"
-          onClick={go(LINKS[0])}
-          className={cx(
-            "tab-item",
-            isActivePath(pathname, "/menu") && "active",
-          )}
-          aria-current={isActivePath(pathname, "/menu") ? "page" : undefined}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z" />
-            <path d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3" />
-            <path d="M8.25 3.75v1.5M11.75 3.75v1.5M4.5 20.25h13" />
-          </svg>
-          <span>Menü</span>
-        </Link>
-        <Link
-          href="/magaza"
-          onClick={go(LINKS[1])}
-          className={cx(
-            "tab-item",
-            isActivePath(pathname, "/magaza") && "active",
-          )}
-          aria-current={isActivePath(pathname, "/magaza") ? "page" : undefined}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" />
-            <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" />
-          </svg>
-          <span>Mağaza</span>
-        </Link>
-        <button
-          type="button"
-          className="tab-item"
-          aria-label={`Sepetim - ${cartCount} ürün`}
-          onClick={openCart}
-        >
-          <span className="tab-cart">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3.5 4.75h2.1l2.05 10.5h9.9l1.7-7.5H6.4" />
-              <circle cx="9.25" cy="19.25" r="1.25" />
-              <circle cx="16.25" cy="19.25" r="1.25" />
-            </svg>
-            {cartCount > 0 && (
-              <span className="tab-badge" aria-hidden="true">
-                {cartCount}
-              </span>
-            )}
-          </span>
-          <span>Sepet</span>
-        </button>
-        <a
-          href="/uye/hesap"
-          className={cx("tab-item", isActivePath(pathname, "/uye") && "active")}
-          aria-current={isActivePath(pathname, "/uye") ? "page" : undefined}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="8.25" r="3.5" />
-            <path d="M5.25 20a6.75 6.75 0 0 1 13.5 0" />
-          </svg>
-          <span>Hesabım</span>
-        </a>
-      </nav>
-
-      {/* The floating order button: an espresso circle bottom-right that rides
-          over every scrolled surface and opens the cart. Phones already
-          carry the cart in the tab bar, and the checkout is the cart, so it
-          stays off both (globals.css .frap). */}
-      {!pathname?.startsWith("/odeme") && (
-        <button
-          type="button"
-          className="frap"
-          aria-label={`Sepetim - ${cartCount} ürün`}
-          onClick={openCart}
-        >
-          <BagGlyph />
-          {cartCount > 0 && (
-            <span className="frap-badge" aria-hidden="true">
-              {cartCount}
-            </span>
-          )}
-        </button>
-      )}
     </>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   The expanding panel - full width under the bar (Menü, Mağaza, Ziyaret)
-
-   Owner's brief, 6 Kas 2026: a coffee-retail header whose sections open a
-   wide panel of links in columns with one picture card beside them. A
-   disclosure, not an ARIA menu: plain links in lists, reached with Tab.
-   ───────────────────────────────────────────────────────────── */
+/** A panel's links: the category pages, or the places and pages to visit. */
+function panelLinks(key: DropdownKey): Array<{ href: string; label: string; sub?: string }> {
+  if (key === "menu")
+    return [...MENU_LINKS, ...MENU_MORE].map((m) => ({
+      href: `/menu/${m.slug}`,
+      label: m.label,
+      sub: m.sub,
+    }));
+  if (key === "shop")
+    return SHOP_LINKS.map((s) => ({
+      href: `/magaza/${s.slug}`,
+      label: s.label,
+      sub: s.sub,
+    }));
+  return VISIT_LINKS;
+}
 
 function NavPanel({
-  kind,
-  href,
-  onClose,
+  panel,
+  onPick,
 }: {
-  kind: DropdownKey;
-  href: string;
-  onClose: () => void;
+  panel: DropdownKey;
+  onPick: () => void;
 }) {
-  const feature = PANEL_FEATURE[kind];
+  const feature = PANEL_FEATURE[panel];
+  const links = panelLinks(panel);
   return (
-    <div className="nav-panel-inner">
+    <div className="wrap nav-panel-inner">
       <div className="nav-panel-cols">
-        {kind === "visit" ? (
-          <>
-            <div className="nav-panel-col">
-              <p className="nav-panel-title">Şubeler</p>
-              <ul>
-                {VISIT_BRANCHES.map((b) => (
-                  <li key={b.href}>
-                    <a
-                      href={b.href}
-                      onClick={onClose}
-                      className="nav-panel-link"
-                    >
-                      <span className="nav-panel-label">{b.label}</span>
-                      <span className="nav-panel-sub">{b.sub}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="nav-panel-col">
-              <p className="nav-panel-title">Köşkte</p>
-              <ul>
-                {VISIT_MORE.map((m) => (
-                  <li key={m.href}>
-                    <a
-                      href={m.href}
-                      onClick={onClose}
-                      className="nav-panel-link"
-                    >
-                      <span className="nav-panel-label">{m.label}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="nav-panel-col nav-panel-col--wide">
-              <p className="nav-panel-title">
-                {kind === "menu" ? "Il menù" : "La bottega"}
-              </p>
-              <ul className="nav-panel-grid">
-                {(kind === "menu" ? MENU_DROPDOWN : SHOP_DROPDOWN).map(
-                  (entry) => (
-                    <li key={entry.slug}>
-                      <a
-                        href={`${href}/${entry.slug}`}
-                        onClick={onClose}
-                        className="nav-panel-link nav-panel-link--swatch"
-                      >
-                        <span
-                          className="nav-panel-swatch"
-                          style={swatchStyle(entry.hue)}
-                          aria-hidden="true"
-                        />
-                        <span>
-                          <span className="nav-panel-label">{entry.label}</span>
-                          <span className="nav-panel-sub">{entry.italian}</span>
-                        </span>
-                      </a>
-                    </li>
-                  ),
-                )}
-              </ul>
-            </div>
-            <div className="nav-panel-col">
-              <p className="nav-panel-title">
-                {kind === "menu" ? "Ayrıca" : "Alışveriş"}
-              </p>
-              <ul>
-                {kind === "menu"
-                  ? MENU_MORE.map((m) => (
-                      <li key={m.slug}>
-                        <a
-                          href={`/menu/${m.slug}`}
-                          onClick={onClose}
-                          className="nav-panel-link"
-                        >
-                          <span className="nav-panel-label">{m.label}</span>
-                        </a>
-                      </li>
-                    ))
-                  : [
-                      { href: "/kampanyalar", label: "Kampanyalar" },
-                      {
-                        href: "/uye/hesap/siparislerim",
-                        label: "Siparişlerim",
-                      },
-                    ].map((m) => (
-                      <li key={m.href}>
-                        <a
-                          href={m.href}
-                          onClick={onClose}
-                          className="nav-panel-link"
-                        >
-                          <span className="nav-panel-label">{m.label}</span>
-                        </a>
-                      </li>
-                    ))}
-              </ul>
-            </div>
-          </>
-        )}
+        <a
+          href={ALL_LABEL[panel].href}
+          className="t-nav nav-panel-all"
+          onClick={onPick}
+        >
+          {ALL_LABEL[panel].label}
+        </a>
+        <ul className="nav-panel-list" role="list">
+          {links.map((e) => (
+            <li key={e.href}>
+              <a href={e.href} onClick={onPick}>
+                <span className="nav-panel-label">{e.label}</span>
+                {e.sub ? (
+                  <span className="t-small t-muted">{e.sub}</span>
+                ) : null}
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      <a href={feature.href} onClick={onClose} className="nav-panel-feature">
-        {/* A small picture from public/; decoration beside its words. */}
+      <a href={feature.href} className="nav-panel-feature" onClick={onPick}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={feature.src}
-          alt=""
-          width={160}
-          height={160}
-          loading="lazy"
-          decoding="async"
-        />
-        <span>
-          <span className="nav-panel-sub">{feature.kicker}</span>
-          <span className="nav-panel-feature-title">{feature.title}</span>
-          <span className="link-more">Keşfet</span>
-        </span>
-      </a>
-      <a href={href} onClick={onClose} className="nav-panel-all link-more">
-        {ALL_LABEL[kind]}
+        <img src={feature.src} alt="" loading="lazy" decoding="async" />
+        <span className="t-title">{feature.title}</span>
+        <span className="link-u">{feature.cta}</span>
       </a>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Glyphs - the app's thin line (1.5), drawn on a 24 grid
-   ───────────────────────────────────────────────────────────── */
-
-function Chevron({
-  className,
-  dir = "down",
-}: {
-  className?: string;
-  dir?: "down" | "right";
-}) {
-  return (
-    <svg
-      className={className}
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      aria-hidden="true"
-    >
-      <path
-        d={dir === "down" ? "M2.5 4.5 6 8l3.5-3.5" : "M4.5 2.5 8 6l-3.5 3.5"}
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-/**
- * The header's person button: a small menu rather than a straight link, so
- * signing out is one tap from any page. Whether anyone is signed in is asked
- * the first time it opens (the session cookie is httpOnly), then kept.
- */
 function AccountMenu() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<{
@@ -961,10 +608,10 @@ function AccountMenu() {
   };
 
   return (
-    <div className="nav-account-wrap nav-account" ref={wrapRef}>
+    <div className="nav-account" ref={wrapRef}>
       <button
         type="button"
-        className="nav-icon-btn"
+        className="icon-btn"
         aria-label="Hesap menüsü"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -975,19 +622,15 @@ function AccountMenu() {
       {open && (
         <div className="nav-account-menu" role="menu">
           {state === null ? (
-            <span className="nav-account-loading" aria-live="polite">
+            <span className="t-small" aria-live="polite">
               …
             </span>
           ) : state.signedIn ? (
             <>
-              <span className="nav-account-hello">
+              <span className="t-label">
                 {state.firstName ? `Merhaba ${state.firstName}` : "Hesabın"}
               </span>
-              <Link
-                href="/uye/hesap"
-                role="menuitem"
-                className="nav-account-item"
-              >
+              <Link href="/uye/hesap" role="menuitem" className="nav-account-item">
                 Hesabım
               </Link>
               <Link
@@ -1001,7 +644,7 @@ function AccountMenu() {
                 <button
                   type="submit"
                   role="menuitem"
-                  className="nav-account-item nav-account-logout"
+                  className="nav-account-item"
                 >
                   Çıkış yap
                 </button>
@@ -1012,14 +655,14 @@ function AccountMenu() {
               <Link
                 href="/uye/giris"
                 role="menuitem"
-                className="nav-account-item"
+                className="btn btn-dark btn-block"
               >
                 Giriş yap
               </Link>
               <Link
                 href="/uye/kayit"
                 role="menuitem"
-                className="nav-account-item"
+                className="btn btn-block"
               >
                 Üye ol
               </Link>
@@ -1031,90 +674,55 @@ function AccountMenu() {
   );
 }
 
+function BurgerGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 7h18M3 12h18M3 17h18" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+function CloseGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 5l14 14M19 5 5 19" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+function ChevronGlyph({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 12 8" fill="none" aria-hidden="true">
+      <path d="M1 1.5 6 6.5l5-5" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
 function SearchGlyph() {
   return (
-    <svg
-      width="19"
-      height="19"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        cx="10.75"
-        cy="10.75"
-        r="6.5"
-        stroke="currentColor"
-        strokeWidth="1.75"
-      />
-      <path
-        d="m15.6 15.6 4.9 4.9"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="m15.5 15.5 5 5" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
-
 function PersonGlyph() {
   return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="8.25"
-        r="3.75"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M4.75 20.25a7.25 7.25 0 0 1 14.5 0"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4.5 20.5c.6-4 3.6-6.5 7.5-6.5s6.9 2.5 7.5 6.5" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
-
 function BagGlyph() {
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 10.5V7.5a3 3 0 0 1 6 0v3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 8.5h14l-1.2 12H6.2L5 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M9 10.5V7a3 3 0 0 1 6 0v3.5" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Footer - a night band over the köşk, then the espresso ground
-
-   Owner's brief, 6 Kas 2026: an illustrated call-to-action band above a
-   dark footer with the logo, status pills, link columns and social icons,
-   in the way a coffee-retail flagship lays its footer out. The band is
-   drawn (footer-night.tsx); the ground is `--night`, the ink deepened.
+   Footer - the charcoal block: the mark, four link columns and the
+   letter, then who runs the site.
    ───────────────────────────────────────────────────────────── */
 
 export interface FooterSettings {
@@ -1158,6 +766,9 @@ const DEFAULT_HOURS: [string, string][] = [
 /** The registered seat: the tax certificate's address, one line. */
 const COMPANY_ADDRESS = `${LEGAL_ENTITY.address.line1}, ${LEGAL_ENTITY.address.postalCode} ${LEGAL_ENTITY.address.district} / ${LEGAL_ENTITY.address.city}`;
 
+/** The legal person on the tax certificate. */
+const SITE_LEGAL_NAME = `${SITE.name} - ${LEGAL_ENTITY.shortName}`;
+
 export function Footer({ navigate, settings }: FooterProps) {
   const hrefFor = (r: Route) => ROUTE_PATHS[r];
   const go = (r: Route) => (e: React.MouseEvent) => {
@@ -1166,111 +777,25 @@ export function Footer({ navigate, settings }: FooterProps) {
     navigate(r);
     window.scrollTo({ top: 0 });
   };
-  // `||`, not `??`: a field cleared in the panel arrives as "", and "" made
-  // an empty `tel:` / `mailto:` link.
+  // `||`, not `??`: a field cleared in the panel arrives as "".
   const phone = settings?.phone?.trim() || SITE.phone;
-  // A phone typed without digits ("Yakında") still dials the bundled number,
-  // as the visit page and the facts block do.
   const tel = phone.replace(/[^\d+]/g, "") || SITE.phoneE164;
   const email = settings?.email?.trim() || SITE.email;
   const lines = addressLines(settings?.address ?? "", DEFAULT_ADDRESS_LINES);
   const hours = settings?.hours?.length ? settings.hours : DEFAULT_HOURS;
   const year = new Date().getFullYear();
+
   return (
-    <footer className="footer" data-ground="dark">
-      {/* The night band: the köşk under a dusk sky, a cup's steam turning
-          into the milky way, and the two things to do next. */}
-      <section className="footer-cta" aria-labelledby="footer-cta-title">
-        <FooterSky className="footer-cta-sky" />
-        <div className="footer-cta-inner">
-          <div className="footer-cta-copy">
-            <p className="footer-cta-eyebrow">Tuzla&apos;da, köşkte</p>
-            <h2 id="footer-cta-title" className="footer-cta-title">
-              Bugün hangi lezzeti keşfedeceksin?
-            </h2>
-            <p className="footer-cta-text">
-              Espresso, gelato ve ikisinin buluştuğu affogato. Menüye göz at,
-              uygulamadan siparişini ver, her kahvede damganı topla.
-            </p>
-            <div className="footer-cta-actions">
-              <a
-                className="btn btn-light"
-                href={hrefFor("menu")}
-                onClick={go("menu")}
-              >
-                Menüye göz at
-              </a>
-              {APP_STORE_URL ? (
-                <a
-                  className="btn btn-glass-dark"
-                  href={APP_STORE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Uygulamayı indir
-                  <span className="arrow out" aria-hidden="true">
-                    ↗
-                  </span>
-                </a>
-              ) : null}
-            </div>
-          </div>
-          <FooterKosk className="footer-cta-kosk" />
-        </div>
-      </section>
+    <footer className="site-footer" data-ground="dark">
+      <div className="wrap">
+        <Link href="/" className="footer-brand" aria-label="L'Affogato ana sayfa">
+          <LafMark tone="cream" />
+          <span className="footer-wordmark">L&apos;Affogato</span>
+        </Link>
 
-      <div className="footer-inner">
-        {/* The signature beside the map of the site: the mark, the motto,
-            and three status pills - each house's hours (the köşk's live
-            open/closed once the browser has the time) and the app. */}
         <div className="footer-main">
-          <div className="footer-brand">
-            <LafMark tone="cream" label="L'Affogato" className="footer-mark" />
-            <p className="footer-motto">İçilir, sonra kupası yenir</p>
-            <p className="footer-brand-line">
-              Bologna 1897&apos;den İstanbul Tuzla&apos;ya - 200 yıllık, restore
-              bir köşkte.
-            </p>
-            <ul className="footer-badges" aria-label="Şubeler ve uygulama">
-              <li>
-                <KoskBadge hours={hours} href={hrefFor("visit")} />
-              </li>
-              {/* The other branches (src/lib/seo/branches.ts): their hours
-                  only. Marina's days were never given, so no open/closed
-                  word is worked out for it. */}
-              {OTHER_BRANCHES.map((b) => (
-                <li key={b.id}>
-                  <a className="footer-badge" href={`/ziyaret#${b.id}`}>
-                    <span className="footer-badge-dot" aria-hidden="true" />
-                    <span>{b.name.replace(/^L'Affogato\s+/, "")}</span>
-                    {b.hoursLabel ? (
-                      <>
-                        <BadgeSep />
-                        <span className="tabular">{b.hoursLabel}</span>
-                      </>
-                    ) : null}
-                  </a>
-                </li>
-              ))}
-              {APP_STORE_URL ? (
-                <li>
-                  <a
-                    className="footer-badge"
-                    href={APP_STORE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <PhoneMark />
-                    <span>iOS uygulaması App Store&apos;da</span>
-                  </a>
-                </li>
-              ) : null}
-            </ul>
-          </div>
-
-          {/* Four columns on a wide screen, four folds on a phone. */}
-          <nav className="footer-grid" aria-label="Site haritası">
-            <FooterColumn id="kesfet" title="Keşfet">
+          <nav className="footer-cols" aria-label="Site haritası">
+            <FooterColumn title="Keşfet">
               <li>
                 <a href={hrefFor("menu")} onClick={go("menu")}>
                   Menü
@@ -1296,30 +821,21 @@ export function Footer({ navigate, settings }: FooterProps) {
                 <Link href="/rehber">Rehber</Link>
               </li>
             </FooterColumn>
-
-            <FooterColumn id="ziyaret" title="Ziyaret">
+            <FooterColumn title="Ziyaret">
               <li>
                 <a href={hrefFor("visit")} onClick={go("visit")}>
                   Tuzla köşkü
                 </a>
               </li>
-              {lines.map((line, i) => (
-                <li key={i} className="footer-note">
-                  {line}
+              <li className="footer-note">{lines.join(", ")}</li>
+              {/* Ayarlar → Saatler: one row for a uniform week. */}
+              {hours.map(([label, value], i) => (
+                <li key={i} className="footer-note tabular">
+                  {label} {value}
                 </li>
               ))}
-              {/* Ayarlar → Saatler: one row for a uniform week, one per run
-                  otherwise ("Pzt-Cum", "Cmt-Paz", "Paz Kapalı"). */}
-              <li className="footer-contact-hours">
-                {hours.map(([label, value], i) => (
-                  <span key={i} className="footer-hours-row">
-                    <span>{label}</span>
-                    <span className="tabular">{value}</span>
-                  </span>
-                ))}
-              </li>
               <li>
-                <a href="/ziyaret#map">Yol tarifi</a>
+                <KoskStatus hours={hours} />
               </li>
               <li>
                 <a href={`tel:${tel}`} className="tabular">
@@ -1329,38 +845,23 @@ export function Footer({ navigate, settings }: FooterProps) {
               <li>
                 <a href={`mailto:${email}`}>{email}</a>
               </li>
-              {/* The other branches: one line each, to their card on
-                  /ziyaret. The rows above stay the Tuzla köşk's, which is
-                  the one the app and the shop serve. */}
               {OTHER_BRANCHES.map((b) => (
-                <li key={b.id} className="footer-branch">
-                  <a href={`/ziyaret#${b.id}`}>Yeni: {b.name} açıldı</a>
+                <li key={b.id}>
+                  <a href={`/ziyaret#${b.id}`}>{b.name}</a>
                 </li>
               ))}
             </FooterColumn>
-
-            <FooterColumn id="uyelik" title="Üyelik">
-              <li className="footer-note">
-                Damga kartın, kasa kodun ve siparişin tek uygulamada.
-              </li>
+            <FooterColumn title="Üyelik">
               {APP_STORE_URL ? (
                 <li>
-                  <a
-                    href={APP_STORE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
                     iPhone için App Store
                   </a>
                 </li>
               ) : null}
               {PLAY_STORE_URL ? (
                 <li>
-                  <a
-                    href={PLAY_STORE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
                     Android için Google Play
                   </a>
                 </li>
@@ -1375,10 +876,9 @@ export function Footer({ navigate, settings }: FooterProps) {
                 <a href="/uye/giris">Giriş yap</a>
               </li>
             </FooterColumn>
-
-            {/* Seven documents, not twenty-six; the criterion for each is
-                in src/lib/legal/nav.ts. The rest are one click away. */}
-            <FooterColumn id="yasal" title="Kurumsal ve yasal">
+            {/* Seven documents; the criterion for each is in
+                src/lib/legal/nav.ts. The rest are one click away. */}
+            <FooterColumn title="Kurumsal">
               {FOOTER_LEGAL_DOCS.map((d) => (
                 <li key={d.slug}>
                   <Link href={`/hukuk/${d.slug}`}>{d.label}</Link>
@@ -1403,65 +903,16 @@ export function Footer({ navigate, settings }: FooterProps) {
               </li>
             </FooterColumn>
           </nav>
-        </div>
 
-        {/* Every category page keeps a door in the footer, the way the
-            header's dropdowns give one. */}
-        <div className="footer-cats">
-          <div className="footer-cats-row">
-            <h2 className="footer-cats-title">Menüde</h2>
-            <ul>
-              {MENU_DROPDOWN.map((m) => (
-                <li key={m.slug}>
-                  <a href={`/menu/${m.slug}`}>{m.label}</a>
-                </li>
-              ))}
-              <li>
-                <a href={hrefFor("menu")} onClick={go("menu")}>
-                  Tüm menü
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-cats-row">
-            <h2 className="footer-cats-title">Mağazada</h2>
-            <ul>
-              {SHOP_DROPDOWN.map((s) => (
-                <li key={s.slug}>
-                  <a href={`/magaza/${s.slug}`}>{s.label}</a>
-                </li>
-              ))}
-              <li>
-                <a href={hrefFor("shop")} onClick={go("shop")}>
-                  Tüm mağaza
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* The monthly letter: a live feature with 6563 consent records
-            behind it. */}
-        <div className="footer-letter">
-          <div>
-            <h2 className="footer-card-title">
-              Bir mektup, <span className="script">ayda bir</span>
-            </h2>
-            <p className="footer-card-text">
-              Yeni sezon affogati, Bologna kavurma notları, küçük gelato
+          {/* The monthly letter: 6563 consent records behind it. */}
+          <div className="footer-letter">
+            <h2 className="t-nav">Bültene abone ol</h2>
+            <p className="footer-letter-text">
+              Yeni sezon affogatoları, kavurma notları, küçük gelato
               denemeleri. Hiçbir zaman ayda birden fazla.
             </p>
-          </div>
-          <NewsletterForm />
-        </div>
-
-        <div className="footer-bottom">
-          {/* The handle is the same on every network, so it is written once
-              beside the icons: a visitor who wants to find the account from
-              a phone's search box needs the name, not a link. */}
-          <div className="footer-social">
-            <span className="footer-social-handle">{SITE.social.handle}</span>
-            <div className="footer-social-links">
+            <NewsletterForm />
+            <div className="footer-social">
               <a
                 href={SITE.social.instagram}
                 target="_blank"
@@ -1486,54 +937,70 @@ export function Footer({ navigate, settings }: FooterProps) {
               >
                 <SocialGlyph network="youtube" />
               </a>
+              <span className="t-small footer-handle">{SITE.social.handle}</span>
             </div>
           </div>
-          {/* Who runs the site, where it can be reached directly (ETHS
-              Yön. m.5/1, 6563 m.3/1): the title, MERSİS, the registered
-              seat and, once there is one, the KEP address, straight from
-              LEGAL_ENTITY. The chamber and the rules of conduct sit one
-              click away on the company page. */}
-          <dl className="footer-company">
-            <div>
-              <dt>Ticaret unvanı</dt>
-              <dd>{LEGAL_ENTITY.legalName}</dd>
-            </div>
-            <div>
-              <dt>MERSİS</dt>
-              <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
-            </div>
-            <div>
-              <dt>Merkez</dt>
-              <dd>{COMPANY_ADDRESS}</dd>
-            </div>
-            {LEGAL_ENTITY.kep ? (
-              <div>
-                <dt>KEP</dt>
-                <dd>{LEGAL_ENTITY.kep}</dd>
-              </div>
-            ) : null}
-          </dl>
         </div>
 
-        <div className="footer-meta">
-          {/* The year is read on the server and again in the browser: on
-              the night of 31 December, or on a machine whose clock is in
-              another year, the two differ, and that alone must not fail
-              the whole page's hydration. */}
-          <span suppressHydrationWarning>
-            © {year} {SITE_LEGAL_NAME}
-          </span>
-          <span className="footer-meta-end">
-            <span className="footer-meta-pay">
-              Visa · Mastercard · Troy · Apple Pay
-            </span>
-            {/* Every shell names its <main> "main" (the skip link's target). */}
-            <a className="footer-top" href="#main">
-              Başa dön
-              <span className="arrow" aria-hidden="true">
-                ↑
+        {/* Every category page keeps a door in the footer. */}
+        <div className="footer-cats">
+          <p className="t-small">
+            <span className="t-label">Menüde</span>{" "}
+            {[...MENU_LINKS, ...MENU_MORE].map((m, i) => (
+              <span key={m.slug}>
+                {i > 0 ? " · " : ""}
+                <a href={`/menu/${m.slug}`}>{m.label}</a>
               </span>
-            </a>
+            ))}
+          </p>
+          <p className="t-small">
+            <span className="t-label">Mağazada</span>{" "}
+            {SHOP_LINKS.map((s, i) => (
+              <span key={s.slug}>
+                {i > 0 ? " · " : ""}
+                <a href={`/magaza/${s.slug}`}>{s.label}</a>
+              </span>
+            ))}
+          </p>
+        </div>
+
+        {/* Who runs the site and where it can be reached directly (ETHS
+            Yön. m.5/1, 6563 m.3/1), straight from LEGAL_ENTITY. */}
+        <dl className="footer-company">
+          <div>
+            <dt className="t-label">Ticaret unvanı</dt>
+            <dd>{LEGAL_ENTITY.legalName}</dd>
+          </div>
+          <div>
+            <dt className="t-label">MERSİS</dt>
+            <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
+          </div>
+          <div>
+            <dt className="t-label">Merkez</dt>
+            <dd>{COMPANY_ADDRESS}</dd>
+          </div>
+          {LEGAL_ENTITY.kep ? (
+            <div>
+              <dt className="t-label">KEP</dt>
+              <dd>{LEGAL_ENTITY.kep}</dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div className="footer-bottom">
+          <ul className="footer-legal" role="list">
+            <li className="t-label">Visa · Mastercard · Troy · Apple Pay</li>
+            <li>
+              {/* Every shell names its <main> "main". */}
+              <a className="t-label" href="#main">
+                Başa dön
+              </a>
+            </li>
+          </ul>
+          {/* The year is read on the server and in the browser; on the night
+              of 31 December the two differ, which must not fail hydration. */}
+          <span className="t-label" suppressHydrationWarning>
+            © {year} {SITE_LEGAL_NAME}
           </span>
         </div>
       </div>
@@ -1541,40 +1008,17 @@ export function Footer({ navigate, settings }: FooterProps) {
   );
 }
 
-/**
- * One link column. A heading and its list on a wide screen; on a phone the
- * heading becomes a button that folds the list (only one open at a time
- * would hide what a visitor just opened, so each folds on its own). The
- * list is always in the markup, so a crawler and a reader without CSS see
- * every link.
- */
 function FooterColumn({
-  id,
   title,
   children,
 }: {
-  id: string;
   title: string;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-  const listId = `footer-col-${id}`;
   return (
-    <div className="footer-col" data-open={open ? "true" : undefined}>
-      <h2 className="footer-col-title">
-        <span className="footer-col-label">{title}</span>
-        <button
-          type="button"
-          className="footer-col-toggle"
-          aria-expanded={open}
-          aria-controls={listId}
-          onClick={() => setOpen((v) => !v)}
-        >
-          {title}
-          <Chevron className="footer-col-chevron" />
-        </button>
-      </h2>
-      <ul id={listId} className="footer-col-list">
+    <div className="footer-col">
+      <h2 className="t-nav footer-col-title">{title}</h2>
+      <ul className="footer-col-list" role="list">
         {children}
       </ul>
     </div>
@@ -1582,79 +1026,25 @@ function FooterColumn({
 }
 
 /**
- * The köşk's pill: its hours and, once the browser has answered, whether it
- * is open now - the same `useOpenStatus` the home hero and /ziyaret read, so
- * the three never disagree. Nothing live is printed on the server (it does
- * not know when the page will be read), which keeps the footer cacheable.
- * A week with different days prints no single range here; the rows are in
- * the Ziyaret column.
+ * Whether the köşk is open now, once the browser has answered: the same
+ * `useOpenStatus` the home page and /ziyaret read, so the three never
+ * disagree. Nothing live is printed on the server.
  */
-function KoskBadge({
+function KoskStatus({
   hours,
-  href,
 }: {
   hours: ReadonlyArray<readonly [string, string]>;
-  href: string;
 }) {
   const st = useOpenStatus(hours);
-  const range = hours.length === 1 ? hours[0][1] : null;
+  if (!st) return null;
   return (
-    <a
-      className="footer-badge"
-      href={href}
-      data-state={st ? (st.open ? "open" : "closed") : undefined}
-    >
-      <span className="footer-badge-dot" aria-hidden="true" />
-      <span>Tuzla Köşk</span>
-      {st ? (
-        <>
-          <BadgeSep />
-          <span>{st.open ? "Açık" : "Kapalı"}</span>
-        </>
-      ) : null}
-      {range ? (
-        <>
-          <BadgeSep />
-          <span className="tabular">{range}</span>
-        </>
-      ) : null}
-    </a>
-  );
-}
-
-function BadgeSep() {
-  return (
-    <span className="footer-badge-sep" aria-hidden="true">
-      ·
+    <span className={cx("open-line", st.open ? "is-open" : "is-closed")}>
+      {st.open ? "Şu an açık" : "Şu an kapalı"}
     </span>
   );
 }
 
-function PhoneMark() {
-  return (
-    <svg
-      className="footer-badge-glyph"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <rect
-        x="6.5"
-        y="2.75"
-        width="11"
-        height="18.5"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <circle cx="12" cy="17.6" r="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-/** Plain line glyphs in the house stroke, not the networks' artwork. */
+/** Plain line glyphs, not the networks' artwork. */
 function SocialGlyph({
   network,
 }: {
@@ -1662,14 +1052,10 @@ function SocialGlyph({
 }) {
   return (
     <svg
-      width="20"
-      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeWidth="1.5"
       aria-hidden="true"
     >
       {network === "instagram" ? (
@@ -1689,7 +1075,3 @@ function SocialGlyph({
     </svg>
   );
 }
-
-/** Vergi levhasındaki gerçek tüzel kişi. Footer'da uydurma bir ticaret
-    unvanı yazıyordu ve bu, /hukuk altındaki sözleşmelerle çelişiyordu. */
-const SITE_LEGAL_NAME = `${SITE.name} - ${LEGAL_ENTITY.shortName}`;

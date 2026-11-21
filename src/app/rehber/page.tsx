@@ -1,10 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 
-import {
-  Illustration,
-  type IllustrationName,
-} from "@/components/laffogato/illustration";
 import { PageHero } from "@/components/laffogato/page-hero";
 import Link from "@/components/link";
 import { guideHubLd } from "@/lib/seo/guide-structured-data";
@@ -36,15 +32,6 @@ export const metadata: Metadata = {
   },
 };
 
-/** Each guide's card leads with a small drawing of its subject. */
-const GUIDE_ART: Record<string, IllustrationName> = {
-  "affogato-nedir": "rehber-affogato",
-  "matcha-nedir": "rehber-matcha",
-  "espresso-cesitleri": "rehber-espresso",
-  "san-sebastian-cheesecake": "rehber-cheesecake",
-  "yenilebilir-kahve-fincani": "rehber-kupa",
-};
-
 export default function GuideHubPage() {
   return (
     <div className="guide-page guide-page-hub">
@@ -53,7 +40,7 @@ export default function GuideHubPage() {
       {/* The opener spans the page; the breadcrumb and the cards under it
           share the site's content width. */}
       <PageHero
-        scene="matcha"
+        image={{ src: "/rehber/espresso-cesitleri.webp" }}
         eyebrow="Il quaderno"
         title={["Barın arkasında", "öğrendiklerimiz"]}
         lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir - hepsi tek tek, uygulanabilir biçimde."
@@ -79,11 +66,6 @@ export default function GuideHubPage() {
                       sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 360px"
                     />
                   </span>
-                ) : GUIDE_ART[g.slug] ? (
-                  <Illustration
-                    name={GUIDE_ART[g.slug]}
-                    className="guide-card-art"
-                  />
                 ) : null}
                 <span className="guide-card-title">{g.title}</span>
                 <span className="guide-card-excerpt">{g.excerpt}</span>

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
 import { formatTRY } from "@/components/admin/forms";
-import { PaymentsArt } from "@/components/laffogato/payments-art";
 import { PixelConversion } from "@/components/laffogato/pixel-events";
 import Link from "@/components/link";
 import { getOrder } from "@/lib/admin/store";
@@ -69,7 +68,6 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
       ) : null}
       <div className="order-done-card">
         <div className="order-done-head">
-          <PaymentsArt className="order-done-art" done={paid} />
           <span
             className={cx("order-done-badge", !paid && "is-pending")}
             aria-hidden="true"

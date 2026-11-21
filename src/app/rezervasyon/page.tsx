@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Illustration } from "@/components/laffogato/illustration";
 import { PixelConversion } from "@/components/laffogato/pixel-events";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import Link from "@/components/link";
@@ -154,13 +153,6 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
                 Karaoke rezervasyonun
               </h1>
             </div>
-            <Illustration
-              name="karaoke-room"
-              width={220}
-              className="karaoke-link-art illo-framed"
-              sizes="(max-width: 620px) 120px, 180px"
-              priority
-            />
           </div>
           {body ?? (
             <div className="karaoke-mine">

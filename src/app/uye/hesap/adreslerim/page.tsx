@@ -31,7 +31,6 @@ export default async function AdreslerimPage() {
       >
         {addresses.length === 0 ? (
           <EmptyState
-            art="spot-adres"
             title="Henüz adres eklemedin"
             hint="Hızlı teslimat için yeni bir adres ekle. İlk eklediğin adres varsayılan olur."
             cta={

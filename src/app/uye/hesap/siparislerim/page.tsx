@@ -24,7 +24,6 @@ export default async function SiparislerimPage() {
       >
         {orders.length === 0 ? (
           <EmptyState
-            art={customer.emailVerified ? "spot-siparis" : "bulten-zarf"}
             title={
               customer.emailVerified
                 ? "Henüz siparişin yok"

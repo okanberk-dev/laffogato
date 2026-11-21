@@ -7,7 +7,6 @@ import { menuAllergenWords } from "@/lib/menu/allergens";
 import { menuPriceNote } from "@/lib/menu/price-list";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
-import { Illustration } from "./illustration";
 import { PageHero } from "./page-hero";
 import { MENU } from "./data";
 import { menuItemGuide } from "./menu-guides";
@@ -76,7 +75,7 @@ export function PageMenu({ menu, settings }: PageProps) {
     <div className="page" data-screen-label="02 Menu">
       <div className="menu-page">
         <PageHero
-          scene="latte"
+          image={{ src: "/photos/hero-menu.webp" }}
           eyebrow={`Menü · ${activeLabel}`}
           /* The category's own name, not a fixed tuple. Every menu category
              is an indexable URL and they were all shipping the same H1. */
@@ -176,10 +175,8 @@ export function PageMenu({ menu, settings }: PageProps) {
           </div>
 
           {items.length === 0 && query.trim() ? (
-            /* A search with no match: an empty saucer, its spoon and one
-               bean (illustrations/menu-arama.svg). */
+            /* A search with no match. */
             <div className="menu-empty">
-              <Illustration name="menu-arama" className="menu-empty-art" />
               <h2 className="h3">Aradığın tatla eşleşen ürün yok</h2>
               <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
                 Farklı bir kelime dene ya da filtreleri sıfırla.
@@ -199,9 +196,8 @@ export function PageMenu({ menu, settings }: PageProps) {
             /* No search, and still nothing: every item of this category is
                off the menu today (the panel's switch). It used to say the
                search found nothing and offered to clear a filter nobody
-               had set. An empty cake stand instead. */
+               had set. */
             <div className="menu-empty">
-              <Illustration name="menu-kategori" className="menu-empty-art" />
               <h2 className="h3">
                 {active === "all"
                   ? "Menüde şu an ürün yok"

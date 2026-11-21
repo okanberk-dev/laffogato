@@ -385,6 +385,7 @@ export function LaffogatoApp({
         removeItem={removeFromCart}
         setQty={setCartQty}
         freeShippingThreshold={freeShippingThreshold}
+        products={products}
       />
       <ProductModal
         product={productOpen}

@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Abril_Fatface, Plus_Jakarta_Sans } from "next/font/google";
+import { Archivo, Geist } from "next/font/google";
 
 import { MetaPixel } from "@/components/laffogato/meta-pixel";
-import { RevealMotion } from "@/components/laffogato/reveal-motion";
 import {
   ConsentScripts,
   CookieBanner,
@@ -29,33 +28,30 @@ const GTM_ID = siteTagManagerId(process.env.NEXT_PUBLIC_GTM_ID);
 // marketing switch and no tracker.
 const META_PIXEL_ID = metaPixelId(process.env.NEXT_PUBLIC_META_PIXEL_ID);
 
-// Two voices (11 Kas 2026, the roast restyle; docs/BRAND.md §2). Operator:
-// the site takes the look of coffee-beans-swart.vercel.app, whose type is
-// these two faces.
-//
-// Plus Jakarta Sans sets sentences, labels, controls, product names and
-// prices. It is a variable font (200-800), so one file carries every weight
-// the page asks for. Abril Fatface, a fat didone with a single weight, sets
-// the titles, in capitals. Poppins (11 Eki - 11 Kas 2026) is retired on the
-// site. Turkish via latin-ext on both.
-const textFont = Plus_Jakarta_Sans({
+// Two voices (21 Kas 2026; docs/BRAND.md). The titles, the navigation,
+// prices and labels are a wide grotesque in tracked capitals; sentences and
+// controls a neutral grotesque. The reference's own faces are licensed, so
+// these are open faces of the same build: Archivo, variable in width and
+// weight (set wide in globals.css, --headline-wdth), and Geist. Both carry
+// latin-ext for Turkish. The variable names stay as they were: the admin
+// panel's site preview reads them.
+const textFont = Geist({
   subsets: ["latin", "latin-ext"],
   variable: "--font-display",
   display: "swap",
 });
-const headlineFont = Abril_Fatface({
+const headlineFont = Archivo({
   subsets: ["latin", "latin-ext"],
-  weight: "400",
+  axes: ["wdth"],
   variable: "--font-headline",
   display: "swap",
 });
 
 export const viewport: Viewport = {
-  // The cream canvas the top bar sits on (--bg). The site, like the app
-  // (userInterfaceStyle "light"), has one appearance: declaring "light dark"
-  // let a dark-mode browser paint its own dark form controls and scrollbars
-  // onto a page that has no dark styles.
-  themeColor: "#faf7f2",
+  // The band the top bar sits on (--band). The site has one appearance:
+  // declaring "light dark" let a dark-mode browser paint its own dark form
+  // controls and scrollbars onto a page that has no dark styles.
+  themeColor: "#f6f6f3",
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -215,7 +211,6 @@ export default function RootLayout({
         {children}
         <CookieBanner tagManager={!!GTM_ID} metaPixel={!!META_PIXEL_ID} />
         {META_PIXEL_ID ? <MetaPixel /> : null}
-        <RevealMotion />
       </body>
     </html>
   );

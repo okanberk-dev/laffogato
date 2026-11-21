@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 
 import { confirmNewsletterAction } from "@/app/newsletter/actions";
 import { LafMark } from "@/components/laffogato/brand-mark";
-import { Illustration } from "@/components/laffogato/illustration";
 import Link from "@/components/link";
 import { NEWSLETTER_LINK_COOKIES } from "@/lib/newsletter/link-token";
 
@@ -57,8 +56,6 @@ export default async function BultenOnayPage({ searchParams }: PageProps) {
           </Link>
           <LafMark tone="duo" />
         </div>
-        {/* The letter itself, sealed with a coffee bean. */}
-        <Illustration name="bulten-zarf" className="auth-art" priority />
         <h1 className="auth-title">{heading}</h1>
 
         {state === "ask" ? (

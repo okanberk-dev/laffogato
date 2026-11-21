@@ -1,0 +1,277 @@
+/* ─────────────────────────────────────────────────────────────
+   Home: the film under the bar (home-hero.tsx) and the sections that
+   only the home page has.
+   ───────────────────────────────────────────────────────────── */
+
+.hero-film {
+  position: relative;
+  height: calc(100svh - var(--header-h) - var(--announce-h));
+  min-height: 520px;
+  max-height: 980px;
+  overflow: hidden;
+  background: var(--charcoal);
+  color: var(--on-dark);
+}
+.hero-film-stage,
+.hero-film-slide {
+  position: absolute;
+  inset: 0;
+}
+.hero-film-slide {
+  opacity: 0;
+  transition: opacity 0.9s var(--ease);
+}
+.hero-film-slide[data-active] {
+  opacity: 1;
+}
+.hero-film-poster,
+.hero-film-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* A soft floor under the caption, so white type holds on any frame. */
+.hero-film-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+.hero-film-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 32px 32px;
+}
+.hero-film-title {
+  margin: 0;
+  max-width: 640px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: clamp(24px, 2.6vw, 32px);
+  line-height: 1.2;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.2);
+}
+.hero-film-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.hero-film-link {
+  font-size: 16px;
+  line-height: 22px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+.hero-film-pager {
+  display: flex;
+  gap: 2px;
+}
+.hero-film-dot {
+  padding: 4px 6px;
+  background: none;
+  border: 0;
+  color: var(--on-dark-muted);
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.hero-film-dot[aria-current="true"] {
+  color: var(--on-dark);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.hero-film-pause {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: var(--on-dark);
+}
+.hero-film-pause svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.hero-film :focus-visible {
+  outline-color: var(--on-dark);
+}
+@media (max-width: 767px) {
+  .hero-film {
+    height: calc(100svh - var(--header-h) - var(--announce-h) - 52px);
+    min-height: 460px;
+  }
+  .hero-film-caption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 0 20px 24px;
+  }
+  .hero-film-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ── The app block: text and points beside a photograph ────── */
+.app-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 58%);
+  gap: 48px;
+  align-items: start;
+}
+.app-block-copy {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.app-block-store {
+  margin-top: 8px;
+}
+.app-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  min-width: min(350px, 100%);
+  padding: 8px 24px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.store-btn:hover {
+  background: var(--charcoal);
+  color: var(--on-dark);
+}
+.store-btn-glyph {
+  flex-shrink: 0;
+}
+.store-btn-text {
+  display: grid;
+  line-height: 1.15;
+}
+.store-btn-small {
+  font-size: 12px;
+}
+.store-btn-big {
+  font-size: 16px;
+}
+.app-links.on-dark .store-btn {
+  background: transparent;
+  border-color: var(--on-dark);
+  color: var(--on-dark);
+}
+.app-links-soon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+.app-links-soon-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+@media (max-width: 1023px) {
+  .app-block {
+    grid-template-columns: 1fr;
+  }
+  .app-block-media {
+    order: -1;
+  }
+}
+@media (max-width: 767px) {
+  .store-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── The karaoke block (the reference's cafés carousel) ────── */
+.wrap-wide {
+  width: 100%;
+  max-width: calc(1216px + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.karaoke-block-copy {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding-top: 20px;
+}
+.karaoke-block-copy .btn {
+  justify-self: center;
+  margin-top: 24px;
+}
+.karaoke-live {
+  min-height: 24px;
+}
+.karaoke-live-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── The visit block ──────────────────────────────────────── */
+.visit-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.visit-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px 32px;
+  margin-top: 24px;
+  padding-inline: 4px;
+}
+.visit-card-address {
+  display: inline-block;
+  margin-top: 8px;
+}
+.visit-card-hours {
+  display: grid;
+  gap: 4px;
+}
+@media (max-width: 1023px) {
+  .visit-card {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
+@media (max-width: 767px) {
+  .visit-row {
+    grid-template-columns: 1fr;
+  }
+  .visit-row > :not(:first-child) {
+    display: none;
+  }
+}

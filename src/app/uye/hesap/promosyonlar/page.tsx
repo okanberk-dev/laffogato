@@ -153,7 +153,6 @@ export default async function PromosyonlarPage() {
       >
         {activeCoupons.length === 0 ? (
           <EmptyState
-            art="spot-kupon"
             title="Şu an kullanılabilir kuponun yok"
             hint="Hoş geldin, doğum günü ve kampanya kuponların burada görünür."
           />
@@ -172,7 +171,6 @@ export default async function PromosyonlarPage() {
       >
         {usable.length === 0 ? (
           <EmptyState
-            art="kampanya-empty"
             title="Şu an aktif promosyon yok"
             hint="Yeni kampanyalardan haberdar olmak için bildirim tercihlerinde 'Kampanya & yeni ürün' seçeneğini açabilirsin."
           />

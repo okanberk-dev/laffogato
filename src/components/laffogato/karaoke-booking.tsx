@@ -15,7 +15,6 @@ import {
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
 import { BusyDots } from "./busy-dots";
-import { Illustration } from "./illustration";
 import { kdvIncludedParts, type KdvIncludedParts } from "./kdv-note";
 import { karaokeBookingTerms } from "./karaoke-terms";
 import { hourToLabel } from "./karaoke-today";
@@ -595,11 +594,6 @@ export function KaraokeBooking({
     return (
       <div className="wrap karaoke-page">
         <div className="karaoke-done">
-          <Illustration
-            name="karaoke-room"
-            width={220}
-            className="karaoke-done-art illo-framed"
-          />
           <div className="eyebrow">Karaoke · rezervasyon alındı</div>
           <h1 className="h1" style={{ marginTop: 14 }}>
             Görüşmek üzere
@@ -724,18 +718,9 @@ export function KaraokeBooking({
       data-wizard-step={s.enhanced ? current : undefined}
     >
       <PageHero
-        scene="berry"
+        image={{ src: "/illustrations/karaoke-room.webp", position: "50% 40%" }}
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", `gece ${hourToLabel(closeHour)} kadar`]}
-        art={
-          <Illustration
-            name="karaoke-room"
-            width={220}
-            className="illo-framed"
-            sizes="(max-width: 760px) 116px, 220px"
-            priority
-          />
-        }
         lede={
           prepay
             ? `${capacity} kişilik oda. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.`

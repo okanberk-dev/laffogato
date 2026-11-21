@@ -11,7 +11,7 @@ import { cx } from "./cx";
 import type { MenuCategory, Product } from "./data";
 import { productPath } from "./route-paths";
 import { useDialog } from "./use-dialog";
-import { EspressoCup, PhotoSurface, ProductSurface } from "./visuals";
+import { MenuPlate, ProductSurface } from "./visuals";
 
 /* ─────────────────────────────────────────────────────────────
    Search - the header turns into the search bar
@@ -34,6 +34,8 @@ interface SearchResult {
   price?: string;
   href: string;
   product?: Product;
+  /** A menu item's photo, when the panel has one. */
+  image?: string;
 }
 
 const POPULAR = [
@@ -222,6 +224,7 @@ export function SearchOverlay({
             sub: cat.title,
             price: it.price,
             href: slug ? `/menu/${slug}` : "/menu",
+            image: it.image,
           });
         }
       }
@@ -306,20 +309,11 @@ export function SearchOverlay({
           choose(r);
         }}
       >
-        <span className="search-result-thumb" aria-hidden="true">
+        <span className="search-result-thumb media ratio-1" aria-hidden="true">
           {r.kind === "product" ? (
-            <ProductSurface
-              cat={r.product?.cat ?? "gift"}
-              tone={r.product?.img ?? "cream"}
-              label={r.name}
-              images={r.product?.images}
-            />
+            <ProductSurface label={r.name} images={r.product?.images} />
           ) : (
-            <PhotoSurface hue="caramel">
-              <span className="search-result-cup">
-                <EspressoCup />
-              </span>
-            </PhotoSurface>
+            <MenuPlate image={r.image} sizes="64px" />
           )}
         </span>
         <span className="search-result-info">

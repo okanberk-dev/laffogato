@@ -4,11 +4,6 @@ import Link from "@/components/link";
 import type { PublicCustomer } from "@/lib/customer/store";
 
 import { logoutAction } from "@/app/uye/actions";
-import {
-  Illustration,
-  type IllustrationName,
-} from "@/components/laffogato/illustration";
-import { cx } from "@/components/laffogato/cx";
 import { AccountSidebar, AccountTopNav } from "./account-nav";
 
 export function AccountShell({
@@ -215,42 +210,21 @@ export function AccountStat({
   );
 }
 
-/**
- * An empty list in the account. With `art` it leads with the list's own
- * drawing - a café receipt, the app's spot plates (open envelope, empty
- * plate, coupon), the karaoke room - instead of the generic "✻".
- */
+/** An empty list in the account: a title, a hint, one action. */
 export function EmptyState({
   title,
   hint,
   cta,
-  art,
 }: {
   title: string;
   hint?: ReactNode;
   cta?: ReactNode;
-  art?: IllustrationName;
 }) {
   return (
     <div className="account-empty">
-      {art ? (
-        <Illustration
-          name={art}
-          width={96}
-          sizes="96px"
-          className={cx(
-            "account-empty-art",
-            art === "karaoke-room" && "is-picture",
-          )}
-        />
-      ) : (
-        <div className="account-empty-icon" aria-hidden="true">
-          ✻
-        </div>
-      )}
       <div className="account-empty-title">{title}</div>
       {hint && <p className="account-empty-hint">{hint}</p>}
-      {cta && <div style={{ marginTop: 14 }}>{cta}</div>}
+      {cta && <div className="account-empty-cta">{cta}</div>}
     </div>
   );
 }

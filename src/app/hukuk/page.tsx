@@ -44,7 +44,6 @@ export default function HukukIndexPage() {
       />
       {/* The opener spans the page; the index under it keeps its measure. */}
       <PageHero
-        scene="porcelain"
         eyebrow="Hukuki belgeler"
         title={["Sözleşmeler", "ve haklarınız"]}
         lede="Sipariş öncesi okumanız gereken sözleşmeler, gizlilik politikamız ve kullanıcı haklarınız. Hepsi Türk mevzuatına göre hazırlandı; soru varsa yazın - birlikte adım atalım."
