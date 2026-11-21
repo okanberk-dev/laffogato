@@ -15,6 +15,7 @@ import {
   TAG_ACCESS,
   TAG_INVOICES,
   TAG_KARAOKE,
+  TAG_MENU,
   TAG_ORDERS,
   TAG_SITE,
   TAG_VENUE,
@@ -105,6 +106,16 @@ export async function readPosOrdersMarker(): Promise<string | null> {
  */
 export async function readPosKaraokeMarker(): Promise<string | null> {
   return readMarker("pos-karaoke", [TAG_KARAOKE]);
+}
+
+/**
+ * LafPOS's menu marker (`menu` in `GET /api/pos/orders/version`): moves when
+ * a menu write expires `pub:menu` (a price or "Tükendi" changed here or from
+ * the panel), so the till syncs within its 20-second ask instead of its
+ * 15-minute menu poll and does not sell at the old price.
+ */
+export async function readPosMenuMarker(): Promise<string | null> {
+  return readMarker("pos-menu", [TAG_MENU]);
 }
 
 async function readMarker(
