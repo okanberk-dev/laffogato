@@ -51,10 +51,15 @@
   --admin-card-border: #ebebef;
   --admin-border-strong: #dbdbe1;
   --admin-divider: #ececf0;
-  /* A field's outline: StorageBox draws #dbdbe1 (1.4:1 on white), and an
-     empty field on a white card all but vanished. The panel keeps a darker
-     line (2.5:1); "Daha fazla karşıtlık" below takes it past 3:1. */
-  --admin-border-field: #a3a5b2;
+  /* A field's outline (select, input, text area, check box): a soft line a
+     step darker than the source's #dbdbe1, with a faint shadow under it
+     (--admin-field-shadow), so an empty field still reads as a box on a
+     white card without the hard grey edge it had (operator, 22 Kas 2026:
+     "select olan seçmeyi de daha estetik güzel yap diğer kutucukları da").
+     "Daha fazla karşıtlık" below takes it past 3:1. */
+  --admin-border-field: #cfd0d8;
+  --admin-border-field-hover: #a3a5b2;
+  --admin-field-shadow: 0 1px 2px rgb(31 33 45 / 0.06);
 
   /* Ink. --admin-text-mute is a shade deeper than the source's #717383 so it
      holds 4.5:1 on the grey pills (#ededf0) as well as on white. */
@@ -237,16 +242,24 @@
 }
 
 /*
- * The select's arrow: a thin chevron 14 px in (the source's), not the
- * browser's. A multiple select keeps its own look.
+ * The select's arrow: a thin chevron in a small grey circle at the pill's
+ * end (22 Kas 2026), not the browser's arrow. A multiple select keeps its
+ * own look.
  */
 [data-admin-root] select:not([multiple]) {
   appearance: none;
-  padding-inline-end: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23525361' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-position: right 0.875rem center;
+  cursor: pointer;
+  padding-inline-end: 3rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='14' fill='%23f2f2f5'/%3E%3Cpath d='m9.5 12 4.5 4.5 4.5-4.5' fill='none' stroke='%23525361' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 0.375rem center;
   background-repeat: no-repeat;
-  background-size: 1.125rem 1.125rem;
+  background-size: 1.75rem 1.75rem;
+}
+[data-admin-root] select:not([multiple]):hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='14' fill='%23e2e2e7'/%3E%3Cpath d='m9.5 12 4.5 4.5 4.5-4.5' fill='none' stroke='%231f212d' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+[data-admin-root] select:disabled {
+  cursor: not-allowed;
 }
 @media (forced-colors: active) {
   [data-admin-root] select:not([multiple]) {
@@ -270,7 +283,8 @@
   height: 1.25rem;
   margin: 0;
   border: 1px solid var(--admin-border-field);
-  border-radius: 0.4375rem;
+  border-radius: 0.375rem;
+  box-shadow: var(--admin-field-shadow);
   background-color: var(--admin-surface);
   vertical-align: middle;
   cursor: pointer;
@@ -303,7 +317,13 @@
 }
 [data-admin-root] input[type="checkbox"]:hover,
 [data-admin-root] input[type="radio"]:hover {
-  border-color: var(--admin-text-mute);
+  border-color: var(--admin-border-field-hover);
+}
+[data-admin-root] input[type="checkbox"]:focus-visible,
+[data-admin-root] input[type="radio"]:focus-visible {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-ring);
 }
 [data-admin-root] input[type="checkbox"]:checked,
 [data-admin-root] input[type="checkbox"]:indeterminate,

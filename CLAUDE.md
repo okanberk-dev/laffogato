@@ -994,7 +994,8 @@ durum bozulmaya uygundur.
   Düzenler Innex döneminden kaldı (`docs/ADMIN.md` "Innex düzenleri";
   Innex tarifi `docs/ADMIN-INNEX.md` artık tarihçe). Üst çubukta köşk çipi
   yok: köşkün açık/kapalısı Ayarlar → Saatler'den kendiliğinden gelir
-  (Canlı durum yalnız gösterir; `manualOverride` hep `auto`). Arama sade
+  (Canlı durum yalnız gösterir; `manualOverride` hep `auto`); boş masa da
+  sayılmaz, `live-status.freeTables` hep `null` (22 Kas 2026, sözleşme §6). Arama sade
   bir kutudur ("Ara"), komut / asistan dili yok. Yukarıdaki site kuralları
   panele uygulanmaz, panel de siteyi değiştirmez (`docs/BRAND.md` "Admin
   paneli görünümü").

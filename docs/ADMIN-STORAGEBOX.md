@@ -49,7 +49,7 @@ yalnız açık tema (koyu sistem teması paneli koyulaştırmaz).
 | `--admin-panel`         | `#ededf0` | gri hap: yuvarlak düğme, sessiz düğme, bölüm sekmelerinin rayı  |
 | `--admin-card-border`   | `#ebebef` | kartın çok açık çizgisi                                         |
 | `--admin-border-strong` | `#dbdbe1` | beyaz düğmenin, segmentin çerçevesi                             |
-| `--admin-border-field`  | `#a3a5b2` | form alanının çerçevesi (aşağıda "Kararlar")                    |
+| `--admin-border-field`  | `#cfd0d8` | form alanının çerçevesi, hafif gölgeyle (aşağıda "Kararlar")    |
 | `--admin-text`          | `#1f212d` | başlık, rakam, tablo başlığı                                    |
 | `--admin-text-soft`     | `#525361` | hücre, etiket, ikon                                             |
 | `--admin-text-mute`     | `#636575` | ikincil satır, eksen, yer tutucu                                |
@@ -138,12 +138,15 @@ saatlerde otomatik çeksin"_.
 - Canlı durum sayfası açık/kapalıyı yalnız gösterir: şu anki durum, bir
   sonraki açılış ya da kapanış ("Kapanış 23:00", "Açılış yarın 09:00") ve
   haftanın saatleri; sahip "Saatleri düzenle" ile Ayarlar → Saatler'e gider.
-  Masalar (boş / toplam) ve ortam (Wi-Fi, gürültü, priz, not) burada girilir.
+  Ortam (Wi-Fi, gürültü, priz, not) burada girilir.
 - `/api/mobile/v1/live-status` değişmedi: alanlar aynı, `isOpen` zaten
   `manualOverride` + `weeklyHours` idi ve artık hep `auto`
-  (`docs/API-MOBILE.md` §6 doğru kalır, lafmobil'e eşitleme gerekmez).
-  Boş masa sayısı uygulamaya gitmeye devam eder; onu da kaldırmak
-  uygulamanın sözleşmesini (lafmobil) ilgilendirir, ayrı bir iştir.
+  (`docs/API-MOBILE.md` §6).
+- **Boş masa sayısı da kalktı** (22 Kas 2026, operatör: _"boş masa sayısını
+  da kaldır"_): Canlı durum masa sormaz, `freeTables` her yanıtta `null`
+  (alan durur, v1 yalnız ekleme; `null` uygulamanın zaten bildiği "kimse
+  bildirmedi" değeri). §6'ya not düşüldü; belgenin lafmobil'deki kopyası ve
+  `RECONCILED` hash'i ayrıca eşitlenmeli.
 
 ## Arama
 
@@ -162,9 +165,13 @@ Operatör: _"arama kısmını yapay zeka gibi yapma daha farklı yap basit yap"_
 
 - **Rozet yazısı koyu ton.** Kaynağın açık rozet yazıları (ör. `#25c166`
   `#defde2` üstünde 2.1:1) okunmuyordu; zemin kaynaktaki gibi, yazı koyusu.
-- **Alan çerçevesi koyu.** Kaynak `#dbdbe1` çiziyor (beyazda 1.4:1); beyaz
-  kartta boş bir alan kayboluyordu. `#a3a5b2` (2.5:1), işletim sisteminde
-  "daha fazla karşıtlık" açıksa `#7d7f8c`.
+- **Alan çerçevesi yumuşak ama görünür** (22 Kas 2026, operatör: _"select
+  olan seçmeyi de daha estetik güzel yap diğer kutucukları da"_): seçim
+  kutusu, alan, metin alanı ve onay kutusu `#cfd0d8` çizgi ve hafif bir
+  gölgeyle (`--admin-field-shadow`) çizilir, üstüne gelince `#a3a5b2`;
+  "daha fazla karşıtlık" açıksa `#7d7f8c`. Seçim kutusunun oku sağ uçta
+  küçük gri bir dairenin içinde (üstüne gelince koyulaşır); onay kutusunun
+  köşesi 6 px, odakta mavi kenar ve yumuşak halka.
 - **İkincil gri bir ton koyu** (`#636575`, kaynakta `#717383`): gri
   haplarda da 4.5:1.
 - **Kart çizgisi var** (kaynakta yok): beyaz kart `#f7f7f7` kanvasta

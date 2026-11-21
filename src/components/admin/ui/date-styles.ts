@@ -16,7 +16,7 @@ import { COMPACT } from "./compact";
  */
 
 /** The field: what FIELD_INPUT is for a native box (forms.tsx). */
-export const DATE_GROUP = `flex min-h-11 w-full min-w-0 items-center gap-1 rounded-full border border-[var(--admin-border-field)] bg-[var(--admin-surface)] pr-1 pl-4 text-base text-[var(--admin-text)] transition-[border-color,background-color,box-shadow] pointer-fine:min-h-10 data-[focus-within]:border-[var(--admin-primary)] data-[focus-within]:bg-white data-[focus-within]:ring-[3px] data-[focus-within]:ring-[var(--admin-ring)] data-[invalid]:border-[var(--admin-danger)] sm:text-sm ${COMPACT.minH8}`;
+export const DATE_GROUP = `flex min-h-11 w-full min-w-0 items-center gap-1 rounded-full border border-[var(--admin-border-field)] bg-[var(--admin-surface)] shadow-[var(--admin-field-shadow)] pr-1 pl-4 text-base text-[var(--admin-text)] transition-[border-color,background-color,box-shadow] pointer-fine:min-h-10 data-[focus-within]:border-[var(--admin-primary)] data-[focus-within]:bg-white data-[focus-within]:ring-[3px] data-[focus-within]:ring-[var(--admin-ring)] data-[invalid]:border-[var(--admin-danger)] sm:text-sm ${COMPACT.minH8}`;
 
 /** One date's (or time's) segments. */
 export const DATE_INPUT = "flex min-w-0 items-center";

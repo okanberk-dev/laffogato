@@ -11,22 +11,13 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
-import { canAccess } from "@/lib/admin/roles";
 import { isDbUnreachable } from "@/lib/db/health";
 import {
   patchVenueStatus,
-  updateVenueStatus,
   VENUE_NOISE_LEVELS,
   VENUE_WIFI_LEVELS,
 } from "@/lib/mobile/venue";
 
-const tables = z.coerce
-  .number({ error: "Masa sayısı bir sayı olmalı." })
-  .int("Masa sayısı tam sayı olmalı.")
-  .min(0, "Masa sayısı negatif olamaz.")
-  .max(999, "Masa sayısı 999'u geçemez.");
-
-const OVER_TOTAL = "Boş masa sayısı toplam masa sayısını geçemez.";
 const UNREACHABLE =
   "Veritabanına şu an ulaşılamıyor. Kısa süre içinde tekrar dene.";
 
@@ -40,21 +31,15 @@ const UNREACHABLE =
  */
 const AUTO = { manualOverride: "auto" } as const;
 
+// No table counts (operator, 22 Kas 2026: "boş masa sayısını da kaldır"):
+// the app gets `freeTables: null` (lib/mobile/venue.ts toLiveStatus), and a
+// posted freeTables / totalTables is ignored.
 const fields = z.object({
-  freeTables: tables,
   wifi: z.enum(VENUE_WIFI_LEVELS, { error: "Wi-Fi seçimi geçersiz." }),
   noise: z.enum(VENUE_NOISE_LEVELS, { error: "Gürültü seçimi geçersiz." }),
   power: z.boolean(),
   note: z.string().trim().max(200, "Not en fazla 200 karakter olabilir."),
 });
-
-/** Owner and manager: every field, the table count included. */
-const fullSchema = fields
-  .extend({ totalTables: tables })
-  .refine((v) => v.freeTables <= v.totalTables, {
-    message: OVER_TOTAL,
-    path: ["freeTables"],
-  });
 
 function refusal(
   issues: ReadonlyArray<{
@@ -77,74 +62,40 @@ function refusal(
  * Rol kapısı burada da açılır: sayfadaki `requireRole` bir Server Action'ı
  * korumaz - action, sayfadan bağımsız çağrılabilen bir POST ucudur.
  *
- * `venue` (owner, manager, staff) saves the form; only a role with
- * `mobileApp` changes the table count. For Personel a posted `totalTables`
- * is ignored, not refused: the save goes through patchVenueStatus, which
- * never writes the count and holds the free tables to the stored one in
- * the same statement (a field error when they exceed it).
+ * `venue` (owner, manager, staff) saves the form: Wi-Fi, noise, power and
+ * the note, one UPDATE of those columns (patchVenueStatus), so nothing else
+ * in the row is touched.
  *
- * Answers with an ActionResult for ActionForm, which posts by hand: the
- * `<form action>` it replaced put every field back to what was saved when
- * this refused one (more free tables than tables).
+ * Answers with an ActionResult for ActionForm, which posts by hand.
  */
 export async function saveVenueStatusAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  const session = await requireRole("venue");
-  const mayEditTotal = canAccess("mobileApp", session.role);
+  await requireRole("venue");
 
-  const raw = {
-    freeTables: String(formData.get("freeTables") ?? "0"),
+  const parsed = fields.safeParse({
     wifi: String(formData.get("wifi") ?? "stable"),
     noise: String(formData.get("noise") ?? "medium"),
     power: formData.get("power") === "on",
     note: String(formData.get("note") ?? ""),
-  };
+  });
+  if (!parsed.success) return refusal(parsed.error.issues);
 
   try {
-    if (mayEditTotal) {
-      const parsed = fullSchema.safeParse({
-        ...raw,
-        totalTables: String(formData.get("totalTables") ?? "0"),
-      });
-      if (!parsed.success) return refusal(parsed.error.issues);
-      const saved = await updateVenueStatus({ ...parsed.data, ...AUTO });
-      await logAudit({
-        action: "update",
-        entity: "venue_status",
-        entityId: "main",
-        payload: {
-          manualOverride: saved.manualOverride,
-          freeTables: saved.freeTables,
-          totalTables: saved.totalTables,
-          wifi: saved.wifi,
-          noise: saved.noise,
-          power: saved.power,
-        },
-      });
-    } else {
-      const parsed = fields.safeParse(raw);
-      if (!parsed.success) return refusal(parsed.error.issues);
-      const saved = await patchVenueStatus({ ...parsed.data, ...AUTO });
-      if (!saved) {
-        return actionError("Formdaki uyarıları gider.", {
-          freeTables: OVER_TOTAL,
-        });
-      }
-      await logAudit({
-        action: "update",
-        entity: "venue_status",
-        entityId: "main",
-        payload: {
-          manualOverride: saved.manualOverride,
-          freeTables: saved.freeTables,
-          wifi: saved.wifi,
-          noise: saved.noise,
-          power: saved.power,
-        },
-      });
-    }
+    const saved = await patchVenueStatus({ ...parsed.data, ...AUTO });
+    if (!saved) return actionError("Canlı durum kaydedilemedi.");
+    await logAudit({
+      action: "update",
+      entity: "venue_status",
+      entityId: "main",
+      payload: {
+        manualOverride: saved.manualOverride,
+        wifi: saved.wifi,
+        noise: saved.noise,
+        power: saved.power,
+      },
+    });
   } catch (err) {
     if (isDbUnreachable(err)) return actionError(UNREACHABLE);
     throw err;

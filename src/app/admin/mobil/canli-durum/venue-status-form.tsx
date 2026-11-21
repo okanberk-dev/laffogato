@@ -8,13 +8,7 @@ import {
   FormMessage,
   SubmitButton,
 } from "@/components/admin/action-form";
-import {
-  Checkbox,
-  Field,
-  Select,
-  Textarea,
-  TextInput,
-} from "@/components/admin/forms";
+import { Checkbox, Field, Select, Textarea } from "@/components/admin/forms";
 import { Section } from "@/components/admin/ui/detail";
 
 import { saveVenueStatusAction } from "./actions";
@@ -25,8 +19,6 @@ import { saveVenueStatusAction } from "./actions";
  * pull the database driver into the browser bundle and fail the build.
  */
 export interface VenueStatusDefaults {
-  freeTables: number;
-  totalTables: number;
   wifi: "stable" | "slow" | "down";
   noise: "low" | "medium" | "high";
   power: boolean;
@@ -57,81 +49,21 @@ function Row({ name, children }: { name: string; children: ReactNode }) {
 }
 
 /**
- * The live status form. ActionForm posts it by hand, so a refusal (more
- * free tables than tables) leaves every field as typed, a second press
+ * The live status form: Wi-Fi, noise, power and the note. ActionForm posts
+ * it by hand, so a refusal leaves every field as typed, a second press
  * before the answer is dropped, and the answer is a toast or a line by the
- * button that a screen reader hears.
- *
- * Personel (`venue` without `mobileApp`) sees the table count but cannot
- * change it: the field has no name, so nothing is posted, and the action
- * ignores a posted one anyway.
+ * button that a screen reader hears. No table counts (22 Kas 2026).
  */
 export function VenueStatusForm({
   defaults,
-  canEditTotal = true,
   savedAt,
 }: {
   defaults: VenueStatusDefaults;
-  /** False for Personel: the table count is read-only. */
-  canEditTotal?: boolean;
   /** "Son güncelleme: …", shown by the button. */
   savedAt?: string;
 }) {
   return (
     <ActionForm action={saveVenueStatusAction} className="grid gap-4 sm:gap-5">
-      <Section
-        title="Masalar"
-        description="Uygulamada “Boş masa 9 / 20” olarak görünür."
-      >
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Row name="freeTables">
-              <Field label="Boş masa">
-                <TextInput
-                  name="freeTables"
-                  type="number"
-                  min={0}
-                  max={canEditTotal ? 999 : defaults.totalTables}
-                  inputMode="numeric"
-                  defaultValue={String(defaults.freeTables)}
-                  required
-                />
-              </Field>
-            </Row>
-            {canEditTotal ? (
-              <Row name="totalTables">
-                <Field label="Toplam masa">
-                  <TextInput
-                    name="totalTables"
-                    type="number"
-                    min={0}
-                    max={999}
-                    inputMode="numeric"
-                    defaultValue={String(defaults.totalTables)}
-                    required
-                  />
-                </Field>
-              </Row>
-            ) : (
-              <Row name="totalTables">
-                <Field
-                  label="Toplam masa"
-                  hint="Sahip ya da yönetici değiştirir."
-                >
-                  <TextInput
-                    type="text"
-                    value={String(defaults.totalTables)}
-                    readOnly
-                    aria-readonly="true"
-                    data-venue-total-readonly=""
-                  />
-                </Field>
-              </Row>
-            )}
-          </div>
-        </div>
-      </Section>
-
       <Section
         title="Ortam"
         description="Çalışmaya gelen misafir için: bağlantı, ses ve priz."
