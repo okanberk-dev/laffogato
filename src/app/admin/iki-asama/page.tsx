@@ -19,7 +19,7 @@ export default async function TwoFAPage({ searchParams }: PageProps) {
 
   return (
     <main className="mx-auto grid min-h-[70vh] max-w-md place-items-center px-4 py-10 sm:px-6">
-      <div className="w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-6 sm:p-8">
+      <div className="w-full rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-6 sm:p-8">
         <h1
           className="text-2xl text-[var(--admin-text)] sm:text-3xl"
           style={{

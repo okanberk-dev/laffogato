@@ -35,7 +35,7 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
       : "matcha";
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         title={source ? "Menü kalemini kopyala" : "Yeni menü kalemi"}
         description={

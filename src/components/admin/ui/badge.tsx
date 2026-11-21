@@ -21,10 +21,10 @@ export interface BadgeProps {
 /**
  * The panel's pill. Server- and client-safe (no hooks).
  *
- * Innex's status badge (22 Eki 2026): coloured text on its pale ground,
- * 6 px corners, 22 px tall, 12 px medium, sentence case as written
- * ("Ödeme bekleniyor"). The tone pairs are the kit's, so the contrast
- * tests hold.
+ * The StorageBox status pill (21 Kas 2026): coloured text on its pale
+ * ground, fully round, 24 px tall, 12 px medium, sentence case as written
+ * ("Ödeme bekleniyor"). The tone pairs are admin-theme.css's: the deep ink
+ * on the source's pale ground, AA on both.
  *
  * @example <Badge tone="warning">Ödeme bekleniyor</Badge>
  */
@@ -39,7 +39,7 @@ export function Badge({
     <span
       title={title}
       className={cx(
-        "inline-flex min-h-[22px] items-center gap-1.5 rounded-md px-2 py-0.5 text-xs leading-4 font-medium whitespace-nowrap",
+        "inline-flex min-h-6 items-center justify-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs leading-4 font-medium whitespace-nowrap",
         TONE_SOFT[tone],
         className,
       )}

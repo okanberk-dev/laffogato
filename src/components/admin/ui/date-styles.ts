@@ -16,7 +16,7 @@ import { COMPACT } from "./compact";
  */
 
 /** The field: what FIELD_INPUT is for a native box (forms.tsx). */
-export const DATE_GROUP = `flex min-h-11 w-full min-w-0 items-center gap-1 rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] pr-1 pl-3.5 text-base text-[var(--admin-text)] transition-[border-color,background-color,box-shadow] data-[focus-within]:border-[var(--admin-primary)] data-[focus-within]:bg-white data-[focus-within]:ring-2 data-[focus-within]:ring-[var(--admin-primary)]/25 data-[invalid]:border-[var(--admin-danger)] sm:text-sm ${COMPACT.minH8}`;
+export const DATE_GROUP = `flex min-h-11 w-full min-w-0 items-center gap-1 rounded-full border border-[var(--admin-border-field)] bg-[var(--admin-surface)] pr-1 pl-4 text-base text-[var(--admin-text)] transition-[border-color,background-color,box-shadow] pointer-fine:min-h-10 data-[focus-within]:border-[var(--admin-primary)] data-[focus-within]:bg-white data-[focus-within]:ring-[3px] data-[focus-within]:ring-[var(--admin-ring)] data-[invalid]:border-[var(--admin-danger)] sm:text-sm ${COMPACT.minH8}`;
 
 /** One date's (or time's) segments. */
 export const DATE_INPUT = "flex min-w-0 items-center";
@@ -26,14 +26,14 @@ export const DATE_SEGMENT =
 
 /** The calendar button at the field's end. */
 export const DATE_BUTTON =
-  "ml-auto grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-border)]/40 hover:text-[var(--admin-primary)] data-[pressed]:bg-[var(--admin-border)]/60";
+  "ml-auto grid size-9 shrink-0 cursor-pointer place-items-center rounded-full text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-primary)] data-[pressed]:bg-[var(--admin-border)]/60";
 
 export const DATE_POPOVER =
-  "rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-[var(--admin-text)] shadow-[0_16px_48px_rgba(12,14,27,0.18)] outline-none";
+  "rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-3 text-[var(--admin-text)] shadow-[var(--admin-shadow-lg)] outline-none";
 
 /** Previous and next month. */
 export const CALENDAR_NAV =
-  "grid size-9 cursor-pointer place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40";
+  "grid size-9 cursor-pointer place-items-center rounded-full text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40";
 
 export const CALENDAR_HEADING =
   "flex-1 text-center text-sm font-semibold text-[var(--admin-text)]";

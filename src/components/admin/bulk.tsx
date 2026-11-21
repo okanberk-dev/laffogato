@@ -285,7 +285,7 @@ export function BulkActionBar({
         aria-label="Toplu işlem"
         className="fixed inset-x-4 bottom-4 z-30 mb-[var(--admin-bottom-inset,0px)] lg:right-6 lg:left-[calc(var(--admin-side,15.5rem)+2.25rem)]"
       >
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
           <div className="flex flex-wrap items-center gap-x-3">
             <span
               className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium whitespace-nowrap text-white"

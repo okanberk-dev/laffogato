@@ -118,7 +118,7 @@ export default async function SubscriberPage({ params }: PageProps) {
   }
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-4xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-4xl">
       <BackLink href={NEWSLETTER_PATH}>Bülten aboneleri</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">

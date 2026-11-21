@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { REPORT_METRICS, type ReportMetric } from "@/lib/admin/report-metrics";
 import type { RevenueBucket } from "@/lib/admin/store";
 
@@ -96,6 +98,9 @@ export function RevenueChart({
   /** The figure drawn per bucket (Raporlar's card tabs); net by default. */
   metric?: ReportMetric;
 }) {
+  // The area's fade (StorageBox): the line's colour from 30 % at the top to
+  // nothing at the axis. One id per chart: Raporlar draws more than one.
+  const fadeId = `rev-fade-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const spec = REPORT_METRICS[metric];
   const values = data.map(spec.of);
   const max = Math.max(0, ...values);
@@ -120,6 +125,7 @@ export function RevenueChart({
   const xAt = (i: number) => (n === 1 ? 50 : (i * 100) / (n - 1));
   const yAt = (v: number) => 100 - (v / top) * 100;
   const points = values.map((v, i) => `${xAt(i)},${yAt(v)}`);
+
   const area = `M${xAt(0)},100 L${points.join(" L")} L${xAt(n - 1)},100 Z`;
   const peakAt = values.reduce(
     (best, v, i) => (v > values[best] ? i : best),
@@ -173,6 +179,20 @@ export function RevenueChart({
             preserveAspectRatio="none"
             className="absolute inset-0 h-full w-full overflow-visible"
           >
+            <defs>
+              <linearGradient id={fadeId} x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="var(--admin-chart-line)"
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--admin-chart-line)"
+                  stopOpacity={0}
+                />
+              </linearGradient>
+            </defs>
             {ticks.map((t) => (
               <line
                 key={t}
@@ -180,15 +200,15 @@ export function RevenueChart({
                 x2={100}
                 y1={yAt(t)}
                 y2={yAt(t)}
-                stroke="var(--admin-border)"
+                stroke="var(--admin-chart-grid)"
                 strokeWidth={1}
-                strokeDasharray="4 4"
                 vectorEffect="non-scaling-stroke"
               />
             ))}
-            {/* Innex's revenue line: a 2 px deep blue over a pale lavender
-                fill, on dashed rules (admin/layout.tsx --admin-chart-*). */}
-            <path d={area} fill="var(--admin-chart-fill)" />
+            {/* StorageBox's line: a 2 px soft blue over a fill that fades
+                to nothing, on plain 1 px rules (a dashed rule reads as
+                data); admin-theme.css --admin-chart-*. */}
+            <path d={area} fill={`url(#${fadeId})`} />
             <polyline
               points={points.join(" ")}
               fill="none"

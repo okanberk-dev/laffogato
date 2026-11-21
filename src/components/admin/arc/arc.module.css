@@ -2,7 +2,8 @@
  * Arc UI (https://uiarc.dev, free items `donut-chart` and `metric-card`), ported for the panel without `motion`
  * (the panel's library rule allows lucide-react, react-aria-components and @internationalized/date only; CLAUDE.md
  * "Admin arayüz kütüphaneleri"). Arc's tokens live under `.arc` only and read the panel's own `--admin-*` values
- * (admin/layout.tsx), so the dashboard keeps its Innex look and nothing outside these components changes.
+ * (admin/admin-theme.css), so the dashboard keeps the panel's StorageBox look and nothing outside these components
+ * changes. Figures in DM Sans 400 (the panel's `.admin-display` face).
  */
 .arc {
   --foreground: var(--admin-text);
@@ -12,12 +13,12 @@
   --border: var(--admin-border);
   --success: var(--admin-success);
   --danger: var(--admin-danger-ink);
-  --radius-surface: 12px;
-  --radius-row: 10px;
+  --radius-surface: 16px;
+  --radius-row: 12px;
   --font-body: var(--font-admin-sans), ui-sans-serif, system-ui, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
-  --text-2xl: 1.5rem;
+  --text-2xl: 1.75rem;
   --tracking-display: -0.02em;
   --leading-display: 1.15;
   --leading-body: 1.4;
@@ -30,10 +31,10 @@
 
 /* ── metric-card: label and change on top, the figure, a line of context ── */
 .metric {
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-surface);
-  padding: 16px 18px;
-  /* Inside a white widget card: the panel's pale well (admin/layout.tsx --admin-surface-2) */
+  padding: 18px 20px;
+  /* Inside a white widget card: the panel's pale well (admin-theme.css --admin-surface-2) */
   background: var(--admin-surface-2);
 }
 .metricTop {
@@ -51,7 +52,7 @@
   border-radius: 9999px;
   padding: 2px 8px;
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .metricTop small[data-good="true"] {
@@ -64,9 +65,10 @@
 }
 .metricValue {
   margin: 0;
+  font-family: var(--font-admin-display), var(--font-body);
   font-size: var(--text-2xl);
-  font-weight: 600;
-  letter-spacing: var(--tracking-display);
+  font-weight: 400;
+  letter-spacing: -0.03em;
   line-height: var(--leading-display);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;

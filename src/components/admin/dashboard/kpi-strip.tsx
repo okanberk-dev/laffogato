@@ -24,8 +24,8 @@ export interface KpiCell {
   /** The list the figure counts, or the view it switches to. */
   href?: string;
   /**
-   * The cell is the view on screen (Raporlar's metric): Innex's selected
-   * card tab, a pale blue ground over a 2 px blue rule.
+   * The cell is the view on screen (Raporlar's metric): the selected card
+   * tab, a pale blue ground inside a blue line.
    */
   current?: boolean;
   /** Colours the figure: it asks for a person. */
@@ -52,6 +52,26 @@ const GRID: Record<number, string> = {
   5: "grid-cols-2 md:grid-cols-6 xl:grid-cols-5",
 };
 
+/**
+ * With `lead`: the first figure (the dashboard's net revenue) takes two
+ * columns, StorageBox's one leading number; the rest one each. On a phone
+ * it takes the whole first row and the others pair up under it.
+ */
+const GRID_LEAD: Record<number, string> = {
+  4: "grid-cols-2 md:grid-cols-5",
+  5: "grid-cols-2 md:grid-cols-6",
+};
+
+function kpiLeadSpan(index: number, count: number): string {
+  if (index === 0) return "col-span-2";
+  if (count === 4) return index === 3 ? "col-span-2 md:col-span-1" : "";
+  // Five: three over two from md (2 + 2 + 2, 3 + 3), one row once the
+  // labels fit beside the sidebar (at 1280 px "Bugünkü sipariş" was cut).
+  return index < 3
+    ? "md:col-span-2 min-[86.25rem]:col-span-1"
+    : "md:col-span-3 min-[86.25rem]:col-span-1";
+}
+
 /** The cell's span in GRID's columns. Pure, exported for tests. */
 export function kpiSpan(index: number, count: number): string {
   const lastOdd = index === count - 1 && count % 2 === 1;
@@ -67,20 +87,24 @@ export function kpiSpan(index: number, count: number): string {
 }
 
 /**
- * Innex's KPI strip (22 Eki 2026): one card, its figures side by side with
- * a hairline between them (the card's grey shows through a 1 px gap, so the
- * lines stay right however the cells wrap). Each cell, top to bottom: a
- * small tinted icon box beside the label, the figure, then a change pill
- * and the figure it is read against. With `href` the whole cell is a link;
- * with `current` it is the selected one of a set of card tabs. Server-safe.
+ * StorageBox's stat cards (21 Kas 2026): each figure its own white card on
+ * the canvas, side by side in the grid's gutter. Each card, top to bottom:
+ * a 32 px round icon in the nav group's colour (and an arrow when it is a
+ * link), the label, the figure in DM Sans, then a grey change pill and the
+ * figure it is read against. With `href` the whole card is a link (its line
+ * darkens on hover); with `current` it is the selected one of a set of card
+ * tabs. Server-safe.
  */
 export function KpiStrip({
   cells,
   label,
   className,
   linkScroll = true,
+  lead = false,
 }: {
   cells: readonly KpiCell[];
+  /** The first figure leads: two columns wide (four or five cells). */
+  lead?: boolean;
   /** The list's accessible name ("Bugünün özeti"). */
   label: string;
   className?: string;
@@ -91,12 +115,18 @@ export function KpiStrip({
   linkScroll?: boolean;
 }) {
   if (cells.length === 0) return null;
+  const leads = lead && GRID_LEAD[cells.length] !== undefined;
   return (
     <ul
       aria-label={label}
       className={cx(
-        "grid gap-px overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-border)] print:border-[var(--admin-border-strong)]",
-        GRID[cells.length] ?? "grid-cols-2 md:grid-cols-3 xl:grid-cols-6",
+        "grid gap-3 sm:gap-4 xl:gap-5",
+        leads
+          ? cx(
+              GRID_LEAD[cells.length],
+              cells.length === 5 ? "min-[86.25rem]:grid-cols-6" : null,
+            )
+          : (GRID[cells.length] ?? "grid-cols-2 md:grid-cols-3 xl:grid-cols-6"),
         className,
       )}
     >
@@ -104,8 +134,11 @@ export function KpiStrip({
         <li
           key={cell.key}
           className={cx(
-            "flex min-w-0 bg-[var(--admin-surface)]",
-            kpiSpan(i, cells.length),
+            "flex min-w-0 overflow-hidden rounded-xl border bg-[var(--admin-surface)] transition-colors duration-150 print:border-[var(--admin-border-strong)]",
+            cell.current
+              ? "border-[var(--admin-primary)]"
+              : "border-[var(--admin-card-border)] has-[a:hover]:border-[var(--admin-border-strong)]",
+            leads ? kpiLeadSpan(i, cells.length) : kpiSpan(i, cells.length),
           )}
         >
           <KpiBody cell={cell} scroll={linkScroll} />
@@ -118,12 +151,12 @@ export function KpiStrip({
 function KpiBody({ cell, scroll }: { cell: KpiCell; scroll: boolean }) {
   const inner = (
     <>
-      <span className="flex min-w-0 items-center gap-2">
+      <span className="flex min-w-0 items-center justify-between gap-2">
         {cell.icon ? (
           <span
             aria-hidden="true"
             className={cx(
-              "grid size-7 shrink-0 place-items-center rounded-lg print:hidden",
+              "grid size-8 shrink-0 place-items-center rounded-full print:hidden",
               cell.hue ? HUE_SOFT[cell.hue] : "bg-[var(--admin-panel)]",
               cell.tone
                 ? TONE_INK[cell.tone]
@@ -135,36 +168,43 @@ function KpiBody({ cell, scroll }: { cell: KpiCell; scroll: boolean }) {
             <AdminIcon name={cell.icon} size={16} />
           </span>
         ) : null}
-        <span
-          className={cx(
-            "truncate text-[13px] font-medium",
-            cell.current
-              ? "text-[var(--admin-primary)]"
-              : "text-[var(--admin-text-soft)]",
-          )}
-        >
-          {cell.label}
-        </span>
+        {cell.href && !cell.current ? (
+          <span
+            aria-hidden="true"
+            className="grid size-7 shrink-0 place-items-center rounded-full text-[var(--admin-text-mute)] transition-colors group-hover/kpi:bg-[var(--admin-panel)] group-hover/kpi:text-[var(--admin-text)] print:hidden"
+          >
+            <AdminIcon name="deltaUp" size={15} />
+          </span>
+        ) : null}
+      </span>
+      <span
+        className={cx(
+          "mt-4 block truncate text-sm",
+          cell.current
+            ? "font-medium text-[var(--admin-primary)]"
+            : "text-[var(--admin-text-soft)]",
+        )}
+      >
+        {cell.label}
       </span>
       <span
         title={cell.value}
         className={cx(
-          "mt-3 block leading-tight font-bold tracking-[-0.01em]",
+          "admin-display mt-1 block leading-[1.1] font-normal tracking-[-0.04em]",
           cell.money
-            ? "text-[clamp(1.125rem,12cqi,1.5rem)] [overflow-wrap:anywhere]"
-            : "truncate text-2xl",
+            ? "text-[clamp(1.375rem,14cqi,var(--admin-kpi))] [overflow-wrap:anywhere]"
+            : "truncate text-[length:var(--admin-kpi)]",
           cell.tone ? TONE_INK[cell.tone] : "text-[var(--admin-text)]",
         )}
-        style={NUMERIC_STYLE}
       >
         {cell.value}
       </span>
       {cell.delta || cell.reference ? (
-        <span className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[var(--admin-text-mute)]">
+        <span className="mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--admin-text-mute)]">
           {cell.delta ? (
             <span
               className={cx(
-                "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-medium",
+                "inline-flex min-h-6 items-center gap-1 rounded-full px-2.5 py-0.5 font-medium",
                 TONE_SOFT[cell.delta.good ? "success" : "danger"],
               )}
               style={NUMERIC_STYLE}
@@ -186,9 +226,8 @@ function KpiBody({ cell, scroll }: { cell: KpiCell; scroll: boolean }) {
     </>
   );
   const frame = cx(
-    "@container flex w-full min-w-0 flex-col p-4 xl:p-5",
-    cell.current &&
-      "bg-[var(--admin-primary-soft)] shadow-[inset_0_-2px_0_var(--admin-primary)]",
+    "group/kpi @container flex w-full min-w-0 flex-col p-4 sm:p-5 xl:p-6",
+    cell.current && "bg-[var(--admin-primary-soft)]",
   );
   if (!cell.href) return <div className={frame}>{inner}</div>;
   return (
@@ -198,8 +237,7 @@ function KpiBody({ cell, scroll }: { cell: KpiCell; scroll: boolean }) {
       aria-current={cell.current ? "true" : undefined}
       className={cx(
         frame,
-        "transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none focus-visible:ring-inset",
-        !cell.current && "hover:bg-[var(--admin-surface-2)]",
+        "transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none focus-visible:ring-inset",
       )}
     >
       {inner}

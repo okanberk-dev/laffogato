@@ -1,5 +1,11 @@
 # Innex (Filllo) — Admin Paneli Tasarım Tarifi
 
+> **Tarihçe (21 Kas 2026).** Panel artık bu tarifi değil, Madame Coco
+> Kenya panelinin StorageBox dilini izler: `docs/ADMIN-STORAGEBOX.md`.
+> Değerler `src/app/admin/admin-theme.css`'te. Innex döneminin düzenleri
+> (`docs/ADMIN.md` "Innex düzenleri") yerinde kaldı; yalnız görünüşleri
+> değişti. Aşağıdaki metin olduğu gibi saklanır.
+
 > **Bu depoda:** panel bu tarife 22 Ekim 2026'da geçti (operatör: _"İnnexe
 > geç"_). Uygulanan değerler ve tarifin bilinçli sapmaları `docs/BRAND.md`
 > "Admin paneli görünümü"nde, değerlerin kendisi `src/app/admin/layout.tsx`

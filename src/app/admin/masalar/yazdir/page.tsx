@@ -62,7 +62,7 @@ export default async function PrintCafeTablesPage({ searchParams }: PageProps) {
     single && tables[0] ? cafeTableHref(tables[0].id) : CAFE_TABLES_PATH;
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-5xl">
       <style>{PRINT_CSS}</style>
       <PageHeader
         title={

@@ -12,9 +12,9 @@ Operatör bu skill'i **yönetim paneli** için istedi (5 Kas 2026): bir panel ek
 
 ### 1. Görsel dil hazır, sorulmaz
 
-- Panelin dili Innex tarifidir: `docs/ADMIN-INNEX.md` (ölçüler, bileşenler), değerler `src/app/admin/layout.tsx` `--admin-*`, bilinçli sapmalar `docs/BRAND.md` "Admin paneli görünümü", uygulanmış yerleşimler `docs/ADMIN.md` "Innex düzenleri". Phase 0'daki **Design Memory bu dört kaynaktır**: `DESIGN_MEMORY.md`, `docs/design-memory.md` ya da `.claude-design/design-memory.md` **yazılmaz** (yarışan ikinci bir tasarım belgesi olur).
+- Panelin dili StorageBox tarifidir (21 Kas 2026): `docs/ADMIN-STORAGEBOX.md` (ölçüler, bileşenler, bilinçli sapmalar), değerler `src/app/admin/admin-theme.css` `--admin-*`, marka notu `docs/BRAND.md` "Admin paneli görünümü", uygulanmış yerleşimler `docs/ADMIN.md` "Innex düzenleri". Phase 0'daki **Design Memory bu dört kaynaktır**: `DESIGN_MEMORY.md`, `docs/design-memory.md` ya da `.claude-design/design-memory.md` **yazılmaz** (yarışan ikinci bir tasarım belgesi olur).
 - Phase 0'ın "Visual Style Inference"ı Tailwind config aramaz (Tailwind v4, config dosyası yok): token'lar `--admin-*`, düğme ve alan sınıfları `src/components/admin/ui/styles.ts` ve `src/components/admin/forms.tsx`, yoğunluk `compact.ts`.
-- Mülakatta **sorulmayanlar:** Step 1.2'nin "Visual Inspiration" sorusu (cevap Innex), Step 1.3'ün tamamı (marka sıfatları; koyu mod: panelde yok) ve Step 1.5 "Technical Constraints" (cevap hep: yeni bağımlılık yok, mevcut kit, WCAG AA). Bunları brief'e sabit değer olarak yaz.
+- Mülakatta **sorulmayanlar:** Step 1.2'nin "Visual Inspiration" sorusu (cevap StorageBox), Step 1.3'ün tamamı (marka sıfatları; koyu mod: panelde yok) ve Step 1.5 "Technical Constraints" (cevap hep: yeni bağımlılık yok, mevcut kit, WCAG AA). Bunları brief'e sabit değer olarak yaz.
 - Varyantlar yeni renk, yazı ailesi ya da gölge dili **icat etmez**. Variant E ("Expressive Direction") mevcut token'ların farklı kullanımıdır: gri zemin üstünde beyaz kartlar, 1 px çizgiler, mavi (`--admin-primary`) ekranın tek dolu düğmesi, grup renkleri (`ui/hues.ts`) yalnız ikon kutularında. Sitenin bordo, yeşil ve pirinci, Gabarito ve Poppins panele girmez (panelin yazısı Inter).
 - Durum renkleri dikkati gösterir (kırmızı "şu an senin işin", yeşil "bitti"): `ui/tone.ts`, `Badge`, `OrderStatusBadge`.
 

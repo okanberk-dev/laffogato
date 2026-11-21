@@ -63,7 +63,7 @@ export default async function LegalPreviewPage({
 
   if (!text) {
     return (
-      <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+      <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
         <PageHeader
           eyebrow={`Önizleme · /hukuk/${slug}`}
           title={doc.title}
@@ -78,7 +78,7 @@ export default async function LegalPreviewPage({
   }
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       <PageHeader
         eyebrow={`Önizleme · /hukuk/${slug}`}
         title={doc.title}

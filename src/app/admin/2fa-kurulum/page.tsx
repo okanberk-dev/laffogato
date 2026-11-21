@@ -25,7 +25,7 @@ export default async function TwoFAEnrollPage() {
 
   if (enabled) {
     return (
-      <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+      <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
         <PageHeader
           eyebrow="Güvenlik"
           title="İki adımlı doğrulama açık"
@@ -90,7 +90,7 @@ export default async function TwoFAEnrollPage() {
     : "";
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       <PageHeader
         eyebrow="Güvenlik"
         title="İki adımlı doğrulamayı kur"

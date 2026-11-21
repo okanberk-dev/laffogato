@@ -20,7 +20,8 @@ export function WidgetLink({
   return (
     <Link
       href={href}
-      className="-mr-1 inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-[13px] font-medium text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-fine:min-h-8"
+      // StorageBox's card button: a small white pill with a thin line.
+      className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 text-[13px] font-medium whitespace-nowrap text-[var(--admin-text)] transition-colors hover:bg-[var(--admin-surface-2)] focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none pointer-fine:min-h-8"
     >
       {children} <span aria-hidden="true">→</span>
     </Link>
@@ -28,9 +29,9 @@ export function WidgetLink({
 }
 
 /**
- * The frame of a dashboard widget (Innex's card): its title in the card's
- * 15 px semibold, an optional "Tümünü gör" link to the list behind it, and
- * the body. Server-safe.
+ * The frame of a dashboard widget (StorageBox's card): its title in DM
+ * Sans, an optional "Tümünü gör" pill to the list behind it, and the body.
+ * Server-safe.
  */
 export function WidgetCard({
   title,
@@ -45,7 +46,7 @@ export function WidgetCard({
 }) {
   return (
     <Card className="min-w-0">
-      <div className="-mt-1.5 mb-3 flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <div className="-mt-1 mb-4 flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h2 className={CARD_TITLE}>{title}</h2>
         {href ? <WidgetLink href={href}>{linkLabel}</WidgetLink> : null}
       </div>
