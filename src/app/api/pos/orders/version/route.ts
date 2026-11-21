@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   newChangeMarker,
   readPosKaraokeMarker,
+  readPosMenuMarker,
   readPosOrdersMarker,
 } from "@/lib/admin/change-marker";
 import {
@@ -32,6 +33,12 @@ import {
  * box. An order does not move it, a booking does not move `version`. Added
  * to the answer, not swapped in: a LafPOS that reads only `version` is
  * unchanged.
+ *
+ * `menu` is the same kind of marker under `pub:menu`: it moves when a menu
+ * item's price or state is written (the menu form, the panel's POST
+ * /api/panel/menu, LafPOS's own "Tükendi"), and LafPOS then syncs its menu at
+ * once, prices from the signed panel list, instead of waiting for its
+ * 15-minute poll. Added, not swapped in, like `karaoke`.
  *
  * When the cache cannot say (`LAF_DATA_CACHE=off`, a failing cache, or off
  * under test), every answer is a new token: LafPOS then pulls on every ask.
@@ -67,14 +74,18 @@ export async function GET(request: Request) {
       { status: 401, headers: NO_STORE },
     );
   }
-  const [orders, karaoke] = await Promise.all([
+  const [orders, karaoke, menu] = await Promise.all([
     readPosOrdersMarker(),
     readPosKaraokeMarker(),
+    readPosMenuMarker(),
   ]);
   return NextResponse.json(
     {
       version: orders ?? newChangeMarker(),
       karaoke: karaoke ?? newChangeMarker(),
+      // No cache: no marker (a fresh token every ask would sync the menu
+      // every 20 seconds); LafPOS keeps its 15-minute poll
+      ...(menu ? { menu } : {}),
     },
     { headers: NO_STORE },
   );
