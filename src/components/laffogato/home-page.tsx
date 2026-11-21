@@ -279,8 +279,8 @@ export function PageHome({
             </div>
             <ul className="guide-row" role="list">
               {guides.map((g) => (
-                <li key={g.slug} className="guide-card">
-                  <div className="media ratio-3-2 guide-card-media">
+                <li key={g.slug} className="guide-tile">
+                  <div className="media ratio-3-2 guide-tile-media">
                     <Image
                       src={g.image!.src}
                       alt={g.image!.alt}
@@ -288,7 +288,7 @@ export function PageHome({
                       sizes="(max-width: 767px) 100vw, 25vw"
                     />
                   </div>
-                  <div className="guide-card-body">
+                  <div className="guide-tile-body">
                     <h3 className="t-title">{g.title}</h3>
                     <p className="t-small">{g.excerpt}</p>
                     <Link className="link-u" href={`/rehber/${g.slug}`}>

@@ -36,9 +36,8 @@ export default function GlobalError({
           placeItems: "center",
           fontFamily:
             "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
-          background:
-            "radial-gradient(60% 50% at 50% 38%, rgba(253, 175, 109, 0.22) 0%, rgba(253, 175, 109, 0) 70%), #f7f3ed",
-          color: "#211c18",
+          background: "#f6f6f3",
+          color: "#000000",
           padding: "48px 24px",
           WebkitFontSmoothing: "antialiased",
         }}
@@ -52,15 +51,16 @@ export default function GlobalError({
             aria-label="L'Affogato"
             style={{ margin: "0 auto 28px", display: "block" }}
           >
-            <path fillRule="evenodd" fill="#211c18" d={LAF_LETTERS_PATH} />
-            <path fillRule="evenodd" fill="#b08a2e" d={LAF_BEAN_PATH} />
+            <path fillRule="evenodd" fill="#000000" d={LAF_LETTERS_PATH} />
+            <path fillRule="evenodd" fill="#b8893a" d={LAF_BEAN_PATH} />
           </svg>
           <h1
             style={{
-              fontSize: 32,
-              lineHeight: 1.1,
-              letterSpacing: "-0.02em",
-              fontWeight: 700,
+              fontSize: 24,
+              lineHeight: 1.3,
+              letterSpacing: "1.6px",
+              textTransform: "uppercase",
+              fontWeight: 400,
               margin: 0,
             }}
           >
@@ -71,7 +71,7 @@ export default function GlobalError({
               marginTop: 14,
               fontSize: 16,
               lineHeight: 1.6,
-              color: "#564d46",
+              color: "#6c6864",
             }}
           >
             Geçici bir aksaklık olabilir. Lütfen birazdan tekrar dene.
@@ -81,15 +81,15 @@ export default function GlobalError({
             style={{
               marginTop: 26,
               minHeight: 48,
-              padding: "0 26px",
-              borderRadius: 999,
-              border: "none",
-              background: "#1d6d56",
-              color: "#fbf8f4",
-              fontSize: 15,
-              fontWeight: 600,
+              minWidth: 280,
+              padding: "0 36px",
+              borderRadius: 0,
+              border: "1px solid #333333",
+              background: "#333333",
+              color: "#ffffff",
+              fontSize: 16,
+              fontWeight: 400,
               cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(59, 42, 30, 0.1)",
             }}
           >
             Tekrar dene

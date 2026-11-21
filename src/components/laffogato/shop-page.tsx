@@ -331,7 +331,7 @@ export function PageShop({
         value={sort}
         onChange={(e) => setSort(e.target.value)}
       >
-        <option value="featured">Sırala: önerilen</option>
+        <option value="featured">Sıralama</option>
         <option value="price-asc">Fiyat: artan</option>
         <option value="price-desc">Fiyat: azalan</option>
         <option value="new">Yeniler önce</option>

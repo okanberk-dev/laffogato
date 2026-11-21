@@ -431,7 +431,7 @@
   }
 }
 
-/* ── Guide cards: a photograph and a white panel ─────────── */
+/* ── Guide tiles (home): a photograph and a white panel ──── */
 .guide-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -439,30 +439,30 @@
   margin: 0;
   padding: 0;
 }
-.guide-card {
+.guide-tile {
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: var(--surface);
   min-height: 220px;
 }
-.guide-card-media {
+.guide-tile-media {
   height: 100%;
   aspect-ratio: auto;
   min-height: 200px;
 }
-.guide-card-body {
+.guide-tile-body {
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 12px;
   padding: 32px 20px 24px;
 }
-.guide-card-body .t-small {
+.guide-tile-body .t-small {
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.guide-card-body .link-u {
+.guide-tile-body .link-u {
   justify-self: start;
 }
 @media (max-width: 1023px) {
@@ -471,10 +471,10 @@
   }
 }
 @media (max-width: 599px) {
-  .guide-card {
+  .guide-tile {
     grid-template-columns: 1fr;
   }
-  .guide-card-media {
+  .guide-tile-media {
     aspect-ratio: 3 / 2;
     min-height: 0;
   }

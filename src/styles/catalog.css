@@ -1120,3 +1120,15 @@
     min-height: 420px;
   }
 }
+@media (max-width: 767px) {
+  .collection-filter,
+  .shop-sort-select {
+    font-size: 12px;
+    letter-spacing: 1px;
+    padding-inline: 14px;
+  }
+  .shop-sort-select {
+    padding-right: 34px;
+    background-position: right 12px center;
+  }
+}

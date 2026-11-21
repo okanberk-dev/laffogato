@@ -41,24 +41,26 @@ export default function GuideHubPage() {
           share the site's content width. */}
       <PageHero
         image={{ src: "/rehber/espresso-cesitleri.webp" }}
-        eyebrow="Il quaderno"
-        title={["Barın arkasında", "öğrendiklerimiz"]}
-        lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir - hepsi tek tek, uygulanabilir biçimde."
+        title="Rehber"
+        lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir: hepsi tek tek, uygulanabilir biçimde."
       />
 
-      <div className="wrap">
+      <div className="wrap guide-hub">
         <nav className="guide-breadcrumb" aria-label="breadcrumb">
           <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
           <span>Rehber</span>
         </nav>
 
-        <ul className="guide-hub-grid">
+        <h2 className="t-display guide-hub-title">Barın arkasında öğrendiklerimiz</h2>
+        <ul className="guide-hub-grid" role="list">
           {GUIDES.map((g) => (
             <li key={g.slug}>
-              <Link href={`/rehber/${g.slug}`} className="guide-card">
+              <Link href={`/rehber/${g.slug}`} className="guide-hub-card">
+                <span className="t-display guide-hub-name">{g.title}</span>
+                <span className="t-small">{g.primaryKeyword}</span>
                 {g.image ? (
-                  <span className="guide-card-photo">
+                  <span className="media ratio-6-5">
                     <Image
                       src={g.image.src}
                       alt=""
@@ -66,12 +68,11 @@ export default function GuideHubPage() {
                       sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 360px"
                     />
                   </span>
-                ) : null}
-                <span className="guide-card-title">{g.title}</span>
-                <span className="guide-card-excerpt">{g.excerpt}</span>
-                <span className="guide-card-meta eyebrow">
-                  {g.readingMinutes} dk okuma →
-                </span>
+                ) : (
+                  <span />
+                )}
+                <span className="t-small">{g.excerpt}</span>
+                <span className="t-label">{g.readingMinutes} dk okuma</span>
               </Link>
             </li>
           ))}
