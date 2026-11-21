@@ -279,14 +279,13 @@ not Canlı durum'dan gelir (`GET /api/mobile/v1/live-status`).
   Sahip, Yönetici ve **Personel**. Kasiyerde yok. Uygulamanın slaytları,
   duyuruları, gönderileri ve ayarları eskisi gibi yalnız Sahip ve
   Yönetici'de (`mobileApp`).
-- **Masalar.** Boş masa vardiyanın girdiği tek canlı sayıdır (uygulamada
-  "Boş masa 9 / 20"). Toplam masa yalnız Sahip ve Yönetici'de: Personel
-  görür ama değiştiremez (alanın adı yok, gönderilmez); sunucu Personel'in
-  gönderdiği toplamı yok sayar ve kayıtlı olanı korur. Boş masa kayıtlı
-  toplamı geçemez; bu kural veritabanındaki tek `UPDATE`'in içinde
-  denetlenir (`patchVenueStatus`).
-- **Ortam:** Wi-Fi, gürültü, priz ve not (en fazla 200 karakter). Her kayıt
-  olay kaydına bir satır yazar (`venue_status`, kim, ne).
+- **Masa sayısı yok** (22 Kas 2026, operatör: _"boş masa sayısını da
+  kaldır"_). Canlı durum boş ve toplam masa sormaz; uygulamaya
+  `freeTables: null` gider (sözleşme §6), uygulama boş masa satırı
+  göstermez. Gönderilen bir `freeTables` / `totalTables` yok sayılır.
+- **Ortam:** Wi-Fi, gürültü, priz ve not (en fazla 200 karakter), tek bir
+  `UPDATE` ile (`patchVenueStatus`). Her kayıt olay kaydına bir satır yazar
+  (`venue_status`, kim, ne).
 - Uygulama yeni durumu en geç 30 saniyede görür (uç `s-maxage=30`).
 
 ## Klavye kısayolları

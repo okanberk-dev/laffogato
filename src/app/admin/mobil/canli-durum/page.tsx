@@ -61,14 +61,13 @@ function dayHours(
  * Whether the köşk is open is no longer set here (operator, 21 Kas 2026):
  * it follows Ayarlar → Saatler on its own, and this page only shows it
  * (today's hours, when they next open or close it, the week). What the
- * staff still enter is the room: free tables, Wi-Fi, noise, power, note.
+ * staff still enter is the room: Wi-Fi, noise, power, note. The free-table
+ * count left on 22 Kas 2026 (the app gets `freeTables: null`).
  *
- * Open to the köşk shift (`venue`, admin UI v2 decision D3); the table
- * count is read-only without `mobileApp`, and the action ignores it.
+ * Open to the köşk shift (`venue`, admin UI v2 decision D3).
  */
 export default async function AdminVenueStatusPage() {
   const session = await requireRole("venue");
-  const canEditTotal = canAccess("mobileApp", session.role);
   const canEditHours = canAccess("settings", session.role);
   const [status, settings] = await Promise.all([
     getVenueStatus(),
@@ -92,7 +91,7 @@ export default async function AdminVenueStatusPage() {
     <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       <PageHeader
         title="Canlı durum"
-        description="Uygulamanın ana sayfasındaki açık/kapalı, boş masa, Wi-Fi ve gürültü bilgisi."
+        description="Uygulamanın ana sayfasındaki açık/kapalı, Wi-Fi ve gürültü bilgisi."
       />
 
       <div className="grid gap-4 sm:gap-5">
@@ -162,15 +161,12 @@ export default async function AdminVenueStatusPage() {
         </Section>
 
         <VenueStatusForm
-          canEditTotal={canEditTotal}
           savedAt={
             status.updatedAt
               ? `Son güncelleme: ${formatDateTime(status.updatedAt)}`
               : "Henüz hiç güncellenmedi; varsayılanlar gösteriliyor."
           }
           defaults={{
-            freeTables: status.freeTables,
-            totalTables: status.totalTables,
             wifi: status.wifi,
             noise: status.noise,
             power: status.power,

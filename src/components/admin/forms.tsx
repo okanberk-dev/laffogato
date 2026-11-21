@@ -71,7 +71,7 @@ export function Field({
 // field can be found on a white card) and darkens under the pointer; the placeholder is the
 // muted ink. Focus is the blue edge with a soft 3 px ring. A multi-line
 // field (Textarea) takes 16 px corners instead of the pill.
-const FIELD_BASE = `w-full border border-[var(--admin-border-field)] bg-[var(--admin-surface)] text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] hover:border-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-[3px] focus:ring-[var(--admin-ring)] sm:text-sm`;
+const FIELD_BASE = `w-full border border-[var(--admin-border-field)] bg-[var(--admin-surface)] shadow-[var(--admin-field-shadow)] text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] hover:border-[var(--admin-border-field-hover)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-[3px] focus:ring-[var(--admin-ring)] sm:text-sm`;
 export const FIELD_INPUT = `${FIELD_BASE} rounded-full px-4 py-2.5 sm:py-2 ${COMPACT.fieldPy}`;
 export const FIELD_TEXTAREA = `${FIELD_BASE} rounded-2xl px-4 py-3`;
 

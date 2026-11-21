@@ -65,6 +65,7 @@ export interface LiveStatus {
    * which is what a never-saved row used to look like on the wire.
    */
   updatedAgoMinutes: number | null;
+  /** Always `null` since 22 Kas 2026: the panel no longer counts tables. */
   freeTables: number | null;
   totalTables: number;
   wifi: VenueWifi;
@@ -300,8 +301,11 @@ export function toLiveStatus(
     openLabel: isOpen ? "Şu an açık" : "Şu an kapalı",
     updatedAt: status.updatedAt,
     updatedAgoMinutes: minutesSince(status.updatedAt, now),
-    // A row nobody has saved carries the defaults, not a count of the room.
-    freeTables: status.updatedAt ? status.freeTables : null,
+    // Always null since 22 Kas 2026 (operator: "boş masa sayısını da
+    // kaldır"): nobody enters the count any more, and null is the value the
+    // app already reads as "nobody reported" (it then shows no free-table
+    // line). The field stays on the wire: v1 only adds.
+    freeTables: null,
     totalTables: status.totalTables,
     wifi: status.wifi,
     noise: status.noise,

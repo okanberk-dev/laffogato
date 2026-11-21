@@ -1008,6 +1008,12 @@ kurar (O28).
 ```
 
 Kaynak: `venue_status` tablosu (tek satır `main`), `/admin/mobil/canli-durum` panelinden düzenlenir; `isOpen` = `manualOverride` (`"auto" | "open" | "closed"`) + `settings.weeklyHours`.
+
+> **22 Kas 2026 (alan silinmedi, yalnız değeri):** panel boş masa saymıyor;
+> `freeTables` her yanıtta **`null`** (hiç kaydedilmemiş durumda zaten böyleydi:
+> "kimse bildirmedi", uygulama boş masa satırı göstermez). `totalTables` kayıtlı
+> sayıyı vermeye devam eder. 21 Kas 2026'dan beri panel `manualOverride`'ı hep
+> `"auto"` yazar: `isOpen` yalnız `settings.weeklyHours`'tan gelir.
 Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel personele "uygulama
 30 saniyede görür" diyor, iki dakikalık SWR penceresi bunu yalan yapıyordu.
 
