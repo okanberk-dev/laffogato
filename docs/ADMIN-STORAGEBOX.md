@@ -98,6 +98,31 @@ Rozet tonları: zemin kaynağın açık zemini (`#defde2`, `#eff2fe`,
   iki kart genişliğinde (`KpiStrip lead`). Grafik yumuşak tek çizgi, solan
   dolgu, düz 1 px ızgara.
 
+## Giriş ekranları
+
+Operatör: _"giriş login sayfasını da estetik yap ve mobil de uyumlu yap"_.
+Giriş (`/admin/giris`) ve iki adımlı doğrulama (`/admin/iki-asama`) aynı
+iskeleti kullanır (`src/components/admin/auth-card.tsx`, Madame Coco'nun
+giriş ekranı gibi):
+
+- Açık gri çerçevenin üstünde işaret (koyu daire içinde L'Af) ve
+  "L'Affogato · Yönetim", sağda "Siteye dön" gri hapı.
+- Solda form kartı: "Yönetim paneli" çipi (kilit), DM Sans başlık
+  ("Tekrar hoş geldin", "İki adımlı doğrulama"), tek satır açıklama, hap
+  alanlar, tek mavi düğme, altında "Güvenli bağlantı · © yıl L'Affogato".
+- Sağda (≥ 1024 px) köşkün gece cephesi (`public/photos/facade-night.webp`),
+  alttan koyulaşan geçiş, "Köşkün bütün işleri tek ekranda." ve dört hap
+  (Siparişler, Karaoke, Menü, Raporlar).
+- Telefonda ve tablette fotoğraf formun üstünde kısa bir bant; yatay kaydırma
+  yok (390 ve 360 px'te denendi). Fotoğraf iki öğenin CSS arka planıdır ve
+  gizli olanınki indirilmez.
+- Şifre alanında göz düğmesi (göster / gizle, `aria-pressed`) ve Caps Lock
+  açıkken bir satır uyarı; doğru şifrenin reddedilmesinin iki yaygın
+  sebebi. Alanın adı yalnız "Şifre" kalır (düğme etiketin dışında). Hatalı
+  girişte e-posta yerinde kalır, şifre boşalır ve odaklanır (eskisi gibi).
+- Kendi odak halkasını çizen alan (mavi kenar + 3 px yumuşak halka)
+  panelin genel odak çizgisini almaz; haplarda çift halka oluyordu.
+
 ## Köşk durumu: saatlerden kendiliğinden
 
 Operatör: _"köşk açık yoğun vs. durumunu da kaldır, belli aralık olan o

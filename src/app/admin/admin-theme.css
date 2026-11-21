@@ -214,6 +214,16 @@
 }
 
 /*
+ * A field that draws its own focus (the blue edge and the soft 3 px ring of
+ * FIELD_INPUT, FIELD_TEXTAREA and TOOLBAR_FIELD) drops the panel's global
+ * outline (globals.css `[data-admin-root] :focus-visible`): on a pill the
+ * two drew a thick double ring. Every other control keeps the outline.
+ */
+[data-admin-root] .focus\:ring-\[3px\]:focus-visible {
+  outline: none;
+}
+
+/*
  * Titles and big figures: DM Sans, light (400) and tight. In the components
  * layer, so an element's own tracking-* class can still win.
  */
