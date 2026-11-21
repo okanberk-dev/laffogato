@@ -230,8 +230,8 @@ const ISTANBUL_OFFSET_MS = 3 * 60 * MINUTE_MS;
  * The answer can only turn on a posted minute: an open or close time of
  * some day, or midnight, where the day changes and with it the entry that
  * applies (an overnight tail included). Only those instants on the köşk's
- * clock are tried. The top bar's köşk chip (src/lib/admin/venue-signal.ts)
- * uses it to know how long "nothing changed" holds without a write.
+ * clock are tried. Canlı durum (app/admin/mobil/canli-durum) uses it to say
+ * when the hours next open or close the köşk.
  */
 export function nextOpenChangeAt(
   hours: WeeklyHours,

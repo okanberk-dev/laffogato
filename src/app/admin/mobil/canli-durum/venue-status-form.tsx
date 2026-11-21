@@ -9,13 +9,13 @@ import {
   SubmitButton,
 } from "@/components/admin/action-form";
 import {
-  Card,
   Checkbox,
   Field,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import { Section } from "@/components/admin/ui/detail";
 
 import { saveVenueStatusAction } from "./actions";
 
@@ -25,7 +25,6 @@ import { saveVenueStatusAction } from "./actions";
  * pull the database driver into the browser bundle and fail the build.
  */
 export interface VenueStatusDefaults {
-  manualOverride: "auto" | "open" | "closed";
   freeTables: number;
   totalTables: number;
   wifi: "stable" | "slow" | "down";
@@ -33,15 +32,6 @@ export interface VenueStatusDefaults {
   power: boolean;
   note: string;
 }
-
-const OVERRIDE_OPTIONS: {
-  value: VenueStatusDefaults["manualOverride"];
-  label: string;
-}[] = [
-  { value: "auto", label: "Otomatik - çalışma saatlerine göre" },
-  { value: "open", label: "Açık (saatlerden bağımsız)" },
-  { value: "closed", label: "Kapalı (saatlerden bağımsız)" },
-];
 
 const WIFI_OPTIONS: { value: VenueStatusDefaults["wifi"]; label: string }[] = [
   { value: "stable", label: "Stabil" },
@@ -79,31 +69,21 @@ function Row({ name, children }: { name: string; children: ReactNode }) {
 export function VenueStatusForm({
   defaults,
   canEditTotal = true,
+  savedAt,
 }: {
   defaults: VenueStatusDefaults;
   /** False for Personel: the table count is read-only. */
   canEditTotal?: boolean;
+  /** "Son güncelleme: …", shown by the button. */
+  savedAt?: string;
 }) {
   return (
-    <ActionForm action={saveVenueStatusAction} className="grid gap-4">
-      <Card>
+    <ActionForm action={saveVenueStatusAction} className="grid gap-4 sm:gap-5">
+      <Section
+        title="Masalar"
+        description="Uygulamada “Boş masa 9 / 20” olarak görünür."
+      >
         <div className="grid gap-4">
-          <Field
-            label="Açık / kapalı"
-            hint="Otomatikte çalışma saatleri kullanılır (Ayarlar → Saatler; sahip değiştirir). 02:00 kapanış gece yarısından sonra da açık sayılır."
-          >
-            <Select
-              name="manualOverride"
-              defaultValue={defaults.manualOverride}
-            >
-              {OVERRIDE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
           <div className="grid gap-4 sm:grid-cols-2">
             <Row name="freeTables">
               <Field label="Boş masa">
@@ -150,9 +130,12 @@ export function VenueStatusForm({
             )}
           </div>
         </div>
-      </Card>
+      </Section>
 
-      <Card>
+      <Section
+        title="Ortam"
+        description="Çalışmaya gelen misafir için: bağlantı, ses ve priz."
+      >
         <div className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Wi-Fi">
@@ -195,11 +178,12 @@ export function VenueStatusForm({
             </Field>
           </Row>
         </div>
-      </Card>
+      </Section>
 
       <FormMessage />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-w-0 flex-1 basis-56 text-xs text-[var(--admin-text-soft)]">
+          {savedAt ? <span className="block">{savedAt}</span> : null}
           Kaydedince uygulamanın ana sayfası en geç 30 saniyede güncellenir.
         </p>
         <SubmitButton>Kaydet</SubmitButton>
