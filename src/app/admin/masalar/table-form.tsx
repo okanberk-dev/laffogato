@@ -6,7 +6,7 @@ import {
   FormMessage,
   SubmitButton,
 } from "@/components/admin/action-form";
-import { Card, Field, TextInput } from "@/components/admin/forms";
+import { Card, Field, Select, TextInput } from "@/components/admin/forms";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
 import Link from "@/components/link";
 import {
@@ -15,8 +15,11 @@ import {
 } from "@/lib/admin/save-and-new";
 
 /**
- * Name (and, when editing, sort order) of a table. The code is never a field:
- * the server draws it, and only "Kodu yenile" changes it.
+ * Name, branch (and, when editing, sort order) of a table. The code is
+ * never a field: the server draws it, and only "Kodu yenile" changes it.
+ * The branch is where the card stands: orders and calls at the table go to
+ * that branch's bar (src/lib/panel/branches.ts). LafPOS sends its own
+ * branch's tables itself (`PUT /api/panel/tables`).
  *
  * Posted by hand (ActionForm): a refusal keeps what was typed and says what
  * to change under the field, and a database error answers "Bir hata oldu…"
@@ -26,12 +29,15 @@ import {
 export function CafeTableForm({
   action,
   table,
+  branches,
   submitLabel,
   back,
   saveAndNew = false,
 }: {
   action: ModalAction;
-  table?: { id: string; name: string; sortOrder: number };
+  table?: { id: string; name: string; sortOrder: number; branch: string };
+  /** The deployment's branches, the home branch first. */
+  branches: ReadonlyArray<{ id: string; label: string }>;
   submitLabel: string;
   back: string;
   /**
@@ -57,6 +63,32 @@ export function CafeTableForm({
           />
         </Field>
         <FormFieldError name="name" />
+        {branches.length > 1 ? (
+          <>
+            <Field
+              label="Şube"
+              hint="Masanın durduğu şube. Bu masadan gelen sipariş ve çağrı o şubenin bar ekranına düşer."
+            >
+              <Select
+                name="branch"
+                defaultValue={table?.branch ?? branches[0]?.id}
+              >
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <FormFieldError name="branch" />
+          </>
+        ) : (
+          <input
+            type="hidden"
+            name="branch"
+            value={table?.branch ?? branches[0]?.id ?? ""}
+          />
+        )}
         {table ? (
           <>
             <Field

@@ -467,7 +467,7 @@ export async function createAppOrder(
   // A table order names an ACTIVE table, resolved here and snapshotted onto
   // the row (§3): unknown → 400 invalid_table, out of service → 409
   // table_inactive, both before anything is written or charged.
-  let table: { code: string; name: string } | null = null;
+  let table: { code: string; name: string; branch: string } | null = null;
   if (body.fulfillment === "table") {
     const lookup = await lookupTableLimited(
       body.tableCode,
@@ -569,8 +569,15 @@ export async function createAppOrder(
       legalConsent: consent,
       clientOrderId: body.clientOrderId,
       payWithWallet: body.payWithWallet,
-      // The table, snapshotted onto the row (§3).
-      ...(table ? { tableCode: table.code, tableName: table.name } : {}),
+      // The table, snapshotted onto the row (§3), and its branch: the
+      // order is that branch's bar's (src/lib/panel/branches.ts).
+      ...(table
+        ? {
+            tableCode: table.code,
+            tableName: table.name,
+            branch: table.branch,
+          }
+        : {}),
       // Only a wallet order is held to it (§18); a card checkout re-prices
       // on its own "Tutar değişti" card before anything is charged.
       expectedTotalMinor: body.payWithWallet
@@ -1003,6 +1010,9 @@ export async function previewAppOrder(
   if (refused) return { ok: false, failure: refused };
   // Same table gate as the order, so the basket learns about a dead QR
   // before the member reaches the checkout.
+  // The table's branch prices the basket's "Satışta / Tükendi" as the
+  // order will (src/lib/panel/branches.ts); every other basket is Tuzla's.
+  let branch: string | undefined;
   if (body.fulfillment === "table") {
     const lookup = await lookupTableLimited(
       body.tableCode,
@@ -1010,6 +1020,7 @@ export async function previewAppOrder(
       customer?.id,
     );
     if (!lookup.ok) return { ok: false, failure: tableLookupFailure(lookup) };
+    branch = lookup.table.branch;
   }
   // The shop's own switch, which `placeAppOrder` enforces with 409
   // `shop_closed`. The preview used to price a cargo basket regardless, so the
@@ -1023,7 +1034,11 @@ export async function previewAppOrder(
     };
   }
 
-  const linesRes = await previewAppOrderLines(body.lines, settings.taxRates);
+  const linesRes = await previewAppOrderLines(
+    body.lines,
+    settings.taxRates,
+    branch,
+  );
   if (!linesRes.ok) {
     return { ok: false, failure: failureFromResult(linesRes.result) };
   }

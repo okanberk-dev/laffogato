@@ -14,6 +14,7 @@ import {
   panelStageMove,
   parsePanelStageChange,
 } from "@/lib/panel/orders-stage-core";
+import { branchOf, chooseBranch, splitBranch } from "@/lib/panel/branches";
 import {
   signedCaller,
   signedCallerKeys,
@@ -37,7 +38,11 @@ import {
  * - 409 `{error:"stale", order}`: it had moved meanwhile, or the tap does not
  *   fit its stage; `order` is where it is now (null: off the screen).
  * - 404 `{error:"not_found"}`: no such order, or not a bar-screen order.
- * - 400 `{error:"invalid", field}`, 401, 413, 503 as the other panel routes.
+ * - 409 `{error:"wrong_branch"}` (21 Kas 2026): another branch's order
+ *   (src/lib/panel/branches.ts; `branch` in the body, else the caller's
+ *   own); nothing moved, nothing about it said.
+ * - 400 `{error:"invalid", field}` (`branch` too), 403 `{error:"forbidden",
+ *   field:"branch"}`, 401, 413, 503 as the other panel routes.
  *
  * Server to server, signed with the shared `KARAOKE_SYNC_SECRET` (CLAUDE.md
  * rule 7), or by LafPOS, the café's till, with its own `LAFPOS_SYNC_SECRET`
@@ -80,14 +85,22 @@ export async function POST(request: Request) {
   } catch {
     return deny(400, "invalid", { field: "body" });
   }
-  const parsed = parsePanelStageChange(raw);
+  const split = splitBranch(raw);
+  const parsed = parsePanelStageChange(split.rest);
   if (!parsed.ok) return deny(400, "invalid", { field: parsed.field });
   const { change } = parsed;
+  const choice = chooseBranch(process.env, caller, split.branch);
+  if (!choice.ok) {
+    return deny(choice.status, choice.error, { field: choice.field });
+  }
 
   try {
     const now = new Date();
     const order = await getOrder(change.id);
     if (!order || !isBarScreenOrder(order)) return deny(404, "not_found");
+    // Another branch's order is not this bar's to move (Marina's till on
+    // a Tuzla order the köşk panel's screen shows).
+    if (branchOf(order) !== choice.branch) return deny(409, "wrong_branch");
     const fulfillment = orderFulfillment(order) as PanelOrderFulfillment;
     const move = panelStageMove(change.action, change.from, fulfillment);
     if (!move || order.status !== move.expectStatus) {

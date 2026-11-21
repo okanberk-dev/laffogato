@@ -218,9 +218,39 @@ içindir: kâr-zarara ve tüketime **eklenmez** (kasada, ModPOS'ta; geçişten
 sonra LafPOS'ta zaten var). Eski panel alanı tanımaz ve yok sayar; onun
 gördüğü düzelme, çift sayımın kalkmasıdır.
 
+### Şube kırılımı (21 Kas 2026)
+
+Sipariş 21 Kasım 2026'dan beri bir şubenindir (`orders.branch`,
+`docs/PANEL-ORDERS.md` "Şube"): masa siparişi masanın şubesi (Marina'nın
+LafPOS'unun bastığı kartla verilen sipariş Marina'nın parası), öteki her
+sipariş Tuzla; karaoke odası Tuzla'nın. v1'e ekleme, `version` 1 kalır:
+
+- `&branch=tuzla|marina` (imzalı sorgunun parçası) bütün yanıtı o şubenin
+  siparişlerine daraltır; mağaza ve karaoke yalnız Tuzla'nın yanıtında.
+  Yanıt `branch`'i söyler. Bozuk ya da bilinmeyen şube 400 `{"error":
+  "invalid","field":"branch"}`.
+- `branch` yoksa toplamlar eskisi gibi **her şubenin**dir (`branch: null`),
+  yanında `byBranch`: şube başına `cafe` (satırsız toplamlar), `counter` ve
+  `manual`. Eski panel alanı yok sayar; bugün Marina'nın masa siparişi yoksa
+  rakamlar değişmez.
+- lafmaliyet'in kasa raporundaki "laffogato.net" satırı ve Tuzla kâr-zararı
+  `branch=tuzla` istemelidir: Marina'nın QR siparişi Tuzla'ya yazılmasın
+  (lafmaliyet `fetchTillOnlineRow`, şubesiz).
+
+```json
+{
+  "branch": null,
+  "byBranch": {
+    "tuzla": { "cafe": { "orders": 400, "grossMinor": 6100000, "…": 0 }, "counter": { "…": 0 }, "manual": { "orders": 3, "grossMinor": 45000, "netMinor": 45000 } },
+    "marina": { "cafe": { "orders": 12, "grossMinor": 130000, "…": 0 }, "counter": { "…": 0 }, "manual": { "orders": 0, "grossMinor": 0, "netMinor": 0 } }
+  }
+}
+```
+
 | Durum | Gövde                         | Ne zaman                                             |
 | ----- | ----------------------------- | ---------------------------------------------------- |
 | 400   | `{"error":"invalid_range"}`   | Dönem bozuk, 31 günden geniş, ya da iki biçim birden |
+| 400   | `{"error":"invalid","field":"branch"}` | `branch` bozuk ya da bilinmeyen şube        |
 | 401   | `{"error":"unauthorized"}`    | İmza yok, yanlış ya da 5 dakikadan eski              |
 | 422   | `{"error":"range_too_large"}` | Dönemde 20 000'den çok sipariş: gün gün sorulmalı    |
 | 503   | `{"error":"not_configured"}`  | Anahtar yok                                          |

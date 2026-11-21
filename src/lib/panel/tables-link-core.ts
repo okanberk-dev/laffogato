@@ -5,6 +5,7 @@ import {
   normalizeTableName,
 } from "@/lib/admin/cafe-tables-core";
 
+import { branchOf } from "./branches";
 import type { SignedCaller } from "./signed-callers";
 
 /**
@@ -24,7 +25,13 @@ import type { SignedCaller } from "./signed-callers";
  *   only what differs is written;
  * - a table of the site's the list does not name is left alone;
  * - a code LafPOS retired ("Kodu yenile") comes as `active: false`, so the
- *   old card stops resolving here as well.
+ *   old card stops resolving here as well;
+ * - since 21 Kas 2026 a list is one branch's (src/lib/panel/branches.ts:
+ *   `branch` in the body, else LafPOS's own): new tables get that branch,
+ *   and a code the site has at another branch refuses the whole list,
+ *   nothing written (409 `wrong_branch`, `field: "tables[i].code"`). A
+ *   table's branch is where its card stands; orders and calls at it are
+ *   that branch's.
  *
  * Signed like the other panel routes, with LafPOS's own key only
  * (signed-callers.ts). Pure (no `server-only`, no database): the route, the
@@ -117,6 +124,8 @@ export interface StoredPanelTable {
   code: string;
   name: string;
   isActive: boolean;
+  /** Absent on a row read before branches: Tuzla (`branchOf`). */
+  branch?: string;
 }
 
 /** The columns an update writes; only what differs is in it. */
@@ -132,6 +141,11 @@ export interface PanelTablesPlan {
   update: Array<{ code: string; fields: PanelTableUpdateFields }>;
   /** Codes the site has exactly as given: nothing written. */
   unchanged: number;
+  /**
+   * The list's first table whose code the site has at another branch, by
+   * its place in the list; null when none. The list is then refused whole.
+   */
+  wrongBranch: { index: number; code: string } | null;
 }
 
 /**
@@ -144,13 +158,24 @@ export interface PanelTablesPlan {
 export function planPanelTables(
   existing: ReadonlyArray<StoredPanelTable>,
   wanted: ReadonlyArray<PanelTableInput>,
+  /** The list's branch; absent: any (the plan before branches). */
+  branch?: string,
 ): PanelTablesPlan {
   const byCode = new Map(existing.map((t) => [t.code, t]));
-  const plan: PanelTablesPlan = { create: [], update: [], unchanged: 0 };
-  for (const want of wanted) {
+  const plan: PanelTablesPlan = {
+    create: [],
+    update: [],
+    unchanged: 0,
+    wrongBranch: null,
+  };
+  for (const [index, want] of wanted.entries()) {
     const have = byCode.get(want.code);
     if (!have) {
       plan.create.push(want);
+      continue;
+    }
+    if (branch && branchOf(have) !== branch) {
+      plan.wrongBranch ??= { index, code: want.code };
       continue;
     }
     const fields: PanelTableUpdateFields = {};

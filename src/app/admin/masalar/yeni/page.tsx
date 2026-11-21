@@ -2,6 +2,7 @@ import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { CAFE_TABLES_PATH } from "@/lib/admin/cafe-tables-panel";
+import { branchLabel, siteBranches } from "@/lib/panel/branches";
 
 import { createCafeTableAction } from "../actions";
 import { CafeTableForm } from "../table-form";
@@ -20,6 +21,10 @@ export default async function NewCafeTablePage() {
       />
       <CafeTableForm
         action={createCafeTableAction}
+        branches={siteBranches(process.env).map((id) => ({
+          id,
+          label: branchLabel(id),
+        }))}
         submitLabel="Masayı ekle"
         back={CAFE_TABLES_PATH}
         saveAndNew

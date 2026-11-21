@@ -6,6 +6,7 @@ import {
   panelCallAckedBy,
   parsePanelCallAck,
 } from "@/lib/panel/calls-ack-core";
+import { chooseBranch, splitBranch } from "@/lib/panel/branches";
 import {
   signedCaller,
   signedCallerKeys,
@@ -27,7 +28,11 @@ import {
  *   signature's five minutes): the same answer, nothing written twice.
  *   `ackedBy` says "panel:<actor>" ("lafpos:<actor>" for LafPOS).
  * - 404 `{error: "not_found"}`: no such call.
- * - 400 `{error: "invalid", field}`, 401, 413, 503 as the stage route.
+ * - 409 `{error: "wrong_branch"}` (21 Kas 2026): another branch's call
+ *   (src/lib/panel/branches.ts; `branch` in the body, else the caller's
+ *   own); nothing written.
+ * - 400 `{error: "invalid", field}`, 403 `forbidden` (`field: "branch"`),
+ *   401, 413, 503 as the stage route.
  *
  * The answer's write pings the panel (`orders.changed`), so every screen
  * drops the call.
@@ -63,16 +68,27 @@ export async function POST(request: Request) {
   } catch {
     return deny(400, "invalid", { field: "body" });
   }
-  const parsed = parsePanelCallAck(raw);
+  const split = splitBranch(raw);
+  const parsed = parsePanelCallAck(split.rest);
   if (!parsed.ok) return deny(400, "invalid", { field: parsed.field });
   const { ack } = parsed;
+  const choice = chooseBranch(process.env, caller, split.branch);
+  if (!choice.ok) {
+    return deny(choice.status, choice.error, { field: choice.field });
+  }
 
   try {
     const result = await ackTableCall(
       ack.id,
       panelCallAckedBy(ack.actor, caller),
+      new Date(),
+      choice.branch,
     );
-    if (!result.ok) return deny(404, "not_found");
+    if (!result.ok) {
+      return result.reason === "wrong_branch"
+        ? deny(409, "wrong_branch")
+        : deny(404, "not_found");
+    }
     return NextResponse.json(
       { ok: true, call: { id: result.call.id, status: "acked" } },
       { headers: NO_STORE },

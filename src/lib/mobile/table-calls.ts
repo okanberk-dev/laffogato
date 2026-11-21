@@ -109,6 +109,8 @@ export async function requestTableCall(input: {
     reason: input.reason,
     customerEmail: email,
     createdAt: now.toISOString(),
+    // The table's branch: the call rings that branch's bar alone.
+    branch: table.branch,
   });
   return { ok: true, call, created: true };
 }

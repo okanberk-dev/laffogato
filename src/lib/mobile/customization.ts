@@ -1,13 +1,26 @@
 import { z } from "zod";
 
+import { CATALOG_MONEY_MAX_MINOR } from "@/lib/utils/format";
+
 /**
- * Cafe drink customisation - the server constant behind `GET /menu`
+ * Cafe drink customisation - the table behind `GET /menu`'s `customization`
  * (docs/API-MOBILE.md §1) and the only place an option is ever priced.
  *
  * Pure and client-safe on purpose: no "server-only", no database. The order
  * path resolves a line's options through `resolveOptionPricing` so the extra
  * charge comes from THIS table and never from the request body; the app only
  * ever sends option ids.
+ *
+ * The paid options' prices are the menu's own (S8, 21 Kas 2026; lafmaliyet
+ * docs/planlar/senkron.md S8): the syrup, the extra shot and the paid
+ * alternative milk are menu items too ("Syrup" mnu-0080, "Extra Shot"
+ * mnu-0081, "Alternatif Süt" mnu-0082, `extras`), which the till rings as a
+ * line of their own and lafmaliyet prices and costs. Until then a new price
+ * on those items (from this panel, or lafmaliyet's Fiyatlar) reached the
+ * menu row while the app and LafPOS kept charging this file's constant.
+ * `optionPricesFromMenu` reads them; `customizationFor` and
+ * `resolveOptionPricing` take them. The constant below stays the fallback
+ * for an item that is missing, has two sizes or no sound price.
  *
  * Prices are minor units (kuruş). `allergens` is carried on every syrup and,
  * since 23 Sep 2026, on every milk - empty or not - so the nut warning is data
@@ -83,6 +96,99 @@ export const CUSTOMIZATION: Customization = {
   extraShotMinor: 5000,
   sugarMax: 3,
 };
+
+/**
+ * The menu items whose price is an option's price (S8). Their "Satışta"
+ * flag is not read: a syrup sold out as a line of its own on the till is
+ * still the same price as an option.
+ */
+export const OPTION_MENU_ITEMS = {
+  syrup: "mnu-0080",
+  extraShot: "mnu-0081",
+  altMilk: "mnu-0082",
+} as const;
+
+export const OPTION_MENU_ITEM_IDS: readonly string[] =
+  Object.values(OPTION_MENU_ITEMS);
+
+/** The three paid options' prices, kuruş, KDV included. */
+export interface OptionPrices {
+  /** Every syrup but "none". */
+  syrupMinor: number;
+  extraShotMinor: number;
+  /** Every milk the constant prices above zero (almond); lactose-free stays 0. */
+  altMilkMinor: number;
+}
+
+/** The constant's prices: the fallback for each option on its own. */
+export const DEFAULT_OPTION_PRICES: OptionPrices = {
+  syrupMinor:
+    CUSTOMIZATION.syrups.find((s) => s.priceMinor > 0)?.priceMinor ?? 0,
+  extraShotMinor: CUSTOMIZATION.extraShotMinor,
+  altMilkMinor:
+    CUSTOMIZATION.milks.find((m) => m.priceMinor > 0)?.priceMinor ?? 0,
+};
+
+/** The slice of a menu row an option's price is read from. */
+export interface OptionPriceSource {
+  id: string;
+  priceMinor: number;
+  priceMinorL: number;
+}
+
+/**
+ * A menu row's price as an option's: a single-size item with a whole,
+ * positive price under the catalogue's ceiling, else null (the constant).
+ */
+function optionPriceOf(item: OptionPriceSource | undefined): number | null {
+  if (!item) return null;
+  const price = Number(item.priceMinor);
+  const large = Number(item.priceMinorL);
+  if (Number.isFinite(large) && large > 0) return null;
+  if (!Number.isInteger(price) || price <= 0) return null;
+  if (price > CATALOG_MONEY_MAX_MINOR) return null;
+  return price;
+}
+
+/**
+ * The options' prices from the menu rows (any order, other items ignored;
+ * "Satışta" not read). Each option on its own falls back to the constant.
+ */
+export function optionPricesFromMenu(
+  items: readonly OptionPriceSource[],
+): OptionPrices {
+  const byId = new Map(items.map((it) => [it.id, it]));
+  return {
+    syrupMinor:
+      optionPriceOf(byId.get(OPTION_MENU_ITEMS.syrup)) ??
+      DEFAULT_OPTION_PRICES.syrupMinor,
+    extraShotMinor:
+      optionPriceOf(byId.get(OPTION_MENU_ITEMS.extraShot)) ??
+      DEFAULT_OPTION_PRICES.extraShotMinor,
+    altMilkMinor:
+      optionPriceOf(byId.get(OPTION_MENU_ITEMS.altMilk)) ??
+      DEFAULT_OPTION_PRICES.altMilkMinor,
+  };
+}
+
+/**
+ * The customisation table at `prices`: `GET /menu`'s `customization` (the
+ * same shape and ids as before; only the paid options' prices follow the
+ * menu). A free option stays free: "Normal" and "Laktozsuz" milk, "Şurup
+ * yok".
+ */
+export function customizationFor(prices: OptionPrices): Customization {
+  return {
+    ...CUSTOMIZATION,
+    milks: CUSTOMIZATION.milks.map((m) =>
+      m.priceMinor > 0 ? { ...m, priceMinor: prices.altMilkMinor } : { ...m },
+    ),
+    syrups: CUSTOMIZATION.syrups.map((s) =>
+      s.priceMinor > 0 ? { ...s, priceMinor: prices.syrupMinor } : { ...s },
+    ),
+    extraShotMinor: prices.extraShotMinor,
+  };
+}
 
 /** The options a cafe line carries (contract §3, `lines[].options`). */
 export interface LineOptions {
@@ -272,11 +378,14 @@ function lookup<T extends { id: string }>(
 export function resolveOptionPricing(
   options: Partial<LineOptions> | null | undefined,
   size: OrderItemSize = "single",
+  /** The paid options' prices (S8, `optionPricesFromMenu`); the constant's by default. */
+  prices: OptionPrices = DEFAULT_OPTION_PRICES,
 ): OptionPricing {
+  const table = customizationFor(prices);
   const opts: LineOptions = { ...DEFAULT_LINE_OPTIONS, ...(options ?? {}) };
-  const milk = lookup(CUSTOMIZATION.milks, "milk", opts.milk);
-  const roast = lookup(CUSTOMIZATION.roasts, "roast", opts.roast);
-  const syrup = lookup(CUSTOMIZATION.syrups, "syrup", opts.syrup);
+  const milk = lookup(table.milks, "milk", opts.milk);
+  const roast = lookup(table.roasts, "roast", opts.roast);
+  const syrup = lookup(table.syrups, "syrup", opts.syrup);
   const sugar = Math.min(
     Math.max(0, Math.trunc(Number(opts.sugar) || 0)),
     CUSTOMIZATION.sugarMax,
@@ -295,7 +404,7 @@ export function resolveOptionPricing(
   const extraMinor =
     milk.priceMinor +
     syrup.priceMinor +
-    (opts.extraShot ? CUSTOMIZATION.extraShotMinor : 0);
+    (opts.extraShot ? table.extraShotMinor : 0);
 
   return {
     detail: parts.join(" · "),

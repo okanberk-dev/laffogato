@@ -101,7 +101,10 @@ zaten varsa o satır kullanılır (**tek üyelik**).
     },
   ],
   "customization": {
-    // sunucu sabiti: src/lib/mobile/customization.ts
+    // src/lib/mobile/customization.ts; ücretli seçeneklerin fiyatı 21 Kas
+    // 2026'dan beri menü kalemlerinden (S8): şurup mnu-0080, ekstra shot
+    // mnu-0081, ücretli süt (badem) mnu-0082; kalem yoksa ya da fiyatı
+    // geçersizse aşağıdaki sabit. Biçim ve kimlikler değişmedi.
     "milks": [
       { "id": "normal", "label": "Normal", "priceMinor": 0, "allergens": [] },
       { "id": "lactose-free", "label": "Laktozsuz", "priceMinor": 0, "allergens": [] },
@@ -582,7 +585,10 @@ Kurallar:
   Ürün sayfası her zaman bir varyant gönderdiği için uygulamanın bugünkü yolu değişmez; varyant
   eklenmeden önce sepete giren ya da o zamanki siparişten tekrar eklenen satır bu cevabı alır.
   `/orders/preview` aynı kuralla yanıtlar.
-- Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
+- Seçenek fiyatları `customization`'dan (21 Kas 2026'dan beri ücretli seçenekler menü kalemlerinin fiyatıyla,
+  `/menu`'nün gösterdiğiyle aynı; S8); `size: "L"` → `priceMinorL`, yoksa **400**.
+- Satışta / Tükendi şubeye göredir (21 Kas 2026): `/menu` Tuzla köşkününkini gösterir; masa siparişi masanın
+  şubesinde, öteki her sipariş Tuzla'da denetlenir (o şubede tükenen kalem pasif kalem gibi reddedilir).
 - Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
   listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
   **yok sayılır** (reddedilmez), satır varsayılan seçeneklerle ve sade fiyatıyla yazılır.

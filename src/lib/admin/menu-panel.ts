@@ -82,9 +82,18 @@ export interface MenuListRow {
   tags: string[];
   isActive: boolean;
   sortOrder: number;
+  /**
+   * The branches whose own "Tükendi" holds the item (their bar or till
+   * closed it; src/lib/panel/menu-availability-core.ts), by name. The
+   * list's "Satışta / Tükendi" is the menu's own flag, every branch at once.
+   */
+  soldOutAt?: string[];
 }
 
-export function toMenuListRow(item: AdminMenuItem): MenuListRow {
+export function toMenuListRow(
+  item: AdminMenuItem,
+  soldOutAt: readonly string[] = [],
+): MenuListRow {
   return {
     id: item.id,
     categoryKey: item.categoryKey,
@@ -95,6 +104,7 @@ export function toMenuListRow(item: AdminMenuItem): MenuListRow {
     tags: [...(item.tags ?? [])],
     isActive: item.isActive,
     sortOrder: item.sortOrder,
+    ...(soldOutAt.length > 0 ? { soldOutAt: [...soldOutAt] } : {}),
   };
 }
 

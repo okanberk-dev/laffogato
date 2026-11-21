@@ -6,9 +6,19 @@ import {
   listProducts,
   MENU_CATEGORY_KEYS,
 } from "@/lib/admin/store";
+import { listBranchAvailability } from "@/lib/admin/menu-availability";
+import { HOME_BRANCH } from "@/lib/panel/branches";
+import {
+  itemsSoldAtBranch,
+  laterStamp,
+} from "@/lib/panel/menu-availability-core";
 import { SITE } from "@/lib/seo/site";
 
-import { CUSTOMIZATION, type Customization } from "./customization";
+import {
+  customizationFor,
+  optionPricesFromMenu,
+  type Customization,
+} from "./customization";
 import { falAiEnabled } from "./fal-core";
 import {
   buildBootstrap,
@@ -35,11 +45,22 @@ export interface MobileMenu {
   updatedAt: string;
 }
 
+/**
+ * The app's menu: Tuzla's (the app serves the Tuzla köşk; a Marina table's
+ * order is still checked against Marina's "Satışta / Tükendi" when it is
+ * placed, src/lib/admin/store.ts `resolveCafeLines`). `customization`'s
+ * paid options are priced by their menu items (S8,
+ * `optionPricesFromMenu`), on the menu or not.
+ */
 export async function listMenuForMobile(): Promise<MobileMenu> {
   // Settings for the KDV defaults: an item with no rate of its own shows the
   // menu's, and changing it in the panel changes the body (and the ETag).
-  const [items, settings] = await Promise.all([listMenuItems(), getSettings()]);
-  const active = items.filter((it) => it.isActive);
+  const [items, settings, availability] = await Promise.all([
+    listMenuItems(),
+    getSettings(),
+    listBranchAvailability(HOME_BRANCH),
+  ]);
+  const active = itemsSoldAtBranch(items, availability);
   return {
     categories: buildMobileMenuCategories(
       active,
@@ -47,8 +68,18 @@ export async function listMenuForMobile(): Promise<MobileMenu> {
       SITE.url,
       settings.taxRates,
     ),
-    customization: CUSTOMIZATION,
-    updatedAt: latestUpdatedAt(active, new Date().toISOString()),
+    customization: customizationFor(optionPricesFromMenu(items)),
+    // A branch's "Tükendi" moves its own stamp, not the item's.
+    updatedAt: latestUpdatedAt(
+      active.map((it) => ({
+        ...it,
+        updatedAt: laterStamp(
+          it.updatedAt,
+          availability.get(it.id)?.updatedAt ?? "",
+        ),
+      })),
+      new Date().toISOString(),
+    ),
   };
 }
 

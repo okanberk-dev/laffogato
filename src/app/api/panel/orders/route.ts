@@ -18,6 +18,7 @@ import {
   toPanelOrder,
   type PanelOrder,
 } from "@/lib/panel/orders-feed-core";
+import { chooseBranch } from "@/lib/panel/branches";
 import {
   signedCaller,
   signedCallerKeys,
@@ -54,6 +55,13 @@ import {
  * reason, createdAt}` and nothing about the guest; always present, `[]`
  * when none. The bar screen answers one with `POST /api/panel/calls/ack`.
  *
+ * One branch's (21 Kas 2026, src/lib/panel/branches.ts): `?branch=`, else
+ * the caller's own (the panel Tuzla, LafPOS its `LAFPOS_BRANCHES`, default
+ * Marina). Orders, `awaitingPayment` and `calls` are that branch's alone
+ * (a table order and a call carry their table's branch; gel-al and kurye
+ * are Tuzla's), and the answer says which (`branch`). Before, both keys
+ * got every order: Marina's till rang and moved Tuzla's paid orders.
+ *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
 
@@ -74,12 +82,25 @@ export async function GET(request: Request) {
     );
   }
   const url = new URL(request.url);
-  if (!signedCaller(keys, request, "GET", url, "")) {
+  const caller = signedCaller(keys, request, "GET", url, "");
+  if (!caller) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },
     );
   }
+  const choice = chooseBranch(
+    process.env,
+    caller,
+    url.searchParams.get("branch"),
+  );
+  if (!choice.ok) {
+    return NextResponse.json(
+      { error: choice.error, field: choice.field },
+      { status: choice.status, headers: NO_STORE },
+    );
+  }
+  const { branch } = choice;
 
   const now = new Date();
   // One over the cap tells a full screen from a cut one.
@@ -96,13 +117,15 @@ export async function GET(request: Request) {
     // so this costs no time.
     awaiting = await countPanelAwaitingPaymentOrders(
       panelAwaitingPaymentSince(now),
+      branch,
     );
     rows = await listPanelOpenOrderRows(
       panelOrdersSince(now),
       limit,
       panelOrdersLiveSince(now),
+      branch,
     );
-    calls = await listOpenTableCalls(now);
+    calls = await listOpenTableCalls(now, undefined, branch);
   } catch (err) {
     console.error("[panel-orders] orders could not be read", err);
     return NextResponse.json(
@@ -120,6 +143,7 @@ export async function GET(request: Request) {
     {
       version: PANEL_ORDERS_VERSION,
       now: now.toISOString(),
+      branch,
       // A read that came back full may have left rows out, however many
       // of the rows it did bring stay on the screen.
       complete:
