@@ -20,10 +20,13 @@
   --on-dark: #ffffff;
   --on-dark-muted: rgba(255, 255, 255, 0.72);
 
-  /* Lines: a hairline between rows and around tiles; the control edge is
-     the charcoal itself. */
-  --line: #dcdcd6;
+  /* Lines: a hairline between rows and around tiles (the reference's
+     #dddddb); the control edge is the charcoal itself. */
+  --line: #dddddb;
   --line-strong: #333333;
+  /* The ground of a button that cannot be pressed ("Tükendi"): a flat
+     light grey with black ink (16.9:1), no edge. */
+  --inactive: #eaeae7;
 
   /* State, not brand: errors and the "open now" line. */
   --error: #b42318;
@@ -48,11 +51,14 @@
   --track: 1.6px;
   --headline-wdth: 118;
 
-  /* Layout. The page runs 60px from each edge on a wide screen, 20px on a
-     phone; sections breathe 96px top and bottom (56px on a phone). */
-  --gutter: clamp(20px, 4.2vw, 60px);
-  --section-y: clamp(56px, 6.7vw, 96px);
-  --content: 1320px;
+  /* Layout, as the reference measures: the page runs 60px from each edge
+     from 768px up and 20px below; there is no cap on the content width
+     (at 1920px the rows run 1800px wide), so --content only keeps the
+     max-width sums that use it unbounded. Sections breathe 96px top and
+     bottom at every width, the phone included. */
+  --gutter: 20px;
+  --section-y: 96px;
+  --content: 100vw;
   --header-h: 84px;
   --announce-h: 32px;
   /* The phone's quick-link chips row under the bar (0 where it is hidden);
@@ -74,10 +80,21 @@
   --scheme-amex: #2e77bc;
 }
 
+@media (min-width: 768px) {
+  :root {
+    --gutter: 60px;
+  }
+}
+/* The bar is 84px from 1024px up, 56px on a tablet and 48px on a phone. */
 @media (max-width: 1023px) {
   :root {
     --header-h: 56px;
     --quick-h: 48px;
+  }
+}
+@media (max-width: 767px) {
+  :root {
+    --header-h: 48px;
   }
 }
 
@@ -195,9 +212,11 @@
 /* ─────────────────────────────────────────────────────────────
    Type
    The headline face is used in capitals only, tracked 1.6px, at 400:
-   section titles 24px (20px on a phone), card titles and the nav 16px,
-   prices 14px, labels 12px. Sentences are the text face at 16px; the
-   small line 14px in the muted grey.
+   section titles 24/32 (20/32 on a phone), card titles and the nav 16/22
+   (14/20 on a phone), prices 14/20, labels 12/24, the kicker over a title
+   14/20 (12/16 on a phone), the large display 32/42. Sentences are the
+   text face at 16/22 (14/20 on a phone); the small line 14/20 in the
+   muted grey. The phone is below 768px, the reference's own step.
    ───────────────────────────────────────────────────────────── */
 
 .t-display,
@@ -218,18 +237,28 @@
   margin: 0;
 }
 .t-display--xl {
-  font-size: clamp(28px, 3.4vw, 40px);
-  line-height: 1.15;
+  font-size: 24px;
+  line-height: 32px;
+}
+@media (min-width: 1024px) {
+  .t-display--xl {
+    font-size: 32px;
+    line-height: 42px;
+  }
 }
 .t-title {
   font-size: 16px;
   line-height: 22px;
   margin: 0;
 }
-.t-label,
-.t-kicker {
+.t-label {
   font-size: 12px;
   line-height: 24px;
+  margin: 0;
+}
+.t-kicker {
+  font-size: 14px;
+  line-height: 20px;
   margin: 0;
 }
 .t-price {
@@ -263,11 +292,11 @@
   text-align: center;
 }
 /* The centred section title in the text face, tracked wider (the
-   reference's "picks" and "customers" rows). */
+   reference's "picks" and "customers" rows: 2.4px at 24px, 2px at 20px). */
 .t-display--quiet {
   font-family: var(--sans);
   font-variation-settings: normal;
-  letter-spacing: 2.4px;
+  letter-spacing: 0.1em;
 }
 /* The struck price beside the price paid. */
 .price-was {
@@ -279,15 +308,31 @@
 @media (max-width: 767px) {
   .t-display {
     font-size: 20px;
-    line-height: 28px;
+    line-height: 32px;
+  }
+  .t-title,
+  .t-nav,
+  .t-body,
+  .t-kicker {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .t-kicker {
+    font-size: 12px;
+    line-height: 16px;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────
    Controls
-   Square, 48px, a 1px charcoal edge. Filled is the decided action; the
-   outline is every other one. The reference's call to action is 350px
-   wide; on a phone every button takes the row.
+   Square, 48px, a 1px charcoal edge, 16/22 text. Filled is the decided
+   action; the outline is every other one. The reference's call to action
+   is 350px wide; on a phone every button takes the row.
+   Under the pointer the filled button goes black (its charcoal edge
+   stays) and the outlined one keeps its white and thickens its edge to
+   2px with a ring outside it; nothing moves. Keyboard focus on a filled
+   button is a white line 4px inside it. A button that cannot be pressed
+   is flat light grey with black ink, no edge.
    ───────────────────────────────────────────────────────────── */
 
 .btn {
@@ -303,17 +348,19 @@
   color: var(--ink);
   font-family: var(--sans);
   font-size: 16px;
+  font-weight: 400;
   line-height: 22px;
+  letter-spacing: normal;
   text-align: center;
   text-decoration: none;
   transition:
-    background-color var(--dur) var(--ease),
-    color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease);
+    background-color 0.15s var(--ease),
+    color 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
 }
 .btn:hover {
-  background: var(--charcoal);
-  color: var(--on-dark);
+  box-shadow: 0 0 0 1px var(--line-strong);
 }
 .btn-dark,
 .btn-primary {
@@ -322,9 +369,16 @@
   color: var(--on-dark);
 }
 .btn-dark:hover,
-.btn-primary:hover {
-  background: var(--charcoal-deep);
-  border-color: var(--charcoal-deep);
+.btn-primary:hover,
+.btn-dark:active,
+.btn-primary:active {
+  background: var(--ink);
+  box-shadow: none;
+}
+.btn-dark:focus-visible,
+.btn-primary:focus-visible {
+  outline-color: var(--on-dark);
+  outline-offset: -4px;
 }
 .btn-light {
   background: transparent;
@@ -332,8 +386,7 @@
   color: var(--on-dark);
 }
 .btn-light:hover {
-  background: var(--on-dark);
-  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--on-dark);
 }
 .btn-wide {
   min-width: min(350px, 100%);
@@ -342,20 +395,29 @@
   display: flex;
   width: 100%;
 }
+/* The compact button (the reference's "add" beside a listed tool): the
+   same 16/22 text on a 10px by 16px pad, 44px tall everywhere. */
 .btn-sm {
-  min-height: 36px;
-  padding: 6px 16px;
-  font-size: 14px;
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 16px;
+  line-height: 22px;
 }
-.btn:disabled,
-.btn[aria-disabled="true"] {
-  opacity: 0.45;
-  cursor: not-allowed;
+.btn:disabled:not([aria-busy="true"]),
+.btn[aria-disabled="true"]:not([aria-busy="true"]) {
+  background: var(--inactive);
+  border-color: var(--inactive);
+  color: var(--ink);
+  box-shadow: none;
+  cursor: default;
   pointer-events: none;
 }
 /* A busy button keeps its look; the dots say it is waiting. */
 .btn[aria-busy="true"] {
   cursor: progress;
+}
+.btn[aria-busy="true"]:disabled {
+  pointer-events: none;
 }
 @media (max-width: 767px) {
   .btn-wide {
@@ -363,16 +425,14 @@
   }
 }
 
-/* The small underlined text link ("Devamını oku", "Tümünü gör"). */
+/* The small underlined text link ("Devamını oku", "Tümünü gör"): the
+   line 4px under the letters, unchanged under the pointer. */
 .link-u {
   font-size: 14px;
   line-height: 20px;
   text-decoration: underline;
   text-underline-offset: 4px;
   text-decoration-thickness: 1px;
-}
-.link-u:hover {
-  text-decoration-thickness: 2px;
 }
 
 /* The wait mark (BusyDots, busy-dots.tsx): three dots lighting in turn. */
@@ -405,44 +465,78 @@
   }
 }
 
-/* A label over a pill-shaped quick link (the phone's chips row). */
+/* The pill: the reference's filter chip (its roast filter). A 1px
+   charcoal edge on no ground, 16/22 text (14/20 on a phone) on a 4px by
+   16px pad, 34px tall; the chosen one and the one under the pointer are
+   black with white ink. */
 .chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 6px 16px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 4px 16px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: var(--surface);
-  font-size: 14px;
-  line-height: 20px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 22px;
   white-space: nowrap;
+  transition:
+    background-color 0.15s var(--ease),
+    color 0.15s var(--ease);
 }
 .chip[aria-pressed="true"],
 .chip[aria-current="page"],
 .chip.is-active {
-  background: var(--charcoal);
-  border-color: var(--charcoal);
+  background: var(--ink);
   color: var(--on-dark);
 }
-/* The reference's rectangular filter tag (search's top categories). */
+@media (hover: hover) and (min-width: 768px) {
+  :is(a, button:not(:disabled)).chip:hover {
+    background: var(--ink);
+    color: var(--on-dark);
+  }
+}
+@media (max-width: 767px) {
+  .chip {
+    font-size: 14px;
+    line-height: 20px;
+  }
+}
+/* The square tag: the reference's search "top categories". A 1px black
+   edge on no ground, 12/16 text on a 16px side pad, 32px tall; black with
+   white ink under the pointer and when chosen. */
 .tag {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 32px;
-  padding: 4px 12px;
-  border: 1px solid var(--line-strong);
+  padding: 0 16px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
   font-size: 12px;
   line-height: 16px;
-  background: var(--surface);
+  transition:
+    background-color 0.15s var(--ease),
+    color 0.15s var(--ease);
 }
-.tag:hover,
 .tag[aria-pressed="true"] {
-  background: var(--charcoal);
+  background: var(--ink);
   color: var(--on-dark);
 }
+@media (hover: hover) {
+  :is(a, button:not(:disabled)).tag:hover {
+    background: var(--ink);
+    color: var(--on-dark);
+  }
+}
 
-/* The square icon button (close, arrows): a 1px box. */
+/* The icon button (the bar's search, account, bag): a bare glyph in a
+   44px target. */
 .icon-btn {
   display: inline-grid;
   place-items: center;
@@ -456,34 +550,46 @@
   width: 20px;
   height: 20px;
 }
+/* The close of a sheet, a drawer or a dialog: the reference's bare 24px
+   cross (its lines about 12px long), no box. The name is older than the
+   look. */
 .icon-btn--boxed {
-  width: 32px;
-  height: 32px;
-  border-color: var(--line-strong);
+  width: 24px;
+  height: 24px;
+  border: 0;
 }
 .icon-btn--boxed svg {
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
 }
-/* The small button is 44px tall wherever it is tapped. */
+/* On a touch screen every one of these takes a 44px tap without growing:
+   the pill and the tag reach out above and below, the close all round. */
 @media (max-width: 1023px), (pointer: coarse) {
-  .btn-sm {
-    min-height: 44px;
+  .chip::before,
+  .tag::before,
+  .icon-btn--boxed::after {
+    content: "";
+    position: absolute;
   }
-}
-/* The boxed button keeps its 32px look and takes a 44px tap. */
-@media (max-width: 1023px), (pointer: coarse) {
+  .chip::before {
+    inset: -5px 0;
+  }
+  .tag::before {
+    inset: -6px 0;
+  }
   .icon-btn--boxed {
     position: relative;
   }
   .icon-btn--boxed::after {
-    content: "";
-    position: absolute;
-    inset: -6px;
+    inset: -10px;
   }
 }
 
-/* Fields: white, a 1px edge that goes black under focus; labels small. */
+/* Fields, as the reference's account e-mail field: white, a 1px charcoal
+   edge rounded 4px (the one rounded thing on the page), 16/20 text
+   tracked 0.4px on a 12px side pad; the edge goes black under focus.
+   The select is the reference's "Sort by" box instead: square, the same
+   edge, its small grey triangle 12px in from the right. */
 .field {
   display: grid;
   gap: 6px;
@@ -497,14 +603,20 @@
 .textarea {
   width: 100%;
   min-height: 48px;
-  padding: 12px 14px;
-  border: 1px solid #b9b9b3;
-  border-radius: 0;
+  padding: 13px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-size: 16px;
-  line-height: 22px;
+  line-height: 20px;
+  letter-spacing: 0.4px;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 .textarea {
   min-height: 112px;
@@ -512,10 +624,13 @@
 }
 .select {
   appearance: none;
-  padding-right: 40px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23000' stroke-width='1.2'/%3E%3C/svg%3E");
+  padding: 12px 36px 12px 16px;
+  border-radius: 0;
+  line-height: 22px;
+  letter-spacing: normal;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='5' viewBox='0 0 10 5'%3E%3Cpath d='M0 0h10L5 5z' fill='%236c6864'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 14px center;
+  background-position: right 12px center;
 }
 .input:focus,
 .select:focus,
@@ -539,11 +654,36 @@
   font-size: 14px;
   line-height: 20px;
 }
+/* Checkboxes and radios, as the reference's filter options: a round 16px
+   ring, 1px black, white inside; chosen, a 10px charcoal dot 2px inside
+   the ring. Keyboard focus draws the 2px outline round it. Area rules may
+   size them; the dot keeps its 2px gap at any size. */
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: var(--charcoal);
-  width: 18px;
-  height: 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface);
+  vertical-align: middle;
+}
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background: var(--surface)
+    radial-gradient(
+      circle closest-side,
+      var(--charcoal) calc(100% - 2px),
+      transparent calc(100% - 1.5px)
+    )
+    no-repeat;
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Every form control at 16px or more: iOS Safari zooms into a smaller one
@@ -601,17 +741,14 @@ select {
   white-space: nowrap;
 }
 /* A bare link inside running text is underlined, as the reference sets
-   it, so it can be told from the words around it without colour. */
+   it (2px under the letters, unchanged under the pointer), so it can be
+   told from the words around it without colour. */
 main p a:not([class]),
 main li > p a:not([class]),
 main dd a:not([class]) {
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 2px;
   text-decoration-thickness: 1px;
-}
-main p a:not([class]):hover,
-main dd a:not([class]):hover {
-  text-decoration-thickness: 2px;
 }
 /* A phone number never breaks across lines. */
 a[href^="tel:"] {
@@ -628,7 +765,7 @@ a[href^="tel:"] {
 .section-foot {
   display: flex;
   justify-content: center;
-  margin-top: 48px;
+  margin-top: 40px;
 }
 .stack-8 > * + * {
   margin-top: 8px;
@@ -693,17 +830,23 @@ a[href^="tel:"] {
   aspect-ratio: 6 / 5;
 }
 
-/* The small white label in a photograph's top-right corner ("Yeni"). */
+/* The small white label in a photograph's top-right corner ("Yeni"):
+   24px tall, 12/16 text on a 10px side pad, as the reference's
+   "Best Seller". */
 .badge {
   position: absolute;
   top: 0;
   right: 0;
   z-index: 1;
-  padding: 4px 8px;
+  display: grid;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
   background: var(--surface);
   color: var(--ink);
   font-size: 12px;
   line-height: 16px;
+  white-space: nowrap;
 }
 
 /* A notice line under a form, or the strip of a page. */
@@ -777,7 +920,8 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 
 /* The older control names still on some pages' markup (checkout, account,
-   karaoke): the same two buttons. */
+   karaoke): the same two buttons, with the same states. The large one is
+   the reference's 48px too (its log-in "Continue"). */
 .btn-ghost,
 .btn-outline,
 .btn-glass {
@@ -791,17 +935,27 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   color: var(--on-dark);
 }
 .btn-ink:hover,
-.btn-amber:hover {
-  background: var(--charcoal-deep);
-  border-color: var(--charcoal-deep);
+.btn-amber:hover,
+.btn-ink:active,
+.btn-amber:active {
+  background: var(--ink);
+  box-shadow: none;
+}
+.btn-ink:focus-visible,
+.btn-amber:focus-visible {
+  outline-color: var(--on-dark);
+  outline-offset: -4px;
 }
 .btn-glass-dark {
   background: transparent;
   border-color: var(--on-dark);
   color: var(--on-dark);
 }
+.btn-glass-dark:hover {
+  box-shadow: 0 0 0 1px var(--on-dark);
+}
 .btn-lg {
-  min-height: 52px;
+  min-height: 48px;
 }
 /* The drawn arrow some labels still carry: the label says it already. */
 .btn .arrow {
@@ -843,7 +997,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .lede {
   margin: 0;
   font-size: 16px;
-  line-height: 24px;
+  line-height: 22px;
 }
 .eyebrow {
   font-family: var(--headline);
@@ -872,6 +1026,11 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   .h2,
   .section-title {
     font-size: 20px;
-    line-height: 28px;
+    line-height: 32px;
+  }
+  .h3,
+  .h4 {
+    font-size: 14px;
+    line-height: 20px;
   }
 }
