@@ -1236,90 +1236,92 @@ export function Footer({ navigate, settings }: FooterProps) {
         </nav>
       </div>
 
-      <div className="footer-fine">
-        {/* Every category page keeps a door in the footer. */}
-        <div className="footer-cats">
-          <p>
-            <span className="footer-cats-label">Menüde</span>{" "}
-            {[...MENU_LINKS, ...MENU_MORE].map((m, i, all) => (
-              <Fragment key={m.slug}>
-                <span className="footer-cats-item">
-                  <a href={`/menu/${m.slug}`}>{m.label}</a>
-                  {i < all.length - 1 ? " ·" : ""}
-                </span>{" "}
-              </Fragment>
-            ))}
-          </p>
-          <p>
-            <span className="footer-cats-label">Mağazada</span>{" "}
-            {SHOP_LINKS.map((s, i, all) => (
-              <Fragment key={s.slug}>
-                <span className="footer-cats-item">
-                  <a href={`/magaza/${s.slug}`}>{s.label}</a>
-                  {i < all.length - 1 ? " ·" : ""}
-                </span>{" "}
-              </Fragment>
-            ))}
-          </p>
+      <div className="footer-base">
+        <div className="footer-fine">
+          {/* Every category page keeps a door in the footer. */}
+          <div className="footer-cats">
+            <p>
+              <span className="footer-cats-label">Menüde</span>{" "}
+              {[...MENU_LINKS, ...MENU_MORE].map((m, i, all) => (
+                <Fragment key={m.slug}>
+                  <span className="footer-cats-item">
+                    <a href={`/menu/${m.slug}`}>{m.label}</a>
+                    {i < all.length - 1 ? " ·" : ""}
+                  </span>{" "}
+                </Fragment>
+              ))}
+            </p>
+            <p>
+              <span className="footer-cats-label">Mağazada</span>{" "}
+              {SHOP_LINKS.map((s, i, all) => (
+                <Fragment key={s.slug}>
+                  <span className="footer-cats-item">
+                    <a href={`/magaza/${s.slug}`}>{s.label}</a>
+                    {i < all.length - 1 ? " ·" : ""}
+                  </span>{" "}
+                </Fragment>
+              ))}
+            </p>
+          </div>
+
+          {/* Who runs the site and where it can be reached directly (ETHS
+          Yön. m.5/1, 6563 m.3/1), straight from LEGAL_ENTITY. */}
+          <dl className="footer-company">
+            <div>
+              <dt>Ticaret unvanı</dt>
+              <dd>{LEGAL_ENTITY.legalName}</dd>
+            </div>
+            <div>
+              <dt>MERSİS</dt>
+              <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
+            </div>
+            <div>
+              <dt>Merkez</dt>
+              <dd>{COMPANY_ADDRESS}</dd>
+            </div>
+            {LEGAL_ENTITY.kep ? (
+              <div>
+                <dt>KEP</dt>
+                <dd>{LEGAL_ENTITY.kep}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>Ödeme</dt>
+              <dd>Visa · Mastercard · Troy</dd>
+            </div>
+          </dl>
         </div>
 
-        {/* Who runs the site and where it can be reached directly (ETHS
-          Yön. m.5/1, 6563 m.3/1), straight from LEGAL_ENTITY. */}
-        <dl className="footer-company">
-          <div>
-            <dt>Ticaret unvanı</dt>
-            <dd>{LEGAL_ENTITY.legalName}</dd>
-          </div>
-          <div>
-            <dt>MERSİS</dt>
-            <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
-          </div>
-          <div>
-            <dt>Merkez</dt>
-            <dd>{COMPANY_ADDRESS}</dd>
-          </div>
-          {LEGAL_ENTITY.kep ? (
-            <div>
-              <dt>KEP</dt>
-              <dd>{LEGAL_ENTITY.kep}</dd>
-            </div>
-          ) : null}
-          <div>
-            <dt>Ödeme</dt>
-            <dd>Visa · Mastercard · Troy</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="footer-bottom">
-        <ul className="footer-legal" role="list">
-          <li>
-            <button
-              type="button"
-              className="footer-linkish"
-              onClick={() =>
-                window.dispatchEvent(new Event(CONSENT_OPEN_EVENT))
-              }
-            >
-              Çerez tercihleri
-            </button>
-          </li>
-          <li>
-            <Link href="/hukuk">Tüm belgeler</Link>
-          </li>
-          <li>
-            <Link href="/hukuk/sirket-bilgileri">Şirket bilgileri</Link>
-          </li>
-          <li>
-            {/* Every shell names its <main> "main". */}
-            <a href="#main">Başa dön</a>
-          </li>
-        </ul>
-        {/* The year is read on the server and in the browser; on the night
+        <div className="footer-bottom">
+          <ul className="footer-legal" role="list">
+            <li>
+              <button
+                type="button"
+                className="footer-linkish"
+                onClick={() =>
+                  window.dispatchEvent(new Event(CONSENT_OPEN_EVENT))
+                }
+              >
+                Çerez tercihleri
+              </button>
+            </li>
+            <li>
+              <Link href="/hukuk">Tüm belgeler</Link>
+            </li>
+            <li>
+              <Link href="/hukuk/sirket-bilgileri">Şirket bilgileri</Link>
+            </li>
+            <li>
+              {/* Every shell names its <main> "main". */}
+              <a href="#main">Başa dön</a>
+            </li>
+          </ul>
+          {/* The year is read on the server and in the browser; on the night
             of 31 December the two differ, which must not fail hydration. */}
-        <span className="footer-copy" suppressHydrationWarning>
-          © {year} {SITE_LEGAL_NAME}
-        </span>
+          <span className="footer-copy" suppressHydrationWarning>
+            © {year} {SITE_LEGAL_NAME}
+          </span>
+        </div>
       </div>
     </footer>
   );

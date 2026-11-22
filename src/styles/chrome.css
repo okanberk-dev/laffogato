@@ -91,9 +91,11 @@ body.is-no-scroll {
   position: relative;
   background: var(--band);
 }
+/* The sides share the room equally whatever they hold (minmax(0, 1fr)),
+   so the mark stays on the page's centre line at every width. */
 .nav {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   height: var(--header-h);
   padding-inline: var(--gutter);
@@ -250,6 +252,13 @@ body.is-no-scroll {
   }
   .nav-tools {
     margin-right: calc(46px - var(--gutter));
+  }
+}
+/* The narrowest wide bar (1280-1339px): the four links sit 18px apart so
+   they clear the mark without pushing it off centre. */
+@media (min-width: 1280px) and (max-width: 1339px) {
+  .nav-links > ul {
+    gap: 18px;
   }
 }
 @media (max-width: 1023px) {
@@ -417,6 +426,11 @@ a.nav-panel-head:hover {
     scrollbar-width: none;
     background: var(--bg);
   }
+}
+/* Over a page that opens on the band (sign-in, sign-up), the row is band
+   too: no white strip between the bar and the page. */
+body:has(.site-chrome-body > .auth-page:first-child) .nav-quick {
+  background: var(--band);
 }
 .nav-quick::-webkit-scrollbar {
   display: none;
@@ -678,19 +692,19 @@ html:has(.mobile-sheet.open) .cookie-banner {
   }
 }
 
-/* ── The footer: the charcoal block ────────────────────────────
-   Four rows on hairlines (22 Kas 2026, operator: "footer'ı daha estetik
-   yap"): the letter as an opening band, the brand beside the four link
-   columns on one grid, the fine print (categories and the company) in two
-   halves, the bottom line. 72px over it and 32px under it, the bar's
-   gutter at each side. Links have the bar's line: 1px, white, faded in
-   under the pointer. */
+/* ── The footer: three blocks in the brand's colours ───────────
+   (22 Kas 2026, operator: "footer'ı daha estetik yap", then "footer daha
+   renkli canlı estetik yap".) A brass band for the letter (deep green
+   ink on it, 4.9:1 and 6.0:1), the deep forest green for the brand and
+   the four link columns (white links, brass names, 4.9:1), and a darker
+   green base for the fine print and the bottom line. Each block runs edge
+   to edge and keeps the bar's gutter. Links have the bar's line: 1px,
+   brass, faded in under the pointer. */
 .site-footer {
-  --footer-line: color-mix(in srgb, var(--on-dark) 18%, transparent);
+  --footer-line: color-mix(in srgb, var(--brass) 38%, transparent);
   display: flex;
   flex-direction: column;
-  padding: 72px var(--gutter) 32px;
-  background: var(--charcoal);
+  background: var(--forest);
   color: var(--on-dark);
 }
 .site-footer :is(.footer-col-list, .footer-cats, .footer-legal) a,
@@ -700,19 +714,23 @@ html:has(.mobile-sheet.open) .cookie-banner {
 }
 .site-footer :is(.footer-col-list, .footer-cats, .footer-legal) a:hover,
 .footer-linkish:hover {
-  border-bottom-color: var(--on-dark);
+  border-bottom-color: var(--brass);
 }
 
-/* The letter: its name large on the left with one sentence under it, the
-   field on its white line on the right, both resting on the same
-   baseline. */
+/* The letter, on brass: its name large on the left with one sentence
+   under it, the field on its green line on the right, both resting on the
+   same baseline. Everything on it is the deep green. */
 .footer-letter {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
   gap: 32px 80px;
   align-items: end;
-  padding-bottom: 56px;
-  border-bottom: 1px solid var(--footer-line);
+  padding: 56px var(--gutter);
+  background: var(--brass);
+  color: var(--forest);
+}
+.site-footer .footer-letter :focus-visible {
+  outline-color: var(--forest);
 }
 .footer-letter-title {
   margin: 0;
@@ -729,7 +747,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   margin: 12px 0 0;
   font-size: 16px;
   line-height: 24px;
-  color: var(--on-dark-muted);
+  color: var(--forest-deep);
 }
 .footer-letter-form {
   min-width: 0;
@@ -737,7 +755,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
 .newsletter-form {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--on-dark);
+  border-bottom: 1px solid var(--forest);
 }
 .newsletter-form input {
   flex: 1;
@@ -745,18 +763,18 @@ html:has(.mobile-sheet.open) .cookie-banner {
   padding: 12px 0;
   background: transparent;
   border: 0;
-  color: var(--on-dark);
+  color: var(--forest-deep);
   line-height: 20px;
 }
 .newsletter-form input::placeholder {
-  color: var(--on-dark);
+  color: var(--forest-deep);
   opacity: 1;
 }
 .newsletter-form input:focus {
   outline: none;
 }
 .newsletter-form:focus-within {
-  box-shadow: 0 1px 0 var(--on-dark);
+  box-shadow: 0 1px 0 var(--forest);
 }
 .newsletter-submit {
   display: grid;
@@ -767,7 +785,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   padding: 0;
   background: none;
   border: 0;
-  color: var(--on-dark);
+  color: var(--forest);
 }
 .newsletter-submit svg {
   width: 44px;
@@ -780,7 +798,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   margin-top: 14px;
   font-size: 12px;
   line-height: 18px;
-  color: var(--on-dark-muted);
+  color: var(--forest-deep);
 }
 .newsletter-consent input {
   flex-shrink: 0;
@@ -788,7 +806,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   width: 18px;
   height: 18px;
   margin: 0;
-  border: 1px solid var(--on-dark);
+  border: 1px solid var(--forest);
   border-radius: 0;
   background: transparent;
   display: grid;
@@ -799,36 +817,40 @@ html:has(.mobile-sheet.open) .cookie-banner {
   width: 10px;
   height: 6px;
   margin-top: -2px;
-  border-left: 2px solid var(--charcoal);
-  border-bottom: 2px solid var(--charcoal);
+  border-left: 2px solid var(--brass);
+  border-bottom: 2px solid var(--brass);
   transform: rotate(-45deg);
   opacity: 0;
 }
 .newsletter-consent input:checked {
-  background: var(--on-dark);
+  background: var(--forest);
 }
 .newsletter-consent input:checked::before {
   opacity: 1;
 }
 .newsletter-consent input:focus-visible {
-  outline: 2px solid var(--on-dark);
+  outline: 2px solid var(--forest);
   outline-offset: 2px;
 }
 .newsletter-status {
   margin: 12px 0 0;
   font-size: 14px;
   line-height: 20px;
+  color: var(--forest-deep);
 }
+/* On brass no red reaches 4.5:1, so the refusal is told by its words and a
+   rule beside them, in the same deep green. */
 .newsletter-status.is-error {
-  color: #ffb4a8;
+  padding-left: 10px;
+  border-left: 2px solid var(--forest-deep);
 }
 
-/* The brand, then the four columns, on one grid. */
+/* The brand, then the four columns, on one grid, on the forest green. */
 .footer-main {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 4.7fr);
   gap: 48px 40px;
-  padding-block: 56px;
+  padding: 64px var(--gutter);
 }
 .footer-about {
   display: flex;
@@ -869,8 +891,11 @@ html:has(.mobile-sheet.open) .cookie-banner {
   display: grid;
   place-items: center;
 }
+.footer-social a {
+  transition: color 0.3s;
+}
 .footer-social a:hover {
-  opacity: 0.7;
+  color: var(--brass);
 }
 .footer-social svg {
   width: 18px;
@@ -883,7 +908,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
     minmax(0, 1.35fr);
   gap: 40px;
 }
-/* A column's name: the small tracked label, quieter than its links. */
+/* A column's name: the small tracked label, in brass. */
 .footer-heading {
   margin: 0;
   font-family: var(--headline);
@@ -893,7 +918,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   line-height: 16px;
   letter-spacing: var(--track);
   text-transform: uppercase;
-  color: var(--on-dark-muted);
+  color: var(--brass);
 }
 .footer-col-list {
   display: flex;
@@ -936,14 +961,18 @@ html:has(.mobile-sheet.open) .cookie-banner {
   text-align: left;
 }
 
+/* The base, a shade deeper: the fine print and the bottom line. */
+.footer-base {
+  padding: 0 var(--gutter) 32px;
+  background: var(--forest-deep);
+}
 /* The fine print: every category's door on the left (the label hangs in
    the margin, the links wrap beside it), who runs the site on the right. */
 .footer-fine {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 32px 80px;
-  padding-block: 32px;
-  border-top: 1px solid var(--footer-line);
+  padding-block: 40px 36px;
 }
 .footer-cats {
   display: grid;
@@ -973,7 +1002,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   display: inline-block;
   width: 100px;
   text-indent: 0;
-  color: var(--on-dark);
+  color: var(--brass);
 }
 /* A name and its dot stay on one line; a line ends on the dot, never
    starts on it. */
@@ -988,7 +1017,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
   margin: 0;
 }
 .footer-company dt {
-  color: var(--on-dark-muted);
+  color: var(--brass);
 }
 .footer-company dd {
   margin: 4px 0 0;
@@ -1052,6 +1081,10 @@ html:has(.mobile-sheet.open) .cookie-banner {
 .open-line.is-open::before {
   background: #2f9e6a;
 }
+/* On the forest green the same dot would sink: a lighter leaf. */
+.site-footer .open-line.is-open::before {
+  background: #6ad3a0;
+}
 
 /* Below the wide bar: the brand in a row of its own over the columns. */
 @media (max-width: 1279px) {
@@ -1093,11 +1126,14 @@ html:has(.mobile-sheet.open) .cookie-banner {
 /* A phone: tighter air, the links 14/20, the bottom line's links one
    under the other. */
 @media (max-width: 767px) {
-  .site-footer {
-    padding: 48px var(--gutter) 28px;
-  }
   .footer-letter {
-    padding-bottom: 40px;
+    padding-block: 40px;
+  }
+  .footer-base {
+    padding-bottom: 28px;
+  }
+  .footer-fine {
+    padding-block: 32px;
   }
   .footer-letter-title {
     font-size: 20px;
@@ -1108,7 +1144,7 @@ html:has(.mobile-sheet.open) .cookie-banner {
     line-height: 20px;
   }
   .footer-main {
-    padding-block: 40px;
+    padding-block: 44px;
     gap: 40px;
   }
   /* The brand and the networks on one line, the motto under them. */

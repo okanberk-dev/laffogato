@@ -166,8 +166,9 @@ Unutulmaması gerekenler:
   sahnesi alınmadı) da bu ilkeyle yapılmıştı.
 - **Değerler** (`src/styles/foundation.css :root`, kurallar aşağıda "Tasarım
   Sistemi"): beyaz sayfa, `#f6f6f3` bant (`--band`), siyah mürekkep, gri
-  `#6c6864` (`--muted`), her dolu kontrol ve footer için **tek kömür**
-  `#333333` (`--charcoal`), çizgi `#dcdcd6`. Başlık, gezinme, fiyat ve etiket
+  `#6c6864` (`--muted`), her dolu kontrol için **tek kömür**
+  `#333333` (`--charcoal`), çizgi `#dcdcd6`; footer markanın yeşili ve
+  pirincindedir (aşağıda "Krom"). Başlık, gezinme, fiyat ve etiket
   Archivo'yla: geniş (`"wdth" 118`), 400, büyük harf, 1.6px aralıklı; cümle
   ve kontroller Geist. Kare köşe; gölge, bulanıklık ve degrade yok (filmin
   alt gölgesi dışında). Düğme 48px, 1px kömür kenar; çağrı düğmesi 350px,
@@ -180,15 +181,23 @@ Unutulmaması gerekenler:
   telefon panelinin beşinci satırı), sonra arama, hesap, sepet. 1280px
   altında menü düğmesi ve tam boy panel, 1024px altında hızlı bağlantı
   çipleri. Kampanyalar ana menüden çıktı (duyuru satırında, ziyaret
-  panelinde, çiplerde ve footer'da). Footer kömür blok, kılçizgilerle dört
-  sıra (operatör, 22 Kas 2026: _"footer'ı daha estetik yap"_): bülten bandı
-  (solda büyük başlık ve cümle, sağda alan; `email`, `consent`, kutu
-  işaretsiz), marka (işaret, "Drink it. Eat the cup.", sosyal hesaplar) ile
-  dört bağlantı sütunu (Keşfet, Ziyaret, Üyelik, Kurumsal) tek ızgarada,
-  ince yazı (kategori kapıları ve şirket satırları iki yarıda), alt satır.
-  1280px altında marka sütunların üstünde bir satır, 1024px altında sütunlar
-  ikişer. Buzlu ya da saydam çubuk, yüzen sipariş düğmesi (`.frap`) ve
+  panelinde, çiplerde ve footer'da). Footer markanın renklerinde, kenardan
+  kenara üç blok (operatör, 22 Kas 2026: _"footer'ı daha estetik yap"_,
+  ardından _"footer daha renkli canlı estetik yap"_): pirinç `--brass`
+  bülten bandı (solda büyük başlık ve cümle, sağda alan; `email`, `consent`,
+  kutu işaretsiz; üstünde yalnız derin yeşil yazı), orman yeşili `--forest`
+  blokta marka (işaret, "Drink it. Eat the cup.", sosyal hesaplar) ile dört
+  bağlantı sütunu (Keşfet, Ziyaret, Üyelik, Kurumsal; adları pirinç) tek
+  ızgarada, bir ton koyu `--forest-deep` tabanda ince yazı (kategori kapıları
+  ve şirket satırları iki yarıda) ve alt satır. 1280px altında marka
+  sütunların üstünde bir satır, 1024px altında sütunlar ikişer. Çubukta
+  işaret her genişlikte sayfanın tam ortasında durur (yanlar
+  `minmax(0, 1fr)`; 1280-1339px'te bağlantılar 18px arayla). Buzlu ya da saydam çubuk, yüzen sipariş düğmesi (`.frap`) ve
   telefon sekme çubuğu yok.
+- **Giriş, kayıt ve şifre sayfaları tek sütun genişliğinde** (440px, 22 Kas
+  2026): alanlar ve düğmeler aynı sol ve sağ kenarı paylaşır (düğme sütun
+  kadar geniştir); telefonda hızlı bağlantı satırı bu sayfalarda bant
+  rengindedir, çubukla sayfa arasında beyaz şerit kalmaz.
 - **CSS `src/styles/`'ta.** `globals.css` yalnız içe aktarır (Tailwind, sonra
   sayfa sırasıyla `foundation`, `chrome`, `sections`, `home`, `catalog`,
   `pages`, `karaoke`, `checkout`, `account`) ve panelin geri alma ve baskı
@@ -214,7 +223,7 @@ Unutulmaması gerekenler:
 - **E-postalar 22 Kas 2026'dan beri sitenin dilinde, markanın yeşiliyle**
   (operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap
   mailleri de öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler
-  gibi"_; kapsam yalnız e-postalar ve /franchise): adaçayı `#f2f5f1` dış
+  gibi"_; kapsam e-postalar, /franchise ve sitenin footer'ı): adaçayı `#f2f5f1` dış
   zemin, çerçevesiz beyaz kart, tepede derin orman yeşili `#173f35` başlık
   bandı ve ortasında kutusuz L'Af işareti (`laf-mark-white.png`, saydam,
   yalnız yeşil zeminde; operatör: _"logomuzu daha estetik yerleştir"_; yeşil
@@ -343,7 +352,8 @@ panelde başvuru formu.
 Sayfa markanın yeşilini giyer (operatör: _"renkleri de yeşilimsi yap bizim
 renkler gibi"_; sitede yalnız bu sayfa): kökteki `.theme-forest` sitenin
 token'larını `--forest`, `--sage` ailesine bağlar, süreç bandı derin yeşil
-(beyaz başlık, pirinç rakam); footer kömürde kalır (`docs/BRAND.md` §10).
+(beyaz başlık, pirinç rakam); sitenin footer'ı da aynı ailedendir
+(`docs/BRAND.md` §10).
 Bağlantılar: üst çubuğun sağı (1280px ve üstünde; altında telefon panelinin
 satırı), footer'ın Kurumsal sütunu, site haritası. Görüntüleme veritabanını
 uyandırmaz (`getSiteSettings`, `getSiteImages`; fotoğraflar `hero.franchise`
@@ -1114,9 +1124,10 @@ durum bozulmaya uygundur.
   `--surface`) ve dönüşümlü bant `--band` `#f6f6f3` (bölüm bandı, üst çubuk,
   ürün fotoğrafının zemini, sepet çekmecesi). Mürekkep `--ink` siyah, ikincil
   satır `--muted` `#6c6864`. **Tek kömür** `--charcoal` `#333333` her dolu
-  kontrolün, koyu bandın (`.section--dark`) ve footer'ın zeminidir (üstüne
-  gelince `--charcoal-deep` `#1f1f1f`); üstünde `--on-dark` ve
-  `--on-dark-muted`. Çizgi `--line` `#dcdcd6`, kontrol kenarı `--line-strong`.
+  kontrolün ve koyu bandın (`.section--dark`) zeminidir (üstüne gelince
+  `--charcoal-deep` `#1f1f1f`); üstünde `--on-dark` ve `--on-dark-muted`.
+  Footer ile /franchise markanın yeşilini (`--forest*`, `--sage*`) ve
+  pirincini (`--brass`) giyer (`docs/BRAND.md` §10). Çizgi `--line` `#dcdcd6`, kontrol kenarı `--line-strong`.
   Vurgu rengi yok: renk yalnız durum söyler (`--error` `#b42318`, `--success`
   `#1f6b4a`, bekleyen adım `--warn` `#8a5a00`; açık noktası) ya da logonun pirinç
   çekirdeğidir; ödeme sayfasının kart şeması işaretleri kendi renklerindedir
