@@ -1251,7 +1251,7 @@ export function Footer({ navigate, settings }: FooterProps) {
         ) : null}
         <div>
           <dt>Ödeme</dt>
-          <dd>Visa · Mastercard · Troy · Apple Pay</dd>
+          <dd>Visa · Mastercard · Troy</dd>
         </div>
       </dl>
 

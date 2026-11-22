@@ -123,7 +123,7 @@ export const SITE = {
   },
   priceRange: "₺₺",
   cuisine: ["Italian", "Coffee", "Gelato", "Dessert"],
-  paymentAccepted: ["Cash", "Credit Card", "Apple Pay", "Google Pay"],
+  paymentAccepted: ["Cash", "Credit Card", "Debit Card"],
   currencies: ["TRY"],
   ogImage: "/opengraph-image",
   ogImageWidth: 1200,

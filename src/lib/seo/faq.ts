@@ -30,7 +30,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",
-    a: "Sütlü içecekler 25₺ fark ile laktozsuz ya da badem sütüyle hazırlanabilir. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındık içeren kalemler menüde ayrıca işaretlidir; tüm alerjen bilgisi mekanda mevcuttur.",
+    a: "Sütlü içecekler laktozsuz sütle fark olmadan, badem sütüyle ek ücretle hazırlanabilir. Kalemlerin alerjen bilgisi menüde ve köşkte mevcuttur; bir alerjiniz varsa sipariş verirken personele söyleyin.",
   },
   {
     q: "Matcha bar’da hangi çay kullanılıyor?",
@@ -58,6 +58,6 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Ödeme yöntemleri nelerdir?",
-    a: "Nakit, kredi kartı (Visa, Mastercard, Amex), Apple Pay, Google Pay ve banka kartı kabul edilir. Online mağaza için tüm Türk bankaları desteklenir; uluslararası kartlarla EUR ve USD çekimi de yapılabilir.",
+    a: "Köşkte nakit ve kartla ödenir. Online siparişte (site ve uygulama) ödeme yalnızca kartla, tek çekim alınır: kredi kartı ya da internetten alışverişe açık banka kartı. Dijital cüzdan, havale ve kapıda ödeme yoktur; yurt dışı kartlarda tahsilat Türk lirasıyla yapılır.",
   },
 ];

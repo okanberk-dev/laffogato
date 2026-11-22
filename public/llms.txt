@@ -47,7 +47,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 
 - [Ana Sayfa](/): Tam ekran kahve filmi, şimdi barda (canlı menüden), imza affogato, kategoriler, Evde L'Affogato, karaoke odası ve bugünün boş saatleri, uygulama, rehberler, ziyaret bilgileri ve SSS
 - [Menü](/menu): Matcha Bar, Espresso, Soğuk Kahve, Soğuk İçecekler, Sıcak İçecekler, Frappe, Smoothie, Frozen, Soğuk Çay, Tatlılar, Atıştırmalıklar, Ekstralar kategorileri
-- [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
+- [Mağaza](/magaza): Çekirdek kahve, yenilebilir kup, hediye seti, ekipman, kiler, giyim
 - [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
 - [Ziyaret](/ziyaret): Tuzla köşkünün adresi, saatleri, ulaşımı ve haritası; L'Affogato Marina kartı
 - [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga) ve arkadaş davet ödülü
@@ -62,7 +62,7 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 
 ## Menü Özeti
 
-Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L boy servis edilir.
+İçeceklerin çoğu M ve L boy servis edilir. Kalemler ve fiyatlar değişebilir; güncel menü laffogato.net/menu'de.
 
 **Matcha Bar**: Matcha Latte 215₺, Çilekli Matcha 245₺, Matcha Affogato 245₺.
 
@@ -90,17 +90,18 @@ Basılı menü 12 kategori ve 82 kalemden oluşur. İçeceklerin çoğu M ve L b
 
 ## Mağaza Ürünleri
 
-- Sirena — Espresso Harmanı (250g, 320₺): Brezilya doğal + Etiyopya yıkanmış
-- Notturna — Filtre Lotu (200g, 380₺): Kenya AA Nyeri
-- Edible Cups 6'lı kutu (240₺): Yenilebilir waffle kup
-- Affogato Seti — İki Kişilik (780₺): Hediye seti, en çok satan
-- Uji Matcha — Seremoni Sınıfı (40g, 420₺): Japonya Uji bahçesi
-- Moka — Bialetti × L'Affogato (3-cup, 690₺)
-- Porselen Espresso Set (2'li, 420₺)
-- Bambu Chasen (320₺): 80 dişli, Nara yapımı
-- Pamuk Önlük (480₺)
-- Emaye Bardak (350ml, 320₺)
-- Cantucci — Bronte Pistachio (180g, 180₺)
+Fiyatlar KDV dahil ve değişebilir; güncel fiyat laffogato.net/magaza'da.
+
+- Sirena — Espresso Harmanı (320₺): Brezilya ve Etiyopya harmanı, çekirdek
+- Notturna — Filtre Lotu (380₺): Kenya AA Nyeri, çekirdek
+- Çekirdek Kahve — 1 kg (2.000₺), Filtre Kahve — 1 kg (1.800₺), Cold Brew Kahvesi — 1 kg (2.250₺)
+- Yenilebilir Kup — 6'lı Kutu (240₺)
+- Affogato Seti — İki Kişilik (780₺): hediye kutusu
+- Uji Matcha — Seremoni Sınıfı (420₺), Matcha — 250 g (6.000₺), Cantucci — Bronte Pistachio (180₺)
+- Moka — Bialetti × L'Affogato (690₺), Porselen Fincan Seti (420₺), Bambu Chasen (750₺)
+- Pamuk Önlük (480₺), Emaye Bardak (320₺)
+
+Mağaza siparişleri Türkiye geneline kargoyla gönderilir; ödeme sitede kartla alınır.
 
 ## Marka Geçmişi
 
@@ -123,7 +124,7 @@ Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schem
 - Organization (Mancuso ailesi, Bologna 1897)
 - CafeOrCoffeeShop + Restaurant (LocalBusiness, tarihi Rum köşkü, koordinat, saatler)
 - WebSite (yayıncı, telif; site içi arama ve rezervasyon aksiyonu yok)
-- Menu + MenuSection + MenuItem (canlı; 12 kategori, 82 kalem)
+- Menu + MenuSection + MenuItem (canlı menüden)
 - Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)
 - FAQPage (ana sayfa SSS, 11 soru)
 - AboutPage + Event timeline (1897/1994/2008/2026)
