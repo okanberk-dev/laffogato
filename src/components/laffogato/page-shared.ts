@@ -37,6 +37,10 @@ export interface PageProps {
     /** Mobil → Ayarlar → Kurye (`mobileApp.ordering.deliveryEnabled`).
         `false` drops every courier line; absent reads as offered. */
     courierEnabled?: boolean;
+    /** Mobil → Ayarlar → Masaya sipariş
+        (`mobileApp.ordering.tableEnabled`). `false` drops the table-order
+        band, phone and lines; absent reads as offered. */
+    tableOrderEnabled?: boolean;
     pickupReadyMinutes?: number;
     stampTarget?: number;
     /** The day under the menu: "YYYY-MM-DD", or "" (not entered). */

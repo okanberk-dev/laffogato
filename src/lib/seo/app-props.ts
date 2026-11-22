@@ -103,6 +103,10 @@ export async function loadAppProps({
         // The panel's courier switch, the one POST /orders enforces: while
         // it is off the home and visit pages offer pickup only.
         courierEnabled: settings.mobileApp.ordering.deliveryEnabled,
+        // The panel's table-ordering switch (Mobil → Ayarlar → Masaya
+        // sipariş), the one POST /orders enforces: while it is off the
+        // pages stop inviting a guest to order from the table's QR.
+        tableOrderEnabled: settings.mobileApp.ordering.tableEnabled,
         // The home page's order and rewards shortcuts (presentation only).
         pickupReadyMinutes: settings.pickupReadyMinutes,
         stampTarget: settings.mobileApp.loyalty.stampTarget,
