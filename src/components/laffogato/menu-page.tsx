@@ -245,7 +245,10 @@ export function PageMenu({ menu, settings, images }: PageProps) {
         {/* Real links, one per category URL. On /menu itself a click
             filters in place (the page already holds every category); on
             a category page it navigates. */}
-        <nav className="chip-row collection-cats" aria-label="Menü kategorileri">
+        <nav
+          className="chip-row collection-cats"
+          aria-label="Menü kategorileri"
+        >
           <Link
             href="/menu"
             className="chip"
@@ -260,7 +263,9 @@ export function PageMenu({ menu, settings, images }: PageProps) {
             }
           >
             Tümü
-            {!scoped && <span className="chip-count tabular">{totalCount}</span>}
+            {!scoped && (
+              <span className="chip-count tabular">{totalCount}</span>
+            )}
           </Link>
           {MENU_CATEGORY_ROUTES.map((r) => {
             const cat = liveMenu[r.menuKey];

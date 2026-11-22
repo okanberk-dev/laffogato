@@ -614,7 +614,7 @@
   height: 10px;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 40px;
+  border-radius: 0;
   background: var(--surface);
 }
 .cart-freeship-fill {
@@ -926,15 +926,6 @@
   display: grid;
   gap: 8px;
   margin-top: 8px;
-}
-.variant-chip[aria-pressed="true"] {
-  background: var(--charcoal);
-  border-color: var(--charcoal);
-  color: var(--on-dark);
-}
-.variant-chip:disabled {
-  opacity: 0.4;
-  text-decoration: line-through;
 }
 .buy-row {
   display: flex;
@@ -1352,7 +1343,7 @@
   display: flex;
   align-items: center;
   border: 1px solid var(--charcoal);
-  border-radius: 4px;
+  border-radius: 0;
   background: var(--surface);
 }
 .search-field:focus-within {
@@ -1377,7 +1368,7 @@
   min-height: 40px;
   padding: 8px 44px 8px 40px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 0;
   background: transparent;
   font-size: 16px;
   line-height: 24px;

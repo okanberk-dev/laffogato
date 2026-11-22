@@ -256,9 +256,7 @@ export function PageShop({
           aria-current={here ? "page" : undefined}
         >
           {c.label}
-          {here && (
-            <span className="chip-count tabular">{countFor(c.id)}</span>
-          )}
+          {here && <span className="chip-count tabular">{countFor(c.id)}</span>}
         </a>
       );
     }

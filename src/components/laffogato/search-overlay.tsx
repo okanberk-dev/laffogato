@@ -507,7 +507,6 @@ export function SearchOverlay({
             </ul>
           )}
         </div>
-
       </div>
     </div>
   );
