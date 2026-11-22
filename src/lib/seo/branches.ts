@@ -36,20 +36,24 @@ export interface SiteBranch {
 }
 
 /**
- * Operator, 5 Kas 2026: "Marina tuzla marinada". The place is Tuzla Marina
- * (also listed as Viaport Marina Tuzla). Hours the same day: "açılış 10
- * kapanış 2300" (no days named, so none are printed). The unit inside the
- * marina, the postal code and the phone are still unknown and stay empty.
+ * Operator, 5 Kas 2026: "Marina tuzla marinada". Hours the same day:
+ * "açılış 10 kapanış 2300" (no days named, so none are printed). 22 Kas
+ * 2026: "Marinadaki adrese tuzla viaport marina adresi yazabilirsin": the
+ * marina's own address (Viaport Marina Tuzla, Cami Mahallesi, 34940 Tuzla;
+ * public marina listings disagree on the street, so none is printed). The
+ * unit inside the marina and the phone are still unknown and stay empty.
+ * The branch's karaoke is not running yet and will not take bookings
+ * (operator, 22 Kas 2026): the bookable room is the köşk's alone.
  */
 export const MARINA_BRANCH: SiteBranch = {
   id: "marina",
   name: "L'Affogato Marina",
   status: "open",
-  streetAddress: "Tuzla Marina",
-  localityLine: "Tuzla / İstanbul",
+  streetAddress: "Viaport Marina Tuzla, Cami Mah.",
+  localityLine: "34940 Tuzla / İstanbul",
   phone: "",
   hoursLabel: "10:00 - 23:00",
-  mapsQuery: "Tuzla Marina, Tuzla, İstanbul",
+  mapsQuery: "Viaport Marina Tuzla, Tuzla, İstanbul",
 };
 
 /** Every branch the site shows besides the Tuzla köşk, in page order. */

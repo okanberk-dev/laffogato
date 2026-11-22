@@ -53,6 +53,9 @@ export type AuditEntity =
   // An e-Arşiv invoice row (src/lib/invoice/); entityId is the row's id,
   // "run" for a run started from the panel, "carriers" for the carrier list.
   | "invoice"
+  // A site photograph changed from Görseller (/admin/gorseller); entityId
+  // is the slot's key ("karaoke.hero").
+  | "site_image"
   // The log itself, for its own CSV export.
   | "audit_log"
   // One periodic destruction run (src/lib/retention.ts), written by the

@@ -79,7 +79,7 @@ export function karaokeFaq(f: KaraokeFaqFacts): KaraokeFaqEntry[] {
   }
   entries.push({
     q: "L'Affogato Marina şubesinde karaoke var mı?",
-    a: "Hayır. Karaoke odası yalnız Tuzla köşkündedir.",
+    a: "Henüz değil. L'Affogato Marina'da karaoke henüz aktif değil; başladığında rezervasyonla çalışmayacak. Rezervasyonla kullanılan özel karaoke odası Tuzla köşkünün üst katındadır ve laffogato.net/karaoke sayfasından ayrılır.",
   });
   return entries;
 }

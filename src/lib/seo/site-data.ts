@@ -13,6 +13,14 @@ import { listHomeHeroSiteRowsLive } from "@/lib/admin/home-hero";
 import { isPublishWindowOpen } from "@/lib/admin/publish-window";
 import { contentDefaults, getSiteContentLive } from "@/lib/admin/site-content";
 import {
+  listSiteImageRowsLive,
+  resolveSiteImages,
+} from "@/lib/admin/site-images";
+import {
+  bundledSiteImages,
+  type SiteImages,
+} from "@/lib/admin/site-images-core";
+import {
   getSettings,
   listActiveAppPosts,
   listActivePressLive,
@@ -272,6 +280,23 @@ export async function getSiteContentForSite(): Promise<Record<string, string>> {
     cachedContent(),
   );
 }
+
+const cachedSiteImages = presentationCache(
+  "site-images",
+  async (): Promise<SiteImages> =>
+    resolveSiteImages(await listSiteImageRowsLive()),
+  [TAG_SITE],
+);
+
+/**
+ * The site's photographs as the pages draw them (Görseller,
+ * /admin/gorseller): every slot's address and alt text, uploads behind
+ * their stamped `/gorsel/site/<key>` path. Small (no picture bytes) and
+ * cached under `pub:site`; with the database away the bundled photographs.
+ */
+export const getSiteImages = cache(async (): Promise<SiteImages> =>
+  publicRead("getSiteImages", bundledSiteImages(), () => cachedSiteImages()),
+);
 
 const cachedHomeRows = presentationCache(
   "site-home-hero",

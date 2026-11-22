@@ -96,6 +96,8 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   press: SITE,
   story_timeline: SITE,
   shop_hero_slides: SITE,
+  // Panel-managed site photographs (Görseller, 22 Kas 2026).
+  site_images: SITE,
   home_hero_slides: SITE,
   app_posts: SITE,
   app_hero_slides: SITE,

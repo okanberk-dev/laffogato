@@ -22,6 +22,7 @@ import {
 } from "@/lib/admin/list-params";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 import { needsCallHint } from "@/lib/mobile/karaoke-cancel-cause";
+import { isDeskPlaceholderEmail } from "@/lib/mobile/karaoke-core";
 import type { KaraokeRoomCalendar } from "@/lib/mobile/karaoke-reschedule-core";
 import { karaokeCancelDeadline } from "@/lib/mobile/karaoke-time";
 
@@ -385,7 +386,10 @@ const CUSTOMER_WIDTH = "md:max-w-[12rem] xl:max-w-[14rem]";
 
 function customerLine(view: KaraokeRowView): ReactNode {
   const r = view.r;
-  const email = r.contactEmail || r.customerEmail;
+  // A desk row without an e-mail carries a placeholder: say what it is.
+  const email = isDeskPlaceholderEmail(r.customerEmail)
+    ? "Köşkte elle eklendi"
+    : r.contactEmail || r.customerEmail;
   return (
     <span className="block min-w-0">
       <span

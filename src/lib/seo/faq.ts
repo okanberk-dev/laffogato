@@ -22,7 +22,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Çalışma saatleri nedir?",
-    a: "Tuzla köşkü her gün 09:00 - 02:00 saatleri arasında açık. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Tuzla Marina'daki L'Affogato Marina 10:00 - 23:00 arası açık.",
+    a: "Tuzla köşkü her gün 09:00 - 02:00 saatleri arasında açık. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Viaport Marina Tuzla'daki L'Affogato Marina 10:00 - 23:00 arası açık.",
   },
   {
     q: "L’Affogato nedir, menüde nasıl servis ediliyor?",
@@ -54,7 +54,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "Tuzla’da karaoke odası var mı?",
-    a: "Evet. Tuzla köşkünün üst katında en fazla 8 kişilik, yalnız sizin grubunuza ayrılan bir karaoke odası var; 12:00 - 24:00 arası saatlik rezervasyonla kullanılır. Gün ve saat laffogato.net/karaoke sayfasından ya da uygulamadan seçilir, kartla ödeme alınınca rezervasyon kesinleşir. L'Affogato Marina şubesinde karaoke yoktur.",
+    a: "Evet. Tuzla köşkünün üst katında en fazla 8 kişilik, yalnız sizin grubunuza ayrılan bir karaoke odası var; 12:00 - 24:00 arası saatlik rezervasyonla kullanılır. Gün ve saat laffogato.net/karaoke sayfasından ya da uygulamadan seçilir, kartla ödeme alınınca rezervasyon kesinleşir. L'Affogato Marina şubesinde karaoke henüz aktif değil; başladığında rezervasyonla çalışmayacak.",
   },
   {
     q: "Ödeme yöntemleri nelerdir?",

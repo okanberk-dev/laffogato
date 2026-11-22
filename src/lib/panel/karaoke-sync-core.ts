@@ -325,6 +325,13 @@ export interface PanelKaraokeReservation {
    * wording.
    */
   refundMinor: number | null;
+  /**
+   * Taken at the köşk (additive, 22 Kas 2026): a phone/counter booking or
+   * closed hours written by this site's panel or by `POST
+   * /api/panel/karaoke` (karaoke-desk.ts). Only such a row may be freed
+   * with the POST's `cancel`.
+   */
+  desk: boolean;
 }
 
 /** The columns the mapper reads; a full row is accepted and narrowed. */
@@ -412,6 +419,7 @@ export function toPanelReservation(
     note: clip((r.note ?? "").trim(), PANEL_NOTE_MAX),
     totalMinor: Number.isFinite(totalMinor) ? totalMinor : 0,
     channel: r.channel === "web" || r.channel === "app" ? r.channel : "",
+    desk: r.channel === "desk",
     createdAt: r.createdAt ?? "",
     updatedAt: r.updatedAt ?? "",
     refundMinor,

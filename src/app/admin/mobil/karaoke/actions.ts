@@ -741,3 +741,88 @@ export async function karaokeTodaySignalAction(
     label: "bugünkü karaoke rezervasyonları sayılamadı",
   });
 }
+
+/**
+ * "Elle rezervasyon / Saati kapat" (operator, 22 Kas 2026): a group booked
+ * by phone or at the counter, or hours the köşk closes, so the site, the app
+ * and the till show them taken at once (src/lib/mobile/karaoke-desk.ts).
+ * No money moves (paid at the köşk), so the karaoke panel's own gate is
+ * enough. The server checks the hours; the form only asks.
+ */
+export async function createDeskReservationAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("karaoke");
+  const { createDeskReservation, readDeskInput } = await import(
+    "@/lib/mobile/karaoke-desk"
+  );
+  const input = readDeskInput({
+    kind: formData.get("tur"),
+    date: formData.get("tarih"),
+    startHour: formData.get("saat"),
+    hours: formData.get("sure"),
+    guests: formData.get("kisi"),
+    name: formData.get("ad"),
+    phone: formData.get("telefon"),
+    email: formData.get("eposta"),
+    note: formData.get("not"),
+  });
+  const result = await createDeskReservation(input, session.email);
+  revalidatePath(KARAOKE_PANEL_PATH);
+  revalidatePath("/admin");
+  if (!result.ok) {
+    const field = DESK_FIELD[result.field ?? "date"] ?? "tarih";
+    return actionError(result.message, { [field]: result.message });
+  }
+  const r = result.reservation;
+  const when = `${formatReservationDate(r.date)} ${formatReservationTime(r.startHour, r.hours)}`;
+  if (input.kind === "block") {
+    return actionOk(`Saatler kapatıldı: ${when}. Sitede ve uygulamada dolu görünür.`);
+  }
+  return input.email
+    ? okWithNotice(
+        `Rezervasyon eklendi: ${r.id.toUpperCase()}, ${when}.`,
+        result.notified,
+        "misafire",
+      )
+    : actionOk(
+        `Rezervasyon eklendi: ${r.id.toUpperCase()}, ${when}. Ödemesi köşkte alınır.`,
+      );
+}
+
+/** The form's field names for the desk input's keys. */
+const DESK_FIELD: Record<string, string> = {
+  kind: "tur",
+  date: "tarih",
+  startHour: "saat",
+  hours: "sure",
+  guests: "kisi",
+  name: "ad",
+  phone: "telefon",
+  email: "eposta",
+  note: "not",
+};
+
+/** Frees a desk booking or block ("Kaldır"); online bookings are cancelled with their own dialog. */
+export async function cancelDeskReservationAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("karaoke");
+  const id = readId(formData);
+  if (!id) return actionError("Rezervasyon numarası eksik.");
+  const { cancelDeskReservation } = await import("@/lib/mobile/karaoke-desk");
+  const result = await cancelDeskReservation(id, session.email);
+  revalidate(id);
+  if (!result.ok) {
+    return actionError(
+      result.error === "not_desk"
+        ? "Bu rezervasyon elle eklenmedi; iptali kendi düğmesiyle yapılır."
+        : result.error === "already_cancelled"
+          ? "Bu kayıt zaten kaldırılmış."
+          : "Kayıt bulunamadı ya da az önce değişti. Sayfayı yenile.",
+    );
+  }
+  return actionOk("Kayıt kaldırıldı; saatler yeniden boş.");
+}

@@ -41,6 +41,7 @@ import {
 } from "./karaoke-reschedule-core";
 import { istanbulClock } from "./venue";
 import {
+  isDeskPlaceholderEmail,
   buildSlots,
   effectiveKaraokeCancelPolicy,
   isPartialRefund,
@@ -1396,7 +1397,8 @@ function karaokeMailPayload(
   // The address the member gave on the form for exactly this, else the
   // account's.
   const to = r.contactEmail?.trim() || r.customerEmail;
-  if (!to) return null;
+  // A desk row without an e-mail (karaoke-desk.ts) is never mailed.
+  if (!to || isDeskPlaceholderEmail(to)) return null;
   const money = paymentStatusOf(r);
   const paidOnline =
     money === "paid" || money === "refunding" || money === "refunded";

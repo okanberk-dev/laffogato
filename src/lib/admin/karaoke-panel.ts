@@ -357,6 +357,7 @@ export const KARAOKE_CHANNEL_LABELS: Record<string, string> = {
   web: "Web",
   app: "Uygulama",
   staff: "Köşk (telafi saati)",
+  desk: "Köşk (elle)",
 };
 
 export function channelLabel(channel: string | undefined): string {

@@ -10,6 +10,7 @@ import {
   type PanelKaraokeReservation,
 } from "@/lib/panel/karaoke-sync-core";
 import { chooseBranch, KARAOKE_BRANCH } from "@/lib/panel/branches";
+import { panelAuditActor } from "@/lib/panel/menu-link-core";
 import {
   signedCaller,
   signedCallerKeys,
@@ -159,4 +160,128 @@ export async function GET(request: Request) {
     },
     { headers: NO_STORE },
   );
+}
+
+/** A desk request body is a handful of short fields. */
+const DESK_MAX_BODY_BYTES = 4096;
+
+function deny(
+  status: number,
+  error: string,
+  extra: Record<string, unknown> = {},
+) {
+  return NextResponse.json({ error, ...extra }, { status, headers: NO_STORE });
+}
+
+/**
+ * `POST /api/panel/karaoke` - the köşk's panel (ladmin) or its till takes
+ * hours on the room's calendar (operator, 22 Kas 2026: "ladmin panelinden de
+ * manuel rezervasyon alınsın, oradan dolu yapılabilsin ki insanlar siteden
+ * bakınca görsünler"). Signed like the GET, over the exact body.
+ *
+ * Body, JSON:
+ * - `{"action": "create", "kind": "booking" | "block", "date": "YYYY-MM-DD",
+ *   "startHour": 20, "hours": 2, "guests": 6, "name": "Ayşe", "phone": "",
+ *   "email": "", "note": "", "actor": "Kasa 1"}`: a phone/counter booking
+ *   (paid at the köşk) or closed hours. 201 `{reservation}` in the GET's
+ *   shape; 400 `invalid` with `field` and `message`; 409 `slot_taken` or
+ *   `too_many`.
+ * - `{"action": "cancel", "id": "krk-00042", "actor": "..."}`: frees a desk
+ *   row (`channel: "desk"`) only; a booking paid online is cancelled and
+ *   refunded in this site's panel (409 `not_desk`). 200 `{ok: true}`.
+ * The written hours are taken on the site, in the app and on the till at
+ * once (src/lib/mobile/karaoke-desk.ts); the write pings the panel back.
+ * LafPOS may only write Istanbul yesterday to tomorrow, like its reads.
+ * The one room is Tuzla's: another branch gets 409 `wrong_branch`.
+ */
+export async function POST(request: Request) {
+  const keys = signedCallerKeys(process.env, CALLERS);
+  if (!keys) return deny(503, "not_configured");
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (declared > DESK_MAX_BODY_BYTES) return deny(413, "too_large");
+  const body = await request.text();
+  if (Buffer.byteLength(body, "utf8") > DESK_MAX_BODY_BYTES) {
+    return deny(413, "too_large");
+  }
+  const url = new URL(request.url);
+  const caller = signedCaller(keys, request, "POST", url, body);
+  if (!caller) return deny(401, "unauthorized");
+  let raw: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return deny(400, "invalid", { field: "body" });
+    }
+    raw = parsed as Record<string, unknown>;
+  } catch {
+    return deny(400, "invalid", { field: "body" });
+  }
+  const branchRaw = typeof raw.branch === "string" ? raw.branch : null;
+  const choice = chooseBranch(process.env, caller, branchRaw);
+  if (!choice.ok) {
+    return deny(choice.status, choice.error, { field: choice.field });
+  }
+  if (choice.branch !== KARAOKE_BRANCH) {
+    return deny(409, "wrong_branch", { branch: choice.branch });
+  }
+  const actorRaw = typeof raw.actor === "string" ? raw.actor.trim() : "";
+  if (!actorRaw) return deny(400, "invalid", { field: "actor" });
+  const actor = panelAuditActor(actorRaw, caller);
+  const { cancelDeskReservation, createDeskReservation, readDeskInput } =
+    await import("@/lib/mobile/karaoke-desk");
+
+  try {
+    if (raw.action === "cancel") {
+      const id = typeof raw.id === "string" ? raw.id.trim() : "";
+      if (!/^krk-\d{5,}$/.test(id))
+        return deny(400, "invalid", { field: "id" });
+      if (caller === "lafpos") {
+        // The till frees only what it may read: yesterday to tomorrow.
+        const { getReservation } = await import("@/lib/mobile/karaoke");
+        const row = await getReservation(id);
+        if (!row) return deny(404, "not_found");
+        const reach = withinLafposKaraokeReach(
+          { from: row.date, to: row.date },
+          new Date(),
+        );
+        if (!reach) return deny(403, "forbidden", { field: "id" });
+      }
+      const res = await cancelDeskReservation(id, actor);
+      if (!res.ok) {
+        const status = res.error === "not_found" ? 404 : 409;
+        return deny(status, res.error);
+      }
+      return NextResponse.json({ ok: true }, { headers: NO_STORE });
+    }
+    if (raw.action !== "create")
+      return deny(400, "invalid", { field: "action" });
+    const input = readDeskInput(raw);
+    if (caller === "lafpos") {
+      const now = new Date();
+      const reach = withinLafposKaraokeReach(
+        { from: input.date, to: input.date },
+        now,
+      );
+      if (!reach) return deny(403, "forbidden", { field: "date" });
+    }
+    const res = await createDeskReservation(input, actor);
+    if (!res.ok) {
+      const status = res.error === "invalid" ? 400 : 409;
+      return deny(status, res.error, {
+        ...(res.field ? { field: res.field } : {}),
+        message: res.message,
+      });
+    }
+    return NextResponse.json(
+      { reservation: toPanelReservation(res.reservation) },
+      { status: 201, headers: NO_STORE },
+    );
+  } catch (err) {
+    console.error("[panel-karaoke] desk write failed", err);
+    return deny(503, "unavailable");
+  }
 }

@@ -9,10 +9,12 @@ import type { GuideSource } from "./guide-content";
  * Semrush (docs/SEO.md §3, "doğrulanmadı").
  *
  * Only what the site knows about the branch is said (src/lib/seo/branches.ts
- * MARINA_BRANCH): it opened in November 2026, it is in Tuzla Marina, it is
- * open 10:00 - 23:00 (no days were named, so none are printed). Its unit,
- * postal code and phone are not known yet; the text says so and points at
- * /ziyaret, which fills in the day they are entered. The menu is the köşk's:
+ * MARINA_BRANCH): it opened in November 2026, it is in Viaport Marina Tuzla
+ * (Cami Mahallesi, 34940 Tuzla), it is open 10:00 - 23:00 (no days were
+ * named, so none are printed). Its unit and phone are not known yet; the
+ * text says so and points at /ziyaret, which fills in the day they are
+ * entered. Its karaoke is not running yet and will not take bookings
+ * (operator, 22 Kas 2026). The menu is the köşk's:
  * the branch's till reads it from the site, each branch keeping its own
  * "Tükendi" (CLAUDE.md "Şubeler"). No photograph of the branch exists yet,
  * so the guide has none rather than someone else's picture.
@@ -22,9 +24,9 @@ export const TUZLA_MARINA_KAFE_GUIDE: GuideSource = {
   title: "Tuzla Marina'da kahve: L'Affogato Marina",
   metaTitle: "Tuzla Marina Kafe: L'Affogato Marina Şubesi Açıldı",
   metaDescription:
-    "L'Affogato Marina, Tuzla Marina'da açıldı. Saatleri, menüsü, Tuzla köşkünden farkı ve köşkte kalanlar: karaoke odası ve uygulamadan gel-al siparişi.",
+    "L'Affogato Marina, Viaport Marina Tuzla'da açıldı. Adresi, saatleri, menüsü, Tuzla köşkünden farkı ve köşkte kalanlar: karaoke odası ve uygulamadan gel-al siparişi.",
   excerpt:
-    "L'Affogato'nun ikinci şubesi Tuzla Marina'da açıldı. Saatleri, menüsü, Tuzla köşküyle farkları ve hangi hizmetlerin yalnız köşkte olduğu.",
+    "L'Affogato'nun ikinci şubesi Viaport Marina Tuzla'da açıldı. Adresi, saatleri, menüsü, Tuzla köşküyle farkları ve hangi hizmetlerin yalnız köşkte olduğu.",
   primaryKeyword: "tuzla marina kafe",
   keywords: [
     "tuzla marina kafe",
@@ -42,8 +44,8 @@ export const TUZLA_MARINA_KAFE_GUIDE: GuideSource = {
     {
       heading: "L'Affogato Marina nerede?",
       paragraphs: [
-        "L'Affogato'nun ikinci şubesi L'Affogato Marina, Kasım 2026'da Tuzla Marina'da açıldı. Tuzla Marina, Viaport Marina Tuzla adıyla da bilinir ve İstanbul'un Anadolu yakasında, Tuzla sahilindedir.",
-        'Marina içindeki tam birim, posta kodu ve şubenin telefon numarası henüz yayımlanmadı. Bunlar girildiği gün laffogato.net/ziyaret sayfasındaki Marina kartında görünür; o zamana kadar haritada "Tuzla Marina" diye aratabilirsiniz.',
+        "L'Affogato'nun ikinci şubesi L'Affogato Marina, Kasım 2026'da Viaport Marina Tuzla'da açıldı: Cami Mahallesi, 34940 Tuzla / İstanbul. Marina, İstanbul'un Anadolu yakasında, Tuzla sahilindedir; Tuzla Marina adıyla da bilinir.",
+        'Marina içindeki tam birim ve şubenin telefon numarası henüz yayımlanmadı. Bunlar girildiği gün laffogato.net/ziyaret sayfasındaki Marina kartında görünür; o zamana kadar haritada "Viaport Marina Tuzla" diye aratabilirsiniz.',
       ],
     },
     {
@@ -66,7 +68,7 @@ export const TUZLA_MARINA_KAFE_GUIDE: GuideSource = {
     {
       heading: "Hangi hizmetler yalnız Tuzla köşkünde?",
       bullets: [
-        "Karaoke odası: köşkün üst katındadır; Marina'da karaoke yoktur.",
+        "Rezervasyonlu karaoke odası: köşkün üst katındadır. Marina'da karaoke henüz aktif değil; başladığında rezervasyonla çalışmayacak.",
         "Uygulamadan gel-al siparişi: uygulamada verilen gel-al siparişleri Tuzla köşkünde hazırlanır.",
         "Online mağaza siparişleri ve kargo: laffogato.net/magaza üzerinden, şubeden bağımsızdır.",
       ],
@@ -81,14 +83,14 @@ export const TUZLA_MARINA_KAFE_GUIDE: GuideSource = {
       ],
       bullets: [
         "Tuzla köşkü: Postane Mahallesi'nde 200 yıllık bir Rum köşkü, bahçe terası, gece 02:00'ye kadar açık, üst katta karaoke odası. Marmaray Tuzla'ya yürüyerek yaklaşık 6 dakika.",
-        "L'Affogato Marina: Tuzla Marina'da, 10:00 - 23:00 arası açık. Marinada yürüyüş ya da tekne gününün devamında kahve ve affogato için.",
+        "L'Affogato Marina: Viaport Marina Tuzla'da, 10:00 - 23:00 arası açık. Marinada yürüyüş ya da tekne gününün devamında kahve ve affogato için.",
       ],
     },
   ],
   faq: [
     {
       q: "L'Affogato Marina nerede?",
-      a: "Tuzla Marina'da (Viaport Marina Tuzla), İstanbul'un Anadolu yakasında Tuzla sahilinde. Marina içindeki tam birim henüz yayımlanmadı; girildiğinde laffogato.net/ziyaret sayfasında görünür.",
+      a: "Viaport Marina Tuzla'da: Cami Mahallesi, 34940 Tuzla / İstanbul, Tuzla sahilinde. Marina içindeki tam birim henüz yayımlanmadı; girildiğinde laffogato.net/ziyaret sayfasında görünür.",
     },
     {
       q: "L'Affogato Marina kaçta açılıyor, kaçta kapanıyor?",
@@ -100,7 +102,7 @@ export const TUZLA_MARINA_KAFE_GUIDE: GuideSource = {
     },
     {
       q: "Marina'da karaoke var mı?",
-      a: "Hayır. Karaoke odası yalnız Tuzla köşkünün üst katındadır; rezervasyon laffogato.net/karaoke sayfasından yapılır.",
+      a: "Henüz değil. L'Affogato Marina'da karaoke henüz aktif değil; başladığında rezervasyonla çalışmayacak. Rezervasyonla kullanılan özel karaoke odası Tuzla köşkünün üst katındadır ve laffogato.net/karaoke sayfasından ayrılır.",
     },
     {
       q: "Uygulamadan Marina'ya gel-al sipariş verebilir miyim?",

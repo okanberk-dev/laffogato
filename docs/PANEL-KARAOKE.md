@@ -38,7 +38,8 @@ birkaç saniyede bir sormadan.
    `Cache-Control: no-store`. Her rezervasyon yalnız şunları taşır: kimlik,
    gün, başlangıç saati, süre, başlangıç ve bitiş anı, kişi sayısı, durum,
    ödeme durumu, **yalnız ad** (soyad değil), not (en çok 300 karakter),
-   tutar, kanal (`web` / `app`), oluşturma ve güncelleme anı ve iptal
+   tutar, kanal (`web` / `app`, diğerleri boş), elle eklenip eklenmediği
+   (`desk`, 22 Kas 2026, ekleme), oluşturma ve güncelleme anı ve iptal
    edilmiş rezervasyonun iade tutarı (`refundMinor`, 29 Ekim 2026, ekleme;
    aşağıda). E-posta, telefon, soyad, iletişim izni, sözleşme kaydı, ödeme
    referansı, iadenin diğer ayrıntıları ve IP **hiç gönderilmez**
@@ -73,6 +74,67 @@ birkaç saniyede bir sormadan.
    aşarsa (tek oda saatlik kiralanınca gerçek bir durum değil) site okumayı
    da erkenden geçe yapar: kesilen pencerenin **uzak ucudur**, bugün ve bu
    hafta hep gelir; `complete: false` listenin kesildiğini söyler.
+
+## Elle rezervasyon ve kapalı saat (22 Kas 2026)
+
+Operatör: _"laffogato admin panelinden veya ladmin panelinden de manuel
+rezervasyon alınsın, oradan dolu yapılabilsin ki insanlar siteden bakınca
+görsünler"_. Telefonla ya da kasada alınan bir grup ve köşkün kapattığı
+saatler (etkinlik, bakım) odanın takvimine yazılır; saatler sitede,
+uygulamada ve kasada **hemen** dolu görünür. İki yoldan:
+
+- **Bu sitenin paneli:** Karaoke › **Elle ekle** (`/admin/mobil/karaoke`,
+  `karaoke` bölümü). Tür "Telefonla ya da kasada alınan rezervasyon" ya da
+  "Saati kapat"; gün, başlangıç, süre; rezervasyonda ad, kişi, isteğe bağlı
+  telefon, e-posta, not. Satırın sayfasında **Kaldır** saatleri açar.
+- **Köşkün paneli (ladmin) ya da LafPOS:** imzalı `POST /api/panel/karaoke`
+  (aşağıda). Kural aynı fonksiyondur (`src/lib/mobile/karaoke-desk.ts`).
+
+Satır `channel: "desk"` taşır, `confirmed` doğar, `paymentStatus: "none"`:
+ödemesi köşkte alınır, sitede kartla ödenmez, online satışa (`/api/panel/
+sales`) ve e-Arşiv'e girmez (kasa çalar). Kapalı saat 0 TL, 1 kişi, notu
+"Kapalı: …" ile başlar; sitede yalnız saatler dolu görünür, neden yazılmaz.
+E-posta yazılırsa misafire onay ve iptal e-postası gider ve rezervasyon o
+üyenin hesabında görünür; yazılmazsa satır `desk-krk-NNNNN@laffogato.invalid`
+yer tutucusunu taşır (RFC 2606): kimsenin açık rezervasyon tavanına sayılmaz,
+ona e-posta gitmez. Çakışmayı her zaman olduğu gibi veritabanı
+(`karaoke_reservations_no_overlap`) keser. Saatler odanın günü içinde olmalı
+(ilk saat ile kapanış arası, bugün geçmiş saat değil, rezervasyon penceresi
+kadar ileri); müşteriye uygulanan en uzun süre sınırı burada yoktur (bir
+kapatma bütün akşamı tutabilir). GET'in satırında `desk: true` (ekleme) bu
+satırları ayırır.
+
+```
+POST https://laffogato.net/api/panel/karaoke
+{"action":"create","kind":"booking","date":"2026-11-28","startHour":20,
+ "hours":2,"guests":6,"name":"Ayşe","phone":"","email":"","note":"",
+ "actor":"Kasa 1"}
+→ 201 {"reservation": {…GET'teki biçim, "desk": true}}
+
+{"action":"create","kind":"block","date":"2026-11-29","startHour":12,
+ "hours":12,"note":"özel etkinlik","actor":"Ahmet"}
+
+{"action":"cancel","id":"krk-00042","actor":"Ahmet"}
+→ 200 {"ok": true}
+```
+
+- İmza GET'inkiyle aynı, gövdenin tam baytları üzerinden (yöntem `POST`).
+  Gövde en çok 4096 bayt (413 `too_large`).
+- `actor` zorunlu: olay kaydına "Yönetim paneli · <ad>" ya da
+  `lafpos:<ad>` düşer.
+- Hatalar: 400 `invalid` (`field`, Türkçe `message`), 409 `slot_taken`
+  (saatlerin bir kısmı dolu), 409 `too_many` (yazılan e-postanın iki açık
+  rezervasyonu var; e-postayı boş bırakıp yeniden dene), 409 `not_desk`
+  (online ödenmiş rezervasyon yalnız bu sitenin panelinden iptal ve iade
+  edilir), 409 `already_cancelled`, 404 `not_found`, 409 `wrong_branch`
+  (oda Tuzla'nın; başka şube adına yazılamaz), 503 `unavailable`.
+- LafPOS'un anahtarı yalnız İstanbul'da dünden yarına yazar ve kaldırır
+  (403 `forbidden`), okuması gibi; varsayılan şubesi Marina olduğu için
+  Tuzla adına konuşamadıkça (`LAFPOS_BRANCHES`) 409 `wrong_branch` alır.
+- Yazım `live:karaoke`'yu düşürür: panel her zamanki pingi alır.
+
+Panel tarafı (lafmaliyet'te ekran ve düğme) o deponun işidir; bu uç onun
+için hazırdır.
 
 ## Çekme ucunu kim çağırır
 

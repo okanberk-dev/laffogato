@@ -31,6 +31,7 @@ import {
   type SummaryChip,
 } from "@/components/admin/ui/summary-card";
 import { MONO_STYLE, NUMERIC_STYLE } from "@/components/admin/ui/styles";
+import { KaraokeDeskRemove } from "@/components/admin/karaoke-desk-dialog";
 import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { listKaraokeAudit } from "@/lib/admin/karaoke-audit";
@@ -65,7 +66,10 @@ import {
   getReservation,
   listReservationsForDate,
 } from "@/lib/mobile/karaoke";
-import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
+import {
+  DEFAULT_KARAOKE_RULES,
+  isDeskPlaceholderEmail,
+} from "@/lib/mobile/karaoke-core";
 import { karaokeRoomCalendar } from "@/lib/mobile/karaoke-reschedule-core";
 import { formatReservationDate } from "@/lib/mobile/karaoke-format";
 import {
@@ -204,10 +208,14 @@ export default async function KaraokeReservationPage({
     },
     sameDay,
   );
-  const email = r.contactEmail || r.customerEmail;
+  // A desk row (karaoke-desk.ts) without an e-mail carries a placeholder
+  // address: never shown as if it were someone's.
+  const desk = r.channel === "desk";
+  const noAccount = isDeskPlaceholderEmail(r.customerEmail);
+  const email = noAccount ? "" : r.contactEmail || r.customerEmail;
   const consent = r.legalConsent ?? null;
   const memberHref =
-    !r.guest && canAccess("customers", session.role)
+    !r.guest && !noAccount && canAccess("customers", session.role)
       ? `/admin/musteriler/${encodeURIComponent(r.customerEmail)}`
       : null;
 
@@ -247,13 +255,16 @@ export default async function KaraokeReservationPage({
       ) : (
         ""
       ),
-      hint: r.contactPhone
-        ? undefined
-        : "Uygulamadan gelen rezervasyonda telefon olmaz.",
+      hint:
+        r.contactPhone || desk
+          ? undefined
+          : "Uygulamadan gelen rezervasyonda telefon olmaz.",
     },
     {
       label: "Hesap",
-      value: r.guest ? (
+      value: noAccount ? (
+        "Hesap yok"
+      ) : r.guest ? (
         "Üyeliksiz (misafir)"
       ) : memberHref ? (
         <Link
@@ -265,9 +276,11 @@ export default async function KaraokeReservationPage({
       ) : (
         r.customerEmail
       ),
-      hint: r.guest
-        ? "Rezervasyon e-postadaki imzalı bağlantıyla yönetilir."
-        : "Üye hesabı",
+      hint: noAccount
+        ? "E-posta yazılmadan elle eklendi; misafire e-posta gitmez."
+        : r.guest
+          ? "Rezervasyon e-postadaki imzalı bağlantıyla yönetilir."
+          : "Üye hesabı",
     },
     {
       label: "İletişim izni",
@@ -628,12 +641,17 @@ export default async function KaraokeReservationPage({
           <Section
             title="İptal kuralı"
             description={
-              legacyPolicy
-                ? "Kural kaydı tutulmadan önce alınmış rezervasyon: o günün kuralı (2 saat, %0) geçerli."
-                : "Rezervasyon anındaki kural; panelde sonradan yapılan değişiklik bu rezervasyonu etkilemez. Köşk iptal ederse her zaman tamamı iade edilir."
+              desk
+                ? "Köşkte elle eklendi: ödemesi köşkte alınır, saatleri bu sayfadaki Kaldır açar."
+                : legacyPolicy
+                  ? "Kural kaydı tutulmadan önce alınmış rezervasyon: o günün kuralı (2 saat, %0) geçerli."
+                  : "Rezervasyon anındaki kural; panelde sonradan yapılan değişiklik bu rezervasyonu etkilemez. Köşk iptal ederse her zaman tamamı iade edilir."
             }
           >
-            <KeyValueGrid items={cancelRule} columns={3} />
+            <KeyValueGrid
+              items={desk ? cancelRule.slice(-1) : cancelRule}
+              columns={3}
+            />
           </Section>
         </>
       ),
@@ -726,11 +744,17 @@ export default async function KaraokeReservationPage({
         description={`${r.customerName || "İsimsiz"} · ${r.guests} kişi`}
         badges={<KaraokeBadges view={view} />}
         action={
-          <KaraokeActions
-            view={view}
-            layout="page"
-            room={karaokeRoomCalendar(roomRules, today)}
-          />
+          r.channel === "desk" && r.status !== "cancelled" ? (
+            // A phone/counter booking or closed hours: no money moved, so
+            // it is simply taken off the calendar (22 Kas 2026).
+            <KaraokeDeskRemove id={r.id} variant="danger" />
+          ) : (
+            <KaraokeActions
+              view={view}
+              layout="page"
+              room={karaokeRoomCalendar(roomRules, today)}
+            />
+          )
         }
       />
 
@@ -782,9 +806,11 @@ export default async function KaraokeReservationPage({
               <Section
                 title="İletişim"
                 description={
-                  r.guest
-                    ? "Üyeliksiz rezervasyon: bilgiler formdan."
-                    : "Üye rezervasyonu."
+                  desk
+                    ? "Köşkte (telefonla ya da kasada) elle eklendi."
+                    : r.guest
+                      ? "Üyeliksiz rezervasyon: bilgiler formdan."
+                      : "Üye rezervasyonu."
                 }
               >
                 <KeyValueGrid items={contact} layout="inline" />

@@ -186,8 +186,10 @@ export interface KaraokeReservation {
   /**
    * Where it was booked; decides where a payment return lands. `staff`: a
    * free hour the köşk gave to make good its own late cancel (`makeGoodFor`).
+   * `desk`: taken at the köşk by phone or at the counter, or hours the köşk
+   * closed, from this site's panel or the köşk's (karaoke-desk.ts).
    */
-  channel?: "web" | "app" | "staff" | "";
+  channel?: "web" | "app" | "staff" | "desk" | "";
   legalConsent?: KaraokeLegalConsent | null;
   /**
    * Booked on the web without an account (16 Eki 2026). Never listed for a
@@ -664,4 +666,15 @@ export function readExpectedCancelPolicy(
   const parsed = ExpectedCancelPolicySchema.safeParse(input);
   if (!parsed.success) return "invalid";
   return parsed.data.expectedCancelPolicy ?? null;
+}
+
+/** The address domain a desk row without an e-mail gets: never mailed. */
+export const DESK_PLACEHOLDER_DOMAIN = "laffogato.invalid";
+
+/** Does this address belong to a desk row that has no real e-mail? */
+export function isDeskPlaceholderEmail(email: string | null | undefined) {
+  return (email ?? "")
+    .trim()
+    .toLowerCase()
+    .endsWith(`@${DESK_PLACEHOLDER_DOMAIN}`);
 }
