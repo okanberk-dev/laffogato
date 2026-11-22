@@ -21,7 +21,7 @@
   place-items: center;
   font-family: var(--display);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   border: 1.5px dashed rgba(255, 255, 255, 0.45);
   color: rgba(255, 255, 255, 0.75);
 }
@@ -118,8 +118,7 @@
   place-items: center;
   font-family: var(--display);
   font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 500;
   flex-shrink: 0;
 }
 .account-shell-title {
@@ -128,7 +127,6 @@
   font-weight: 400;
   font-size: clamp(28px, 4vw, 40px);
   line-height: 1.1;
-  letter-spacing: -0.01em;
 }
 .account-shell-body {
   display: grid;
@@ -192,13 +190,12 @@
 .account-nav-link-label {
   display: block;
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 500;
   font-size: 16px;
-  letter-spacing: -0.01em;
 }
 .account-nav-link-hint {
   display: block;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -210,7 +207,7 @@
 .account-nav-meta-row {
   display: flex;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -243,7 +240,7 @@
   border: 1px solid var(--line);
   background: var(--surface);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
   transition:
     border-color 0.15s,
@@ -302,9 +299,8 @@
 .account-stat-value {
   font-family: var(--display);
   font-size: clamp(24px, 2.4vw, 32px);
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
   margin-top: 2px;
 }
 .account-empty {
@@ -314,8 +310,7 @@
 .account-empty-title {
   font-family: var(--display);
   font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   margin-bottom: 6px;
 }
 .account-empty-hint {
@@ -353,7 +348,7 @@
 .account-order-no {
   font-family: var(--display);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .account-order-meta {
@@ -391,12 +386,11 @@
   gap: 10px;
   font-family: var(--display);
   font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
 }
 .account-address-default-badge {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
   background: var(--charcoal);
@@ -452,7 +446,7 @@
   border-radius: 0;
 }
 .account-saved-card-name {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 16px;
   overflow-wrap: anywhere;
 }
@@ -515,7 +509,7 @@
 }
 .account-field label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
 }
 .account-field input,
@@ -548,7 +542,7 @@
   padding: 10px 12px;
   border-radius: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .account-msg[data-tone="error"] {
   background: var(--surface);
@@ -622,7 +616,7 @@
   font-family: var(--mono);
   font-size: 18px;
   letter-spacing: 0.12em;
-  font-weight: 700;
+  font-weight: 500;
   background: var(--surface);
   /* --gold-soft is a on-dark tone: on white it was 1.47:1, i.e. no border at
      all. --gold reads at 5.29:1. */
@@ -663,10 +657,10 @@
 .account-timeline-label {
   font-family: var(--display);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 .account-timeline-hint {
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -760,7 +754,7 @@
 .auth-join-kicker {
   margin: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--charcoal);
@@ -771,7 +765,6 @@
   font-size: clamp(28px, 3vw, 38px);
   font-weight: 400;
   line-height: 1.1;
-  letter-spacing: -0.01em;
   color: var(--on-dark);
 }
 .auth-join-lede {
@@ -835,7 +828,7 @@
   gap: 6px;
   min-height: 32px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--ink);
@@ -850,7 +843,6 @@
   font-weight: 400;
   font-size: clamp(28px, 4.4vw, 40px);
   line-height: 1.1;
-  letter-spacing: -0.01em;
   color: var(--ink);
   text-wrap: balance;
 }
@@ -870,7 +862,7 @@
 }
 .auth-label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
 }
 .auth-hint {
@@ -908,7 +900,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--muted);
   cursor: pointer;
@@ -931,7 +923,7 @@
 .auth-consent-note {
   margin: -4px 0 0;
   padding-left: 30px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--muted);
 }
@@ -997,7 +989,7 @@
 }
 .auth-link {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
@@ -1067,11 +1059,11 @@
 }
 .account-firstrun-action-t {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--charcoal);
 }
 .account-firstrun-action-d {
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -1090,7 +1082,7 @@
 }
 .stamp-card-count {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -1129,11 +1121,10 @@
   margin-top: 16px;
   font-size: 21px;
   font-weight: 400;
-  letter-spacing: -0.02em;
 }
 .stamp-card-note {
   margin: 8px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--muted);
   max-width: 60ch;
@@ -1188,7 +1179,7 @@
 }
 .account-app-kicker {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--charcoal);
@@ -1198,12 +1189,11 @@
   font-family: var(--headline);
   font-size: 26px;
   font-weight: 400;
-  letter-spacing: -0.01em;
   line-height: 1.12;
 }
 .account-app-block p {
   margin: 8px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--on-dark-muted);
   max-width: 46ch;
@@ -1301,7 +1291,7 @@
 .deletion-channels-title {
   margin: 28px 0 10px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
 }
 .deletion-channels {
@@ -1369,4 +1359,76 @@
     font-size: 20px;
     line-height: 28px;
   }
+}
+
+/* ── Language pass (22 Kas 2026) ──────────────────────────────
+   The rules above were ported from the earlier look; this block puts
+   their type on the site's scale: titles in the headline face at 400,
+   uppercase and tracked (page 24/32, card 16/22), labels 12/24, totals
+   20/28, everything else Geist without heavy weights. */
+.order-done-title,
+.checkout-gate-title,
+.co-title {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 24px;
+  line-height: 32px;
+}
+@media (max-width: 767px) {
+  .order-done-title,
+  .checkout-gate-title,
+  .co-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+}
+.co-section-title,
+.co-brief-title,
+.co-facts-title,
+.co-summary-title,
+.co-docpanel-title,
+.account-empty-title,
+.account-address-label,
+.account-timeline-label,
+.deletion-channels-title,
+.deletion-notice-title,
+.stamp-card-headline,
+.account-saved-card-name,
+.account-firstrun-action-t,
+.account-nav-link-label {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 16px;
+  line-height: 22px;
+}
+.account-address-default-badge,
+.auth-join-kicker,
+.auth-back,
+.account-app-kicker {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 24px;
+}
+.account-stat-value {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 20px;
+  line-height: 28px;
+}
+.account-field label,
+.auth-label {
+  font-weight: 400;
 }

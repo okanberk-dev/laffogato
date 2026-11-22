@@ -21,8 +21,8 @@ import Link from "@/components/link";
  * the poster is the page's largest paint. The film starts after hydration,
  * and only where it should: not under reduced motion, not with Save-Data,
  * not while the hero is off screen or the tab is hidden. A clip is fetched
- * only when it is about to play. The pause button stops the film and the
- * turn of the slides (WCAG 2.2.2).
+ * only when it is about to play. There is no pause button (operator, 22
+ * Kas 2026: no stop/continue controls); reduced motion keeps the poster.
  */
 
 export interface HeroSlide {
@@ -89,7 +89,6 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
   const saveData = useSaveData();
   const allowed = reduced === false && !saveData;
-  const [userPaused, setUserPaused] = useState(false);
   const [visible, setVisible] = useState(true);
   const rootRef = useRef<HTMLElement>(null);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
@@ -116,7 +115,7 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
     };
   }, []);
 
-  const shouldPlay = allowed && !userPaused && visible && tall !== null;
+  const shouldPlay = allowed && visible && tall !== null;
 
   // Play the current clip, pause every other one. `playing` follows the
   // element's own play and pause events.
@@ -160,20 +159,6 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
     }
   };
 
-  // The button answers what the visitor sees, not the last thing they
-  // pressed: when the browser refused to autoplay (low-power mode), the
-  // film is stopped though nobody paused it, and the first tap must play
-  // it. play() runs inside the tap, so it carries the user's activation.
-  const toggle = () => {
-    if (playing) {
-      setUserPaused(true);
-      return;
-    }
-    setUserPaused(false);
-    videoRefs.current[index]?.play()?.catch(() => {
-      // Still refused: the poster stays and the button keeps saying "oynat".
-    });
-  };
   const current = slides[index];
 
   return (
@@ -260,24 +245,6 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
               </button>
             ))}
           </div>
-          {allowed ? (
-            <button
-              type="button"
-              className="hero-film-pause"
-              onClick={toggle}
-              aria-label={playing ? "Videoyu durdur" : "Videoyu oynat"}
-            >
-              {playing ? (
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3v10M11 3v10" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3.5v9l7.5-4.5z" />
-                </svg>
-              )}
-            </button>
-          ) : null}
         </div>
       </div>
     </section>

@@ -56,9 +56,10 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
     setLoaded(next);
   }
 
-  // Rotation never starts for anyone who asks the platform not to animate -
-  // it is decoration, and WCAG 2.2.2 gives a moving thing a way to be
-  // stopped. Their slider has no play/pause button either: nothing moves.
+  // Rotation never starts for anyone who asks the platform not to animate,
+  // and it stops while the pointer or the keyboard is on the slider. There
+  // is no play/pause button (operator, 22 Kas 2026: no stop/continue
+  // controls on the sliders).
   const still = useClientValue(prefersStill, false);
   useEffect(() => {
     if (total <= 1 || paused || still) return;
@@ -128,26 +129,6 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
               />
             </svg>
           </button>
-          {still ? null : (
-            <button
-              type="button"
-              className="shop-hero-playpause"
-              aria-label={
-                paused ? "Slaytları otomatik oynat" : "Otomatik geçişi durdur"
-              }
-              onClick={() => setPaused((p) => !p)}
-            >
-              {paused ? (
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3.5v9l7.5-4.5z" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3v10M11 3v10" />
-                </svg>
-              )}
-            </button>
-          )}
           <div
             className="shop-hero-dots"
             role="group"

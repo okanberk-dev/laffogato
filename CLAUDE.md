@@ -242,8 +242,8 @@ videoyu birebir çek kullan https://goodboybob.com/"_).** 17 Kas 2026'dan beri
 anasayfayı açan yolculuk 21 Kas 2026'da kaldırıldı. Anasayfa, çubuğun altında
 ekranın kalanını dolduran tam genişlik bir filmle açılır (`home-hero.tsx`,
 stili `src/styles/home.css`): üç klip sırayla oynar; sol altta klibin
-başlığı, sağ altta bağlantısı, 01/02/03 sayfalayıcı ve durdur düğmesi
-(telefonda alt alta). Filmin altında `home-page.tsx`'in bölümleri gelir:
+başlığı, sağ altta bağlantısı ve 01/02/03 sayfalayıcı (telefonda alt
+alta). Filmin altında `home-page.tsx`'in bölümleri gelir:
 Şimdi barda (canlı menüden dört kalem, fotoğraflılar önce), imza içeceği,
 Kategoriler, Evde L'Affogato, karaoke (ayarlardan ve bugünün boş
 saatlerinden), uygulama, Rehberler, Bizi ziyaret edin (`home-app-intro`,
@@ -260,10 +260,12 @@ saatlerinden), uygulama, Rehberler, Bizi ziyaret edin (`home-app-intro`,
   sayfanın en büyük boyamasıdır, ekran hiç boş kalmaz. Film hidrasyondan
   sonra, yalnız azaltılmış hareket ve Save-Data yokken başlar; hero en az %15
   ekrandayken ve sekme görünürken oynar, değilse durur. Azaltılmış harekette
-  ve Save-Data'da `<video>` hiç çizilmez: klip inmez, afiş kalır, durdur
-  düğmesi de olmaz. Durdur düğmesi filmi ve slaytların dönüşünü birlikte
-  durdurur (WCAG 2.2.2); tarayıcı otomatik oynatmayı reddederse (düşük güç
-  modu) afiş kalır.
+  ve Save-Data'da `<video>` hiç çizilmez: klip inmez, afiş kalır. Durdur /
+  oynat düğmesi yok (operatör, 22 Kas 2026: _"slider durdur devam ettir
+  gibi şeyler ekleme"_; mağaza slaytları da öyle, onlar fare ya da klavye
+  üstündeyken durur). Bu WCAG 2.2.2'den bilinçli bir ayrılıştır; hareketi
+  istemeyen ziyaretçi için azaltılmış hareket ayarı filmi hiç başlatmaz.
+  Tarayıcı otomatik oynatmayı reddederse (düşük güç modu) afiş kalır.
 - **Ne zaman iner.** Üç afiş ilk boyamada iner (pasif slayt yalnız
   saydamdır, `loading="lazy"` onu bekletmez). İlk klibin kaynağı
   hidrasyondan sonra verilir (`preload="auto"`); sıradaki, çalan klibin
@@ -402,7 +404,7 @@ src/
                                next/dynamic ile ayrı chunk olarak yükler
                                (statik import etme - spa-page-chunks testi)
       home-hero.tsx          → Anasayfanın filmi: üç klip, afişler,
-                               sayfalayıcı, durdur (public/video)
+                               sayfalayıcı (public/video)
       page-hero.tsx          → <PageHero>: anasayfa dışındaki sayfaların
                                açılışı (geniş fotoğraf, başlık, paragraf)
       page-shared.ts         → PageProps + MENU_TAG_LABELS
@@ -1059,7 +1061,7 @@ durum bozulmaya uygundur.
   kez sessizce AA altına düşürmüştü).
 - **Hareket:** sitenin tek sürekli hareketi anasayfa filmidir (yukarıda:
   ekran dışında ve gizli sekmede durur, azaltılmış harekette ve Save-Data'da
-  hiç başlamaz, durdur düğmesi var). Kaydırmayla açılan bölüm, harf harf
+  hiç başlamaz; durdur düğmesi yok). Kaydırmayla açılan bölüm, harf harf
   yükselen başlık, çözülen etiket ve three.js yok. Geçişler kısa (`--dur`
   0.2s, renk ve kenar), film slaytları 0.9s'de yer değiştirir, ürün
   fotoğrafı üstüne gelince %3 büyür; `prefers-reduced-motion` altında

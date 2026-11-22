@@ -1153,8 +1153,7 @@
   margin-top: 12px;
   min-width: min(350px, 100%);
 }
-.shop-hero-arrow,
-.shop-hero-playpause {
+.shop-hero-arrow {
   position: absolute;
   bottom: 24px;
   z-index: 2;
@@ -1172,16 +1171,6 @@
 }
 .shop-hero-arrow-prev {
   right: calc(var(--gutter) + 52px);
-}
-.shop-hero-playpause {
-  right: calc(var(--gutter) + 104px);
-}
-.shop-hero-playpause svg {
-  width: 12px;
-  height: 12px;
-  fill: currentColor;
-  stroke: currentColor;
-  stroke-width: 1.6;
 }
 .shop-hero-dots {
   position: absolute;
@@ -1223,8 +1212,7 @@
 .shop-hero-slider[data-theme="light"] :focus-visible {
   outline-color: var(--on-dark);
 }
-.shop-hero-slider .shop-hero-arrow:focus-visible,
-.shop-hero-slider .shop-hero-playpause:focus-visible {
+.shop-hero-slider .shop-hero-arrow:focus-visible {
   outline-color: var(--ink);
 }
 @media (max-width: 767px) {

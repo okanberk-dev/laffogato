@@ -55,7 +55,7 @@
 .order-done-kicker {
   margin: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--ink);
@@ -67,7 +67,6 @@
   font-weight: 400;
   font-size: clamp(28px, 4.6vw, 40px);
   line-height: 1.1;
-  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 .order-done-lede {
@@ -90,17 +89,16 @@
   border: 1px solid var(--line);
 }
 .order-done-facts dt {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--muted);
 }
 .order-done-facts dd {
   margin: 4px 0 0;
   font-family: var(--display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
 }
 .order-done-summary {
   margin-top: 26px;
@@ -109,7 +107,7 @@
   margin: 0 0 10px;
   font-family: var(--display);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 500;
 }
 .order-done-lines {
   list-style: none;
@@ -161,7 +159,7 @@
   color: var(--ink);
   font-family: var(--display);
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .order-done-actions {
@@ -174,7 +172,7 @@
 .order-done-foot {
   margin: 18px 0 0;
   text-align: center;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
 }
 .checkout-gate {
@@ -194,7 +192,6 @@
   font-family: var(--headline);
   font-size: clamp(26px, 3.4vw, 32px);
   font-weight: 400;
-  letter-spacing: -0.01em;
   line-height: 1.1;
   text-wrap: balance;
 }
@@ -223,7 +220,7 @@
   background: var(--band);
   color: var(--ink);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
 }
@@ -262,7 +259,7 @@
   border: 1px solid var(--line);
   background: var(--surface);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -286,7 +283,7 @@
   border-radius: 0;
   font-family: var(--display);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
   background: var(--charcoal);
@@ -305,8 +302,8 @@
 }
 .checkout-promo-msg {
   grid-column: 1 / -1;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   margin-top: 4px;
 }
 .checkout-promo-msg[data-tone="error"] {
@@ -377,7 +374,7 @@
   line-height: 1.4;
 }
 .checkout-freeship-hint strong {
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .app-fail-badge {
@@ -469,7 +466,6 @@
   margin: 0;
   font-family: var(--headline);
   font-weight: 400;
-  letter-spacing: -0.01em;
   font-size: clamp(26px, 3.2vw, 36px);
   line-height: 1.1;
   color: var(--ink);
@@ -488,7 +484,7 @@
   gap: 8px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
 }
@@ -527,8 +523,8 @@ button.co-steps-link {
   border-radius: 0;
   background: var(--band);
   color: var(--muted);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
 }
 .is-current .co-step,
 .co-section-head .co-step {
@@ -568,8 +564,7 @@ button.co-steps-link {
 .co-section-title {
   margin: 0;
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   font-size: clamp(19px, 2vw, 22px);
   color: var(--ink);
 }
@@ -616,7 +611,7 @@ button.co-steps-link {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
 }
 .co-address-badge {
@@ -624,8 +619,8 @@ button.co-steps-link {
   border-radius: 0;
   background: var(--charcoal);
   color: var(--on-dark);
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
 }
@@ -656,7 +651,7 @@ button.co-steps-link {
 .co-label {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--muted);
 }
 .co-label-row {
@@ -678,7 +673,7 @@ button.co-steps-link {
 .co-field-error {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--error);
 }
 .co-ship-method {
@@ -691,7 +686,7 @@ button.co-steps-link {
   font-size: 16px;
 }
 .co-ship-method-name {
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
 }
 .co-ship-method-meta {
@@ -703,7 +698,7 @@ button.co-steps-link {
   grid-row: 1 / span 2;
   grid-column: 2;
   align-self: center;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
@@ -728,7 +723,7 @@ button.co-steps-link {
   background: none;
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -760,10 +755,10 @@ button.co-steps-link {
   outline-offset: 2px;
 }
 .co-banner-title {
-  font-weight: 700;
+  font-weight: 500;
 }
 .co-banner-safe {
-  font-weight: 600;
+  font-weight: 500;
 }
 .co-docs {
   margin: 0;
@@ -807,8 +802,7 @@ button.co-steps-link {
 .co-brief-title {
   margin: 0;
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   font-size: 18px;
   line-height: 1.25;
   color: var(--ink);
@@ -833,7 +827,7 @@ button.co-steps-link {
 }
 .co-brief-lines .tabular {
   flex: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 .co-brief-totals {
   display: grid;
@@ -854,14 +848,13 @@ button.co-steps-link {
 }
 .co-brief-total {
   padding-top: 4px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
 }
 .co-brief-total dd {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
   font-size: 20px;
 }
 .co-brief-totals .co-brief-kdv,
@@ -920,8 +913,7 @@ button.co-steps-link {
 .co-docpanel-title {
   margin: 0;
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   font-size: clamp(19px, 2.4vw, 22px);
   line-height: 1.25;
   color: var(--ink);
@@ -976,8 +968,7 @@ button.co-steps-link {
 .co-facts-title {
   margin: 0;
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   font-size: 18px;
   color: var(--ink);
 }
@@ -1084,7 +1075,7 @@ button.co-steps-link {
   cursor: pointer;
 }
 .co-method-main {
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
 }
 .co-method-meta {
@@ -1137,7 +1128,7 @@ button.co-steps-link {
   color: var(--muted);
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
 }
 .co-help::before {
@@ -1185,8 +1176,8 @@ button.co-steps-link {
 }
 .co-installment {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--muted);
 }
 .co-trust-note {
@@ -1261,9 +1252,8 @@ button.co-steps-link {
 }
 .co-paybar-total strong {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
   font-size: 24px;
   color: var(--ink);
 }
@@ -1272,7 +1262,7 @@ button.co-steps-link {
 }
 .co-paybar-hint {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 12px;
   text-align: center;
   color: var(--muted);
 }
@@ -1298,7 +1288,7 @@ button.co-steps-link {
   background: none;
   font: inherit;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
   text-align: left;
   cursor: pointer;
@@ -1326,8 +1316,7 @@ button.co-steps-link {
   margin: 0;
   padding: 22px 22px 0;
   font-family: var(--display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 500;
   font-size: 20px;
   color: var(--ink);
 }
@@ -1362,7 +1351,7 @@ button.co-steps-link {
 .co-line-side {
   flex: none;
   justify-items: end;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
 }
 .co-line-side .co-link {
@@ -1401,7 +1390,7 @@ button.co-steps-link {
 .co-qty span {
   min-width: 24px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 500;
 }
 .co-totals {
   display: grid;
@@ -1428,19 +1417,18 @@ button.co-steps-link {
   align-items: baseline;
 }
 .co-totals-total dt {
-  font-weight: 700;
+  font-weight: 500;
   color: var(--ink);
 }
 .co-totals-total dt span {
   font-weight: 400;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .co-totals-total dd {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
   font-size: 24px;
   color: var(--ink);
 }
@@ -1537,5 +1525,82 @@ button.co-steps-link {
   }
   .co-chrome-help-number {
     display: none;
+  }
+}
+
+/* ── Language pass (22 Kas 2026) ──────────────────────────────
+   The rules above were ported from the earlier look; this block puts
+   their type on the site's scale: titles in the headline face at 400,
+   uppercase and tracked (page 24/32, card 16/22), labels 12/24, totals
+   20/28, everything else Geist without heavy weights. */
+.order-done-title,
+.checkout-gate-title,
+.co-title {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 24px;
+  line-height: 32px;
+}
+@media (max-width: 767px) {
+  .order-done-title,
+  .checkout-gate-title,
+  .co-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+}
+.co-section-title,
+.co-brief-title,
+.co-facts-title,
+.co-summary-title,
+.co-docpanel-title,
+.order-done-sub {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 16px;
+  line-height: 22px;
+}
+.order-done-kicker,
+.checkout-secure,
+.co-steps-item,
+.co-address-badge,
+.checkout-promo button,
+.order-done-facts dt {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 12px;
+  line-height: 24px;
+}
+.co-totals-total dd,
+.co-paybar-total strong,
+.co-brief-total dd,
+.order-done-row.is-total,
+.order-done-facts dd {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 20px;
+  line-height: 28px;
+}
+.co-label {
+  font-weight: 400;
+}
+.co-chrome-secure {
+  white-space: nowrap;
+}
+@media (max-width: 479px) {
+  .co-chrome-secure {
+    letter-spacing: 1px;
   }
 }

@@ -105,23 +105,6 @@
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.hero-film-pause {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  color: var(--on-dark);
-}
-.hero-film-pause svg {
-  width: 12px;
-  height: 12px;
-  fill: currentColor;
-  stroke: currentColor;
-  stroke-width: 1.6;
-}
 .hero-film :focus-visible {
   outline-color: var(--on-dark);
 }
@@ -136,8 +119,8 @@
     font-size: 20px;
     line-height: 28px;
   }
-  /* The link on the left; the pager and the pause button together on the
-     right. Every control is a 44px target on a touch screen. */
+  /* The link on the left, the pager on the right; every control is a
+     44px target on a touch screen. */
   .hero-film-controls {
     width: 100%;
     justify-content: flex-start;
@@ -156,11 +139,7 @@
     min-width: 44px;
     min-height: 44px;
   }
-  .hero-film-pause {
-    width: 44px;
-    height: 44px;
   }
-}
 
 /* ── The app block: text and points beside a photograph ────── */
 .app-block {
