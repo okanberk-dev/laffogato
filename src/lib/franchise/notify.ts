@@ -80,7 +80,9 @@ export async function sendFranchiseOperatorNotice(
         value: franchiseOptionLabel(TIMELINE_OPTIONS, app.timeline),
       },
     ],
-    note: app.message ? { label: "Başvuranın notu", text: app.message } : undefined,
+    note: app.message
+      ? { label: "Başvuranın notu", text: app.message }
+      : undefined,
     button: { label: "Başvuruyu aç", url: franchiseAdminUrl(app.id) },
     footnote: `Bu e-postayı yanıtlarsan başvurana yazarsın. Başvuru ${FRANCHISE_RETENTION_MONTHS} ay sonra kendiliğinden silinir.`,
     replyTo: app.email,

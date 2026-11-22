@@ -28,6 +28,22 @@
      light grey with black ink (16.9:1), no edge. */
   --inactive: #eaeae7;
 
+  /* The brand's green (22 Kas 2026, operator: "renkleri de yeşilimsi yap
+     bizim renkler gibi"). Only the /franchise page (.theme-forest,
+     pages.css) and the e-mails wear it; the rest of the site stays
+     charcoal. Deep forest green (white on it 11.7:1) and its hover, a
+     green-black ink (14.9:1 on white), a green-grey second line (5.7:1 on
+     white, 5.2:1 on the sage), the sage band and hairline, and the logo's
+     brass for small labels on the green (4.9:1; never on a light ground,
+     2.4:1 there). */
+  --forest: #173f35;
+  --forest-deep: #10302a;
+  --forest-ink: #1e2a25;
+  --forest-muted: #5b6a63;
+  --sage: #f2f5f1;
+  --sage-line: #d8e0da;
+  --brass: #cba258;
+
   /* State, not brand: errors and the "open now" line. */
   --error: #b42318;
   --success: #1f6b4a;

@@ -97,8 +97,8 @@ function faq(email: string): Array<{ q: string; a: React.ReactNode }> {
       q: "Başvuru ücretli mi?",
       a: (
         <>
-          Hayır. Başvuru ve tanışma görüşmesi ücretsizdir. L&apos;Affogato
-          adına başvuru ücreti, dosya bedeli ya da ön ödeme isteyen biriyle
+          Hayır. Başvuru ve tanışma görüşmesi ücretsizdir. L&apos;Affogato adına
+          başvuru ücreti, dosya bedeli ya da ön ödeme isteyen biriyle
           karşılaşırsan bize <a href={`mailto:${email}`}>{email}</a> adresinden
           bildir.
         </>
@@ -167,12 +167,14 @@ export function FranchisePage({
   contactEmail: string;
 }) {
   return (
-    <>
+    <div className="theme-forest">
       <PageHero
         eyebrow="İş ortaklığı"
         title="Franchise"
         lede="Köşkte kurduğumuz kahve, affogato ve karaoke düzenini yeni şehirlere ve semtlere taşıyacak iş ortaklarıyla konuşuyoruz. Başvurunu bırak, seni arayalım."
-        image={heroImage.src ? { src: heroImage.src, alt: heroImage.alt } : undefined}
+        image={
+          heroImage.src ? { src: heroImage.src, alt: heroImage.alt } : undefined
+        }
       >
         <a className="btn btn-dark btn-wide" href="#basvuru">
           Başvuru formuna git
@@ -191,9 +193,9 @@ export function FranchisePage({
               Köşkten doğan bir kahve evi
             </h2>
             <p className="t-body">
-              L&apos;Affogato, Tuzla&apos;da 200 yıllık restore bir Rum
-              köşkünde açıldı. Gündüz kahve ve affogato, akşam üst kattaki
-              karaoke odası; aynı adla online mağaza ve uygulama.
+              L&apos;Affogato, Tuzla&apos;da 200 yıllık restore bir Rum köşkünde
+              açıldı. Gündüz kahve ve affogato, akşam üst kattaki karaoke odası;
+              aynı adla online mağaza ve uygulama.
             </p>
             <ul className="franchise-points" role="list">
               <li>
@@ -261,7 +263,8 @@ export function FranchisePage({
 
       {/* The process ─────────────────────────────────────── */}
       <section
-        className="section section--band"
+        className="section section--dark franchise-process"
+        data-ground="dark"
         aria-labelledby="franchise-steps"
       >
         <div className="wrap franchise-duo">
@@ -336,6 +339,6 @@ export function FranchisePage({
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

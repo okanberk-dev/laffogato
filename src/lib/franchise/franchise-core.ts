@@ -75,7 +75,8 @@ export const TIMELINE_OPTIONS = [
   { value: "12+", label: "1 yıldan sonra" },
 ] as const satisfies readonly FranchiseOption[];
 
-export type FranchiseLocationStatus = (typeof LOCATION_OPTIONS)[number]["value"];
+export type FranchiseLocationStatus =
+  (typeof LOCATION_OPTIONS)[number]["value"];
 export type FranchiseBudget = (typeof BUDGET_OPTIONS)[number]["value"];
 export type FranchiseExperience = (typeof EXPERIENCE_OPTIONS)[number]["value"];
 export type FranchiseTimeline = (typeof TIMELINE_OPTIONS)[number]["value"];
@@ -114,7 +115,9 @@ const text = (label: string, max: number, required: boolean) => {
     .string()
     .transform(oneLine)
     .pipe(
-      z.string().max(max, { error: `${label} en fazla ${max} karakter olabilir.` }),
+      z
+        .string()
+        .max(max, { error: `${label} en fazla ${max} karakter olabilir.` }),
     );
   return required
     ? base.pipe(z.string().min(1, { error: `${label} gerekli.` }))
@@ -125,9 +128,15 @@ const choice = <T extends readonly FranchiseOption[]>(
   options: T,
   message: string,
 ) =>
-  z.enum(options.map((o) => o.value) as [T[number]["value"], ...T[number]["value"][]], {
-    error: message,
-  });
+  z.enum(
+    options.map((o) => o.value) as [
+      T[number]["value"],
+      ...T[number]["value"][],
+    ],
+    {
+      error: message,
+    },
+  );
 
 export const franchiseApplicationSchema = z.object({
   name: text("Ad soyad", FRANCHISE_LIMITS.name, true).pipe(

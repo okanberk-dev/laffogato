@@ -283,9 +283,8 @@ export function FranchiseForm({ contactEmail }: { contactEmail: string }) {
       <div className="franchise-form-foot">
         <p className="franchise-notice">
           Adını, iletişim bilgilerini ve yanıtlarını yalnız başvurunu
-          değerlendirmek ve seninle iletişime geçmek için kullanırız.
-          Başvurun {FRANCHISE_RETENTION_MONTHS} ay sonra silinir. Ayrıntı ve
-          hakların:{" "}
+          değerlendirmek ve seninle iletişime geçmek için kullanırız. Başvurun{" "}
+          {FRANCHISE_RETENTION_MONTHS} ay sonra silinir. Ayrıntı ve hakların:{" "}
           <Link href={FRANCHISE_PRIVACY_PATH}>KVKK Aydınlatma Metni</Link>.
         </p>
         {/* Starts unticked (docs/FRONTEND-SINIR.md §2). */}

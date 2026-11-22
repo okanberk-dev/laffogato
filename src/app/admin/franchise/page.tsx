@@ -68,7 +68,10 @@ export default async function FranchisePage({ searchParams }: PageProps) {
   const tab: FranchiseStatus | null = isStatus(raw) ? raw : null;
   const all = await listFranchiseApplications();
   const counts = Object.fromEntries(
-    FRANCHISE_STATUSES.map((s) => [s, all.filter((a) => a.status === s).length]),
+    FRANCHISE_STATUSES.map((s) => [
+      s,
+      all.filter((a) => a.status === s).length,
+    ]),
   ) as Record<FranchiseStatus, number>;
   const rows = tab ? all.filter((a) => a.status === tab) : all;
 
@@ -79,9 +82,9 @@ export default async function FranchisePage({ searchParams }: PageProps) {
         description="Sitedeki franchise formundan gelen başvurular."
         help={
           <p>
-            Her yeni başvuru Ayarlar › Bildirimler&apos;deki operasyon
-            adresine de e-postayla gelir. Başvurular{" "}
-            {FRANCHISE_RETENTION_MONTHS} ay sonra kendiliğinden silinir.
+            Her yeni başvuru Ayarlar › Bildirimler&apos;deki operasyon adresine
+            de e-postayla gelir. Başvurular {FRANCHISE_RETENTION_MONTHS} ay
+            sonra kendiliğinden silinir.
           </p>
         }
       />
@@ -120,7 +123,7 @@ export default async function FranchisePage({ searchParams }: PageProps) {
                 cell: (a) => (
                   <span className="block min-w-0">
                     {a.name}
-                    <span className="block text-xs font-normal text-[var(--admin-text-soft)] [overflow-wrap:anywhere]">
+                    <span className="block text-xs font-normal [overflow-wrap:anywhere] text-[var(--admin-text-soft)]">
                       {a.email}
                     </span>
                   </span>
@@ -177,8 +180,7 @@ export default async function FranchisePage({ searchParams }: PageProps) {
                   {a.name}
                 </CardLink>
                 <span className="text-xs text-[var(--admin-text-soft)]">
-                  {place(a)} ·{" "}
-                  {franchiseOptionLabel(BUDGET_OPTIONS, a.budget)}
+                  {place(a)} · {franchiseOptionLabel(BUDGET_OPTIONS, a.budget)}
                 </span>
                 <span className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={a.status} />

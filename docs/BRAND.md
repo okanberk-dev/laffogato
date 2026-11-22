@@ -535,7 +535,7 @@ resmi 4:3. Referans sitelerin görselleri kullanılmaz (§0.6).
    kremi `#faf7f2`'yi yazıyor: yeni palete taşınacak. E-postalar
    (`src/lib/email/templates/*.html`, Supabase'in dört şablonu
    `docs/email/`, sözleşme eki `src/lib/legal/durable-copy.ts`) 22 Kas
-   2026'da yeni palete geçti (§10). Eski porselen paletinde (logo yeşili)
+   2026'da sitenin diline ve markanın yeşiline geçti (§10). Eski porselen paletinde (logo yeşili)
    kalan ve ayrı taşınacak olanlar: bağlantı önizlemeleri
    (`src/lib/seo/og-card.tsx`), ödeme köprüsü
    (`src/lib/payment/paynkolay-page.ts`), `public/browserconfig.xml`
@@ -661,7 +661,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 17 Kas 2026 | **Yolculuk** (operatör: _"sitede aşağıdaki promptu uygula ve kahveciye uygun hale getir sonra maine gönder"_, "alpha project" build promptu): anasayfanın girişi kaydırmanın oynattığı film oldu; Roast girişi kalktı.                                                                                     |
 | 21 Kas 2026 | **Admin paneli StorageBox** (operatör: _"laffogato admin panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda yap"_): açık gri çerçevede ince çizgili beyaz kartlar (köşe 24), hap kontroller, koyu etkin menü hapı, tek mavi `#122aff`, DM Sans başlık ve rakam; köşk çipi kalktı, arama sade kutu (`docs/ADMIN-STORAGEBOX.md`); müşteri sitesi değişmedi. |
 | 21 Kas 2026 | **Blue Bottle dili ve film** (operatör, §0.6): önceki görünüm bütünüyle silindi; beyaz ve bant, siyah, tek gri, kömür, kare köşe, Archivo + Geist, anasayfada lisanslı stok film. Güncel değerler §0.                                                                                                      |
-| 22 Kas 2026 | **E-postalar sitenin dilinde** (operatör: _"mail tasarımlarını da siteyle aynı yap"_): bant dış zemin, beyaz kart, kömür logo karosu, büyük harf aralıklı başlık, kare kömür düğme, kömür footer; koyu modda kart `#1a1a1a`, düğme beyaz (§10). |
+| 22 Kas 2026 | **E-postalar ve /franchise markanın yeşilinde** (operatör: _"mail tasarımlarını da siteyle aynı yap"_, _"renkleri de yeşilimsi yap bizim renkler gibi"_; kapsam yalnız e-postalar ve franchise): sitenin dili, derin orman yeşili `#173f35`, adaçayı `#f2f5f1`, pirinç etiket (§10). Sitenin geri kalanı kömürde. |
 
 **11-21 Kas 2026: Roast ve yolculuk (tarihçe; 21 Kas 2026'ya kadar bu
 belgenin §0'ıydı).** Krem zemin `#faf7f2` (beyaza yakın bant `#fdfcf9`, taş
@@ -732,7 +732,7 @@ Gabarito.
 `public/icon-*.png`) ve PayNkolay köprüsü porselen döneminde uygulama paletine
 taşındı; e-posta şablonları 15 Eki 2026'da (zemini gömülü bantlar HTML
 çubuğa, logo çifti ile glint GIF'i tek opak karoya döndü). E-postalar 22 Kas
-2026'da sitenin diline geçti (§10); bağlantı önizlemesi, JSON-LD ikonları ve
+2026'da sitenin diline ve markanın yeşiline geçti (§10); bağlantı önizlemesi, JSON-LD ikonları ve
 PayNkolay köprüsü porselende kaldı (§8).
 
 **21 Kas 2026'da kalkanlar.** Dosyalar: `journey/` (film, çiziciler, kare
@@ -753,40 +753,63 @@ zaten 16 Kas 2026'da `tests/` ile kalkmıştı; eski hâlleri
 
 ---
 
-## 10. E-posta (22 Kas 2026)
+## 10. Markanın yeşili: e-postalar ve /franchise (22 Kas 2026)
 
 Operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap mailleri de
-öyle"_. Yirmi dokuz şablon (`src/lib/email/templates/`), Supabase'in dört
-giriş e-postası (`docs/email/`) ve sözleşme eki (`durable-copy.ts`) sitenin
-değerlerini satır içi yazar; kurallar ve sınıflar
-`src/lib/email/templates/README.md` "Palet".
+öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler gibi ve estetik
+şık yap hepsini tekrar gözden geçirip"_. Kapsam sorusuna yanıtı: **yalnız
+e-postalar ve franchise sayfası**; sitenin geri kalanı kömürde kalır. Ton:
+**derin orman yeşili** (önerilen seçenek).
 
-- **Değerler sitenin token'larıdır:** dış zemin bant `#f6f6f3`, kart beyaz ve
-  çerçevesiz, metin siyah, ikincil satır `#6c6864`, çizgi `#dcdcd6`, dolu
-  düğme ve koyu bloklar kömür `#333333` (iç kutu `#1f1f1f`), koyu zeminde
-  beyaz ve `#c6c6c6` (`--on-dark-muted` kömürde). Durum rengi yalnız
-  "onaylandı" vurgusunda (`--success` kendi %10 yıkamasında) ve ödeme
-  rozetinde. Kare köşe; gölge ve degrade yok.
-- **Yazı:** başlık, etiket, fiyat ve kod dışı küçük başlıklar `'Archivo',
-  'Helvetica Neue', Helvetica, Arial` yığınıyla 400, büyük harf, 1.6px
-  aralık (24/32, açılış başlığı 28/36, telefonda 24/32); cümle ve düğme
-  `'Geist', -apple-system, 'Segoe UI', Helvetica, Arial`. Web fontu
-  yüklenmez (Gmail ve Outlook yüklemez, istek alıcının adresini üçüncü
-  tarafa taşır): yazı yüzü yüklü değilse sistemin groteski çizer. Kupon ve
-  takip kodu eş genişlikli.
-- **Düğme:** 48px, iç boşluk 13px 36px, kömür dolu, beyaz Geist 16px,
-  cümle düzeni; tek çağrı 350px ve telefonda tam satır. Kömür bloğun
-  üstünde beyaz dolu ya da beyaz çerçeveli. Koyu modda dolu düğme beyaza
-  döner (`em-btn`).
-- **Logo:** `laf-mark-charcoal.png`, kömür karo üstünde beyaz harf ve
-  `#cba258` çekirdek (footer'daki `cream` tonu). Opaktır: Gmail koyu modda
-  renkleri çevirir, görselleri çevirmez; saydam siyah bir işaret koyu kartta
-  kaybolurdu. Kömür footer'da karo bloğa karışır, yalnız işaret görünür.
-- **Kontrast** (bu değerlerden, §0.2'deki yöntemle): siyah beyazda 21:1,
-  bantta 19.39:1; `#6c6864` beyazda 5.52:1, bantta 5.10:1; beyaz kömürde
-  12.63:1, `#1f1f1f`'te 16.48:1; `#c6c6c6` kömürde 7.39:1; `--success`
-  yıkamasında 5.56:1. Koyu modda `#f2f2f2` `#1a1a1a`'da 15.54:1 (panelde `#262626` 13.51:1), `#a6a6a6`
-  `#1a1a1a`'da 7.14:1 (panelde 6.21:1); "onaylandı" `#9fd8bd` `#173a2b`'de 7.77:1.
-- **Görseller** `scripts/gen-email-assets.mjs` ile üretilir (Lucide ikonları,
-  `public/brand` işareti); eski görseller gönderilmiş e-postalar için
-  diskte kalır.
+**Token'lar** (`src/styles/foundation.css :root`; e-postalar aynı hex'leri
+satır içi yazar):
+
+| Token            | Değer     | Rol                                                       |
+| ---------------- | --------- | --------------------------------------------------------- |
+| `--forest`       | `#173f35` | Dolu düğme, yeşil blok, footer (e-posta), başlık ve etiket |
+| `--forest-deep`  | `#10302a` | Üzerine gelme; yeşil blok içindeki kutu                   |
+| `--forest-ink`   | `#1e2a25` | Cümle metni                                               |
+| `--forest-muted` | `#5b6a63` | İkincil satır                                             |
+| `--sage`         | `#f2f5f1` | Bant: dış zemin, panel, açık ikon karosu                  |
+| `--sage-line`    | `#d8e0da` | Kılçizgi                                                  |
+| `--brass`        | `#cba258` | Logonun çekirdeği; yeşil zeminde küçük etiket             |
+
+**Sitede yalnız /franchise.** `.theme-forest` (`src/styles/pages.css`)
+sayfanın kökünde sitenin kendi token'larını yeşile bağlar (`--charcoal`,
+`--charcoal-deep`, `--line-strong`, `--band`, `--line`, `--ink`,
+`--muted`): düğmeler, alan ve düğme kenarları, onay kutusunun noktası ve
+bant yeşillenir, bileşenlerin kuralı değişmez. Başlık ve etiketler
+`--forest`, süreç bandı derin yeşil (`.franchise-process`, beyaz başlık,
+pirinç rakam). Footer sayfanın dışındadır, kömürde kalır.
+
+**E-postalar** (`src/lib/email/templates/`, `docs/email/`, sözleşme eki
+`durable-copy.ts`; ayrıntı `src/lib/email/templates/README.md` "Palet"):
+adaçayı dış zemin, çerçevesiz beyaz kart, yeşil logo karosu
+(`laf-mark-green.png`, opak), başlık ve etiket `'Archivo'` yığınıyla 400,
+büyük harf, 1.6px aralık, derin yeşil; cümle `'Geist'` yığınıyla
+`#1e2a25`; kare yeşil düğme (cümle düzeni, tek çağrı 350px); yeşil açılış,
+bilet ve footer, üstünde pirinç etiket; uygulama şeridi adaçayı bantta.
+Web fontu yüklenmez (Gmail ve Outlook yüklemez, istek alıcının adresini
+üçüncü tarafa taşır). Koyu modda kart `#111c18`, düğme açık (`#eef4f0`,
+yeşil yazı).
+
+**Kontrast** (§0.2'deki yöntemle, aşağı kesilmiş):
+
+| Ön plan                 | Zemin                 | Oran  |
+| ----------------------- | --------------------- | ----- |
+| `#173f35`               | beyaz · `#f2f5f1`     | 11.67 · 10.62 |
+| `#1e2a25`               | beyaz · `#f2f5f1`     | 14.86 · 13.52 |
+| `#5b6a63`               | beyaz · `#f2f5f1`     | 5.69 · 5.18 |
+| beyaz                   | `#173f35` · `#10302a` | 11.67 · 14.20 |
+| `#c3d3cb` (e-posta)     | `#173f35` · `#10302a` | 7.50 · 9.13 |
+| `--on-dark-muted` (site) | `#173f35`            | 7.30 |
+| `#cba258`               | `#173f35` · `#10302a` | 4.91 · 5.98 |
+| `#1f6b4a`               | `#e9f0ed`             | 5.56 |
+| `#eef4f0` (koyu mod)    | `#111c18` · `#1a2a24` | 15.65 · 13.44 |
+| `#a3b4ab` (koyu mod)    | `#111c18` · `#1a2a24` | 8.04 · 6.90 |
+| `#173f35` (koyu mod düğme) | `#eef4f0`          | 10.47 |
+
+Pirinç açık zeminde 2.4:1'de kalır: yalnız yeşil zeminde, yalnız etiket.
+Görseller `scripts/gen-email-assets.mjs` ile üretilir (Lucide ikonları,
+`public/brand` işareti); eski görseller gönderilmiş e-postalar için diskte
+kalır.

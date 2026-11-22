@@ -5,10 +5,12 @@ stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
 
-Görünüm sitenindir (22 Kas 2026, operatör: _"mail tasarımlarını da siteyle
-aynı yap ... estetik yap mailleri de öyle"_): Blue Bottle dilindeki sitenin
-değerleri (`src/styles/foundation.css :root`, `docs/BRAND.md` §0 ve §10)
-satır içi yazılır - bkz. "Palet". Düzen ve alan iskeleti 8 Eyl 2026'daki
+Görünüm sitenin dilidir, renkleri markanın yeşilidir (22 Kas 2026,
+operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap mailleri
+de öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler gibi"_):
+sitenin düzeni, yazısı ve kontrolleri, derin orman yeşili, adaçayı bant ve
+logonun pirinci satır içi yazılır (`src/styles/foundation.css :root`
+`--forest*`, `--sage*`, `--brass`; `docs/BRAND.md` §10) - bkz. "Palet". Düzen ve alan iskeleti 8 Eyl 2026'daki
 spesifikasyondan kaldı. Dosyalar **bitmiş tasarımdır**; nöbetçi testler
 (`tests/email-templates.test.ts`, `tests/brand-theme.test.ts`) 16 Kas
 2026'da kalktı, aşağıdaki kurallar elle korunur. Şablonu değiştirdikten
@@ -185,15 +187,16 @@ işaret `public/brand`'den, ikonlar Lucide'den).
 
 ```
 public/email/
-  laf-mark-charcoal.png           168×168, 56 (başlık) / 44 (footer) px basılır - kömür (#333333) karo
-                                  üstünde beyaz L'Af ve #cba258 çekirdek. OPAK: Gmail'in koyu modu
-                                  renkleri çevirir ama görselleri çevirmez; saydam siyah bir işaret koyu
-                                  kartta kaybolurdu. Kömür footer'da karo bloğa karışır.
+  laf-mark-green.png              168×168, 56 (başlık) / 44 (footer) px basılır - derin yeşil (#173f35)
+                                  karo üstünde beyaz L'Af ve #cba258 çekirdek (uygulama ikonunun
+                                  renkleri). OPAK: Gmail'in koyu modu renkleri çevirir ama görselleri
+                                  çevirmez; saydam bir işaret koyu kartta kaybolurdu. Yeşil footer'da
+                                  karo bloğa karışır.
   check-success.png               112×112, 56 px - ödeme onayı rozeti: --success disk, beyaz tik (saydam köşe)
-  stamp-sq-{full,empty}.png       96×96, 40 px - damga kartı hücreleri, kömür panelde: dolu = bant kare ve
+  stamp-sq-{full,empty}.png       96×96, 40 px - damga kartı hücreleri, yeşil panelde: dolu = adaçayı kare ve
                                   #b8893a çekirdek, boş = kesik çizgili kare (sitenin .stamp'ı)
-  icons/<ad>-ink.png              96×96, 40-48 px - bant karo üstünde siyah çizgi ikon (açık yüzeyler; opak)
-  icons/<ad>-white.png            96×96 - saydam zeminde beyaz çizgi ikon: kömür bloklarda, ve açık
+  icons/<ad>-ink.png              96×96, 40-48 px - adaçayı karo üstünde yeşil çizgi ikon (açık yüzeyler; opak)
+  icons/<ad>-white.png            96×96 - saydam zeminde beyaz çizgi ikon: yeşil bloklarda, ve açık
                                   yüzeylerde koyu mod ikizi (em-only-dark; Gmail opak karoyu gösterir)
   (emekli, dosyası duruyor) logo-laf-tile, check-badge, stamp-{empty,full}, bean-*, icons/<ad>-{cream,
   espresso,gold,hero}, band-*, logo-laf-{espresso,cream,glint,gold}, mono-*, wave-success:
@@ -212,26 +215,32 @@ varlığı çağırır (logo) ve çağırdığı her dosya diskte durur.
 
 ## Palet
 
-22 Kas 2026'dan beri palet **sitenin** paletidir (`docs/BRAND.md` §0 ve
-§10). Porselen ve yeşil (`#f7f3ed`, `#1d6d56`, `#17594a`, `#765923`,
-`#e8c877` …) ve Köşk değerleri emeklidir; yeni öğe onları yazmaz.
+22 Kas 2026'dan beri palet **markanın yeşilidir** (`docs/BRAND.md` §10;
+token'ları `src/styles/foundation.css :root` `--forest*`, `--sage*`,
+`--brass`, sitede yalnız /franchise sayfası giyer). Porselen dönemi
+(`#f7f3ed`, `#1d6d56`, `#17594a`, `#765923`, `#e8c877` …), kömürlü ilk
+hâl (`#333333`, `#f6f6f3`) ve Köşk değerleri emeklidir; yeni öğe onları
+yazmaz.
 
-| Rol                                    | Açık mod                                    | Koyu mod (sınıf)                    |
-| -------------------------------------- | ------------------------------------------- | ----------------------------------- |
-| Dış zemin                              | bant `#f6f6f3`                              | `#121212` (`em-bg`)                 |
-| Kart                                   | `#ffffff`, çerçevesiz, köşe 0               | `#1a1a1a` (`em-card`)               |
-| İç panel (kod kutusu, uygulama şeridi) | bant `#f6f6f3`                              | `#262626` (`em-panel`)              |
-| Metin / ikincil                        | `#000000` / `#6c6864`                       | `#f2f2f2` / `#a6a6a6` (`em-t1/t3`)  |
-| Çizgi / kural                          | `#dcdcd6` / `#000000`                       | `#3a3a3a` / `#8c8c8c` (`em-ln/rule`) |
-| Dolu düğme                             | `#333333`, beyaz yazı                       | `#ffffff`, siyah (`em-btn`, `em-btn-t`) |
-| Çerçeveli düğme                        | 1px `#333333`, siyah yazı                   | açık kenar ve yazı (`em-btn-o`, `em-t1`) |
-| Koyu blok (koyu açılış, bilet, footer) | kömür `#333333`; içinde kutu `#1f1f1f`      | aynı                                |
-| Koyu blokta metin                      | `#ffffff` / `#c6c6c6`, kural `#5c5c5c`      | aynı                                |
-| Koyu blokta düğme                      | beyaz dolu (siyah yazı) ya da beyaz çerçeve | aynı                                |
-| Durum ("onaylandı")                    | `#1f6b4a` / `#e9f0ed` (`em-ok`)             | `#9fd8bd` / `#173a2b`               |
+| Rol                                    | Açık mod                                        | Koyu mod (sınıf)                              |
+| -------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| Dış zemin                              | adaçayı `#f2f5f1`                               | `#0c1411` (`em-bg`)                           |
+| Kart                                   | `#ffffff`, çerçevesiz, köşe 0                   | `#111c18` (`em-card`)                         |
+| İç panel (kod kutusu, uygulama şeridi) | adaçayı `#f2f5f1`                               | `#1a2a24` (`em-panel`)                        |
+| Başlık, etiket, fiyat, bağlantı        | derin yeşil `#173f35`                           | `#eef4f0` (`em-t1`)                           |
+| Cümle / ikincil satır                  | `#1e2a25` / `#5b6a63`                           | `#eef4f0` / `#a3b4ab` (`em-t1/t3`)            |
+| Çizgi / kural                          | `#d8e0da` / `#173f35`                           | `#2b3d36` / `#7f998d` (`em-ln/rule`)          |
+| Dolu düğme                             | `#173f35`, beyaz yazı                           | `#eef4f0`, yeşil yazı (`em-btn`, `em-btn-t`)  |
+| Çerçeveli düğme                        | 1px `#173f35`, yeşil yazı                       | açık kenar ve yazı (`em-btn-o`, `em-t1`)      |
+| Yeşil blok (koyu açılış, bilet, footer) | `#173f35`; içinde kutu `#10302a`               | aynı                                          |
+| Yeşil blokta metin                     | `#ffffff` / `#c3d3cb`, etiket pirinç `#cba258`, kural `#3f6658` | aynı                     |
+| Yeşil blokta düğme                     | beyaz dolu (yeşil yazı) ya da beyaz çerçeve     | aynı                                          |
+| Durum ("onaylandı")                    | `#1f6b4a` / `#e9f0ed` (`em-ok`)                 | `#9fd8bd` / `#173a2b`                         |
 
-Ölçülmüş oranlar `docs/BRAND.md` §10'da. Gri kömür zemine yazılmaz: koyu
-blokta yalnız beyaz ve `#c6c6c6`.
+Ölçülmüş oranlar `docs/BRAND.md` §10'da. Pirinç yalnız yeşil zeminde ve
+yalnız 12px büyük harf etikette (4.91:1); açık zeminde 2.4:1'e düştüğü için
+yazılmaz. Gri, yeşil zemine yazılmaz: yeşil blokta beyaz, `#c3d3cb` ve
+pirinç.
 
 **Yazı.** İki ses, sitenin sesleri; web fontu yüklenmez, yazı yüzü yoksa
 sistemin groteski çizer:
@@ -246,7 +255,7 @@ sistemin groteski çizer:
   satır 14/22, dipnot 12/18.
 - Kod (kupon, takip, fatura no): sistemin eş genişliklisi, 24/32, 4px aralık.
 
-**Düğme.** Kare, 48px (13px 36px iç boşluk), Geist 16px, **cümle düzeninde**
+**Düğme.** Kare, derin yeşil, 48px (13px 36px iç boşluk), Geist 16px, **cümle düzeninde**
 ("Siparişimi görüntüle"); tek çağrı `width="350"` ve telefonda tam satır.
 Koddan ya da panelden gelen düğme yazısı (`BUTON_METIN`, `KAMPANYA_BUTON`)
 da cümle düzeninde yazılır.
@@ -262,9 +271,9 @@ da cümle düzeninde yazılır.
   ikonlar opak karodur.
 
 Sınıf, öğenin **üstünde durduğu yüzeye** göre konur: açık yüzeydeki metin,
-çizgi ve zeminler sınıf taşır; kömür yüzeylerdeki öğeler taşımaz, iki modda
+çizgi ve zeminler sınıf taşır; yeşil yüzeylerdeki öğeler taşımaz, iki modda
 da okunur. Yeni bir öğe eklerken rengine karşılık gelen sınıfı da ver
-(`em-t1` `#000000` için, `em-t3` `#6c6864` için vb.).
+(`em-t1` `#173f35` ve `#1e2a25` için, `em-t3` `#5b6a63` için vb.).
 
 ## Değiştirdikten sonra
 

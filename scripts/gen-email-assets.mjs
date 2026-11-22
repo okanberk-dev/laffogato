@@ -1,28 +1,30 @@
 #!/usr/bin/env node
 /**
- * public/email/* - the e-mail templates' fixed images, in the site's look
- * (22 Kas 2026, operator: "mail tasarımlarını da siteyle aynı yap").
+ * public/email/* - the e-mail templates' fixed images (22 Kas 2026,
+ * operator: "mail tasarımlarını da siteyle aynı yap", then "renkleri de
+ * yeşilimsi yap bizim renkler gibi").
  *
- * The site (src/styles/foundation.css :root) is white and band #f6f6f3 with
- * black ink and one charcoal #333333 for every filled control, square
- * corners, no gradients. The mails follow it, so their pictures do too:
+ * The mails take the site's language (white card, square corners, no
+ * gradients) in the brand's colours: a sage band #f2f5f1, deep forest green
+ * #173f35 for every filled control and dark block, the logo's brass. Their
+ * pictures follow:
  *
- *   laf-mark-charcoal.png   the L'Af mark in white with its brass bean
- *                           (#cba258, the footer's tone) on a charcoal
- *                           square. OPAQUE on purpose: Gmail's dark mode
+ *   laf-mark-green.png      the L'Af mark in white with its brass bean
+ *                           (#cba258) on a deep green square, the app
+ *                           icon's colours. OPAQUE on purpose: Gmail's dark mode
  *                           inverts colours but never images, so a black
  *                           mark on a transparent ground would vanish on a
- *                           dark card. On the charcoal footer the square
+ *                           dark card. On the green footer the square
  *                           melts into the block and only the mark is seen.
  *   check-success.png       the payment badge: --success disc, white tick
  *                           (the site's .order-done-badge).
- *   stamp-sq-{full,empty}   the stamp card's cells on a charcoal panel, as
- *                           the account page draws them (.stamp): a band
+ *   stamp-sq-{full,empty}   the stamp card's cells on a green panel, as
+ *                           the account page draws them (.stamp): a sage
  *                           square with the brass bean, or a dashed outline.
- *   icons/<name>-ink.png    a band square with a black line icon, for light
+ *   icons/<name>-ink.png    a sage square with a green line icon, for light
  *                           surfaces (opaque for the same Gmail reason).
- *   icons/<name>-white.png  a white line icon on transparency, for charcoal
- *                           blocks only (dark grounds are not inverted).
+ *   icons/<name>-white.png  a white line icon on transparency, for the green
+ *                           blocks and as the dark-mode twin.
  *
  * The icons are Lucide's (ISC, already a dependency through the admin
  * panel), drawn at the site's icon weight (1.3-1.5 stroke on 24).
@@ -41,14 +43,24 @@ import sharp from "sharp";
 const ROOT = process.cwd();
 const BRAND = join(ROOT, "public", "brand");
 const OUT = join(ROOT, "public", "email");
-const LUCIDE = join(ROOT, "node_modules", "lucide-react", "dist", "esm", "icons");
+const LUCIDE = join(
+  ROOT,
+  "node_modules",
+  "lucide-react",
+  "dist",
+  "esm",
+  "icons",
+);
 
-const CHARCOAL = "#333333";
-const BAND = "#f6f6f3";
-const INK = "#000000";
+/** Deep forest green: buttons, dark blocks, footer, the logo tile. */
+const GREEN = "#173f35";
+/** Sage band: panels and the light icon tiles. */
+const BAND = "#f2f5f1";
+/** Line icons on light grounds are drawn in the green. */
+const INK = GREEN;
 const WHITE = "#ffffff";
 const SUCCESS = "#1f6b4a";
-/** The bean on charcoal (chrome.css, footer) and on light grounds. */
+/** The bean on the green (4.91:1) and on light grounds. */
 const BEAN_ON_DARK = "#cba258";
 const BEAN_ON_LIGHT = "#b8893a";
 
@@ -99,10 +111,16 @@ async function lucideNodes(name) {
     .join("");
 }
 
-function iconSvg(size, children, { ground, stroke, glyph = 0.5, weight = 1.5 }) {
+function iconSvg(
+  size,
+  children,
+  { ground, stroke, glyph = 0.5, weight = 1.5 },
+) {
   const g = size * glyph;
   const off = (size - g) / 2;
-  const bg = ground ? `<rect width="100%" height="100%" fill="${ground}"/>` : "";
+  const bg = ground
+    ? `<rect width="100%" height="100%" fill="${ground}"/>`
+    : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
   ${bg}
   <svg x="${off}" y="${off}" width="${g}" height="${g}" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="${weight}" stroke-linecap="square" stroke-linejoin="miter">${children}</svg>
@@ -136,12 +154,12 @@ mkdirSync(join(OUT, "icons"), { recursive: true });
 // The header and footer mark: 3x of the 56 px it is printed at.
 await png(
   markSvg(168, {
-    ground: CHARCOAL,
+    ground: GREEN,
     letters: WHITE,
     bean: BEAN_ON_DARK,
     share: 0.6,
   }),
-  "laf-mark-charcoal.png",
+  "laf-mark-green.png",
 );
 
 // Payment badge: 2x of 56 px, a disc on transparency.
@@ -154,7 +172,7 @@ await png(
   await png(svg, "check-success.png", { opaque: false });
 }
 
-// Stamp cells: 96 px for 40 px, charcoal around so they sit on the panel.
+// Stamp cells: 96 px for 40 px, green around so they sit on the panel.
 {
   // The bean alone, cropped to its own box (its file shares the mark's
   // viewBox), then set 48 px tall in the middle of a band square.
@@ -183,8 +201,8 @@ await png(
     .toFile(join(OUT, "stamp-sq-full.png"));
   console.log("wrote public/email/stamp-sq-full.png");
   const empty = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
-  <rect width="96" height="96" fill="${CHARCOAL}"/>
-  <rect x="2" y="2" width="92" height="92" fill="none" stroke="#a3a3a3" stroke-width="3" stroke-dasharray="8 6"/>
+  <rect width="96" height="96" fill="${GREEN}"/>
+  <rect x="2" y="2" width="92" height="92" fill="none" stroke="#8fa89c" stroke-width="3" stroke-dasharray="8 6"/>
 </svg>`;
   await png(empty, "stamp-sq-empty.png");
 }

@@ -203,19 +203,23 @@ Unutulmaması gerekenler:
   (`public/brand/`, `<LafMark>`; uygulama ikonu da odur). Bağlantı
   önizlemesi (OG kartları), ikonlar ve PayNkolay köprüsü eski (porselen, logo
   yeşili) palette kaldı. Tasarım kaydı `docs/BRAND.md`.
-- **E-postalar 22 Kas 2026'dan beri sitenin dilinde** (operatör: _"mail
-  tasarımlarını da siteyle aynı yap ... estetik yap mailleri de öyle"_):
-  bant dış zemin, çerçevesiz beyaz kart, kömür logo karosu
-  (`laf-mark-charcoal.png`, opak: Gmail görseli çevirmez), Archivo yığınıyla
-  büyük harf aralıklı başlık ve etiket, Geist yığınıyla cümle, kare kömür
-  düğme (cümle düzeninde etiket, tek çağrı 350px), kömür footer, uygulama
-  şeridi bantta. Web fontu yüklenmez. Açık ve koyu modda okunur (koyu modda
-  kart `#1a1a1a`, düğme beyaz). Değerler, sınıflar ve görseller
-  `src/lib/email/templates/README.md` "Palet" ve `docs/BRAND.md` §10;
-  görseller `scripts/gen-email-assets.mjs`. Supabase'in dört giriş e-postası
-  `docs/email/`'da aynı tasarımla durur ve **panele elle yapıştırılır**
-  (site deploy edildikten sonra: görseller oradan gelir). Panelden ya da
-  koddan gelen düğme yazısı cümle düzeninde yazılır ("Panelde aç").
+- **E-postalar 22 Kas 2026'dan beri sitenin dilinde, markanın yeşiliyle**
+  (operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap
+  mailleri de öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler
+  gibi"_; kapsam yalnız e-postalar ve /franchise): adaçayı `#f2f5f1` dış
+  zemin, çerçevesiz beyaz kart, derin orman yeşili `#173f35` logo karosu
+  (`laf-mark-green.png`, opak: Gmail görseli çevirmez), Archivo yığınıyla
+  yeşil, büyük harf aralıklı başlık ve etiket, Geist yığınıyla `#1e2a25`
+  cümle, kare yeşil düğme (cümle düzeninde etiket, tek çağrı 350px), yeşil
+  açılış, bilet ve footer, üstünde pirinç `#cba258` etiket, uygulama şeridi
+  adaçayı bantta. Web fontu yüklenmez. Açık ve koyu modda okunur. Token'lar
+  `foundation.css :root` `--forest*`, `--sage*`, `--brass`; değerler,
+  sınıflar ve ölçülmüş oranlar `src/lib/email/templates/README.md` "Palet"
+  ve `docs/BRAND.md` §10; görseller `scripts/gen-email-assets.mjs`.
+  Supabase'in dört giriş e-postası `docs/email/`'da aynı tasarımla durur ve
+  **panele elle yapıştırılır** (site deploy edildikten sonra: görseller
+  oradan gelir). Panelden ya da koddan gelen düğme yazısı cümle düzeninde
+  yazılır ("Panelde aç").
 
 Aşağıdaki üç paragraf tarihçedir:
 
@@ -324,7 +328,12 @@ dahil tasarım metriklerine uyumlu olsun estetik yap"_. **`/franchise`**
 `franchise-form.tsx`, stili `src/styles/pages.css` "Franchise"): sayfa
 açılışı, bantta konsept bölmesi, solda başlık sağda akordeon ("Neler
 sunuyoruz", "Sık sorulan sorular"; `<details>`, Archivo büyük harf, çizilmiş
-artı), çizgili satırlarla beş adım, bantta beyaz panelde başvuru formu.
+artı), derin yeşil bantta çizgili satırlarla beş adım, adaçayı bantta beyaz
+panelde başvuru formu.
+Sayfa markanın yeşilini giyer (operatör: _"renkleri de yeşilimsi yap bizim
+renkler gibi"_; sitede yalnız bu sayfa): kökteki `.theme-forest` sitenin
+token'larını `--forest`, `--sage` ailesine bağlar, süreç bandı derin yeşil
+(beyaz başlık, pirinç rakam); footer kömürde kalır (`docs/BRAND.md` §10).
 Bağlantılar: footer'ın Kurumsal sütunu, Ziyaret & keşfet panelinin Keşfet
 sütunu (telefon paneli de), site haritası. Görüntüleme veritabanını
 uyandırmaz (`getSiteSettings`, `getSiteImages`; fotoğraflar `hero.franchise`

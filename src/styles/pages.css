@@ -1137,6 +1137,40 @@
    accordions: hairlines, Archivo capitals, a drawn plus), the steps as
    ruled rows, the form on a white panel on the band. Square, no shadow.
    ───────────────────────────────────────────────────────────── */
+/* The page wears the brand's green (operator, 22 Kas 2026: "renkleri de
+   yeşilimsi yap bizim renkler gibi"; scope chosen: this page and the
+   e-mails only). The site's own tokens are re-pointed inside the page, so
+   every part keeps its rules and turns green: filled buttons, the field
+   and button edges, the checkbox dot and the band. Names, sizes and
+   shapes stay the site's. The footer is outside and stays charcoal. */
+.theme-forest {
+  --charcoal: var(--forest);
+  --charcoal-deep: var(--forest-deep);
+  --line-strong: var(--forest);
+  --band: var(--sage);
+  --line: var(--sage-line);
+  --ink: var(--forest-ink);
+  --muted: var(--forest-muted);
+  color: var(--ink);
+}
+/* Names in the green, sentences in the green-black. */
+.theme-forest :is(.t-display, .t-title, .t-label, .t-kicker):not(.t-muted) {
+  color: var(--forest);
+}
+/* The process band: deep green, white names, brass numbers. */
+.theme-forest .franchise-process {
+  --line: rgba(255, 255, 255, 0.2);
+}
+.theme-forest .franchise-process :is(.t-display, .t-title) {
+  color: var(--on-dark);
+}
+.theme-forest .franchise-process .t-body {
+  color: var(--on-dark-muted);
+}
+.theme-forest .franchise-process .franchise-step-n {
+  color: var(--brass);
+}
+
 .franchise-split {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
