@@ -167,11 +167,11 @@ export function optionPricesFromMenu(
     extraShotMinor:
       optionPriceOf(byId.get(OPTION_MENU_ITEMS.extraShot)) ??
       DEFAULT_OPTION_PRICES.extraShotMinor,
-    // Sahip karar verene dek (menüde 50, seçenekte 25): the paid milk is NOT
-    // read from mnu-0082 yet. On 22 Kas 2026 "Alternatif Süt" was 50 TL on
-    // the menu while the app and the till charged 25 TL for almond milk;
-    // reading it would have doubled a customer price nobody decided on.
-    // When the owner picks one, read it here like the two above.
+    // Sahibin kararı (22 Kasım 2026): alternatif süt ek ücreti 25 TL; menü
+    // kalemi iki şube için 50 TL kalır. So the paid milk is NOT read from
+    // mnu-0082: "Alternatif Süt" is 50 TL on the menu while the app and the
+    // till charge 25 TL for almond milk, and reading it here would double
+    // that surcharge.
     altMilkMinor: DEFAULT_OPTION_PRICES.altMilkMinor,
   };
 }

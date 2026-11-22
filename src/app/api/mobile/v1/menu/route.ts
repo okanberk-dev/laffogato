@@ -1,3 +1,6 @@
+import { readMobileMenuMarker } from "@/lib/admin/change-marker";
+import { rememberedRead } from "@/lib/admin/remembered-read";
+import { TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
 import { isDbUnreachable } from "@/lib/db/health";
 import { ifNoneMatchHits, strongEtag } from "@/lib/http/etag";
 import { listMenuForMobile } from "@/lib/mobile/menu";
@@ -34,15 +37,61 @@ export const maxDuration = 15;
  */
 const MENU_CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=60";
 
+/** The menu as it is sent, and its ETag. */
+interface MenuRead {
+  body: string;
+  etag: string;
+}
+
+async function readMenu(): Promise<MenuRead> {
+  const body = JSON.stringify(await listMenuForMobile());
+  return { body, etag: strongEtag(body) };
+}
+
 /**
  * `GET /api/mobile/v1/menu` - the cafe menu with the customisation table
  * (docs/API-MOBILE.md §1). Public: it is the printed menu on the counter.
+ *
+ * The menu is always read from the database. Only "has it changed?" is
+ * answered without it (22 Kas 2026): the ETag of the last read is kept
+ * under the menu's change marker (src/lib/admin/remembered-read.ts), and an
+ * `If-None-Match` that names it gets its 304 while no menu item, branch
+ * availability or setting has been written since. LafPOS asks that every
+ * 15 minutes of an open business day and the app on every refresh; each
+ * ask used to read every menu row, photos included, to hash them. Any
+ * other ETag, or none, reads the database as before; nothing is decided
+ * from the cache (an order's price and "Tükendi" are read live when it is
+ * placed).
  */
 export async function GET(request: Request) {
   try {
-    const menu = await listMenuForMobile();
-    const body = JSON.stringify(menu);
-    const etag = strongEtag(body);
+    const ifNoneMatch = request.headers.get("if-none-match");
+    let menu: MenuRead | null = null;
+    if (ifNoneMatch) {
+      // The marker before the read (remembered-read.ts).
+      const marker = await readMobileMenuMarker();
+      const read = await rememberedRead({
+        name: "mobile-menu-etag",
+        scope: "",
+        marker,
+        tags: [TAG_MENU, TAG_SITE],
+        nowMs: Date.now(),
+        read: readMenu,
+        remember: (m) => ({ etag: m.etag }),
+      });
+      if (read.from === "database") {
+        menu = read.live;
+      } else {
+        const known = read.remembered?.etag;
+        if (typeof known === "string" && ifNoneMatchHits(ifNoneMatch, known)) {
+          return new Response(null, {
+            status: 304,
+            headers: { "Cache-Control": MENU_CACHE_CONTROL, ETag: known },
+          });
+        }
+      }
+    }
+    const { body, etag } = menu ?? (await readMenu());
     const headers = {
       "Cache-Control": MENU_CACHE_CONTROL,
       ETag: etag,
@@ -51,7 +100,7 @@ export async function GET(request: Request) {
     // A conditional GET costs the app a header and saves it the payload; the
     // CDN uses the same exchange to extend its own copy past the TTL rather
     // than re-downloading a menu that has not changed.
-    if (ifNoneMatchHits(request.headers.get("if-none-match"), etag)) {
+    if (ifNoneMatchHits(ifNoneMatch, etag)) {
       return new Response(null, { status: 304, headers });
     }
 

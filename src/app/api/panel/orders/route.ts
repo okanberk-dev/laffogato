@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { readPosOrdersMarker } from "@/lib/admin/change-marker";
+import { rememberedRead } from "@/lib/admin/remembered-read";
 import {
   countPanelAwaitingPaymentOrders,
   listPanelOpenOrderRows,
 } from "@/lib/admin/store";
 import { listOpenTableCalls } from "@/lib/admin/table-calls";
 import { toPanelTableCalls } from "@/lib/admin/table-calls-core";
+import { TAG_ORDERS } from "@/lib/cache/tags";
 import {
   PANEL_ORDERS_MAX,
   PANEL_ORDERS_VERSION,
@@ -62,6 +65,21 @@ import {
  * are Tuzla's), and the answer says which (`branch`). Before, both keys
  * got every order: Marina's till rang and moved Tuzla's paid orders.
  *
+ * A quiet bar screen is remembered for LafPOS (22 Kas 2026,
+ * src/lib/admin/remembered-read.ts): its 15-minute safety pull woke the
+ * database four times an hour for as long as its business day was open.
+ * When the last read under the current `live:orders` marker found nothing
+ * at all (no row, none awaiting payment, no call), the same empty answer
+ * is given without the database until a write to `orders` or `table_calls`
+ * moves the marker, with one live read an hour as the net. Every bound of
+ * the read is a lower one (paid, due, opened or called since), so with no
+ * write an empty read can only stay empty. A read that found anything is
+ * never remembered: it changes with the clock alone. The panel's key
+ * (Tuzla) reads live on every ask, as before: `awaitingPayment` can rise
+ * on a reopened checkout, which writes `payment_transactions` only, and
+ * the panel polls on it; LafPOS does not read it and hears of the payment
+ * by its version signal.
+ *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
 
@@ -72,6 +90,22 @@ const NO_STORE = { "Cache-Control": "no-store" } as const;
 
 /** The panel, and LafPOS with its own key. */
 const CALLERS: readonly SignedCaller[] = ["panel", "lafpos"];
+
+/** What one ask reads: the three reads of the bar screen. */
+interface LiveRead {
+  awaiting: number;
+  rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
+  calls: Awaited<ReturnType<typeof listOpenTableCalls>>;
+}
+
+/** Nothing read at all: no row, none awaiting payment, no call. */
+const QUIET: LiveRead = { awaiting: 0, rows: [], calls: [] };
+
+function isQuiet(live: LiveRead): boolean {
+  return (
+    live.awaiting === 0 && live.rows.length === 0 && live.calls.length === 0
+  );
+}
 
 export async function GET(request: Request) {
   const keys = signedCallerKeys(process.env, CALLERS);
@@ -105,27 +139,44 @@ export async function GET(request: Request) {
   const now = new Date();
   // One over the cap tells a full screen from a cut one.
   const limit = PANEL_ORDERS_MAX + 1;
-  let rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
-  let awaiting: number;
-  let calls: Awaited<ReturnType<typeof listOpenTableCalls>>;
-  try {
+  const readLive = async (): Promise<LiveRead> => {
     // The count first, then the list, one after the other: an order only
     // goes from waiting to paid, so one paid in between is in the list (at
     // worst in both), never in neither. Read the other way round, a payment
     // landing between the two reads left the order out of both and the
     // panel saw "0 waiting" with no new order. The pool is one connection,
     // so this costs no time.
-    awaiting = await countPanelAwaitingPaymentOrders(
+    const awaiting = await countPanelAwaitingPaymentOrders(
       panelAwaitingPaymentSince(now),
       branch,
     );
-    rows = await listPanelOpenOrderRows(
+    const rows = await listPanelOpenOrderRows(
       panelOrdersSince(now),
       limit,
       panelOrdersLiveSince(now),
       branch,
     );
-    calls = await listOpenTableCalls(now, undefined, branch);
+    const calls = await listOpenTableCalls(now, undefined, branch);
+    return { awaiting, rows, calls };
+  };
+  let live: LiveRead;
+  try {
+    if (caller === "lafpos") {
+      // The marker before the read (remembered-read.ts).
+      const marker = await readPosOrdersMarker();
+      const read = await rememberedRead({
+        name: "panel-orders-quiet",
+        scope: branch,
+        marker,
+        tags: [TAG_ORDERS],
+        nowMs: now.getTime(),
+        read: readLive,
+        remember: (l) => (isQuiet(l) ? { quiet: true } : null),
+      });
+      live = read.from === "database" ? read.live : QUIET;
+    } else {
+      live = await readLive();
+    }
   } catch (err) {
     console.error("[panel-orders] orders could not be read", err);
     return NextResponse.json(
@@ -133,6 +184,7 @@ export async function GET(request: Request) {
       { status: 503, headers: NO_STORE },
     );
   }
+  const { awaiting, rows, calls } = live;
 
   const orders = sortForPanelOrders(
     rows

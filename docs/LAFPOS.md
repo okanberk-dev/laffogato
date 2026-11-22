@@ -312,6 +312,15 @@ Kişisel veri taşımaz: yalnız masa adı ve kod.
   sinyali kaçan bir değişiklik ya da süresi dolup listeden sessizce düşen sipariş
   kalmasın. Sinyal okunamazsa 5 dakikada bir çeker; elle "Yenile" en sık 30
   saniyede bir (lafpos `docs/03-ENTEGRASYON.md` §2.3).
+  **Boş ekran hatırlanır (22 Kas 2026, #229):** bu çekim gün açık kaldığı
+  sürece Neon'u saatte dört kez uyandırıyordu. Şimdi `live:orders` işareti
+  aynıyken ve son okuma hiçbir şey bulmadıysa (sipariş yok, ödeme bekleyen
+  yok, çağrı yok) aynı boş yanıt veritabanına gidilmeden verilir; `orders` ya
+  da `table_calls` yazılınca işaret değişir ve sıradaki çekim canlıdır.
+  Emniyet ağı olarak saatte bir çekim yine canlı okur. Ekranda bir şey varken
+  hiçbir şey hatırlanmaz (liste saatle de değişir). Yalnız LafPOS'un
+  anahtarına; panelin (Tuzla) okuması eskisi gibi her soruşta canlıdır
+  (`src/lib/admin/remembered-read.ts`, `tests/sube/neon-uyanma.test.ts`).
 - **Karaoke:** aynı yanıttaki `karaoke` değişince, oda kutusu açılınca ve elle
   yenileyince `GET /api/panel/karaoke?from=<gün>&to=<gün>` (bugünün penceresi;
   rezervasyon en geç 24:00'te biter, gece yarısını aşmaz: `closeHour` en çok
@@ -327,7 +336,9 @@ Kişisel veri taşımaz: yalnız masa adı ve kod.
   (sorgusuz istek dün + 90 gün okurdu) hiçbir şey okunmadan 403
   `{"error":"forbidden"}` alır. Panelin penceresi değişmez: 400 güne kadar.
 - Menüyü herkese açık uçtan ETag ile, imzalı uçtan en çok 5 dakikada bir okur
-  (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5).
+  (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5). Gün açıkken 15 dakikada
+  bir yaptığı ETag'li soru, menü değişmemişken veritabanına gitmeden 304 alır
+  (22 Kas 2026; `docs/API-MOBILE.md` "Tazelik penceresi").
 
 ## Karaoke satırını kasa nasıl okur
 

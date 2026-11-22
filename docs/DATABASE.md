@@ -167,11 +167,31 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    2026) de aynı düzende yoklardı; 21 Kas 2026'da kalktı (köşkün açık/kapalısı
    artık saatlerden gelir, `docs/ADMIN-STORAGEBOX.md`), yoklaması da onunla.
 
+5. **Kasanın (LafPOS) çekimleri de değişiklik yokken veritabanına gitmez**
+   (22 Kas 2026, #229; `src/lib/admin/remembered-read.ts`). Marina'nın kasası
+   gün açıkken 15 dakikada bir sipariş güvenlik çekimi (`GET
+   /api/panel/orders`) ve 15 dakikada bir menü yoklaması (`GET
+   /api/mobile/v1/menu`, ETag) yapar; ikisi de veritabanını okuyordu:
+   saatte 8 uyanma, gün açık kaldığı sürece (kapatılmayan günde bütün gece).
+   Şimdi rota, imleci olmayan bu soranlar için imlecin yerini kendisi tutar:
+   işaret okumadan ÖNCE okunur ve anahtarın parçasıdır; boş bar ekranı
+   (yalnız LafPOS'un anahtarına) ve menünün `ETag`'i işaret değişene kadar
+   hatırlanır. Zilin kuralları aynen: yeni yapılmış işaret (5 sn) hiçbir
+   şeye kefil olmaz, saatte bir okuma canlıdır, önbellek kapalı ya da
+   bozuksa her okuma canlıdır. Ölçüm (`tests/sube/neon-uyanma.test.ts`,
+   veri katmanı sayılarak): kasa için saatte veritabanına giden istek 8'den
+   2'ye, okuma 24'ten 6'ya; açık bir panel sekmesinin zili (madde 3) saatte
+   360 istekten 1'e. Uyandırma başına ~5 dakika açık kalma ile kasanın payı
+   14 saatlik günde yaklaşık 9,5 saatten 2,5 saate iner (0,25 CU'da günde
+   ~2,4 yerine ~0,6 CU-saat). Canlı ölçüm aşağıdaki komutlarla yapılır
+   (`NEON_API_KEY` operatörde; Hobby planı istek günlüğü tutmaz).
+
 **Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
 verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,
 sayfa, action'lar), `/karaoke`, `/rezervasyon`, `placeOrder` /
 `placeAppOrder`, `/api/mobile/v1/**` (başlıklar ve okuyucular aynı,
-`docs/API-MOBILE.md` değişmedi), e-postalar, onay sürümleri
+`docs/API-MOBILE.md` değişmedi; tek istisna madde 5: menünün "değişmedi"
+yanıtı, 304, işaretten gelir, gövdesi hiçbir zaman), e-postalar, onay sürümleri
 (`checkoutConsentVersion`, `karaokeConsentVersion`), ödeme belgeleri, admin
 sayfaları ve admin oturumu canlı okur. Onay alınan üç belgenin `/hukuk`
 sayfası da canlıdır (Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi,

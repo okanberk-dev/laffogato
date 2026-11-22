@@ -104,8 +104,8 @@ zaten varsa o satır kullanılır (**tek üyelik**).
     // src/lib/mobile/customization.ts; ücretli seçeneklerin fiyatı 21 Kas
     // 2026'dan beri menü kalemlerinden (S8): şurup mnu-0080, ekstra shot
     // mnu-0081; kalem yoksa ya da fiyatı geçersizse aşağıdaki sabit.
-    // Ücretli süt (badem) şimdilik sabitte kalır (25 TL): menüdeki
-    // "Alternatif Süt" (mnu-0082) 50 TL; sahip karar verene dek okunmaz.
+    // Ücretli süt (badem) sabitte kalır (25 TL), menüdeki "Alternatif Süt"
+    // (mnu-0082, 50 TL) okunmaz: sahibin kararı, 22 Kasım 2026.
     // Biçim ve kimlikler değişmedi.
     "milks": [
       { "id": "normal", "label": "Normal", "priceMinor": 0, "allergens": [] },
@@ -212,6 +212,17 @@ kendiliğinden ve çabuk ulaşmasını istedi; CDN penceresi 300 + 300 sn'den
 dakikaya iner (lafmobil). Kısa pencere uygulama kullanılırken CDN bölgesi
 başına dakikada en çok bir veritabanı okuması demektir; `ETag` sayesinde
 değişmemiş menünün yenilemesi çoğunlukla gövdesiz 304'tür.
+
+**22 Kas 2026 (#229):** o 304 artık veritabanına da gitmez. Rota son okumanın
+`ETag`'ini menünün değişiklik işaretinin altında tutar (`pub:menu` ve
+`pub:site`; `src/lib/admin/remembered-read.ts`); `If-None-Match` o `ETag`'i
+söylüyorsa ve o zamandan beri menü kalemi, şubenin Satışta / Tükendi'si ya da
+ayarlar yazılmadıysa yanıt doğrudan 304'tür. Önceden her soru, yalnız özet
+çıkarmak için bütün menü satırlarını (fotoğraflar dahil) okuyordu. Başka bir
+`ETag` ya da `ETag`'siz istek eskisi gibi veritabanından okunur; gövde hiçbir
+zaman önbellekten gelmez, başlıklar ve biçim değişmedi. Emniyet ağı: saatte
+bir soru yine canlı okur. Sipariş anındaki fiyat ve Tükendi denetimi (§3)
+aynen canlıdır.
 
 60 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
 düşürür, CDN kendi kopyasını `s-maxage` dolana kadar servis etmeye devam eder
