@@ -12,8 +12,11 @@ import {
  * Root error boundary - catches failures in the root layout itself (where the
  * segment-level error.tsx can't reach). Must render its own <html>/<body>.
  * Inline styles and an inline mark only: globals.css, the fonts and the
- * /brand files may not have loaded when this renders. The colours are the
- * porcelain palette's own (globals.css :root), spelled out.
+ * /brand files may not have loaded when this renders. It is error.tsx's
+ * stage on its own: the band (--band), black type, the line in tracked
+ * capitals at 400, the sentence in --muted (5.1:1 on the band) and a filled
+ * charcoal 48px button. The values are src/styles/foundation.css's, spelled
+ * out.
  */
 export default function GlobalError({
   error,
@@ -33,61 +36,84 @@ export default function GlobalError({
           margin: 0,
           minHeight: "100vh",
           display: "grid",
-          placeItems: "center",
+          alignItems: "end",
           fontFamily:
             "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
           background: "#f6f6f3",
           color: "#000000",
-          padding: "48px 24px",
           WebkitFontSmoothing: "antialiased",
         }}
       >
-        <main style={{ maxWidth: 460, textAlign: "center" }}>
+        <main
+          style={{
+            boxSizing: "border-box",
+            width: "100%",
+            maxWidth: 720,
+            padding: "64px clamp(20px, 4.2vw, 60px)",
+          }}
+        >
           <svg
             viewBox={`0 0 ${LAF_VIEWBOX.width} ${LAF_VIEWBOX.height}`}
-            width={132}
-            height={Math.round((132 * LAF_VIEWBOX.height) / LAF_VIEWBOX.width)}
+            width={96}
+            height={Math.round((96 * LAF_VIEWBOX.height) / LAF_VIEWBOX.width)}
             role="img"
             aria-label="L'Affogato"
-            style={{ margin: "0 auto 28px", display: "block" }}
+            style={{ display: "block", marginBottom: 40 }}
           >
             <path fillRule="evenodd" fill="#000000" d={LAF_LETTERS_PATH} />
             <path fillRule="evenodd" fill="#b8893a" d={LAF_BEAN_PATH} />
           </svg>
-          <h1
+          <p
             style={{
-              fontSize: 24,
-              lineHeight: 1.3,
+              margin: 0,
+              fontSize: 12,
+              lineHeight: "24px",
               letterSpacing: "1.6px",
               textTransform: "uppercase",
+              color: "#6c6864",
+            }}
+          >
+            Geçici bir aksaklık
+          </p>
+          <h1
+            style={{
+              margin: "12px 0 0",
+              fontSize: "clamp(28px, 4.6vw, 48px)",
+              lineHeight: 1.15,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
               fontWeight: 400,
-              margin: 0,
             }}
           >
             Şu an bağlanamadık
           </h1>
           <p
             style={{
-              marginTop: 14,
+              margin: "20px 0 0",
+              maxWidth: "46ch",
               fontSize: 16,
-              lineHeight: 1.6,
+              lineHeight: "22px",
               color: "#6c6864",
             }}
           >
-            Geçici bir aksaklık olabilir. Lütfen birazdan tekrar dene.
+            Büyük ihtimalle birkaç saniyelik bir şey. Lütfen birazdan tekrar
+            dene.
           </p>
           <button
+            type="button"
             onClick={reset}
             style={{
-              marginTop: 26,
+              marginTop: 32,
               minHeight: 48,
-              minWidth: 280,
-              padding: "0 36px",
+              width: "min(350px, 100%)",
+              padding: "12px 36px",
               borderRadius: 0,
               border: "1px solid #333333",
               background: "#333333",
               color: "#ffffff",
+              fontFamily: "inherit",
               fontSize: 16,
+              lineHeight: "22px",
               fontWeight: 400,
               cursor: "pointer",
             }}
