@@ -4,7 +4,7 @@ import { siteImage } from "@/lib/admin/site-images-core";
 import Image from "next/image";
 
 import { usePathname } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { parsePriceLabel, priceLabel } from "@/lib/utils/format";
@@ -16,8 +16,17 @@ import { trackCartAdd } from "./pixel-events";
 import { freeShippingFrom, productDiscount } from "./product-facts";
 import { productPath } from "./route-paths";
 import { ShopHeroSlider } from "./shop-hero-slider";
-import { activeVariants, ProductCard, toCartItem } from "./ui";
-import { useDialog } from "./use-dialog";
+import {
+  activeVariants,
+  FilterOption,
+  FilterOptions,
+  FilterSection,
+  FilterSheet,
+  GridToggle,
+  ProductCard,
+  SortMenu,
+  toCartItem,
+} from "./ui";
 import { ProductSurface } from "./visuals";
 
 /** Major-unit price of a product, exact when the minor-unit figure is known. */
@@ -57,6 +66,65 @@ const FLAGS = [
 ] as const;
 
 type FlagId = (typeof FLAGS)[number]["id"];
+
+/** The price section's bands (the reference's filter has round options
+    only, no slider). A product is in the band its price falls in. */
+const PRICE_BANDS = [
+  { id: "p0", label: `${priceLabel(25000)} altı`, min: 0, max: 250 },
+  {
+    id: "p1",
+    label: `${priceLabel(25000)} - ${priceLabel(50000)}`,
+    min: 250,
+    max: 500,
+  },
+  {
+    id: "p2",
+    label: `${priceLabel(50000)} - ${priceLabel(100000)}`,
+    min: 500,
+    max: 1000,
+  },
+  {
+    id: "p3",
+    label: `${priceLabel(100000)} ve üzeri`,
+    min: 1000,
+    max: Infinity,
+  },
+] as const;
+
+const SORTS = [
+  { value: "featured", label: "Önerilen" },
+  { value: "price-asc", label: "Fiyat: artan" },
+  { value: "price-desc", label: "Fiyat: azalan" },
+  { value: "new", label: "Yeniler önce" },
+];
+
+/** What the filter panel chooses: within a section any option may match,
+    across sections every section must. */
+interface ShopFilters {
+  cats: string[];
+  prices: string[];
+  flags: FlagId[];
+}
+const NO_FILTERS: ShopFilters = { cats: [], prices: [], flags: [] };
+
+function matches(p: Product, f: ShopFilters): boolean {
+  if (f.cats.length > 0 && !f.cats.includes(p.cat)) return false;
+  if (f.prices.length > 0) {
+    const v = priceOf(p);
+    const inBand = PRICE_BANDS.some(
+      (b) => f.prices.includes(b.id) && v >= b.min && v < b.max,
+    );
+    if (!inBand) return false;
+  }
+  if (f.flags.length > 0) {
+    if (!FLAGS.some((fl) => f.flags.includes(fl.id) && fl.test(p)))
+      return false;
+  }
+  return true;
+}
+
+const toggle = <T,>(list: readonly T[], v: T): T[] =>
+  list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
 
 /** The slug a category id lives at (/magaza/<slug>). */
 const SLUG_FOR = Object.fromEntries(
@@ -106,29 +174,15 @@ export function PageShop({
     return SHOP_CATEGORY_ROUTES.find((c) => c.slug === slug)?.productCat;
   }, [pathname]);
 
-  const [cat, setCat] = useState<string>(scopedCat ?? "all");
-  const [flags, setFlags] = useState<FlagId[]>([]);
+  // The filters in force, and the panel's own copy while it is open: the
+  // panel's choices apply with "Uygula", as the reference's do.
+  const [applied, setApplied] = useState<ShopFilters>(NO_FILTERS);
+  const [draft, setDraft] = useState<ShopFilters>(NO_FILTERS);
   const [sort, setSort] = useState<string>("featured");
-  // The slider's ceiling follows the catalogue, so a product above ₺900 is
-  // never invisible with no filter applied.
-  const priceCeiling = useMemo(() => {
-    const top = shopProducts.reduce((max, p) => Math.max(max, priceOf(p)), 0);
-    return Math.max(900, Math.ceil(top / 100) * 100);
-  }, [shopProducts]);
-  const [priceMin, setPriceMin] = useState(0);
-  const [priceMax, setPriceMax] = useState<number | null>(null);
-  const priceTop = priceMax ?? priceCeiling;
+  const [cols, setCols] = useState<1 | 2>(2);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  let list = shopProducts.filter((p) => cat === "all" || p.cat === cat);
-  list = list.filter((p) => {
-    const price = priceOf(p);
-    return price >= priceMin && price <= priceTop;
-  });
-  for (const id of flags) {
-    const flag = FLAGS.find((f) => f.id === id)!;
-    list = list.filter(flag.test);
-  }
+  let list = shopProducts.filter((p) => matches(p, applied));
   if (sort === "price-asc")
     list = [...list].sort((a, b) => priceOf(a) - priceOf(b));
   if (sort === "price-desc")
@@ -138,27 +192,18 @@ export function PageShop({
   if (sort === "new")
     list = [...list].sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew));
 
-  const priceTouched = priceMin > 0 || priceTop < priceCeiling;
-  const activeFilterCount =
-    (cat !== "all" && !scopedCat ? 1 : 0) +
-    (priceTouched ? 1 : 0) +
-    flags.length;
+  const countOf = (f: ShopFilters) =>
+    f.cats.length + f.prices.length + f.flags.length;
+  const activeFilterCount = countOf(applied);
 
-  const resetFilters = () => {
-    if (!scopedCat) setCat("all");
-    setFlags([]);
-    setPriceMin(0);
-    setPriceMax(null);
+  const openFilters = () => {
+    setDraft(applied);
+    setFiltersOpen(true);
   };
-
-  const toggleFlag = (id: FlagId) =>
-    setFlags((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
-
-  // Escape, body-scroll lock, focus in and focus back out. The sheet stays
-  // mounted so it can animate, so it is also marked inert while closed.
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-  const closeFilters = useCallback(() => setFiltersOpen(false), []);
-  useDialog(filtersOpen, closeFilters, sheetRef);
+  const resetFilters = () => {
+    setDraft(NO_FILTERS);
+    setApplied(NO_FILTERS);
+  };
 
   // The featured set is a real product row, found by its slug: the button
   // used to add a hand-typed name and price that checkout could not match
@@ -192,21 +237,28 @@ export function PageShop({
       ? shopProducts.length
       : shopProducts.filter((p) => p.cat === id).length;
 
+  // A chip chooses one category at once (or all); the panel may choose
+  // several.
   const catControl = (c: (typeof CATS)[number]) => {
-    const on = cat === c.id;
-    const cls = "chip";
+    const on =
+      c.id === "all"
+        ? applied.cats.length === 0
+        : applied.cats.length === 1 && applied.cats[0] === c.id;
     // On a category page, siblings are links (their counts are not in hand).
     if (scopedCat) {
+      const here = c.id === scopedCat;
       const href = c.id === "all" ? "/magaza" : `/magaza/${SLUG_FOR[c.id]}`;
       return (
         <a
           key={c.id}
           href={href}
-          className={cls}
-          aria-current={on ? "page" : undefined}
+          className="chip"
+          aria-current={here ? "page" : undefined}
         >
           {c.label}
-          {on && <span className="chip-count tabular">{countFor(c.id)}</span>}
+          {here && (
+            <span className="chip-count tabular">{countFor(c.id)}</span>
+          )}
         </a>
       );
     }
@@ -214,9 +266,11 @@ export function PageShop({
       <button
         key={c.id}
         type="button"
-        className={cls}
+        className="chip"
         aria-pressed={on}
-        onClick={() => setCat(c.id)}
+        onClick={() =>
+          setApplied((f) => ({ ...f, cats: c.id === "all" ? [] : [c.id] }))
+        }
       >
         {c.label}
         <span className="chip-count tabular">{countFor(c.id)}</span>
@@ -224,119 +278,27 @@ export function PageShop({
     );
   };
 
-  // Filter controls - shared by the desktop sidebar and the mobile sheet.
-  const renderFilters = () => (
-    <>
-      <div className="shop-filter-block">
-        <h2 className="t-label">Kategoriler</h2>
-        <div className="chip-row">{CATS.map((c) => catControl(c))}</div>
-      </div>
-
-      <div className="shop-filter-block">
-        <h2 className="t-label">Fiyat aralığı</h2>
-        <div className="shop-price-readout tabular">
-          {priceLabel(priceMin * 100)} - {priceLabel(priceTop * 100)}
-        </div>
-        <div className="shop-price-track">
-          <div className="shop-price-rail" />
-          <div
-            className="shop-price-fill"
-            style={{
-              left: `${(priceMin / priceCeiling) * 100}%`,
-              right: `${100 - (priceTop / priceCeiling) * 100}%`,
-            }}
-          />
-          <input
-            type="range"
-            min="0"
-            max={priceCeiling}
-            step="20"
-            value={priceMin}
-            onChange={(e) =>
-              setPriceMin(Math.min(parseInt(e.target.value), priceTop - 40))
-            }
-            className="price-range"
-            aria-label="En düşük fiyat"
-          />
-          <input
-            type="range"
-            min="0"
-            max={priceCeiling}
-            step="20"
-            value={priceTop}
-            onChange={(e) =>
-              setPriceMax(Math.max(parseInt(e.target.value), priceMin + 40))
-            }
-            className="price-range"
-            aria-label="En yüksek fiyat"
-          />
-        </div>
-      </div>
-
-      <div className="shop-filter-block">
-        <h2 className="t-label">Öne çıkanlar</h2>
-        <div className="shop-flags">
-          {FLAGS.map((f) => {
-            const n = shopProducts.filter(f.test).length;
-            if (n === 0) return null;
-            const on = flags.includes(f.id);
-            return (
-              <button
-                key={f.id}
-                type="button"
-                className="tag"
-                aria-pressed={on}
-                onClick={() => toggleFlag(f.id)}
-              >
-                {f.label}
-                <span className="chip-count tabular">{n}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="shop-filter-block">
-        {/* There is no chat. What there is: the phone and the mailbox, both
-            answered by the bar. */}
-        <div className="shop-helpline">
-          <h2 className="t-label">Hangi çekirdek?</h2>
-          <p>
-            Espresso mu filtre mi karar veremediysen bize sor - barista yardımcı
-            olsun.
-          </p>
-          <div className="shop-helpline-actions">
-            <a href={`tel:${phone.replace(/\s+/g, "")}`} className="btn btn-sm">
-              Ara
-            </a>
-            <a href={`mailto:${email}`} className="btn btn-sm">
-              E-posta
-            </a>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+  // The panel's sections: an option no product carries is left out.
+  const catOptions = scopedCat
+    ? []
+    : CATS.filter((c) => c.id !== "all")
+        .map((c) => ({ ...c, n: countFor(c.id) }))
+        .filter((c) => c.n > 0);
+  const priceOptions = PRICE_BANDS.map((b) => ({
+    ...b,
+    n: shopProducts.filter((p) => {
+      const v = priceOf(p);
+      return v >= b.min && v < b.max;
+    }).length,
+  })).filter((b) => b.n > 0);
+  const flagOptions = FLAGS.map((f) => ({
+    ...f,
+    n: shopProducts.filter(f.test).length,
+  })).filter((f) => f.n > 0);
 
   const scopedLabel = scopedCat
     ? CATS.find((c) => c.id === scopedCat)?.label
     : undefined;
-  const sortSelect = (id: string) => (
-    <label className="shop-sort" htmlFor={id}>
-      <span className="sr-only">Sırala</span>
-      <select
-        id={id}
-        className="select shop-sort-select"
-        value={sort}
-        onChange={(e) => setSort(e.target.value)}
-      >
-        <option value="featured">Sıralama</option>
-        <option value="price-asc">Fiyat: artan</option>
-        <option value="price-desc">Fiyat: azalan</option>
-        <option value="new">Yeniler önce</option>
-      </select>
-    </label>
-  );
 
   return (
     <div className="page" data-screen-label="03 Shop">
@@ -357,56 +319,63 @@ export function PageShop({
         </div>
       )}
 
-      <section className="section collection" id="products">
-        <div className="wrap">
-          <div className="collection-head">
-            <div className="collection-title">
-              <h1 className="t-display">
-                {scopedLabel ? `Mağaza · ${scopedLabel}` : "Köşkün mağazası"}
-              </h1>
-              <p className="t-body">
-                Tuzla köşkünde servis ettiğimiz her şey: Bologna’da kavrulan
-                çekirdek, yenilebilir kup, bambu chasen, moka pot. Eve, ofise,
-                hediyeye.
-              </p>
-            </div>
-            <div className="collection-tools">
-              <button
-                type="button"
-                className="btn collection-filter"
-                onClick={() => setFiltersOpen(true)}
-                aria-haspopup="dialog"
-              >
+      <section className="collection" id="products">
+        <div className="collection-head">
+          <div className="collection-title">
+            <h1 className="t-display">
+              {scopedLabel ? `Mağaza · ${scopedLabel}` : "Köşkün mağazası"}
+            </h1>
+            <p className="t-body">
+              Tuzla köşkünde servis ettiğimiz her şey: Bologna’da kavrulan
+              çekirdek, yenilebilir kup, bambu chasen, moka pot. Eve, ofise,
+              hediyeye.
+            </p>
+          </div>
+          <div className="collection-tools">
+            <button
+              type="button"
+              className="btn collection-filter"
+              onClick={openFilters}
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+            >
+              <span>
                 Filtre
                 {activeFilterCount > 0 ? (
-                  <span className="chip-count tabular">
-                    {activeFilterCount}
-                  </span>
-                ) : (
-                  <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M2 4h12M4 8h8M6 12h4" />
-                  </svg>
-                )}
-              </button>
-              {sortSelect("shop-sort")}
-            </div>
+                  <span className="tabular"> ({activeFilterCount})</span>
+                ) : null}
+              </span>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 4.5h10M5 8h6M7 11.5h2" />
+              </svg>
+            </button>
+            <SortMenu
+              id="shop-sort"
+              label="Sırala"
+              value={sort}
+              options={SORTS}
+              onChange={setSort}
+            />
+            <GridToggle cols={cols} onChange={setCols} />
           </div>
+        </div>
 
-          <div
-            className="chip-row collection-cats"
-            role="group"
-            aria-label="Ürün kategorileri"
-          >
-            {CATS.map((c) => catControl(c))}
-          </div>
+        <div
+          className="chip-row collection-cats"
+          role="group"
+          aria-label="Ürün kategorileri"
+        >
+          {CATS.map((c) => catControl(c))}
+        </div>
 
-          <p className="t-small t-muted collection-count">
-            <span className="tabular">{list.length}</span> ürün
-          </p>
-
-          {/* Product names are h3s. */}
-          <h2 className="sr-only">Ürünler</h2>
-          <div className="product-grid">
+        {/* Product names are h3s. The count is for a screen reader: it is
+            read out when a filter changes the list. */}
+        <h2 className="sr-only">Ürünler</h2>
+        <p className="sr-only" role="status" aria-live="polite">
+          {list.length} ürün
+        </p>
+        {list.length > 0 ? (
+          <div className="product-grid" data-cols={cols}>
             {list.map((p, i) => (
               <ProductCard
                 key={p.id ?? p.name}
@@ -417,76 +386,101 @@ export function PageShop({
               />
             ))}
           </div>
-          {list.length === 0 && (
-            <div className="collection-empty">
-              <p className="t-title">Bu filtreyle ürün yok</p>
-              <button
-                type="button"
-                className="btn btn-wide"
-                onClick={resetFilters}
-              >
-                Filtreleri temizle
-              </button>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="collection-empty">
+            <p className="t-title">Bu filtreyle ürün yok</p>
+            <button
+              type="button"
+              className="btn btn-wide"
+              onClick={resetFilters}
+            >
+              Filtreleri temizle
+            </button>
+          </div>
+        )}
       </section>
 
-      {/* The filter sheet: one panel from the right on every screen. It
-          stays mounted (useDialog), so it is inert while closed. */}
-      <div
-        className={`sheet-scrim ${filtersOpen ? "open" : ""}`}
-        onClick={() => setFiltersOpen(false)}
-        aria-hidden="true"
-      />
-      <div
-        ref={sheetRef}
-        className={`sheet ${filtersOpen ? "open" : ""}`}
-        role={filtersOpen ? "dialog" : undefined}
-        aria-modal={filtersOpen ? true : undefined}
-        aria-label="Filtreler"
-        aria-hidden={filtersOpen ? undefined : true}
-        inert={!filtersOpen}
-        tabIndex={-1}
-      >
-        <header className="sheet-head">
-          <p className="t-display">Filtre</p>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(false)}
-            className="icon-btn icon-btn--boxed"
-            aria-label="Kapat"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M3 3l10 10M13 3 3 13" />
-            </svg>
-          </button>
-        </header>
-        <div className="sheet-body">
-          <div className="shop-filter-block">
-            <h2 className="t-label">Sırala</h2>
-            {sortSelect("shop-sort-sheet")}
+      <FilterSheet
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onApply={() => {
+          setApplied(draft);
+          setFiltersOpen(false);
+        }}
+        onClear={resetFilters}
+        count={countOf(draft)}
+        after={
+          /* There is no chat. What there is: the phone and the mailbox,
+             both answered by the bar. */
+          <div className="filter-note">
+            <p className="filter-note-title">Hangi çekirdek?</p>
+            <p>
+              Espresso mu filtre mi karar veremediysen bize sor:{" "}
+              <a href={`tel:${phone.replace(/\s+/g, "")}`}>{phone}</a> ya da{" "}
+              <a href={`mailto:${email}`}>{email}</a>.
+            </p>
           </div>
-          {renderFilters()}
-        </div>
-        <footer className="sheet-foot">
-          <button
-            type="button"
-            className="btn"
-            onClick={resetFilters}
-            disabled={activeFilterCount === 0}
-          >
-            Sıfırla
-          </button>
-          <button
-            type="button"
-            className="btn btn-dark sheet-foot-main"
-            onClick={() => setFiltersOpen(false)}
-          >
-            {list.length} ürünü göster
-          </button>
-        </footer>
-      </div>
+        }
+      >
+        {catOptions.length > 0 && (
+          <FilterSection title="Kategori">
+            <FilterOptions label="Kategori">
+              {catOptions.map((c) => (
+                <FilterOption
+                  key={c.id}
+                  type="checkbox"
+                  name="kategori"
+                  checked={draft.cats.includes(c.id)}
+                  onChange={() =>
+                    setDraft((f) => ({ ...f, cats: toggle(f.cats, c.id) }))
+                  }
+                >
+                  {c.label} <span className="filter-count">({c.n})</span>
+                </FilterOption>
+              ))}
+            </FilterOptions>
+          </FilterSection>
+        )}
+        {priceOptions.length > 0 && (
+          <FilterSection title="Fiyat">
+            <FilterOptions label="Fiyat">
+              {priceOptions.map((b) => (
+                <FilterOption
+                  key={b.id}
+                  type="checkbox"
+                  name="fiyat"
+                  checked={draft.prices.includes(b.id)}
+                  onChange={() =>
+                    setDraft((f) => ({ ...f, prices: toggle(f.prices, b.id) }))
+                  }
+                >
+                  <span className="tabular">{b.label}</span>{" "}
+                  <span className="filter-count">({b.n})</span>
+                </FilterOption>
+              ))}
+            </FilterOptions>
+          </FilterSection>
+        )}
+        {flagOptions.length > 0 && (
+          <FilterSection title="Öne çıkanlar">
+            <FilterOptions label="Öne çıkanlar">
+              {flagOptions.map((fl) => (
+                <FilterOption
+                  key={fl.id}
+                  type="checkbox"
+                  name="one-cikan"
+                  checked={draft.flags.includes(fl.id)}
+                  onChange={() =>
+                    setDraft((f) => ({ ...f, flags: toggle(f.flags, fl.id) }))
+                  }
+                >
+                  {fl.label} <span className="filter-count">({fl.n})</span>
+                </FilterOption>
+              ))}
+            </FilterOptions>
+          </FilterSection>
+        )}
+      </FilterSheet>
 
       {featured && (
         <section

@@ -489,7 +489,9 @@ export function FilterSheet({
             Tümünü temizle
           </button>
           <button type="button" className="btn btn-dark" onClick={onApply}>
-            Uygula (<span className="tabular">{count}</span>)
+            <span>
+              Uygula (<span className="tabular">{count}</span>)
+            </span>
           </button>
         </footer>
       </div>
