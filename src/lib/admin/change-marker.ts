@@ -114,6 +114,17 @@ export async function readPosMenuMarker(): Promise<string | null> {
   return readMarker("pos-menu", [TAG_MENU]);
 }
 
+/**
+ * The app menu's marker (`GET /api/mobile/v1/menu`): moves when a menu item
+ * or a branch's "Satışta / Tükendi" is written (`pub:menu`) or the settings
+ * are (`pub:site`: the KDV defaults are in the body). The route keeps the
+ * body's ETag under it (remembered-read.ts), so "has the menu changed?" is
+ * answered 304 without the database; the menu itself is always read live.
+ */
+export async function readMobileMenuMarker(): Promise<string | null> {
+  return readMarker("mobile-menu", [TAG_MENU, TAG_SITE]);
+}
+
 async function readMarker(
   name: string,
   tags: readonly string[],

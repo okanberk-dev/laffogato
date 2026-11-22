@@ -18,5 +18,6 @@ TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5433/laf_test npm run test:sube
 | `option-prices.test.ts`     | S8: seçenek ücreti menü kalemlerinden, sabite düşme kuralları, laktozsuz 0, sipariş fiyatı                                                                                          |
 | `tables-and-sales.test.ts`  | Masa listesi başka şubenin koduyla reddedilir; satışın şube süzgeci ve `byBranch`                                                                                                   |
 | `panel-routes.test.ts`      | İmzalı uçlar (veri katmanı taklit): siparişler, aşama, Gördüm, karaoke, masalar, menü; hangi şube adına okur / yazar                                                                |
+| `neon-uyanma.test.ts`       | Neon kotası (#229): kasanın güvenlik çekimi ve menü yoklaması değişiklik yokken veritabanına gitmez; önce / sonra saatlik okuma ölçümü; panelin (Tuzla) okuması aynen canlı         |
 | `db.test.ts`                | `TEST_DATABASE_URL` varsa: şubenin satırı (koşullu yazım), sipariş fiyatı şubede ve S8, masa listesi, bar okuması ve çağrılar                                                       |
 | `pre-branch-data.test.ts`   | `TEST_DATABASE_URL` varsa: şubelerden önce LafPOS'un gönderdiği masa kodları Marina'ya geçer (açık sipariş ve çağrılarıyla), eski Tükendi'ler şubenin satırına iner; Tuzla değişmez |

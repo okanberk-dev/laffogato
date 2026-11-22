@@ -13,8 +13,8 @@ import { priceCafeLine } from "@/lib/mobile/order-pricing";
 
 // S8 (lafmaliyet docs/planlar/senkron.md): ekstra shot, şurup ve alternatif
 // süt ücreti sitedeki kalemlerinin fiyatından (mnu-0081, mnu-0080,
-// mnu-0082), kod sabitinden değil. Alternatif süt şimdilik istisna: sahip
-// karar verene dek (menüde 50, seçenekte 25) sabitten gelir.
+// mnu-0082), kod sabitinden değil. Alternatif süt istisna: sahibin kararıyla
+// (22 Kasım 2026; ek ücret 25 TL, menü kalemi 50 TL kalır) sabitten gelir.
 
 const menuRow = (id: string, priceMinor: number, priceMinorL = 0) => ({
   id,
@@ -49,7 +49,7 @@ describe("optionPricesFromMenu", () => {
     expect(prices.extraShotMinor).toBe(5500);
   });
 
-  it("alternatif süt sahip karar verene dek sabitten gelir (menüde 50, seçenekte 25)", () => {
+  it("alternatif süt sahibin kararıyla sabitten gelir (menüde 50, seçenekte 25)", () => {
     // Canlıdaki durum: "Alternatif Süt" 50 TL, uygulamada badem 25 TL.
     const prices = optionPricesFromMenu([menuRow("mnu-0082", 5000)]);
     expect(prices.altMilkMinor).toBe(2500);
