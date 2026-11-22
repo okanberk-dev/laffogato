@@ -103,8 +103,10 @@ zaten varsa o satır kullanılır (**tek üyelik**).
   "customization": {
     // src/lib/mobile/customization.ts; ücretli seçeneklerin fiyatı 21 Kas
     // 2026'dan beri menü kalemlerinden (S8): şurup mnu-0080, ekstra shot
-    // mnu-0081, ücretli süt (badem) mnu-0082; kalem yoksa ya da fiyatı
-    // geçersizse aşağıdaki sabit. Biçim ve kimlikler değişmedi.
+    // mnu-0081; kalem yoksa ya da fiyatı geçersizse aşağıdaki sabit.
+    // Ücretli süt (badem) şimdilik sabitte kalır (25 TL): menüdeki
+    // "Alternatif Süt" (mnu-0082) 50 TL; sahip karar verene dek okunmaz.
+    // Biçim ve kimlikler değişmedi.
     "milks": [
       { "id": "normal", "label": "Normal", "priceMinor": 0, "allergens": [] },
       { "id": "lactose-free", "label": "Laktozsuz", "priceMinor": 0, "allergens": [] },

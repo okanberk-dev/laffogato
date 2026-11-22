@@ -13,7 +13,8 @@ import { priceCafeLine } from "@/lib/mobile/order-pricing";
 
 // S8 (lafmaliyet docs/planlar/senkron.md): ekstra shot, şurup ve alternatif
 // süt ücreti sitedeki kalemlerinin fiyatından (mnu-0081, mnu-0080,
-// mnu-0082), kod sabitinden değil.
+// mnu-0082), kod sabitinden değil. Alternatif süt şimdilik istisna: sahip
+// karar verene dek (menüde 50, seçenekte 25) sabitten gelir.
 
 const menuRow = (id: string, priceMinor: number, priceMinorL = 0) => ({
   id,
@@ -36,7 +37,30 @@ describe("optionPricesFromMenu", () => {
         menuRow("mnu-0081", 5500),
         menuRow("mnu-0082", 3000),
       ]),
-    ).toEqual({ syrupMinor: 6000, extraShotMinor: 5500, altMilkMinor: 3000 });
+    ).toEqual({ syrupMinor: 6000, extraShotMinor: 5500, altMilkMinor: 2500 });
+  });
+
+  it("şurup ve ekstra shot menüden okunur", () => {
+    const prices = optionPricesFromMenu([
+      menuRow("mnu-0080", 6000),
+      menuRow("mnu-0081", 5500),
+    ]);
+    expect(prices.syrupMinor).toBe(6000);
+    expect(prices.extraShotMinor).toBe(5500);
+  });
+
+  it("alternatif süt sahip karar verene dek sabitten gelir (menüde 50, seçenekte 25)", () => {
+    // Canlıdaki durum: "Alternatif Süt" 50 TL, uygulamada badem 25 TL.
+    const prices = optionPricesFromMenu([menuRow("mnu-0082", 5000)]);
+    expect(prices.altMilkMinor).toBe(2500);
+    expect(prices.altMilkMinor).toBe(DEFAULT_OPTION_PRICES.altMilkMinor);
+    const almond = customizationFor(prices).milks.find(
+      (m) => m.id === "almond",
+    );
+    expect(almond?.priceMinor).toBe(2500);
+    expect(
+      resolveOptionPricing({ milk: "almond" }, "M", prices).extraMinor,
+    ).toBe(2500);
   });
 
   it("Satışta bilgisi okunmaz: kasada tükenen şurup yine aynı fiyattır", () => {

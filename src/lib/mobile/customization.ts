@@ -20,7 +20,9 @@ import { CATALOG_MONEY_MAX_MINOR } from "@/lib/utils/format";
  * menu row while the app and LafPOS kept charging this file's constant.
  * `optionPricesFromMenu` reads them; `customizationFor` and
  * `resolveOptionPricing` take them. The constant below stays the fallback
- * for an item that is missing, has two sizes or no sound price.
+ * for an item that is missing, has two sizes or no sound price. The paid
+ * milk is the exception for now: it stays the constant's until the owner
+ * decides (menu 50 TL, option 25 TL; see `optionPricesFromMenu`).
  *
  * Prices are minor units (kuruş). `allergens` is carried on every syrup and,
  * since 23 Sep 2026, on every milk - empty or not - so the nut warning is data
@@ -165,9 +167,12 @@ export function optionPricesFromMenu(
     extraShotMinor:
       optionPriceOf(byId.get(OPTION_MENU_ITEMS.extraShot)) ??
       DEFAULT_OPTION_PRICES.extraShotMinor,
-    altMilkMinor:
-      optionPriceOf(byId.get(OPTION_MENU_ITEMS.altMilk)) ??
-      DEFAULT_OPTION_PRICES.altMilkMinor,
+    // Sahip karar verene dek (menüde 50, seçenekte 25): the paid milk is NOT
+    // read from mnu-0082 yet. On 22 Kas 2026 "Alternatif Süt" was 50 TL on
+    // the menu while the app and the till charged 25 TL for almond milk;
+    // reading it would have doubled a customer price nobody decided on.
+    // When the owner picks one, read it here like the two above.
+    altMilkMinor: DEFAULT_OPTION_PRICES.altMilkMinor,
   };
 }
 
