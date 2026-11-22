@@ -22,10 +22,14 @@ import { cx } from "./cx";
 export function AppPhones({
   className,
   only,
+  table = true,
 }: {
   className?: string;
   /** `table` draws the table screen alone (the visit page). */
   only?: "table";
+  /** `false` leaves the table screen out: the panel's table-ordering
+      switch is off, so the page shows only what the app offers today. */
+  table?: boolean;
 }) {
   if (only === "table") {
     return (
@@ -37,26 +41,26 @@ export function AppPhones({
   return (
     <div className={cx("app-phones", className)}>
       <figure className="app-device app-device--side">
-        <div className="app-device-screen">
+        <div className="app-device-screen app-device-screen--shot">
           <Image
-            src="/brand/app-screen-menu.webp"
+            src="/brand/app-shot-menu.webp"
             alt="Uygulamanın menü ekranı: kategoriler ve içecekler."
             width={600}
-            height={1300}
+            height={1150}
             loading="lazy"
             unoptimized
           />
         </div>
         <figcaption className="t-micro">Menü</figcaption>
       </figure>
-      <TablePhone lead />
+      {table ? <TablePhone lead /> : null}
       <figure className="app-device app-device--side">
-        <div className="app-device-screen">
+        <div className="app-device-screen app-device-screen--shot">
           <Image
-            src="/brand/app-screen-home.webp"
+            src="/brand/app-shot-home.webp"
             alt="Uygulamanın ana sayfası: sipariş düğmesi ve damga kartı."
             width={600}
-            height={1300}
+            height={1150}
             loading="lazy"
             unoptimized
           />

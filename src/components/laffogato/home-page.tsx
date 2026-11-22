@@ -294,6 +294,7 @@ export function PageHome({
       <AppBlock
         stampTarget={stampTarget}
         courierEnabled={courierEnabled}
+        tableOrderEnabled={settings?.tableOrderEnabled !== false}
         pickupMinutes={pickupMinutes}
         images={images}
       />
@@ -497,11 +498,14 @@ function TakeHome({ product: p }: { product: Product }) {
 function AppBlock({
   stampTarget,
   courierEnabled,
+  tableOrderEnabled,
   pickupMinutes,
   images,
 }: {
   stampTarget: number;
   courierEnabled: boolean;
+  /** Mobil → Ayarlar → Masaya sipariş. Off: no table line, phone or band. */
+  tableOrderEnabled: boolean;
   pickupMinutes: number;
   images?: SiteImages;
 }) {
@@ -511,10 +515,14 @@ function AppBlock({
   const min = Math.round(STAMP_MIN_ORDER_MINOR / 100);
   const step = Math.round(STAMP_STEP_MINOR / 100);
   const points = [
-    {
-      title: "Masadan sipariş",
-      body: "Masandaki QR'ı okut, menüden seç, uygulamada öde. Siparişin masana gelir.",
-    },
+    ...(tableOrderEnabled
+      ? [
+          {
+            title: "Masadan sipariş",
+            body: "Masandaki QR'ı okut, menüden seç, uygulamada öde. Siparişin masana gelir.",
+          },
+        ]
+      : []),
     {
       title: `Gel-al ${pickupMinutes} dakikada`,
       body: courierEnabled
@@ -538,11 +546,15 @@ function AppBlock({
           <div className="app-block-copy">
             <p className="t-label">L&rsquo;Affogato uygulaması</p>
             <h2 id="home-app-title" className="t-display">
-              Siparişin uygulamada, kahven masanda
+              {tableOrderEnabled
+                ? "Siparişin uygulamada, kahven masanda"
+                : "Siparişin uygulamada, kahven hazır"}
             </h2>
             <p className="t-body">
-              Masandan ya da yoldayken sipariş ver, uygulamada öde. Kafe
-              siparişlerin damga toplar, kartın dolunca içecek bizden.
+              {tableOrderEnabled
+                ? "Masandan ya da yoldayken sipariş ver, uygulamada öde."
+                : "Yoldayken sipariş ver, uygulamada öde, sıra beklemeden al."}{" "}
+              Kafe siparişlerin damga toplar, kartın dolunca içecek bizden.
             </p>
             <AppStoreLinks className="app-block-store" />
             <ul className="ruled-list" role="list">
@@ -558,29 +570,31 @@ function AppBlock({
               Tuzla köşkü içindir.
             </p>
           </div>
-          <AppPhones className="app-block-phones" />
+          <AppPhones className="app-block-phones" table={tableOrderEnabled} />
         </div>
       </section>
-      <TableOrderBand
-        headingId="home-table-title"
-        media={
-          <div className="media ratio-6-5">
-            <Image
-              src={photo.src}
-              unoptimized={photo.src.startsWith("/gorsel/")}
-              alt={photo.alt}
-              fill
-              loading="lazy"
-              sizes="(max-width: 1023px) 100vw, 50vw"
-            />
-          </div>
-        }
-      >
-        <p className="t-small table-order-note">
-          Uygulaman yoksa QR menüyü tarayıcıda açar; sipariş vermek için
-          uygulamayı indirmen yeter.
-        </p>
-      </TableOrderBand>
+      {tableOrderEnabled ? (
+        <TableOrderBand
+          headingId="home-table-title"
+          media={
+            <div className="media ratio-6-5">
+              <Image
+                src={photo.src}
+                unoptimized={photo.src.startsWith("/gorsel/")}
+                alt={photo.alt}
+                fill
+                loading="lazy"
+                sizes="(max-width: 1023px) 100vw, 50vw"
+              />
+            </div>
+          }
+        >
+          <p className="t-small table-order-note">
+            Uygulaman yoksa QR menüyü tarayıcıda açar; sipariş vermek için
+            uygulamayı indirmen yeter.
+          </p>
+        </TableOrderBand>
+      ) : null}
     </>
   );
 }

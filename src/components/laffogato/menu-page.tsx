@@ -44,6 +44,9 @@ const LEDE =
   "İçeceklerin çoğu M ve L boy servis edilir. Alternatif süt ve ekstra shot barda seçilir. Menüye buradan göz at, beğendiğini barda söyle.";
 
 export function PageMenu({ menu, settings, images }: PageProps) {
+  // Mobil → Ayarlar → Masaya sipariş: off, the menu stops pointing at the
+  // table's QR as a way to order.
+  const tableOrderEnabled = settings?.tableOrderEnabled !== false;
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
   // A single-category menu means this is /menu/<kategori>, which is scoped
@@ -176,13 +179,15 @@ export function PageMenu({ menu, settings, images }: PageProps) {
             <p className="t-body">{activeNote || LEDE}</p>
             {/* The table order, said once where the menu starts; /masa has
                 its own banner and hides this line (catalog.css). */}
-            <p className="t-small menu-app-nudge">
-              Köşkte misin? Masandaki QR&rsquo;ı okut, uygulamadan sipariş ver;
-              masana gelsin.{" "}
-              <Link href="/#uygulama" className="link-u">
-                Uygulamayı gör
-              </Link>
-            </p>
+            {tableOrderEnabled ? (
+              <p className="t-small menu-app-nudge">
+                Köşkte misin? Masandaki QR&rsquo;ı okut, uygulamadan sipariş
+                ver; masana gelsin.{" "}
+                <Link href="/#uygulama" className="link-u">
+                  Uygulamayı gör
+                </Link>
+              </p>
+            ) : null}
           </div>
           <div className="collection-tools">
             <div className="search-input">
@@ -477,8 +482,10 @@ export function PageMenu({ menu, settings, images }: PageProps) {
             <li>
               <p className="t-label">Self-servis</p>
               <p className="t-small">
-                Menüye buradan göz at, beğendiğini barda söyle. Uygulaman varsa
-                masandaki QR&rsquo;ı okut: sipariş masana gelir.
+                Menüye buradan göz at, beğendiğini barda söyle.
+                {tableOrderEnabled
+                  ? " Uygulaman varsa masandaki QR'ı okut: sipariş masana gelir."
+                  : null}
               </p>
             </li>
             <li>

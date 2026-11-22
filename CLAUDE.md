@@ -301,15 +301,17 @@ Unutulmaması gerekenler:
   verebildiklerinin farkında olsunlar"_; `app-showcase.tsx`, stili
   `home.css`): uygulama bölümü üç telefon gösterir. İkisi uygulamanın App
   Store ekran görüntüsüdür (lafmobil `store/screenshots/6.7-inch`, 600px
-  webp: `public/brand/app-screen-{menu,home}.webp`); ortadaki masa siparişi
+  webp, alt çubuğun üstünden kırpılmış: `public/brand/app-shot-{menu,home}.webp`; mağaza görüntüsündeki alt çubuk eskidi, çerçeve altta açık durur); ortadaki masa siparişi
   ekranı mağaza setinde olmadığı için uygulamanın kendi metinleriyle
   (lafmobil `src/i18n/screens/table.ts`) işaretlemeyle çizilir, fiyat,
   puan, yorum ya da indirme sayısı taşımaz. Altındaki kömür bant
   (`TableOrderBand`: QR'ı okut, seç ve öde, masana gelsin) anasayfada
   `home.app` fotoğrafıyla, `/ziyaret`'te çizilmiş telefonla durur; `/menu`
   başlığın altında tek satırla söyler (`/masa`'da gizli: orada kendi
-  bandı var). Masaya siparişin panel anahtarı (`tableEnabled`) sayfaya
-  gelmez: kapatılırsa bu metinler elle kaldırılır. Görseller tembel
+  bandı var). Masaya siparişin panel anahtarı sayfaya gelir
+  (`settings.tableOrderEnabled`, `app-props.ts`): kapalıyken masa telefonu,
+  bant, `/menu` satırı ve "Masadan sipariş" maddesi çizilmez, başlık
+  gel-al'ı söyler. Görseller tembel
   yüklenir, ilk boyamaya girmez.
 
 - **Film lisanslı stok, bizim çekimimiz değil.** Üç Mixkit klibi, sessiz
