@@ -24,6 +24,7 @@ import {
   ProductCard,
   ProductFactValue,
   toCartItem,
+  VariantTiles,
   type CartItem,
   type ShopContact,
 } from "./ui";
@@ -187,9 +188,16 @@ export function ProductDetail({
   const freeFrom = freeShippingFrom(freeShippingThresholdMinor);
   const returnsEmail = contact?.email?.trim() || "info@nextgenlab.com.tr";
 
+  const step = (d: number) =>
+    setActiveImg((i) => (i + d + gallery.length) % gallery.length);
+
   return (
     <div className="pdp">
-      <div className="wrap">
+      {/* The reference's product page: the photograph and the buy box on
+          the band, the photograph square in its column with a numbered
+          pager under it (white arrow tabs at its sides), the buy box 385px
+          wide beside it. */}
+      <div className="pdp-top">
         <nav className="pdp-breadcrumb" aria-label="breadcrumb">
           <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
@@ -215,32 +223,62 @@ export function ProductDetail({
         <div className="pdp-grid">
           {/* Gallery */}
           <div className="pdp-gallery">
-            <div className="pdp-gallery-main media">
-              {gallery.length > 0 ? (
-                <ProductSurface
-                  label={p.name}
-                  images={[gallery[activeImg]]}
-                  priority
-                />
-              ) : (
-                <ProductSurface label={p.name} />
-              )}
-              {savingsPct > 0 && (
-                <span className="badge">%{savingsPct} indirim</span>
+            <div className="pdp-gallery-stage">
+              <div className="pdp-gallery-main media">
+                {gallery.length > 0 ? (
+                  <ProductSurface
+                    label={p.name}
+                    images={[gallery[activeImg]]}
+                    priority
+                  />
+                ) : (
+                  <ProductSurface label={p.name} />
+                )}
+                {savingsPct > 0 && (
+                  <span className="badge">%{savingsPct} indirim</span>
+                )}
+              </div>
+              {gallery.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="pdp-gallery-arrow pdp-gallery-arrow--prev"
+                    onClick={() => step(-1)}
+                    aria-label="Önceki görsel"
+                  >
+                    <svg viewBox="0 0 28 8" aria-hidden="true">
+                      <path d="M28 4H1.5M5 .5 1.5 4 5 7.5" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="pdp-gallery-arrow pdp-gallery-arrow--next"
+                    onClick={() => step(1)}
+                    aria-label="Sonraki görsel"
+                  >
+                    <svg viewBox="0 0 28 8" aria-hidden="true">
+                      <path d="M0 4h26.5M23 .5 26.5 4 23 7.5" />
+                    </svg>
+                  </button>
+                </>
               )}
             </div>
             {gallery.length > 1 && (
-              <div className="pdp-gallery-thumbs">
+              <div
+                className="pdp-gallery-pager"
+                role="group"
+                aria-label="Görseller"
+              >
                 {gallery.map((img, i) => (
                   <button
                     key={img + i}
                     type="button"
-                    className="pdp-thumb media"
-                    data-active={i === activeImg ? "true" : undefined}
+                    className="pdp-pager-num tabular"
+                    aria-current={i === activeImg ? "true" : undefined}
                     onClick={() => setActiveImg(i)}
                     aria-label={`Görsel ${i + 1}`}
                   >
-                    <ProductSurface label={p.name} images={[img]} />
+                    {String(i + 1).padStart(2, "0")}
                   </button>
                 ))}
               </div>
@@ -249,8 +287,10 @@ export function ProductDetail({
 
           {/* Buy box */}
           <div className="pdp-info">
-            <h1 className="t-display pdp-title">{p.name}</h1>
-            {p.tag ? <p className="t-body">{p.tag}</p> : null}
+            <div className="pdp-titles">
+              <h1 className="t-display t-display--xl pdp-title">{p.name}</h1>
+              {p.tag ? <p className="pdp-tag">{p.tag}</p> : null}
+            </div>
 
             <div className="pdp-price-row">
               {compareAt && compareAt > unitPrice && (
@@ -260,13 +300,13 @@ export function ProductDetail({
               )}
               <span className="t-price tabular">{priceLabel(unitMinor)}</span>
               {savingsPct > 0 && (
-                <span className="t-small pdp-save-pill">−%{savingsPct}</span>
+                <span className="pdp-save-pill">−%{savingsPct}</span>
               )}
             </div>
             {savingsPct > 0 && discount && (
               <p className="t-small t-muted">{discount.notice}</p>
             )}
-            <p className="t-small t-muted">KDV dahil fiyat</p>
+            <p className="pdp-vat">KDV dahil fiyat</p>
 
             {/* Stock state */}
             {stock !== undefined && (
@@ -281,35 +321,16 @@ export function ProductDetail({
               </div>
             )}
 
-            {/* Variants */}
+            {/* Variants: the reference's SELECT SIZE tiles. */}
             {variants.length > 0 && (
-              <div className="pdp-variants">
-                <p className="t-label">Seçenek</p>
-                <div className="chip-row">
-                  {variants.map((v) => {
-                    const vOut = v.stock !== undefined && v.stock <= 0;
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        className="tag variant-chip"
-                        aria-pressed={v.id === variantId}
-                        disabled={vOut}
-                        onClick={() => {
-                          setVariantId(v.id);
-                          setQty(1);
-                        }}
-                      >
-                        {v.name}
-                        {v.priceDelta
-                          ? ` · ${v.priceDelta > 0 ? "+" : ""}${priceLabel(Math.round(v.priceDelta * 100))}`
-                          : ""}
-                        {vOut ? " (tükendi)" : ""}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <VariantTiles
+                variants={variants}
+                value={variantId}
+                onChange={(id) => {
+                  setVariantId(id);
+                  setQty(1);
+                }}
+              />
             )}
 
             {/* Qty + add */}
@@ -414,7 +435,9 @@ export function ProductDetail({
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="wrap">
         {/* Related */}
         {related.length > 0 && (
           <section className="pdp-related">

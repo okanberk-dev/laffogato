@@ -46,67 +46,14 @@ const POPULAR = [
   "Hediye",
 ];
 
-const QUICK: Array<{
-  href: string;
-  title: string;
-  sub: string;
-  icon: ReactNode;
-}> = [
-  {
-    href: "/menu",
-    title: "Menü",
-    sub: "Kafede bugün",
-    icon: (
-      <>
-        <path d="M5 8.25h11.5v4.25a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5V8.25Z" />
-        <path d="M16.5 9.5h1.75a2.25 2.25 0 0 1 0 4.5H16.3" />
-      </>
-    ),
-  },
-  {
-    href: "/magaza",
-    title: "Mağaza",
-    sub: "Çekirdek, set, ekipman",
-    icon: (
-      <>
-        <path d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z" />
-        <path d="M9 10.5V7.5a3 3 0 0 1 6 0v3" />
-      </>
-    ),
-  },
-  {
-    href: "/karaoke",
-    title: "Karaoke",
-    sub: "Üst kat özel oda",
-    icon: (
-      <>
-        <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
-        <path d="M6.25 11.5a5.75 5.75 0 0 0 11.5 0M12 17.25v3" />
-      </>
-    ),
-  },
-  {
-    href: "/kampanyalar",
-    title: "Kampanyalar",
-    sub: "Bu ay köşkte",
-    icon: (
-      <>
-        <path d="M4.5 9.5h15v10h-15zM3.75 6.5h16.5v3H3.75zM12 6.5v13" />
-        <path d="M12 6.5C10.5 3.5 7 3.8 7.6 5.6 8 6.5 12 6.5 12 6.5Zm0 0c1.5-3 5-2.7 4.4-.9-.4.9-4.4.9-4.4.9Z" />
-      </>
-    ),
-  },
-  {
-    href: "/ziyaret",
-    title: "Ziyaret",
-    sub: "Adres ve saatler",
-    icon: (
-      <>
-        <path d="M12 20.5s-6.25-5.4-6.25-10.25a6.25 6.25 0 0 1 12.5 0C18.25 15.1 12 20.5 12 20.5Z" />
-        <circle cx="12" cy="10.25" r="2.25" />
-      </>
-    ),
-  },
+/** The doors under the field, as the reference's "Top Categories". */
+const QUICK: Array<{ href: string; title: string }> = [
+  { href: "/menu", title: "Menü" },
+  { href: "/magaza", title: "Mağaza" },
+  { href: "/magaza/cekirdek", title: "Çekirdek kahve" },
+  { href: "/karaoke", title: "Karaoke" },
+  { href: "/kampanyalar", title: "Kampanyalar" },
+  { href: "/ziyaret", title: "Ziyaret" },
 ];
 
 const RECENT_KEY = "laf_recent_search_v1";
@@ -234,6 +181,16 @@ export function SearchOverlay({
     .filter((r) => r.kind === "product")
     .slice(0, 6);
   const menuResults = results.filter((r) => r.kind === "menu").slice(0, 6);
+  // Before anything is typed: the shelf's featured pieces first, three to a
+  // row, as the reference's "Most Popular".
+  const popular = products
+    .filter((p) => p.slug && (p.stock === undefined || p.stock > 0))
+    .sort(
+      (a, b) =>
+        Number(!!b.featured) - Number(!!a.featured) ||
+        Number(!!b.isNew) - Number(!!a.isNew),
+    )
+    .slice(0, 6);
   const flat = [...productResults, ...menuResults];
   const activeIndex = flat.length ? Math.min(active, flat.length - 1) : -1;
 
@@ -392,9 +349,15 @@ export function SearchOverlay({
               </button>
             )}
           </label>
-          <button type="button" onClick={onClose} className="search-close">
-            <span className="search-close-label">Vazgeç</span>
-            <kbd className="search-close-kbd">esc</kbd>
+          <button
+            type="button"
+            onClick={onClose}
+            className="search-close"
+            aria-label="Aramayı kapat"
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M1 1l18 18M19 1 1 19" />
+            </svg>
           </button>
         </div>
 
@@ -450,27 +413,53 @@ export function SearchOverlay({
               </section>
               <section className="search-block">
                 <div className="search-block-head">
-                  <span className="search-block-title">Hızlı geçiş</span>
+                  <span className="search-block-title">Kategoriler</span>
                 </div>
-                <div className="search-quick">
+                <div className="search-chips">
                   {QUICK.map((d) => (
                     <Link
                       key={d.href}
                       href={d.href}
-                      className="search-quick-item"
+                      className="search-chip"
                       onClick={onClose}
                     >
-                      <span className="search-quick-icon" aria-hidden="true">
-                        <Glyph>{d.icon}</Glyph>
-                      </span>
-                      <span className="search-quick-copy">
-                        <span className="search-quick-title">{d.title}</span>
-                        <span className="search-quick-sub">{d.sub}</span>
-                      </span>
+                      {d.title}
                     </Link>
                   ))}
                 </div>
               </section>
+              {popular.length > 0 && (
+                <section className="search-popular">
+                  <h2 className="search-popular-title">Çok tercih edilenler</h2>
+                  <ul className="product-grid search-popular-grid" role="list">
+                    {popular.map((p) => (
+                      <li key={p.id ?? p.slug} className="p-card">
+                        <Link
+                          href={productPath(p.slug!)}
+                          className="p-card-link"
+                          onClick={onClose}
+                        >
+                          <span className="media ratio-5-4 p-card-media">
+                            <ProductSurface label={p.name} images={p.images} />
+                            {p.isNew ? (
+                              <span className="badge">Yeni</span>
+                            ) : p.featured ? (
+                              <span className="badge">Öne çıkan</span>
+                            ) : null}
+                          </span>
+                          <span className="p-card-head">
+                            <span className="t-title">{p.name}</span>
+                            <span className="t-price tabular">{p.price}</span>
+                          </span>
+                          {p.tag ? (
+                            <span className="t-small p-card-sub">{p.tag}</span>
+                          ) : null}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
             </div>
           ) : flat.length === 0 ? (
             <div className="search-empty">
@@ -517,19 +506,6 @@ export function SearchOverlay({
               {menuResults.map((r, i) => row(r, productResults.length + i))}
             </ul>
           )}
-        </div>
-
-        <div className="search-foot" aria-hidden="true">
-          <span>
-            <kbd>↑</kbd>
-            <kbd>↓</kbd> gezin
-          </span>
-          <span>
-            <kbd>↵</kbd> aç
-          </span>
-          <span>
-            <kbd>esc</kbd> kapat
-          </span>
         </div>
       </div>
     </div>
