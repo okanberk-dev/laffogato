@@ -207,8 +207,10 @@ Unutulmaması gerekenler:
   (operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap
   mailleri de öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler
   gibi"_; kapsam yalnız e-postalar ve /franchise): adaçayı `#f2f5f1` dış
-  zemin, çerçevesiz beyaz kart, derin orman yeşili `#173f35` logo karosu
-  (`laf-mark-green.png`, opak: Gmail görseli çevirmez), Archivo yığınıyla
+  zemin, çerçevesiz beyaz kart, tepede derin orman yeşili `#173f35` başlık
+  bandı ve ortasında kutusuz L'Af işareti (`laf-mark-white.png`, saydam,
+  yalnız yeşil zeminde; operatör: _"logomuzu daha estetik yerleştir"_; yeşil
+  kartta bandı ince bir çizgi kapatır), Archivo yığınıyla
   yeşil, büyük harf aralıklı başlık ve etiket, Geist yığınıyla `#1e2a25`
   cümle, kare yeşil düğme (cümle düzeninde etiket, tek çağrı 350px), yeşil
   açılış, bilet ve footer, üstünde pirinç `#cba258` etiket, uygulama şeridi

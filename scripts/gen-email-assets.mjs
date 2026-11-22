@@ -9,13 +9,14 @@
  * #173f35 for every filled control and dark block, the logo's brass. Their
  * pictures follow:
  *
- *   laf-mark-green.png      the L'Af mark in white with its brass bean
- *                           (#cba258) on a deep green square, the app
- *                           icon's colours. OPAQUE on purpose: Gmail's dark mode
- *                           inverts colours but never images, so a black
- *                           mark on a transparent ground would vanish on a
- *                           dark card. On the green footer the square
- *                           melts into the block and only the mark is seen.
+ *   laf-mark-white.png      the L'Af mark alone, white with its brass bean
+ *                           (#cba258), on transparency: the masthead on
+ *                           top of every mail and the footer's mark, both
+ *                           on the deep green. It only ever sits on green,
+ *                           which no client's dark mode turns light, so it
+ *                           needs no ground of its own (and a ground would
+ *                           show as a box wherever a client shifts the
+ *                           green by a shade).
  *   check-success.png       the payment badge: --success disc, white tick
  *                           (the site's .order-done-badge).
  *   stamp-sq-{full,empty}   the stamp card's cells on a green panel, as
@@ -80,18 +81,15 @@ async function png(svg, file, { opaque = true } = {}) {
 }
 
 /** The mark centred in a square, `share` of the side wide. */
-function markSvg(size, { ground, letters, bean, share }) {
+/** The mark alone, `height` tall, on transparency. */
+function markSvg(height, { letters, bean }) {
   const l = pathOf("laf-letters.svg");
   const b = pathOf("laf-bean.svg");
   const [, , vbW, vbH] = l.box.split(/\s+/).map(Number);
-  const w = size * share;
-  const h = (w * vbH) / vbW;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-  <rect width="100%" height="100%" fill="${ground}"/>
-  <svg x="${(size - w) / 2}" y="${(size - h) / 2}" width="${w}" height="${h}" viewBox="${l.box}">
-    <path fill-rule="evenodd" fill="${letters}" d="${l.d}"/>
-    <path fill-rule="evenodd" fill="${bean}" d="${b.d}"/>
-  </svg>
+  const width = Math.round((height * vbW) / vbH);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${l.box}">
+  <path fill-rule="evenodd" fill="${letters}" d="${l.d}"/>
+  <path fill-rule="evenodd" fill="${bean}" d="${b.d}"/>
 </svg>`;
 }
 
@@ -151,15 +149,12 @@ const ICONS = {
 
 mkdirSync(join(OUT, "icons"), { recursive: true });
 
-// The header and footer mark: 3x of the 56 px it is printed at.
+// The masthead and footer mark: 3x of the 44 px height it is printed at
+// (54 x 44 in the masthead, 39 x 32 in the footer).
 await png(
-  markSvg(168, {
-    ground: GREEN,
-    letters: WHITE,
-    bean: BEAN_ON_DARK,
-    share: 0.6,
-  }),
-  "laf-mark-green.png",
+  markSvg(132, { letters: WHITE, bean: BEAN_ON_DARK }),
+  "laf-mark-white.png",
+  { opaque: false },
 );
 
 // Payment badge: 2x of 56 px, a disc on transparency.

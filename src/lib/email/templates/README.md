@@ -187,11 +187,11 @@ işaret `public/brand`'den, ikonlar Lucide'den).
 
 ```
 public/email/
-  laf-mark-green.png              168×168, 56 (başlık) / 44 (footer) px basılır - derin yeşil (#173f35)
-                                  karo üstünde beyaz L'Af ve #cba258 çekirdek (uygulama ikonunun
-                                  renkleri). OPAK: Gmail'in koyu modu renkleri çevirir ama görselleri
-                                  çevirmez; saydam bir işaret koyu kartta kaybolurdu. Yeşil footer'da
-                                  karo bloğa karışır.
+  laf-mark-white.png              162×132, saydam - kutusuz L'Af işareti: beyaz harf, #cba258 çekirdek.
+                                  Başlık bandında 54×44, footer'da 39×32 basılır. Yalnız derin yeşil
+                                  zeminde durur (hiçbir istemcinin koyu modu yeşili açığa çevirmez),
+                                  bu yüzden kendi zemini yoktur; zeminli bir görsel, yeşili bir ton
+                                  kaydıran istemcide kutu gibi görünürdü.
   check-success.png               112×112, 56 px - ödeme onayı rozeti: --success disk, beyaz tik (saydam köşe)
   stamp-sq-{full,empty}.png       96×96, 40 px - damga kartı hücreleri, yeşil panelde: dolu = adaçayı kare ve
                                   #b8893a çekirdek, boş = kesik çizgili kare (sitenin .stamp'ı)
@@ -211,7 +211,20 @@ Kampanya görseli (`KAMPANYA_GORSEL_URL`) ise formdan gelen, barındırılmış
 bir `https` görselidir; boşsa hero satırı düşer. Yeni bir sabit görsel
 `public/email/`e girer ve deploy ile yayına çıkar - şablon deploy'dan önce
 gönderilirse görsel kırık gelir. Her şablon en az bir `laffogato.net/email/`
-varlığı çağırır (logo) ve çağırdığı her dosya diskte durur.
+varlığı çağırır (işaret) ve çağırdığı her dosya diskte durur.
+
+## Başlık bandı (logo)
+
+Her e-posta aynı bantla açılır (22 Kas 2026, operatör: _"logomuzu daha
+estetik yerleştir"_): kartın tam genişliğinde derin yeşil bir satır, ortasında
+kutusuz L'Af işareti (`laf-mark-white.png`, 54×44; üstte 32px, altta 30px).
+Beyaz kartta bant renk değişimiyle biter ve içerik 36px aşağıdan başlar;
+yeşil kartta (karaoke, sadakat, koyu kampanyalar, ekip bildirimi) bandı
+işaretin 28px altındaki 1px `#3f6658` çizgi kapatır, içerik çizginin 28px
+altından başlar. Footer aynı işareti 39×32 taşır. Görsel engellenirse
+`alt` metni ("L'Affogato") beyaz, büyük harf ve aralıklı çizilir (stil
+`<img>`'in üstündedir). İşaret çarpıtılmaz, kutuya alınmaz, açık zemine
+konmaz.
 
 ## Palet
 
@@ -267,8 +280,8 @@ da cümle düzeninde yazılır.
 - Outlook.com ve Outlook uygulamaları yeniden boyadığı öğelere
   `data-ogsc` / `data-ogsb` koyar; aynı sınıflar bu seçicilerle de eşlenir.
 - Gmail ikisini de uygulamaz, renkleri kendisi ters çevirir, görselleri
-  çevirmez. Bu yüzden zemini gömülü görsel yoktur, logo ve açık yüzeydeki
-  ikonlar opak karodur.
+  çevirmez. Bu yüzden zemini gömülü görsel yoktur, açık yüzeydeki ikonlar
+  opak karodur ve logo yalnız yeşil bantta durur (koyu zemin çevrilmez).
 
 Sınıf, öğenin **üstünde durduğu yüzeye** göre konur: açık yüzeydeki metin,
 çizgi ve zeminler sınıf taşır; yeşil yüzeylerdeki öğeler taşımaz, iki modda

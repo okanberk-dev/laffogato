@@ -784,8 +784,10 @@ pirinç rakam). Footer sayfanın dışındadır, kömürde kalır.
 
 **E-postalar** (`src/lib/email/templates/`, `docs/email/`, sözleşme eki
 `durable-copy.ts`; ayrıntı `src/lib/email/templates/README.md` "Palet"):
-adaçayı dış zemin, çerçevesiz beyaz kart, yeşil logo karosu
-(`laf-mark-green.png`, opak), başlık ve etiket `'Archivo'` yığınıyla 400,
+adaçayı dış zemin, çerçevesiz beyaz kart, tepede derin yeşil başlık bandı ve
+ortasında kutusuz L'Af işareti (`laf-mark-white.png`, saydam, 54×44; operatör:
+_"logomuzu daha estetik yerleştir"_; yeşil kartta bandı 1px `#3f6658` çizgi
+kapatır), başlık ve etiket `'Archivo'` yığınıyla 400,
 büyük harf, 1.6px aralık, derin yeşil; cümle `'Geist'` yığınıyla
 `#1e2a25`; kare yeşil düğme (cümle düzeni, tek çağrı 350px); yeşil açılış,
 bilet ve footer, üstünde pirinç etiket; uygulama şeridi adaçayı bantta.

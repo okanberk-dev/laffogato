@@ -183,8 +183,8 @@ tireyle yazılmıştı, şablonlarla birlikte bunları da güncelle):
 
 Şablonlar sitenin e-postalarıyla aynı iskeleti ve aynı `<style>` bloğunu
 kullanır (15 Eki 2026; 22 Kas 2026'dan beri sitenin dilinde, markanın
-yeşiliyle): açık ve koyu modda okunur, logo
-`https://laffogato.net/email/laf-mark-green.png` karosudur. Görsel siteden
+yeşiliyle): açık ve koyu modda okunur, logo yeşil başlık bandındaki
+`https://laffogato.net/email/laf-mark-white.png` işaretidir. Görsel siteden
 gelir; şablonları **site deploy edildikten sonra** yapıştır. Üye ikisini de
 aynı markadan alıyor; biri değişirse diğeri de değişmeli.
 
