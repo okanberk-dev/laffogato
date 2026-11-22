@@ -148,7 +148,7 @@ export function AddressForm({
         <button
           type="submit"
           disabled={pending}
-          className="btn btn-primary btn-sm"
+          className="btn btn-primary btn-wide"
           aria-busy={pending}
         >
           {pending ? (
@@ -160,7 +160,7 @@ export function AddressForm({
             submitLabel
           )}
         </button>
-        <Link href="/uye/hesap/adreslerim" className="btn btn-ghost btn-sm">
+        <Link href="/uye/hesap/adreslerim" className="btn btn-ghost">
           Vazgeç
         </Link>
       </div>

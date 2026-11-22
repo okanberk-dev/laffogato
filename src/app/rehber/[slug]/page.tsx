@@ -62,40 +62,19 @@ export default async function GuidePage({
     <div className="guide-page">
       <JsonLd data={guideGraphLd(guide)} />
 
-      <div className="guide-wrap">
-        <nav className="guide-breadcrumb" aria-label="breadcrumb">
-          <Link href="/">Ana Sayfa</Link>
-          <span aria-hidden>/</span>
-          <Link href="/rehber">Rehber</Link>
-          <span aria-hidden>/</span>
-          <span>{guide.title}</span>
-        </nav>
-
-        <header className="guide-head">
-          <h1 className="h1">{guide.title}</h1>
-          <p className="lede">{guide.excerpt}</p>
-          <div className="guide-meta">
-            <span className="eyebrow">Son güncelleme</span>
-            <time dateTime={guide.updatedAt}>
-              {formatGuideDate(guide.updatedAt)}
-            </time>
-            <span aria-hidden>·</span>
-            <span>{guide.readingMinutes} dakikalık okuma</span>
-          </div>
-        </header>
-
-        {/* The dish, first: the page's largest paint, so it loads eagerly. A
-            stock photograph names its photographer, as the Unsplash licence
-            asks politely and the house does gladly. */}
+      {/* The reference's brew-guide opener: the dish to the edges under the
+          bar (the page's largest paint, so it loads eagerly), then the
+          title. A stock photograph names its photographer, as the Unsplash
+          licence asks politely and the house does gladly. */}
+      <section className="page-hero guide-opener">
         {guide.image && (
-          <figure className="guide-hero">
+          <figure className="page-hero-media media guide-hero">
             <Image
               src={guide.image.src}
               alt={guide.image.alt}
-              width={guide.image.width}
-              height={guide.image.height}
+              fill
               priority
-              sizes="(max-width: 920px) 100vw, 880px"
+              sizes="100vw"
             />
             <figcaption>
               {guide.image.credit ? (
@@ -117,154 +96,207 @@ export default async function GuidePage({
             </figcaption>
           </figure>
         )}
-
-        {/* A table of contents doubles as the jump-links Google shows beneath
-            a result, so the headings carry ids and this list points at them. */}
-        {guide.sections.length > 3 && (
-          <nav className="guide-toc" aria-label="İçindekiler">
-            <div className="eyebrow" style={{ marginBottom: 12 }}>
-              İçindekiler
-            </div>
-            <ol>
-              {guide.sections.map((s, i) => (
-                <li key={i}>
-                  <a href={`#bolum-${i + 1}`}>{s.heading}</a>
-                </li>
-              ))}
-              {guide.recipe ? (
-                <li>
-                  <a href="#tarif">Tarif: {guide.recipe.name}</a>
-                </li>
-              ) : null}
-            </ol>
+        <div className="wrap page-hero-copy">
+          <nav className="guide-breadcrumb" aria-label="breadcrumb">
+            <Link href="/">Ana Sayfa</Link>
+            <span aria-hidden>/</span>
+            <Link href="/rehber">Rehber</Link>
+            <span aria-hidden>/</span>
+            <span>{guide.title}</span>
           </nav>
-        )}
+          <h1 className="t-display">{guide.title}</h1>
+        </div>
+      </section>
 
-        <article className="guide-article">
-          {guide.sections.map((s, i) => (
-            <section key={i} className="guide-section">
-              <h2 id={`bolum-${i + 1}`}>{s.heading}</h2>
-              {s.paragraphs?.map((p, j) => (
-                <p key={`p${j}`}>{p}</p>
-              ))}
-              {s.bullets && (
-                <ul className="guide-bullets">
-                  {s.bullets.map((b, j) => (
-                    <li key={`b${j}`}>{b}</li>
-                  ))}
-                </ul>
-              )}
-              {s.ordered && (
-                <ol className="guide-ordered">
-                  {s.ordered.map((o, j) => (
-                    <li key={`o${j}`}>{o}</li>
-                  ))}
-                </ol>
-              )}
-              {s.table && (
-                <div className="guide-table-wrap">
-                  <table className="guide-table">
-                    <tbody>
-                      {s.table.map((row, j) => (
-                        <tr key={`t${j}`}>
-                          <th scope="row">{row.key}</th>
-                          <td>{row.value}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+      {/* The reading column beside the band panel (the reference's "What
+          you'll need"): here the table of contents, which doubles as the
+          jump-links Google shows beneath a result, so the headings carry
+          ids and this list points at them. On a phone the panel follows
+          the opening facts. */}
+      <div
+        className={
+          guide.sections.length > 3
+            ? "wrap guide-layout"
+            : "wrap guide-layout guide-layout--solo"
+        }
+      >
+        <header className="guide-head">
+          <p className="t-body guide-lede">{guide.excerpt}</p>
+          <dl className="guide-facts">
+            <div>
+              <dt className="t-label">Son güncelleme</dt>
+              <dd>
+                <time dateTime={guide.updatedAt}>
+                  {formatGuideDate(guide.updatedAt)}
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt className="t-label">Okuma</dt>
+              <dd>{guide.readingMinutes} dakika</dd>
+            </div>
+            {guide.recipe ? (
+              <>
+                <div>
+                  <dt className="t-label">Hazırlık</dt>
+                  <dd>{guide.recipe.prepMinutes} dakika</dd>
                 </div>
-              )}
-            </section>
-          ))}
-        </article>
-
-        {/* The recipe the page's Recipe JSON-LD describes, printed: structured
-            data must describe what a reader can see. Each step carries the id
-            its HowToStep `url` points at. */}
-        {guide.recipe && (
-          <section
-            className="guide-recipe"
-            id="tarif"
-            aria-labelledby="tarif-baslik"
-          >
-            <div className="eyebrow">Tarif</div>
-            <h2 id="tarif-baslik">{guide.recipe.name}</h2>
-            <p className="guide-recipe-desc">{guide.recipe.description}</p>
-            <dl className="guide-recipe-facts">
-              <div>
-                <dt>Hazırlık</dt>
-                <dd>{guide.recipe.prepMinutes} dakika</dd>
-              </div>
-              <div>
-                <dt>Miktar</dt>
-                <dd>{guide.recipe.yield}</dd>
-              </div>
-            </dl>
-            <h3>Malzemeler</h3>
-            <ul className="guide-bullets">
-              {guide.recipe.ingredients.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-            <h3>Yapılışı</h3>
-            <ol className="guide-ordered">
-              {guide.recipe.steps.map((step, i) => (
-                <li key={i} id={recipeStepId(i)}>
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
-        {guide.faq.length > 0 && (
-          <section className="guide-faq">
-            <h2>Sık sorulanlar</h2>
-            <dl>
-              {guide.faq.map((f, i) => (
-                <div key={i} className="guide-faq-item">
-                  <dt>{f.q}</dt>
-                  <dd>{f.a}</dd>
+                <div>
+                  <dt className="t-label">Miktar</dt>
+                  <dd>{guide.recipe.yield}</dd>
                 </div>
-              ))}
-            </dl>
-          </section>
-        )}
+              </>
+            ) : null}
+          </dl>
+        </header>
 
-        <footer className="guide-foot">
-          {related.length > 0 && (
-            <div className="guide-related">
-              <div className="eyebrow" style={{ marginBottom: 14 }}>
-                Devamı
-              </div>
-              <ul>
-                {related.map((g) => (
-                  <li key={g.slug}>
-                    <Link href={`/rehber/${g.slug}`}>
-                      <span className="guide-related-title">{g.title}</span>
-                      <span className="guide-related-excerpt">{g.excerpt}</span>
-                    </Link>
+        {guide.sections.length > 3 && (
+          <aside className="guide-aside">
+            <nav className="guide-toc" aria-label="İçindekiler">
+              <h2 className="guide-aside-title">İçindekiler</h2>
+              <ol>
+                {guide.sections.map((s, i) => (
+                  <li key={i}>
+                    <a href={`#bolum-${i + 1}`}>{s.heading}</a>
                   </li>
                 ))}
+                {guide.recipe ? (
+                  <li>
+                    <a href="#tarif">Tarif: {guide.recipe.name}</a>
+                  </li>
+                ) : null}
+              </ol>
+            </nav>
+          </aside>
+        )}
+
+        <div className="guide-body">
+          <article className="guide-article">
+            {guide.sections.map((s, i) => (
+              <section key={i} className="guide-section">
+                <h2 id={`bolum-${i + 1}`}>{s.heading}</h2>
+                {s.paragraphs?.map((p, j) => (
+                  <p key={`p${j}`}>{p}</p>
+                ))}
+                {s.bullets && (
+                  <ul className="guide-bullets">
+                    {s.bullets.map((b, j) => (
+                      <li key={`b${j}`}>{b}</li>
+                    ))}
+                  </ul>
+                )}
+                {s.ordered && (
+                  <ol className="guide-ordered">
+                    {s.ordered.map((o, j) => (
+                      <li key={`o${j}`}>{o}</li>
+                    ))}
+                  </ol>
+                )}
+                {s.table && (
+                  <div className="guide-table-wrap">
+                    <table className="guide-table">
+                      <tbody>
+                        {s.table.map((row, j) => (
+                          <tr key={`t${j}`}>
+                            <th scope="row">{row.key}</th>
+                            <td>{row.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            ))}
+          </article>
+
+          {/* The recipe the page's Recipe JSON-LD describes, printed:
+              structured data must describe what a reader can see. Each step
+              carries the id its HowToStep `url` points at. */}
+          {guide.recipe && (
+            <section
+              className="guide-recipe"
+              id="tarif"
+              aria-labelledby="tarif-baslik"
+            >
+              <p className="t-label">Tarif</p>
+              <h2 id="tarif-baslik">{guide.recipe.name}</h2>
+              <p className="guide-recipe-desc">{guide.recipe.description}</p>
+              <dl className="guide-recipe-facts">
+                <div>
+                  <dt>Hazırlık</dt>
+                  <dd>{guide.recipe.prepMinutes} dakika</dd>
+                </div>
+                <div>
+                  <dt>Miktar</dt>
+                  <dd>{guide.recipe.yield}</dd>
+                </div>
+              </dl>
+              <h3>Malzemeler</h3>
+              <ul className="guide-bullets">
+                {guide.recipe.ingredients.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
               </ul>
-            </div>
+              <h3>Yapılışı</h3>
+              <ol className="guide-ordered">
+                {guide.recipe.steps.map((step, i) => (
+                  <li key={i} id={recipeStepId(i)}>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
-          <div className="guide-cta">
-            <p>
-              Tuzla&apos;daki köşkte hepsini tadabilirsin - menüye göz at ya da
-              çekirdeği eve götür.
-            </p>
-            <div className="guide-cta-actions">
-              <Link href="/menu" className="btn btn-light btn-sm">
-                Menü
-              </Link>
-              <Link href="/magaza" className="btn btn-glass-dark btn-sm">
-                Mağaza
-              </Link>
+
+          {guide.faq.length > 0 && (
+            <section className="guide-faq">
+              <h2>Sık sorulanlar</h2>
+              <dl>
+                {guide.faq.map((f, i) => (
+                  <div key={i} className="guide-faq-item">
+                    <dt>{f.q}</dt>
+                    <dd>{f.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
+          <footer className="guide-foot">
+            {related.length > 0 && (
+              <div className="guide-related">
+                <h2 className="guide-aside-title">Devamı</h2>
+                <ul>
+                  {related.map((g) => (
+                    <li key={g.slug}>
+                      <Link href={`/rehber/${g.slug}`}>
+                        <span className="guide-related-title">{g.title}</span>
+                        <span className="guide-related-excerpt">
+                          {g.excerpt}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="guide-cta">
+              <p>
+                Tuzla&apos;daki köşkte hepsini tadabilirsin - menüye göz at ya
+                da çekirdeği eve götür.
+              </p>
+              <div className="guide-cta-actions">
+                <Link href="/menu" className="btn btn-light">
+                  Menü
+                </Link>
+                <Link href="/magaza" className="btn btn-glass-dark">
+                  Mağaza
+                </Link>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+        </div>
       </div>
     </div>
   );

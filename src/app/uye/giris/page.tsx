@@ -44,55 +44,49 @@ export default async function GirisPage({ searchParams }: PageProps) {
 
   return (
     <div className="auth-page">
-      <div className="auth-split">
-        <section className="auth-card" aria-labelledby="auth-title">
-          <div className="auth-head">
-            <Link href="/" className="auth-back">
-              ← Anasayfa
-            </Link>
-            <LafMark tone="duo" />
-          </div>
-          <DegradedAuthNotice />
-          {justVerified && (
-            <p role="status" className="auth-note auth-note--status">
-              E-posta adresin doğrulandı. Şifrenle giriş yapabilirsin.
-            </p>
-          )}
-          {googleLine && (
-            <p role="alert" className="auth-alert auth-note--status">
-              {googleLine}
-            </p>
-          )}
-          <p className="eyebrow">Üye girişi</p>
-          <h1 id="auth-title" className="auth-title">
-            Tekrar hoş geldin
-          </h1>
-          <p className="auth-lede">
-            Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede
-            doldur.
+      {/* The reference's log-in panel, one column on the band: the title,
+          the Google door and its "ya da" rule (when the switch is on), the
+          one quiet line over the fields, the 350px button, and under it
+          the small question with its answer (the reference's "What about
+          a password?"), here the way to an account. */}
+      <section className="auth-card" aria-labelledby="auth-title">
+        <div className="auth-head">
+          <Link href="/" className="auth-back">
+            ← Anasayfa
+          </Link>
+          <LafMark tone="duo" />
+        </div>
+        <DegradedAuthNotice />
+        {justVerified && (
+          <p role="status" className="auth-note auth-note--status">
+            E-posta adresin doğrulandı. Şifrenle giriş yapabilirsin.
           </p>
-          <LoginForm next={next} />
-          {googleOpen && (
-            <>
-              <AuthOr />
-              <GoogleSignInLink next={next} />
-            </>
-          )}
-          <div className="auth-foot">
-            <Link href="/uye/sifremi-unuttum" className="auth-link">
-              Şifreni mi unuttun?
-            </Link>
-          </div>
-        </section>
+        )}
+        {googleLine && (
+          <p role="alert" className="auth-alert auth-note--status">
+            {googleLine}
+          </p>
+        )}
+        <h1 id="auth-title" className="auth-title">
+          Tekrar hoş geldin
+        </h1>
+        {googleOpen && (
+          <>
+            <GoogleSignInLink next={next} />
+            <AuthOr />
+          </>
+        )}
+        <p className="auth-lede">
+          Hesabınla giriş yap; sipariş geçmişini gör, bilgileri saniyede doldur.
+        </p>
+        <LoginForm next={next} />
+        <div className="auth-foot">
+          <Link href="/uye/sifremi-unuttum" className="auth-link">
+            Şifreni mi unuttun?
+          </Link>
+        </div>
 
-        {/* The membership panel beside the form: espresso, with the amber
-            (kicker and ticks) as its one accent. */}
-        <aside
-          className="auth-join"
-          data-ground="dark"
-          aria-labelledby="auth-join-title"
-        >
-          <p className="auth-join-kicker">L&apos;Af üyeliği</p>
+        <section className="auth-join" aria-labelledby="auth-join-title">
           <h2 id="auth-join-title" className="auth-join-title">
             Henüz üye değil misin?
           </h2>
@@ -113,11 +107,11 @@ export default async function GirisPage({ searchParams }: PageProps) {
               Siparişlerin ve adreslerin tek yerde dursun
             </li>
           </ul>
-          <Link href="/uye/kayit" className="btn btn-light btn-lg">
+          <Link href="/uye/kayit" className="btn btn-ghost btn-wide">
             Üye ol
           </Link>
-        </aside>
-      </div>
+        </section>
+      </section>
     </div>
   );
 }
