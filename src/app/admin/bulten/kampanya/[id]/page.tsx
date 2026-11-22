@@ -89,7 +89,7 @@ export default async function CampaignMailDetailPage({
   const audienceLabel = CAMPAIGN_MAIL_AUDIENCE_LABELS[c.audience] ?? c.audience;
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <BackLink href={LIST_PATH}>Kampanyalar</BackLink>
       <PageHeader
         title={c.subject || "Kampanya"}

@@ -2,6 +2,7 @@ import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { CAFE_TABLES_PATH } from "@/lib/admin/cafe-tables-panel";
+import { branchLabel, siteBranches } from "@/lib/panel/branches";
 
 import { createCafeTableAction } from "../actions";
 import { CafeTableForm } from "../table-form";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function NewCafeTablePage() {
   await requireRole("tables");
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       <BackLink href={CAFE_TABLES_PATH}>Masalar</BackLink>
       <PageHeader
         title="Yeni masa"
@@ -20,6 +21,10 @@ export default async function NewCafeTablePage() {
       />
       <CafeTableForm
         action={createCafeTableAction}
+        branches={siteBranches(process.env).map((id) => ({
+          id,
+          label: branchLabel(id),
+        }))}
         submitLabel="Masayı ekle"
         back={CAFE_TABLES_PATH}
         saveAndNew

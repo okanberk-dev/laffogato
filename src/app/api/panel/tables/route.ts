@@ -5,6 +5,7 @@ import {
   importCafeTables,
   type ImportCafeTablesResult,
 } from "@/lib/admin/cafe-tables";
+import { chooseBranch, splitBranch } from "@/lib/panel/branches";
 import {
   signedCaller,
   signedCallerKeys,
@@ -31,8 +32,18 @@ import {
  * expire: a table lookup (/masa, the app's `GET /tables/{code}`, the order
  * path) reads the database every time, so a new code resolves at once.
  *
- * - 200 `{ok: true, count, created, updated, unchanged}`.
- * - 400 `{error: "invalid", field}`: a field broke a rule (`tables[2].code`).
+ * A list is one branch's (21 Kas 2026, src/lib/panel/branches.ts):
+ * `branch` in the body, else LafPOS's own (`LAFPOS_BRANCHES`, default
+ * Marina). New tables get it; a code the site has at another branch
+ * refuses the list whole.
+ *
+ * - 200 `{ok: true, branch, count, created, updated, unchanged}`.
+ * - 400 `{error: "invalid", field}`: a field broke a rule (`tables[2].code`,
+ *   `branch`).
+ * - 403 `{error: "forbidden", field: "branch"}`: a branch LafPOS's key may
+ *   not act for.
+ * - 409 `{error: "wrong_branch", field: "tables[2].code"}`: that code is
+ *   another branch's table; nothing written.
  * - 401: unsigned, forged, stale, or signed with the panel's key.
  * - 413: the body is past the limit.
  * - 503 `not_configured`: `LAFPOS_SYNC_SECRET` unset (docs/LAFPOS.md
@@ -74,13 +85,25 @@ export async function PUT(request: Request) {
   } catch {
     return deny(400, "invalid", { field: "body" });
   }
-  const parsed = parsePanelTablesSync(raw);
+  const split = splitBranch(raw);
+  const parsed = parsePanelTablesSync(split.rest);
   if (!parsed.ok) return deny(400, "invalid", { field: parsed.field });
   const { sync } = parsed;
+  const choice = chooseBranch(process.env, caller, split.branch);
+  if (!choice.ok) {
+    return deny(choice.status, choice.error, { field: choice.field });
+  }
+  const { branch } = choice;
 
   let result: ImportCafeTablesResult;
   try {
-    result = await importCafeTables(sync.tables);
+    const imported = await importCafeTables(sync.tables, branch);
+    if ("wrongBranch" in imported) {
+      return deny(409, "wrong_branch", {
+        field: `tables[${imported.wrongBranch.index}].code`,
+      });
+    }
+    result = imported;
   } catch (err) {
     console.error("[panel-tables] tables could not be written", err);
     return deny(503, "unavailable");
@@ -99,6 +122,7 @@ export async function PUT(request: Request) {
         name: table.name,
         code: table.code,
         isActive: table.isActive,
+        branch: table.branch,
         via: caller,
       },
     });
@@ -120,6 +144,7 @@ export async function PUT(request: Request) {
   return NextResponse.json(
     {
       ok: true,
+      branch,
       count: result.count,
       created: result.created.length,
       updated: result.updated.length,

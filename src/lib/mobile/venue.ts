@@ -65,6 +65,7 @@ export interface LiveStatus {
    * which is what a never-saved row used to look like on the wire.
    */
   updatedAgoMinutes: number | null;
+  /** Always `null` since 22 Kas 2026: the panel no longer counts tables. */
   freeTables: number | null;
   totalTables: number;
   wifi: VenueWifi;
@@ -230,8 +231,8 @@ const ISTANBUL_OFFSET_MS = 3 * 60 * MINUTE_MS;
  * The answer can only turn on a posted minute: an open or close time of
  * some day, or midnight, where the day changes and with it the entry that
  * applies (an overnight tail included). Only those instants on the köşk's
- * clock are tried. The top bar's köşk chip (src/lib/admin/venue-signal.ts)
- * uses it to know how long "nothing changed" holds without a write.
+ * clock are tried. Canlı durum (app/admin/mobil/canli-durum) uses it to say
+ * when the hours next open or close the köşk.
  */
 export function nextOpenChangeAt(
   hours: WeeklyHours,
@@ -300,8 +301,11 @@ export function toLiveStatus(
     openLabel: isOpen ? "Şu an açık" : "Şu an kapalı",
     updatedAt: status.updatedAt,
     updatedAgoMinutes: minutesSince(status.updatedAt, now),
-    // A row nobody has saved carries the defaults, not a count of the room.
-    freeTables: status.updatedAt ? status.freeTables : null,
+    // Always null since 22 Kas 2026 (operator: "boş masa sayısını da
+    // kaldır"): nobody enters the count any more, and null is the value the
+    // app already reads as "nobody reported" (it then shows no free-table
+    // line). The field stays on the wire: v1 only adds.
+    freeTables: null,
     totalTables: status.totalTables,
     wifi: status.wifi,
     noise: status.noise,

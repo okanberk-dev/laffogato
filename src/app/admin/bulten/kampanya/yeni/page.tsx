@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function NewCampaignMailPage() {
   await requireRole("newsletter");
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       {/* The composer was a dead end: no way back but the sidebar (PEO-23). */}
       <BackLink href="/admin/bulten/kampanya">Kampanyalar</BackLink>
       <PageHeader

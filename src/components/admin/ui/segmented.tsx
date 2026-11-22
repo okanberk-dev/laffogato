@@ -34,7 +34,7 @@ export function SegmentedLinks({
       aria-label={label}
       data-focus-inset=""
       className={cx(
-        "inline-flex max-w-full [scrollbar-width:none] overflow-x-auto rounded-lg bg-[var(--admin-panel)] p-0.5 [&::-webkit-scrollbar]:hidden",
+        "inline-flex max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-full border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] p-0.5 [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
@@ -44,10 +44,10 @@ export function SegmentedLinks({
           href={o.href}
           aria-current={o.current ? "page" : undefined}
           className={cx(
-            "relative inline-flex min-h-9 shrink-0 items-center justify-center rounded-md px-3 text-[13px] font-medium whitespace-nowrap transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-coarse:min-h-11",
+            "relative inline-flex min-h-9 shrink-0 items-center justify-center rounded-full px-4 text-sm whitespace-nowrap transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none pointer-coarse:min-h-11",
             COMPACT.minH8,
             o.current
-              ? "bg-[var(--admin-surface)] text-[var(--admin-text)] shadow-[0_1px_2px_rgba(12,14,27,0.08),0_0_0_1px_rgba(12,14,27,0.04)]"
+              ? "bg-[var(--admin-surface-2)] font-medium text-[var(--admin-text)]"
               : "text-[var(--admin-text-mute)] hover:text-[var(--admin-text)]",
           )}
         >

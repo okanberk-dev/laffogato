@@ -163,10 +163,11 @@ export function SettingsForm({
                 tabIndex={selected ? 0 : -1}
                 onClick={() => select(t.id)}
                 onKeyDown={onTabKey}
-                className={`inline-flex min-h-11 items-center justify-between gap-2 rounded-lg px-3.5 py-2 text-left text-sm whitespace-nowrap transition-colors pointer-fine:min-h-9 ${
+                // The sidebar's pill: dark when current, quiet otherwise.
+                className={`inline-flex min-h-11 items-center justify-between gap-2 rounded-full px-4 py-2 text-left text-sm whitespace-nowrap transition-colors pointer-fine:min-h-10 ${
                   selected
-                    ? "bg-[var(--admin-primary)] font-medium text-white"
-                    : "border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                    ? "bg-[var(--admin-inverse)] font-medium text-[var(--admin-inverse-ink)]"
+                    : "text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-text)] max-lg:border max-lg:border-[var(--admin-card-border)] max-lg:bg-[var(--admin-surface)]"
                 }`}
               >
                 {t.label}

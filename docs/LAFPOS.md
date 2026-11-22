@@ -59,12 +59,66 @@ Listenin deneme gönderimi yalnız lafmaliyet'e gidişi sınar; sitenin bağlant
 geçiş gününden sonra sitede ödenmiş karaoke saati LafPOS'un oda kutusunda boş görünür ve kasada yeniden ücretlenir,
 uygulama ve web siparişleri bar ekranına düşmez, kasada işaretlenen Tükendi siteye ulaşmaz.
 
+## Şube (21 Kasım 2026)
+
+İlk LafPOS kasası Marina'dadır (lafmaliyet `docs/SUBE.md`: `LAFPOS_BRANCH_ID = "marina"`; Tuzla ModPOS'ta
+kalır). Site o güne dek şube bilmiyordu: LafPOS'un anahtarı da panelinki gibi bütün açık siparişleri, masa
+çağrılarını ve karaoke rezervasyonlarını alıyordu ve "Satışta / Tükendi" kalem başına tekti. Marina'nın kasasına
+anahtar girildiği an Tuzla'da masadan verilip sitede ödenmiş sipariş Marina'nın bar ekranında çalar, Marina'da
+basılan "Hazırlanıyor" / "Gördüm" Tuzla'nın kaydını sitede ilerletip kapatır, Tuzla'nın Tükendi'si Marina'nın
+kasasında ürünü kilitler, Marina'nın porsiyonu biten ürünü Tuzla'nın uygulamasından kalkardı. Artık:
+
+- **Şubeler.** Kimlik lafmaliyet'in kuralı (harfle başlar, küçük harf / rakam / tire, 2-24). Site `tuzla` ve
+  `marina`'yı bilir (`SITE_BRANCHES`, virgüllü; eklemek için yayın gerekmez). Şubesiz her şey (bu değişiklikten
+  önce yazılanlar; gel-al, kurye, kargo; karaoke) **Tuzla**'nındır: uygulama ve web Tuzla köşküne hizmet eder.
+- **Hangi anahtar hangi şube.** Panelin anahtarı her şube adına konuşabilir, söylemezse Tuzla (bugünkü panel
+  aynen çalışır). LafPOS'un anahtarı `LAFPOS_BRANCHES`'teki şubeler adına (sitede Vercel değişkeni, virgüllü;
+  varsayılan `marina`, ilki varsayılandır). Her LafPOS kurulumu aynı anahtarı paylaştığı için Tuzla da LafPOS'a
+  geçince değişken `marina,tuzla` olur ve Tuzla'nın kasası her istekte `branch: "tuzla"` söyler.
+- **İstek şubesini nasıl söyler.** GET'te sorguda `branch=<id>`, POST / PUT'ta gövdede `"branch": "<id>"`. İkisi de
+  imzanın içindedir. Söylemeyen istek çağıranın varsayılanıdır: bugünkü LafPOS hiçbir şey değiştirmeden Marina
+  adına okur ve yazar. Bozuk ya da bilinmeyen şube 400 `{"error":"invalid","field":"branch"}`; anahtarın
+  konuşamadığı şube 403 `{"error":"forbidden","field":"branch"}`; ikisinde de hiçbir şey okunmaz, yazılmaz.
+- **Siparişler ve çağrılar** (`GET /api/panel/orders`): yalnız o şubenin `orders`, `awaitingPayment` ve `calls`'ı;
+  yanıtta `branch`. Masa siparişi ve çağrısı masanın şubesidir (`cafe_tables.branch`, anlık görüntü). Bugün
+  Marina'nın masası sitede yoksa Marina'nın listesi boştur: Tuzla'nın siparişi Marina'ya düşmez.
+- **Aşama ve "Gördüm"** (`POST /api/panel/orders/stage`, `POST /api/panel/calls/ack`): gövdede isteğe bağlı
+  `branch`; başka şubenin kaydı 409 `{"error":"wrong_branch"}`, hiçbir şey yazılmaz. LafPOS kartı düşürmelidir
+  (yeniden denemez).
+- **Karaoke** (`GET /api/panel/karaoke`): oda tek ve Tuzla'dadır. Başka şube adına okuma veritabanına gitmeden
+  `{"branch":"marina","complete":true,"reservations":[]}` döner; Marina'nın kasası Tuzla'nın rezervasyonlarını
+  okuyup çalmaz. LafPOS'un dünden yarına penceresi yine geçerlidir (önce o denetlenir).
+- **Masa kodları** (`PUT /api/panel/tables`): liste bir şubenindir (gövdede `branch`, yoksa LafPOS'un varsayılanı).
+  Yeni masa o şubeye yazılır; sitede başka şubede duran bir kod listeyi bütünüyle reddettirir: 409
+  `{"error":"wrong_branch","field":"tables[i].code"}`, hiçbir şey yazılmaz (LafPOS listeyi park eder). Yanlış
+  şubeye düşmüş masa sitenin panelinde düzeltilir: Masalar › masa › Düzenle › Şube. 200 yanıtı `branch`'i söyler.
+- **Satışta / Tükendi** (`GET` / `POST /api/panel/menu`): şubeye göre (`docs/PANEL-MENU.md` "Şube"). Okumada
+  `isActive` o şubede satılıyor mu, `onMenu` sitenin "Menüde" bayrağı (her şube), `updatedAt` kalemin ve şubenin
+  damgasından geç olanı; `writes: {"expect": true, "branch": true}`. LafPOS'un `isActive` yazımı yalnız kendi
+  şubesinin satırını yazar: Tuzla'nın Tükendi'si Marina'yı kapatmaz, Marina'nınki Tuzla'nın uygulama ve QR
+  menüsünü kapatmaz. Menüden kalkmış (`onMenu: false`) kalemi açmak 409 `{"error":"site_closed","item":{…}}`,
+  hiçbir şey yazılmaz. LafPOS'un `soldOutBy='site'` kilidi yalnız `onMenu: false` için anlamlıdır; kendi şubesinin
+  Tükendi'si kendisinindir. Fiyat hâlâ her şube için tektir ve LafPOS yazamaz.
+- **Menünün kendisi** (`GET /api/mobile/v1/menu`, herkese açık): uygulamanındır, Tuzla'nın Satışta'sını gösterir
+  (Tuzla'da tükenen kalem yanıtta yoktur). LafPOS Satışta'yı imzalı okumadan alır (`shouldBeActive`: herkese açık
+  listede olmayan ama panelde açık kalem kapanmaz), yani Marina'nın Satışta'sı doğru kalır. Tek eksik: Tuzla'da
+  tükenmişken **ilk kez** eklenen bir kalem, Tuzla'da açılana dek LafPOS'ta oluşmaz.
+- **Satış ucu** (`GET /api/panel/sales`, yalnız panel): `&branch=` ve `byBranch` (`docs/PANEL-SALES.md`).
+- **Sürüm sinyali** (`GET /api/pos/orders/version`) şubesizdir: Tuzla'nın siparişi de onu oynatır, LafPOS çeker ve
+  boş liste alır. Veritabanına dokunmaz; fazladan çekme bütçe kuralının (5 dakika) içindedir.
+
+Kural `src/lib/panel/branches.ts`; testleri `tests/sube/` (`npm run test:sube`). LafPOS'un kendi tarafındaki
+şube bekçisi (sitenin şubesi değilse online siparişi ve karaokeyi hiç çekmemek) sitenin bu değişikliğinden
+bağımsız ikinci bir emniyettir: lafpos `docs/03-ENTEGRASYON.md` §2.3.
+
 ## Anahtar
 
 | Değişken                | Nerede        | Açıklama                                                                                            |
 | ----------------------- | ------------- | --------------------------------------------------------------------------------------------------- |
 | `LAFPOS_SYNC_SECRET`    | site (Vercel) | LafPOS'un anahtarı, en az 32 karakter; daha kısası tanımsız sayılır. Yoksa LafPOS kapalı (aşağıda). |
 | `LAFFOGATO_SYNC_SECRET` | LafPOS `.env` | Sitedekiyle **aynı** değer.                                                                         |
+| `LAFPOS_BRANCHES`       | site (Vercel) | LafPOS'un anahtarının konuştuğu şubeler, virgüllü; yoksa `marina`. İlki varsayılan (yukarıda "Şube"). |
+| `SITE_BRANCHES`         | site (Vercel) | Sitenin bildiği şubeler, virgüllü; yoksa `tuzla,marina` (Tuzla her zaman listede).                   |
 
 - Panelin anahtarından **farklı** olmalı. İkisine aynı değer verilirse site
   isteği panelinki sayar (olay kaydına `panel:` düşer) ve anahtarları ayırmanın
@@ -91,9 +145,9 @@ uygulama ve web siparişleri bar ekranına düşmez, kasada işaretlenen Tükend
 
 | Uç                             | Panelin anahtarı | LafPOS'un anahtarı | LafPOS ne için kullanır                                                                                                                                                                         |
 | ------------------------------ | ---------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/panel/menu`          | açar             | açar               | Tükendi kalemleri de görmek (`isActive`)                                                                                                                                                        |
-| `POST /api/panel/menu`         | açar             | açar               | Kasada Tükendi / Satışa aç: önce site, 2xx gelince kasa. LafPOS'un anahtarıyla yalnız `isActive`; `priceMinor` ya da `priceMinorL` 403 `forbidden` (çalınan kafe makinesi fiyat değiştiremesin) |
-| `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı                                                                                                                                                     |
+| `GET /api/panel/menu`          | açar             | açar               | Tükendi kalemleri de görmek (`isActive`, kendi şubesinin; `onMenu` sitenin bayrağı)                                                                                                             |
+| `POST /api/panel/menu`         | açar             | açar               | Kasada Tükendi / Satışa aç: önce site, 2xx gelince kasa; yalnız kendi şubesinin satırı. LafPOS'un anahtarıyla yalnız `isActive`; `priceMinor` ya da `priceMinorL` 403 `forbidden` (çalınan kafe makinesi fiyat değiştiremesin); menüden kalkmış kalemi açmak 409 `site_closed` |
+| `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı (yalnız kendi şubesinin)                                                                                                                            |
 | `POST /api/panel/orders/stage` | açar             | açar               | Hazırlanıyor / Hazır / Teslim edildi                                                                                                                                                            |
 | `POST /api/panel/calls/ack`    | açar             | açar               | Masadan garson çağrısına "Gördüm" (6 Kas 2026; çağrılar `GET /api/panel/orders`'ın `calls` alanında, `docs/PANEL-ORDERS.md` "Masa çağrıları"); olay kaydında `lafpos:<ad>`                       |
 | `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş ve karaoke sürüm sinyali (aşağıda)                                                                                                                                                      |
@@ -101,6 +155,9 @@ uygulama ve web siparişleri bar ekranına düşmez, kasada işaretlenen Tükend
 | `GET /api/panel/sales`         | açar             | açmaz              | LafPOS'un işi değil                                                                                                                                                                             |
 | `PUT /api/panel/tables`        | açmaz (401)      | açar               | Masa QR kodları: LafPOS'un bastığı kartların kodunu `cafe_tables`'a ekler ya da adını / etkinliğini günceller (aşağıda "Masa kodları")                                                          |
 
+- Her uç bir şube adınadır (yukarıda "Şube"): LafPOS'un anahtarı varsayılan
+  olarak Marina'nın siparişlerini, çağrılarını, masalarını ve Satışta'sını
+  okur ve yazar; karaoke okuması Marina adına boştur.
 - Panel uçlarının yanıt biçimi, `version`'ı, gövde sınırı, beyaz listesi ve
   hata kodları kim imzalarsa imzalasın aynıdır: `docs/PANEL-MENU.md`,
   `docs/PANEL-ORDERS.md`, `docs/PANEL-KARAOKE.md`. İki fark yalnız LafPOS'un
@@ -186,9 +243,14 @@ x-laf-signature: v1=<hex>
     { "code": "K7Q2M9X4TB", "name": "Bahçe 3", "active": true },
     { "code": "ABCDEFGH23", "name": "Eski kart", "active": false }
   ],
-  "actor": "LafPOS"
+  "actor": "LafPOS",
+  "branch": "marina"
 }
 ```
+
+`branch` isteğe bağlıdır (21 Kasım 2026; yoksa LafPOS'un varsayılan şubesi): liste o şubenin masalarıdır, yeni
+masa o şubeye yazılır, sitede başka şubede duran kod 409 `wrong_branch` ile bütün listeyi reddettirir (yukarıda
+"Şube").
 
 - Yalnız `LAFPOS_SYNC_SECRET` ile imzalı istek; panelin anahtarı 401 alır
   (panel kart basmaz). Anahtar yoksa 503 `not_configured` (yukarıda
@@ -224,8 +286,10 @@ x-laf-signature: v1=<hex>
 
 | Durum | Gövde                                                         | Ne zaman                                                            |
 | ----- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 200   | `{"ok":true,"count":2,"created":1,"updated":1,"unchanged":0}` | `count` listedeki masa; üçü yazılan ve yazılmayan satırlar          |
-| 400   | `{"error":"invalid","field":"…"}`                             | Gövde okunamadı ya da bir alan kurala uymuyor; hiçbir şey yazılmadı |
+| 200   | `{"ok":true,"branch":"marina","count":2,"created":1,"updated":1,"unchanged":0}` | `count` listedeki masa; üçü yazılan ve yazılmayan satırlar          |
+| 400   | `{"error":"invalid","field":"…"}`                             | Gövde okunamadı ya da bir alan kurala uymuyor (`branch` dahil); hiçbir şey yazılmadı |
+| 403   | `{"error":"forbidden","field":"branch"}`                      | LafPOS'un anahtarı o şube adına konuşamaz (`LAFPOS_BRANCHES`)       |
+| 409   | `{"error":"wrong_branch","field":"tables[1].code"}`           | O kod sitede başka şubenin masası; hiçbir şey yazılmadı             |
 | 401   | `{"error":"unauthorized"}`                                    | İmza yok, yanlış (panelin anahtarı da), eski ya da gövde değişmiş   |
 | 413   | `{"error":"too_large"}`                                       | Gövde 64 KB'tan büyük                                               |
 | 503   | `{"error":"not_configured"}`                                  | `LAFPOS_SYNC_SECRET` yok ya da 32 karakterden kısa                  |
@@ -248,6 +312,15 @@ Kişisel veri taşımaz: yalnız masa adı ve kod.
   sinyali kaçan bir değişiklik ya da süresi dolup listeden sessizce düşen sipariş
   kalmasın. Sinyal okunamazsa 5 dakikada bir çeker; elle "Yenile" en sık 30
   saniyede bir (lafpos `docs/03-ENTEGRASYON.md` §2.3).
+  **Boş ekran hatırlanır (22 Kas 2026, #229):** bu çekim gün açık kaldığı
+  sürece Neon'u saatte dört kez uyandırıyordu. Şimdi `live:orders` işareti
+  aynıyken ve son okuma hiçbir şey bulmadıysa (sipariş yok, ödeme bekleyen
+  yok, çağrı yok) aynı boş yanıt veritabanına gidilmeden verilir; `orders` ya
+  da `table_calls` yazılınca işaret değişir ve sıradaki çekim canlıdır.
+  Emniyet ağı olarak saatte bir çekim yine canlı okur. Ekranda bir şey varken
+  hiçbir şey hatırlanmaz (liste saatle de değişir). Yalnız LafPOS'un
+  anahtarına; panelin (Tuzla) okuması eskisi gibi her soruşta canlıdır
+  (`src/lib/admin/remembered-read.ts`, `tests/sube/neon-uyanma.test.ts`).
 - **Karaoke:** aynı yanıttaki `karaoke` değişince, oda kutusu açılınca ve elle
   yenileyince `GET /api/panel/karaoke?from=<gün>&to=<gün>` (bugünün penceresi;
   rezervasyon en geç 24:00'te biter, gece yarısını aşmaz: `closeHour` en çok
@@ -263,7 +336,9 @@ Kişisel veri taşımaz: yalnız masa adı ve kod.
   (sorgusuz istek dün + 90 gün okurdu) hiçbir şey okunmadan 403
   `{"error":"forbidden"}` alır. Panelin penceresi değişmez: 400 güne kadar.
 - Menüyü herkese açık uçtan ETag ile, imzalı uçtan en çok 5 dakikada bir okur
-  (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5).
+  (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5). Gün açıkken 15 dakikada
+  bir yaptığı ETag'li soru, menü değişmemişken veritabanına gitmeden 304 alır
+  (22 Kas 2026; `docs/API-MOBILE.md` "Tazelik penceresi").
 
 ## Karaoke satırını kasa nasıl okur
 

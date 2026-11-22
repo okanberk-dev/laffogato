@@ -101,7 +101,12 @@ zaten varsa o satır kullanılır (**tek üyelik**).
     },
   ],
   "customization": {
-    // sunucu sabiti: src/lib/mobile/customization.ts
+    // src/lib/mobile/customization.ts; ücretli seçeneklerin fiyatı 21 Kas
+    // 2026'dan beri menü kalemlerinden (S8): şurup mnu-0080, ekstra shot
+    // mnu-0081; kalem yoksa ya da fiyatı geçersizse aşağıdaki sabit.
+    // Ücretli süt (badem) sabitte kalır (25 TL), menüdeki "Alternatif Süt"
+    // (mnu-0082, 50 TL) okunmaz: sahibin kararı, 22 Kasım 2026.
+    // Biçim ve kimlikler değişmedi.
     "milks": [
       { "id": "normal", "label": "Normal", "priceMinor": 0, "allergens": [] },
       { "id": "lactose-free", "label": "Laktozsuz", "priceMinor": 0, "allergens": [] },
@@ -207,6 +212,17 @@ kendiliğinden ve çabuk ulaşmasını istedi; CDN penceresi 300 + 300 sn'den
 dakikaya iner (lafmobil). Kısa pencere uygulama kullanılırken CDN bölgesi
 başına dakikada en çok bir veritabanı okuması demektir; `ETag` sayesinde
 değişmemiş menünün yenilemesi çoğunlukla gövdesiz 304'tür.
+
+**22 Kas 2026 (#229):** o 304 artık veritabanına da gitmez. Rota son okumanın
+`ETag`'ini menünün değişiklik işaretinin altında tutar (`pub:menu` ve
+`pub:site`; `src/lib/admin/remembered-read.ts`); `If-None-Match` o `ETag`'i
+söylüyorsa ve o zamandan beri menü kalemi, şubenin Satışta / Tükendi'si ya da
+ayarlar yazılmadıysa yanıt doğrudan 304'tür. Önceden her soru, yalnız özet
+çıkarmak için bütün menü satırlarını (fotoğraflar dahil) okuyordu. Başka bir
+`ETag` ya da `ETag`'siz istek eskisi gibi veritabanından okunur; gövde hiçbir
+zaman önbellekten gelmez, başlıklar ve biçim değişmedi. Emniyet ağı: saatte
+bir soru yine canlı okur. Sipariş anındaki fiyat ve Tükendi denetimi (§3)
+aynen canlıdır.
 
 60 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
 düşürür, CDN kendi kopyasını `s-maxage` dolana kadar servis etmeye devam eder
@@ -582,7 +598,10 @@ Kurallar:
   Ürün sayfası her zaman bir varyant gönderdiği için uygulamanın bugünkü yolu değişmez; varyant
   eklenmeden önce sepete giren ya da o zamanki siparişten tekrar eklenen satır bu cevabı alır.
   `/orders/preview` aynı kuralla yanıtlar.
-- Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
+- Seçenek fiyatları `customization`'dan (21 Kas 2026'dan beri ücretli seçenekler menü kalemlerinin fiyatıyla,
+  `/menu`'nün gösterdiğiyle aynı; S8); `size: "L"` → `priceMinorL`, yoksa **400**.
+- Satışta / Tükendi şubeye göredir (21 Kas 2026): `/menu` Tuzla köşkününkini gösterir; masa siparişi masanın
+  şubesinde, öteki her sipariş Tuzla'da denetlenir (o şubede tükenen kalem pasif kalem gibi reddedilir).
 - Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
   listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
   **yok sayılır** (reddedilmez), satır varsayılan seçeneklerle ve sade fiyatıyla yazılır.
@@ -1008,6 +1027,12 @@ kurar (O28).
 ```
 
 Kaynak: `venue_status` tablosu (tek satır `main`), `/admin/mobil/canli-durum` panelinden düzenlenir; `isOpen` = `manualOverride` (`"auto" | "open" | "closed"`) + `settings.weeklyHours`.
+
+> **22 Kas 2026 (alan silinmedi, yalnız değeri):** panel boş masa saymıyor;
+> `freeTables` her yanıtta **`null`** (hiç kaydedilmemiş durumda zaten böyleydi:
+> "kimse bildirmedi", uygulama boş masa satırı göstermez). `totalTables` kayıtlı
+> sayıyı vermeye devam eder. 21 Kas 2026'dan beri panel `manualOverride`'ı hep
+> `"auto"` yazar: `isOpen` yalnız `settings.weeklyHours`'tan gelir.
 Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel personele "uygulama
 30 saniyede görür" diyor, iki dakikalık SWR penceresi bunu yalan yapıyordu.
 

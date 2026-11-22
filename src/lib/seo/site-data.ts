@@ -37,6 +37,7 @@ import {
 import { presentationCache } from "@/lib/cache/presentation";
 import { TAG_CATALOG, TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
 import { isDegradedRequest, publicRead } from "@/lib/db/health";
+import { HOME_BRANCH } from "@/lib/panel/branches";
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
   getPublishedLegalOverride,
@@ -217,10 +218,16 @@ const cachedMenu = cache(
 
 /**
  * `listMenuForCustomer`, cached. An outage shows the bundled menu without
- * prices, never a bundled price.
+ * prices, never a bundled price. `branch`: whose "Satışta / Tükendi"
+ * (src/lib/panel/branches.ts): the site's pages are Tuzla's, a table's QR
+ * menu its table's (one cache entry per branch).
  */
-export async function listSiteMenu(): Promise<Record<string, MenuCategory>> {
-  return publicRead("listSiteMenu", menuWithoutPrices(), () => cachedMenu());
+export async function listSiteMenu(
+  branch: string = HOME_BRANCH,
+): Promise<Record<string, MenuCategory>> {
+  return publicRead("listSiteMenu", menuWithoutPrices(), () =>
+    cachedMenu(branch),
+  );
 }
 
 // ── Editorial ────────────────────────────────────────────────────────────

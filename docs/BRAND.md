@@ -17,11 +17,10 @@
 > Roast (11 Kas 2026) ve yolculuk (17 Kas 2026) görünümleri §9 "Geçmiş"te
 > kısaltılmış olarak durur; o dönemlerin kuralları (tricolore çizgisi,
 > sahneler, çizimler, maskeden yükselen yazı, three.js çizimleri, yolculuk)
-> artık uygulanmaz. "Admin paneli görünümü" bölümü 22-23 Eki 2026 metniyle
-> aynen korunur: içindeki site sesi ("Plus Jakarta Sans / Abril Fatface") ve
-> `tests/admin-ui-kit.test.ts` atfı tarihçedir. 21 Kas 2026'dan beri panelin
-> site önizlemesi sitenin yeni seslerini (Geist, Archivo), basılı masa
-> kartları Geist'i okur.
+> artık uygulanmaz. "Admin paneli görünümü" bölümü panelin kendi kaydıdır
+> (StorageBox, 21 Kas 2026); içindeki `tests/admin-ui-kit.test.ts` atfı
+> tarihçedir. 21 Kas 2026'dan beri panelin site önizlemesi sitenin yeni
+> seslerini (Geist, Archivo), basılı masa kartları Geist'i okur.
 >
 > **Nöbetçi test yok.** Paleti ve okunabilirliği tutan
 > `tests/brand-theme.test.ts` ile `tests/contrast.test.ts`, `tests/`
@@ -549,9 +548,22 @@ resmi 4:3. Referans sitelerin görselleri kullanılmaz (§0.6).
 
 ---
 
-## Admin paneli görünümü (Innex, 22 Eki 2026)
+## Admin paneli görünümü (StorageBox, 21 Kas 2026)
 
 Bu belgedeki palet ve yazı yalnız **müşteri sitesi** içindir. Yönetim paneli
+(`/admin`) 21 Kas 2026'dan beri Madame Coco Kenya panelinin StorageBox
+dilini izler (operatör: _"laffogato admin panelini madamecoco reposundaki
+admin panel ile aynı tarz tasarımda yap"_): açık gri çerçevede ince çizgili
+beyaz kartlar (köşe 24), hap biçimli kontroller, mürekkep `#1f212d`, tek
+mavi birincil `#122aff`, etkin menü satırı koyu hap, başlık ve büyük rakam
+DM Sans 400, metin Inter. Tarif, değerler ve kaynaktan sapmalar
+`docs/ADMIN-STORAGEBOX.md`'de, token'lar `src/app/admin/admin-theme.css`'te.
+Aşağıdaki Innex anlatımı tarihçedir; düzenler (kayıt sayfaları, hızlı bakış,
+sihirbazlar) aynen kaldı.
+
+### Tarihçe: Innex (22 Eki - 21 Kas 2026)
+
+Yönetim paneli
 (`/admin`) operatör kararıyla (22 Eki 2026: _"İnnexe geç"_) Filllo'nun
 Dribbble'daki **Innex** otel yönetim paneli serisinin tasarım sistemini
 izler; ölçülmüş tarif `docs/ADMIN-INNEX.md`'de. 21 Eki 2026'da alınan
@@ -642,6 +654,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 11 Kas 2026 | **Roast** (operatör: _"siteyi tamamen https://coffee-beans-swart.vercel.app/ bu sitedeki gibi landingleri diğer sayfaları yap, three js vs. ne varsa kullan, aynı birebir yap ..."_): krem ve tek espresso, Abril Fatface + Plus Jakarta Sans, three.js girişi ve iki three.js bandı; kahve vadisi kalktı. |
 | 12 Kas 2026 | **Roast, ikinci geçiş** (operatör: _"ince ayar yap ve yapay zekaymış gibi gözükmesin"_): üç three.js çizimi eşyanın fotoğrafı olacak biçimde yeniden kuruldu; hayalet rakam, üç nokta ve "Bölüm N:" sayacı kalktı.                                                                                         |
 | 17 Kas 2026 | **Yolculuk** (operatör: _"sitede aşağıdaki promptu uygula ve kahveciye uygun hale getir sonra maine gönder"_, "alpha project" build promptu): anasayfanın girişi kaydırmanın oynattığı film oldu; Roast girişi kalktı.                                                                                     |
+| 21 Kas 2026 | **Admin paneli StorageBox** (operatör: _"laffogato admin panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda yap"_): açık gri çerçevede ince çizgili beyaz kartlar (köşe 24), hap kontroller, koyu etkin menü hapı, tek mavi `#122aff`, DM Sans başlık ve rakam; köşk çipi kalktı, arama sade kutu (`docs/ADMIN-STORAGEBOX.md`); müşteri sitesi değişmedi. |
 | 21 Kas 2026 | **Blue Bottle dili ve film** (operatör, §0.6): önceki görünüm bütünüyle silindi; beyaz ve bant, siyah, tek gri, kömür, kare köşe, Archivo + Geist, anasayfada lisanslı stok film. Güncel değerler §0.                                                                                                      |
 
 **11-21 Kas 2026: Roast ve yolculuk (tarihçe; 21 Kas 2026'ya kadar bu

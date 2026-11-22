@@ -34,7 +34,7 @@ export default async function EditCategoryPage({ params }: PageProps) {
   const blocker = categoryDeleteBlocker(category, categories, products);
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         title={category.label}
         menuLabel={`${category.label} işlemleri`}

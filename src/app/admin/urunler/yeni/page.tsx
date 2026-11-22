@@ -16,7 +16,7 @@ export default async function NewProductPage() {
   ]);
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         title="Yeni ürün"
         description="Beş kısa adım; kaydetmeden önce özete bakarsın. Zorunlu olanlar yalnız ad, etiket, açıklama ve fiyat."

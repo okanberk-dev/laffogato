@@ -32,15 +32,18 @@ export function SectionTabs({
       aria-label={label}
       data-admin-section-tabs=""
       className={cx(
-        inBar
-          ? "min-w-0 self-stretch"
-          : "border-b border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 sm:px-5",
+        inBar ? "min-w-0 self-stretch" : "px-4 pt-3 sm:px-5 lg:px-6",
         className,
       )}
     >
       <ul
         data-focus-inset=""
-        className="flex h-full max-w-full [scrollbar-width:none] gap-5 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+        className={cx(
+          "flex max-w-full [scrollbar-width:none] overflow-x-auto [&::-webkit-scrollbar]:hidden",
+          inBar
+            ? "h-full gap-5"
+            : "w-fit gap-0.5 rounded-full bg-[var(--admin-panel)] p-1",
+        )}
       >
         {tabs.map((tab) => {
           const active = tab.href === activeHref;
@@ -49,11 +52,23 @@ export function SectionTabs({
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
+                // StorageBox's section pills: a grey rail, the current page
+                // a white pill. In the top bar, an underline as before.
                 className={cx(
-                  "relative inline-flex min-h-11 items-center border-b-2 px-0.5 text-sm font-medium whitespace-nowrap transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none",
-                  active
-                    ? "border-[var(--admin-text)] text-[var(--admin-text)]"
-                    : "border-transparent text-[var(--admin-text-mute)] hover:text-[var(--admin-text)]",
+                  "relative inline-flex items-center text-sm font-medium whitespace-nowrap transition-colors duration-150 focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none",
+                  inBar
+                    ? cx(
+                        "min-h-11 border-b-2 px-0.5",
+                        active
+                          ? "border-[var(--admin-text)] text-[var(--admin-text)]"
+                          : "border-transparent text-[var(--admin-text-mute)] hover:text-[var(--admin-text)]",
+                      )
+                    : cx(
+                        "min-h-9 rounded-full px-4 pointer-coarse:min-h-10",
+                        active
+                          ? "bg-[var(--admin-surface)] text-[var(--admin-text)] shadow-[0_1px_2px_rgb(31_33_45/0.08)]"
+                          : "text-[var(--admin-text-mute)] hover:text-[var(--admin-text)]",
+                      ),
                 )}
               >
                 {tab.label}

@@ -8,6 +8,7 @@ import {
 import { FilterBar, PageShell, StatusTabs } from "@/components/admin/ui";
 import { QuickLookOpener } from "@/components/admin/ui/quick-look";
 import { listAuditLogs } from "@/lib/admin/audit";
+import { listAllBranchAvailability } from "@/lib/admin/menu-availability";
 import { requireRole } from "@/lib/admin/auth";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import { menuImagePath, servedImage } from "@/lib/admin/image-url";
@@ -36,6 +37,8 @@ import {
   MENU_CATEGORY_LABELS,
   type AdminMenuItem,
 } from "@/lib/admin/store";
+import { branchLabel, siteBranches } from "@/lib/panel/branches";
+import { soldOutBranches } from "@/lib/panel/menu-availability-core";
 import { menuItemTaxRate } from "@/lib/utils/kdv";
 
 export const metadata = { title: "Admin · Kafe Menüsü" };
@@ -69,7 +72,11 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
   const lookId = parseQuickLook(listed.url);
   const sp = withoutQuickLook(listed.url);
   const view = withoutQuickLook(listed.view);
-  const [all, settings] = await Promise.all([listMenuItems(), getSettings()]);
+  const [all, settings, availability] = await Promise.all([
+    listMenuItems(),
+    getSettings(),
+    listAllBranchAvailability(),
+  ]);
   const lookItem = lookId ? all.find((it) => it.id === lookId) : undefined;
   // The audit log is the owner's: a manager's drawer shows the last
   // change's time instead.
@@ -81,7 +88,18 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
           limit: QUICK_LOOK_CHANGES,
         })
       : null;
-  const items = all.map(toMenuListRow);
+  // Each branch's own "Tükendi" beside the menu's flag
+  // (src/lib/panel/menu-availability-core.ts).
+  const branches = siteBranches(process.env);
+  const items = all.map((it) =>
+    toMenuListRow(
+      it,
+      soldOutBranches(
+        availability.filter((r) => r.menuItemId === it.id),
+        branches,
+      ).map(branchLabel),
+    ),
+  );
   const filters = parseFilters(view, FIELDS);
   const tab = parseMenuTab(view);
   const list = menuList(items, {

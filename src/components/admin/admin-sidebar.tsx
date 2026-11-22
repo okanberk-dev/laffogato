@@ -353,20 +353,21 @@ function NavPending() {
 }
 
 /*
- * The nav's look is Innex's sidebar (operator, 22 Eki 2026: "İnnexe geç"):
- * a white card on the grey ground, a 16 px line icon and a 14 px label per
- * row, small capitals over each group, and the current page a grey row in
- * darker ink: no colour and no rule, calm on purpose. It was AkmanOS's
- * pastel tiles; the groups' colours stay for the dashboard's icon boxes
- * (ui/hues.ts). 32 px rows where the pointer can aim, 44 px on a touch
- * screen.
+ * The nav's look is Madame Coco's sidebar (StorageBox; operator, 21 Kas
+ * 2026: "madamecoco reposundaki admin panel ile aynı tarz"): a framed
+ * white card on the pale ground, a 16 px line icon and a 14 px label per
+ * pill-shaped row, small capitals over each group with a thin rule between
+ * groups, and the current page a dark pill in white ink. The groups'
+ * colours stay for the dashboard's round icons (ui/hues.ts). 36 px rows
+ * where the pointer can aim, 44 px on a touch screen.
  */
 const ROW =
-  "group/row relative flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-1 text-sm font-medium transition-colors duration-150 pointer-fine:min-h-8";
+  "group/row relative flex min-h-11 items-center gap-2.5 rounded-full px-3 py-1 text-sm transition-colors duration-150 pointer-fine:min-h-9";
 const ROW_IDLE =
-  "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)]";
-/** The current row: Innex's grey ground, the ink at full strength. */
-const ROW_ACTIVE = "bg-[var(--admin-panel)] text-[var(--admin-text)]";
+  "text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-text)]";
+/** The current row: the dark pill, white ink. */
+const ROW_ACTIVE =
+  "bg-[var(--admin-inverse)] font-medium text-[var(--admin-inverse-ink)]";
 /** The rows of a group, 2 px apart. */
 const LIST_BOX = "flex flex-col gap-0.5";
 
@@ -375,7 +376,7 @@ function RowIcon({ name }: { name: string }) {
   return (
     <span
       aria-hidden="true"
-      className="grid size-5 shrink-0 place-items-center text-[var(--admin-text-mute)] transition-colors duration-150 group-hover/row:text-[var(--admin-text-soft)] group-aria-[current=page]/row:text-[var(--admin-text)]"
+      className="grid size-5 shrink-0 place-items-center text-[var(--admin-text-mute)] transition-colors duration-150 group-hover/row:text-[var(--admin-text)] group-aria-[current=page]/row:text-[var(--admin-inverse-ink)]"
     >
       <NavIcon name={name} size={16} />
     </span>
@@ -397,17 +398,17 @@ function RowIcon({ name }: { name: string }) {
  */
 const SIDE_ID = "admin-side";
 const ROW_RAIL =
-  "group/tip relative flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-200";
-/** The rail's count over the icon: white on the primary blue. */
+  "group/tip relative flex h-10 w-full items-center justify-center rounded-full transition-colors duration-200";
+/** The rail's count over the icon: white on the count red. */
 const BADGE_RAIL =
-  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-[var(--admin-surface)]";
+  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-[var(--admin-count)] px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-[var(--admin-surface)]";
 // The rail card stands 8 px off the window's edge, so the tooltip starts
 // that much further right than the rail's own 4rem.
 const TIP =
   "fixed top-[var(--tip-y,0px)] left-[3.65rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
 /** Innex's tooltip: white on the dark navy. */
 const TIP_PILL =
-  "block rounded-md bg-[var(--admin-text)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg";
+  "block rounded-full bg-[var(--admin-inverse)] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg";
 
 function RailTip({ children }: { children: ReactNode }) {
   return (
@@ -495,11 +496,11 @@ function BadgeCount({ section, n }: { section: string; n: number }) {
 }
 
 /**
- * A count: Innex's grey pill, right-aligned, 12 px medium. On the current
- * row (itself grey) the pill turns white.
+ * A count: StorageBox's red pill (work waiting), right-aligned, 12 px
+ * medium, white figures.
  */
 const BADGE_CLASS =
-  "min-w-5 rounded-full px-1.5 py-0.5 text-center text-xs leading-4 font-medium text-[var(--admin-text-soft)]";
+  "min-w-5 rounded-full px-1.5 py-0.5 text-center text-xs leading-4 font-medium text-white";
 
 /** A badge as a name carries it, for a control that shows only the icon (the rail). */
 function badgeText(section: string, n: number): string {
@@ -562,7 +563,7 @@ function NavNote() {
   return (
     <div
       role="note"
-      className="mx-3 mb-2 flex items-start gap-2 rounded-[10px] bg-[var(--admin-primary-soft)] py-2 pr-1 pl-3 text-xs leading-5 text-[var(--admin-primary)]"
+      className="mx-3 mb-2 flex items-start gap-2 rounded-lg bg-[var(--admin-primary-soft)] py-2 pr-1 pl-3.5 text-xs leading-5 text-[var(--admin-info)]"
     >
       <p className="flex-1 pt-0.5">
         Menü sadeleşti: eski adlarla da üstteki aramadan bulursun.
@@ -571,7 +572,7 @@ function NavNote() {
         type="button"
         onClick={dismissNavNote}
         aria-label="Notu kapat"
-        className="-my-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-primary)] hover:bg-[var(--admin-surface)] pointer-fine:h-8 pointer-fine:w-8"
+        className="-my-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-full text-[var(--admin-info)] hover:bg-[var(--admin-surface)] pointer-fine:h-8 pointer-fine:w-8"
       >
         <NavIcon name="close" />
       </button>
@@ -811,10 +812,11 @@ export function AdminSidebarBody({
     const n = counts[item.section] ?? null;
     const badge = n && n > 0 ? n : null;
     const badgeHref = BADGE_LINKS[item.section];
-    // The count's pill: grey, white on the current (grey) row.
+    // The count's pill: red, as StorageBox marks work waiting; on the
+    // current (dark) row a lighter ring keeps it apart from the pill.
     const count = active
-      ? "bg-[var(--admin-surface)]"
-      : "bg-[var(--admin-panel)]";
+      ? "bg-[var(--admin-count)] ring-2 ring-white/25"
+      : "bg-[var(--admin-count)]";
     if (rail) {
       // The icon alone: its name is the label and, with a badge, the count
       // (the pill over the icon is for the eye). One link, not the wide
@@ -897,27 +899,26 @@ export function AdminSidebarBody({
           rail ? "flex flex-col items-center pb-2" : "flex items-center"
         }
       >
-        {/* Innex's business block: a 32 px round logo, the name and where
-            it is. */}
+        {/* The brand block: a 36 px round logo, the name and where it is. */}
         <Link
           href={landingPath}
           onClick={onNavigate}
           className={
             rail
               ? "flex items-center justify-center py-3.5"
-              : "flex min-w-0 flex-1 items-center gap-2.5 py-3.5 pr-2 pl-4"
+              : "flex min-w-0 flex-1 items-center gap-3 py-4 pr-2 pl-4"
           }
           aria-label="L'Affogato Admin"
         >
           <span
             aria-hidden="true"
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--admin-text)]"
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--admin-inverse)]"
           >
-            <span className="brand-mark h-3.5" style={{ color: "#FFFFFF" }} />
+            <span className="brand-mark h-4" style={{ color: "#FFFFFF" }} />
           </span>
           {rail ? null : (
             <span className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-semibold text-[var(--admin-text)]">
+              <span className="admin-display block truncate text-[15px] font-semibold tracking-[-0.02em] text-[var(--admin-text)]">
                 L&apos;Affogato
               </span>
               <span className="block truncate text-xs text-[var(--admin-text-mute)]">
@@ -932,6 +933,10 @@ export function AdminSidebarBody({
       </div>
       {/* Nav. Folded, its scrollbar goes (it would take a quarter of the
           rail); the wheel and the keys still scroll it. */}
+      <div
+        aria-hidden="true"
+        className="mx-3 h-px shrink-0 bg-[var(--admin-divider)]"
+      />
       <nav
         ref={navRef}
         aria-label="Panel"
@@ -953,12 +958,20 @@ export function AdminSidebarBody({
             const open =
               rail || navGroupOpen(group.title, collapsed, activeGroup);
             const listId = `${idPrefix}-nav-${gi}`;
-            // Innex's small capitals over a group: the one place the panel
-            // uses them.
+            // Small capitals over a group: the one place the panel uses
+            // them. A thin rule between groups (StorageBox).
             const titleClass =
-              "text-[11px] font-medium tracking-[0.06em] text-[var(--admin-text-mute)] uppercase";
+              "text-[11px] font-semibold tracking-[0.06em] text-[var(--admin-text-mute)] uppercase";
             return (
-              <div key={group.title} className="mb-2">
+              <div
+                key={group.title}
+                className={cx(
+                  "mb-1",
+                  !rail &&
+                    gi > 0 &&
+                    "mt-2 border-t border-[var(--admin-divider)]",
+                )}
+              >
                 {rail ? (
                   // A rule between groups; the title stays for screen
                   // readers (the list is labelled by it).
@@ -976,7 +989,7 @@ export function AdminSidebarBody({
                 ) : isActiveGroup || !onToggleGroup ? (
                   <div
                     id={`${listId}-title`}
-                    className={`flex items-center px-2.5 pt-4 pb-1.5 ${titleClass}`}
+                    className={`flex items-center px-3 pt-3 pb-1.5 ${titleClass}`}
                   >
                     {group.title}
                   </div>
@@ -987,7 +1000,7 @@ export function AdminSidebarBody({
                     aria-expanded={open}
                     aria-controls={listId}
                     onClick={() => onToggleGroup(group.title)}
-                    className={`mt-1 flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 pt-2 pb-1 text-left hover:text-[var(--admin-text)] ${titleClass}`}
+                    className={`mt-1 flex min-h-9 w-full items-center justify-between gap-2 rounded-full px-3 pt-2 pb-1 text-left hover:text-[var(--admin-text)] ${titleClass}`}
                   >
                     <span>{group.title}</span>
                     <svg
@@ -1043,7 +1056,7 @@ export function AdminSidebarBody({
           {/* One row, Innex's user card under a rule: the block took
               about 300 px and left the nav a third of a laptop screen. The
               row opens the same controls upward. */}
-          <div className="mx-3 border-t border-[var(--admin-border)] pt-2 pb-2">
+          <div className="mx-3 border-t border-[var(--admin-divider)] pt-2 pb-2">
             <AccountMenu
               email={email}
               roleLabel={roleLabel}
@@ -1061,9 +1074,9 @@ export function AdminSidebarBody({
   );
 }
 
-/** The account's initial in Innex's round avatar (the rail's and the profile row's). */
+/** The account's initial in a dark circle (the rail's and the profile card's). */
 const AVATAR =
-  "grid size-7 shrink-0 place-items-center rounded-full bg-[var(--admin-primary-soft)] text-xs font-semibold text-[var(--admin-primary)]";
+  "grid size-9 shrink-0 place-items-center rounded-full bg-[var(--admin-inverse)] text-sm font-medium text-[var(--admin-inverse-ink)]";
 
 /**
  * The account menu: the cashier's in the top bar (no sidebar to hold it),
@@ -1128,7 +1141,7 @@ function AccountMenu({
       {rail ? (
         <summary
           {...railControl("Hesap")}
-          className="group/tip relative mx-auto grid h-11 w-11 cursor-pointer list-none place-items-center rounded-lg select-none hover:bg-[var(--admin-panel)] pointer-fine:h-9 pointer-fine:w-9 [&::-webkit-details-marker]:hidden"
+          className="group/tip relative mx-auto grid h-11 w-11 cursor-pointer list-none place-items-center rounded-full select-none hover:bg-[var(--admin-panel)] pointer-fine:h-9 pointer-fine:w-9 [&::-webkit-details-marker]:hidden"
         >
           <span aria-hidden="true" className={AVATAR}>
             {initial}
@@ -1138,7 +1151,7 @@ function AccountMenu({
       ) : side ? (
         <summary
           aria-label={`Hesap: ${props.email}, ${props.roleLabel}`}
-          className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors duration-150 select-none group-open/acct:bg-[var(--admin-panel)] hover:bg-[var(--admin-surface-2)] [&::-webkit-details-marker]:hidden"
+          className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg bg-[var(--admin-surface-2)] p-2 pr-3 transition-colors duration-150 select-none group-open/acct:bg-[var(--admin-panel)] hover:bg-[var(--admin-panel)] [&::-webkit-details-marker]:hidden"
         >
           <span aria-hidden="true" className={AVATAR}>
             {initial}
@@ -1167,7 +1180,7 @@ function AccountMenu({
           </svg>
         </summary>
       ) : (
-        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full bg-[var(--admin-panel)] px-4 text-sm font-medium text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel-hover)] hover:text-[var(--admin-text)] [&::-webkit-details-marker]:hidden">
           Hesap
           <svg
             width="14"
@@ -1188,7 +1201,7 @@ function AccountMenu({
       <section
         aria-label="Hesap"
         className={cx(
-          "absolute z-40 rounded-[10px] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1 shadow-[0_8px_24px_rgba(12,14,27,0.10)]",
+          "absolute z-40 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1.5 shadow-[var(--admin-shadow-lg)]",
           rail
             ? "bottom-0 left-full ml-3 w-64 max-w-[calc(100vw-5rem)]"
             : side
@@ -1241,7 +1254,7 @@ function SkipLink() {
       href="#admin-main"
       onClick={(e) => skipToContent(e, document.getElementById("admin-main"))}
       data-admin-skip-link=""
-      className="fixed top-2 left-2 z-50 inline-flex min-h-11 -translate-y-[calc(100%+1rem)] items-center rounded-lg bg-[var(--admin-primary)] px-4 text-sm font-medium whitespace-nowrap text-white transition-transform focus:translate-y-0 motion-reduce:transition-none print:hidden"
+      className="fixed top-2 left-2 z-50 inline-flex min-h-11 -translate-y-[calc(100%+1rem)] items-center rounded-full bg-[var(--admin-primary)] px-4 text-sm font-medium whitespace-nowrap text-white transition-transform focus:translate-y-0 motion-reduce:transition-none print:hidden"
     >
       İçeriğe geç
     </a>
@@ -1301,14 +1314,14 @@ const LOGO_SMALL = (
   <>
     <span
       aria-hidden="true"
-      className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--admin-text)]"
+      className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--admin-inverse)]"
     >
       <span className="brand-mark h-3.5" style={{ color: "#FFFFFF" }} />
     </span>
-    {/* The link is named "L'Affogato Admin"; the word goes below 380 px,
+    {/* The link is named "L'Affogato Admin"; the word goes below 414 px,
         where the top bar's controls did not fit beside it and the page
         scrolled sideways (360 px Android phones). */}
-    <span className="text-sm font-semibold text-[var(--admin-text)] max-[379px]:hidden">
+    <span className="admin-display text-[15px] font-semibold tracking-[-0.02em] text-[var(--admin-text)] max-[413px]:hidden">
       Yönetim
     </span>
   </>
@@ -1320,7 +1333,7 @@ type BodyProps = Omit<
 >;
 
 /**
- * The laptop sidebar, Innex's white card on the grey ground, 8 px from the
+ * The laptop sidebar, StorageBox's framed white card on the pale ground (24 px corners), 8 px from the
  * window: 15.5rem, or the rail's 4rem once the shell wrote
  * `data-admin-rail` on the admin root (the layout's `--admin-side`; the page
  * card's left edge and the bulk bar follow the same variable). Its own
@@ -1332,7 +1345,7 @@ function DesktopAside({ body }: { body: BodyProps }) {
   return (
     <aside
       id={SIDE_ID}
-      className="fixed top-2 bottom-[calc(var(--admin-bottom-inset,0px)+0.5rem)] left-2 z-30 hidden w-[var(--admin-side,15.5rem)] rounded-xl bg-[var(--admin-surface)] lg:block print:hidden"
+      className="fixed top-2 bottom-[calc(var(--admin-bottom-inset,0px)+0.5rem)] left-2 z-30 hidden w-[var(--admin-side,15.5rem)] overflow-hidden rounded-xl border border-[var(--admin-frame-border)] bg-[var(--admin-surface)] lg:block print:hidden"
     >
       <AdminSidebarBody
         {...body}
@@ -1424,7 +1437,10 @@ export function AdminSidebar(props: SidebarProps) {
           settings={palette.settings}
         />
       )}
-      <div data-admin-topbar-actions="" className="flex items-center gap-2">
+      <div
+        data-admin-topbar-actions=""
+        className="flex items-center gap-1.5 sm:gap-2"
+      >
         {props.actions}
       </div>
     </>
@@ -1443,7 +1459,7 @@ export function AdminSidebar(props: SidebarProps) {
         <Suspense fallback={null}>
           <DeniedNotice />
         </Suspense>
-        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur-md sm:px-5 lg:static lg:rounded-t-xl lg:bg-transparent lg:backdrop-blur-none print:hidden">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-[var(--admin-border)] bg-[var(--admin-canvas)]/90 px-4 py-2 backdrop-blur-md sm:px-5 lg:static lg:min-h-16 lg:border-b-0 lg:bg-transparent lg:px-6 lg:pt-4 lg:pb-0 lg:backdrop-blur-none print:hidden">
           <Link
             href={props.landingPath}
             className="flex min-h-11 shrink-0 items-center gap-2"
@@ -1456,7 +1472,7 @@ export function AdminSidebar(props: SidebarProps) {
               {title}
             </span>
           )}
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             {topBarEnd}
             <AccountMenu
               email={props.email}
@@ -1516,11 +1532,11 @@ export function AdminSidebar(props: SidebarProps) {
       <DesktopAside body={body} />
 
       {/* Top bar: on a phone the menu button and the logo; on a wide screen
-          the breadcrumbs, or an item's tabs on a tab's own page. Then the
-          search and the bar's own controls. From `lg` it is the page card's
-          first strip (Innex), 56 px over a 1 px line. */}
+          the breadcrumbs (Bölüm › Sayfa). Then the search and the bar's own
+          controls. From `lg` it sits inside the page frame with no line
+          under it (StorageBox); an item's tabs follow as a pill rail. */}
       <header
-        className={`sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:gap-4 lg:rounded-t-xl lg:bg-transparent lg:px-5 lg:py-0 lg:backdrop-blur-none print:hidden ${
+        className={`sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b border-[var(--admin-border)] bg-[var(--admin-canvas)]/90 px-4 py-2 backdrop-blur lg:static lg:min-h-16 lg:gap-4 lg:border-b-0 lg:bg-transparent lg:px-6 lg:pt-4 lg:pb-0 lg:backdrop-blur-none print:hidden ${
           // On a wide screen the bar is breadcrumbs or tabs, search and
           // controls; a role with none of them has nothing to put there.
           palette || props.actions || strip ? "" : "lg:hidden"
@@ -1534,7 +1550,7 @@ export function AdminSidebar(props: SidebarProps) {
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={DRAWER_ID}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] lg:hidden pointer-fine:h-9 pointer-fine:w-9"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--admin-panel)] text-[var(--admin-text-soft)] hover:bg-[var(--admin-panel-hover)] hover:text-[var(--admin-text)] lg:hidden pointer-fine:h-10 pointer-fine:w-10"
         >
           <NavIcon name="drawer" />
         </button>
@@ -1545,18 +1561,8 @@ export function AdminSidebar(props: SidebarProps) {
         >
           {LOGO_SMALL}
         </Link>
-        {strip ? (
-          <SectionTabs
-            inBar
-            label={`${strip.item.label} bölümleri`}
-            tabs={strip.tabs}
-            activeHref={strip.activeHref}
-            className="hidden lg:block"
-          />
-        ) : (
-          <Breadcrumbs items={navLinks} className="hidden flex-1 lg:block" />
-        )}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Breadcrumbs items={navLinks} className="hidden flex-1 lg:block" />
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           {topBarEnd}
         </div>
       </header>
@@ -1571,14 +1577,14 @@ export function AdminSidebar(props: SidebarProps) {
         />
       )}
       {/* An item's tabs, on a tab's own page only (not on /yeni or a
-          record below it): the phone's strip under the bar; from `lg` they
-          are in the bar itself. */}
+          record below it): a grey pill rail under the bar, the current
+          page a white pill, at every width. */}
       {strip && (
         <SectionTabs
           label={`${strip.item.label} bölümleri`}
           tabs={strip.tabs}
           activeHref={strip.activeHref}
-          className="lg:hidden print:hidden"
+          className="print:hidden"
         />
       )}
 
@@ -1594,7 +1600,7 @@ export function AdminSidebar(props: SidebarProps) {
         }}
         onMouseDown={onBackdropDown}
         onClick={onBackdropClick}
-        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.18)] backdrop:bg-[rgba(12,14,27,0.2)] lg:hidden print:hidden"
+        className="m-0 h-dvh max-h-none w-[82%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[var(--admin-shadow-lg)] backdrop:bg-[var(--admin-overlay)] lg:hidden print:hidden"
         style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
       >
         {open && (
@@ -1603,7 +1609,7 @@ export function AdminSidebar(props: SidebarProps) {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Menüyü kapat"
-              className="absolute top-2 right-2 z-10 grid h-11 w-11 place-items-center rounded-lg text-[var(--admin-text-mute)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-text)] pointer-fine:h-9 pointer-fine:w-9"
+              className="absolute top-2.5 right-2 z-10 grid h-11 w-11 place-items-center rounded-full text-[var(--admin-text-mute)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-text)] pointer-fine:h-9 pointer-fine:w-9"
             >
               <NavIcon name="close" />
             </button>

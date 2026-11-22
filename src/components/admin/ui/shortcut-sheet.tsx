@@ -102,7 +102,7 @@ export function ShortcutSheet({
         }
         downOnBackdrop.current = false;
       }}
-      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] open:flex sm:top-[10vh] sm:max-h-[min(80dvh,720px)] print:hidden"
+      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] open:flex sm:top-[10vh] sm:max-h-[min(80dvh,720px)] print:hidden"
       style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--admin-border)] py-2 pr-2 pl-5">

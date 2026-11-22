@@ -40,7 +40,7 @@ export function Section({
       id={id}
       aria-labelledby={headingId}
       className={cx(
-        // Innex's card; on paper its line darkens a step so the box prints.
+        // StorageBox's card; on paper its line darkens a step so the box prints.
         CARD,
         "print:border-[var(--admin-border-strong)]",
         className,
@@ -48,7 +48,7 @@ export function Section({
     >
       <header
         className={cx(
-          "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-5",
+          "flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-0 sm:px-6 sm:pt-5",
           COMPACT.px4,
           COMPACT.py2,
         )}
@@ -58,7 +58,7 @@ export function Section({
             {title}
           </h2>
           {description ? (
-            <p className="mt-0.5 text-[13px] text-[var(--admin-text-mute)]">
+            <p className="mt-1 text-sm text-[var(--admin-text-mute)]">
               {description}
             </p>
           ) : null}
@@ -67,7 +67,7 @@ export function Section({
           <div className="flex flex-wrap items-center gap-2">{actions}</div>
         ) : null}
       </header>
-      <div className={flush ? undefined : cx("p-4 sm:p-5", COMPACT.p4)}>
+      <div className={flush ? undefined : cx("p-4 sm:p-6 sm:pt-5", COMPACT.p4)}>
         {children}
       </div>
     </section>

@@ -3,6 +3,7 @@ import "server-only";
 import { getDb, TABLES, type DbError } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
+import { branchOf, HOME_BRANCH } from "@/lib/panel/branches";
 import {
   planPanelTables,
   type PanelTableInput,
@@ -45,12 +46,19 @@ export interface CafeTable {
   createdAt: string;
   updatedAt: string;
   rotatedAt: string;
+  /** Where the table stands (src/lib/panel/branches.ts); Tuzla before 21 Kas 2026. */
+  branch: string;
 }
 
-/** What a public lookup may learn about a table: nothing but its label. */
+/**
+ * What a lookup learns about a table: its label, and its branch for the
+ * order and the call written at it. The public answers (the app's
+ * `GET /tables/{code}`, /masa) still print the label alone.
+ */
 export interface PublicCafeTable {
   code: string;
   name: string;
+  branch: string;
 }
 
 export type CafeTableErrorCode = "invalid_name" | "not_found";
@@ -82,6 +90,7 @@ function toTable(row: Record<string, unknown>): CafeTable {
     createdAt: String(row.createdAt ?? ""),
     updatedAt: String(row.updatedAt ?? ""),
     rotatedAt: String(row.rotatedAt ?? ""),
+    branch: branchOf(row as { branch?: unknown }),
   };
 }
 
@@ -121,6 +130,7 @@ function isUniqueViolation(error: DbError | null): boolean {
  */
 export async function createCafeTable(
   rawName: string,
+  branch: string = HOME_BRANCH,
 ): Promise<CafeTableResult> {
   const name = normalizeTableName(rawName);
   if (!name) return fail("invalid_name");
@@ -137,6 +147,7 @@ export async function createCafeTable(
       createdAt: now,
       updatedAt: now,
       rotatedAt: "",
+      branch,
     };
     const { error } = await getDb().from(TABLE).insert(row);
     if (isUniqueViolation(error)) continue;
@@ -149,6 +160,8 @@ export async function createCafeTable(
 export interface UpdateCafeTableInput {
   name: string;
   sortOrder: number;
+  /** Absent keeps the table's branch. */
+  branch?: string;
 }
 
 export async function updateCafeTable(
@@ -162,7 +175,12 @@ export async function updateCafeTable(
     : 0;
   const { data, error } = await getDb()
     .from(TABLE)
-    .update({ name, sortOrder, updatedAt: new Date().toISOString() })
+    .update({
+      name,
+      sortOrder,
+      ...(input.branch ? { branch: input.branch } : {}),
+      updatedAt: new Date().toISOString(),
+    })
     .eq("id", id)
     .select("*");
   checkErr(error, "cafeTables.update");
@@ -218,16 +236,21 @@ export interface ImportCafeTablesResult {
   unchanged: number;
 }
 
-/** One table's name and state by its code; null when the code names nothing. */
+/**
+ * One table's name and state by its code, at `branch` only; null when the
+ * code names nothing there.
+ */
 async function updateCafeTableByCode(
   code: string,
   fields: PanelTableUpdateFields,
   now: string,
+  branch: string,
 ): Promise<CafeTable | null> {
   const { data, error } = await getDb()
     .from(TABLE)
     .update({ ...fields, updatedAt: now })
     .eq("code", code)
+    .eq("branch", branch)
     .select("*");
   checkErr(error, "cafeTables.import.update");
   const row = ((data as Record<string, unknown>[] | null) ?? [])[0];
@@ -250,7 +273,11 @@ async function updateCafeTableByCode(
  */
 export async function importCafeTables(
   tables: readonly PanelTableInput[],
-): Promise<ImportCafeTablesResult> {
+  /** The list's branch (src/lib/panel/branches.ts). */
+  branch: string,
+): Promise<
+  ImportCafeTablesResult | { wrongBranch: { index: number; code: string } }
+> {
   const result: ImportCafeTablesResult = {
     count: tables.length,
     created: [],
@@ -269,7 +296,9 @@ export async function importCafeTables(
   const existing = ((data as Record<string, unknown>[] | null) ?? []).map(
     toTable,
   );
-  const plan = planPanelTables(existing, tables);
+  const plan = planPanelTables(existing, tables, branch);
+  // Another branch's table: the whole list is refused, nothing written.
+  if (plan.wrongBranch) return { wrongBranch: plan.wrongBranch };
   result.unchanged = plan.unchanged;
   const now = new Date().toISOString();
   for (const want of plan.create) {
@@ -283,13 +312,17 @@ export async function importCafeTables(
       createdAt: now,
       updatedAt: now,
       rotatedAt: "",
+      branch,
     };
     const { error: insertError } = await getDb().from(TABLE).insert(row);
     if (isUniqueViolation(insertError)) {
+      // Added meanwhile: brought up to date if it is this branch's, else
+      // left alone (the next list is refused with `wrong_branch`).
       const updated = await updateCafeTableByCode(
         want.code,
         { name: want.name, isActive: want.active },
         now,
+        branch,
       );
       if (updated) result.updated.push(updated);
       continue;
@@ -302,6 +335,7 @@ export async function importCafeTables(
       change.code,
       change.fields,
       now,
+      branch,
     );
     if (updated) result.updated.push(updated);
   }
@@ -323,12 +357,16 @@ export async function resolveActiveTable(
   if (!code) return null;
   const { data, error } = await getDb()
     .from(TABLE)
-    .select("code, name, isActive")
+    .select("code, name, isActive, branch")
     .eq("code", code)
     .maybeSingle();
   checkErr(error, "cafeTables.resolve");
   if (!data) return null;
   const row = data as Record<string, unknown>;
   if (row.isActive === false) return "inactive";
-  return { code: String(row.code ?? code), name: String(row.name ?? "") };
+  return {
+    code: String(row.code ?? code),
+    name: String(row.name ?? ""),
+    branch: branchOf(row as { branch?: unknown }),
+  };
 }

@@ -1653,24 +1653,30 @@ export function ProductWizard({
                     onClick={() => setStep(s.id)}
                     aria-current={current ? "step" : undefined}
                     aria-label={`${s.id}. ${s.title}${flagged ? ": düzeltilecek alan var" : ""}`}
-                    className={`flex min-h-11 pointer-fine:min-h-9 items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
+                    // The kit's steps (ui/wizard.tsx): the current one a
+                    // dark pill, a passed one a blue circle, a pending one
+                    // grey.
+                    className={`flex min-h-11 pointer-fine:min-h-10 items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-sm font-medium transition-colors ${
                       current
-                        ? "bg-[var(--admin-primary)] text-white"
+                        ? "bg-[var(--admin-inverse)] text-[var(--admin-inverse-ink)]"
                         : flagged
                           ? "border border-[var(--admin-danger)] text-[var(--admin-danger-ink)]"
                           : step > s.id
-                            ? "bg-[var(--admin-surface-2)] text-[var(--admin-text-soft)]"
-                            : "border border-[var(--admin-border)] text-[var(--admin-text-soft)]"
+                            ? "text-[var(--admin-text)] hover:bg-[var(--admin-surface-2)]"
+                            : "text-[var(--admin-text-mute)] hover:bg-[var(--admin-surface-2)]"
                     }`}
                   >
                     <span
                       aria-hidden="true"
-                      className="inline-grid h-5 w-5 place-items-center rounded-full text-[10px]"
-                      style={{
-                        background:
-                          step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
-                        border: step >= s.id ? "none" : "1px solid currentColor",
-                      }}
+                      className={`inline-grid h-7 w-7 place-items-center rounded-full text-xs ${
+                        current
+                          ? "bg-white text-[var(--admin-inverse)]"
+                          : flagged
+                            ? "bg-[var(--admin-danger-soft)]"
+                            : step > s.id
+                              ? "bg-[var(--admin-primary)] text-white"
+                              : "bg-[var(--admin-panel)] text-[var(--admin-text-mute)]"
+                      }`}
                     >
                       {flagged ? "!" : s.id}
                     </span>

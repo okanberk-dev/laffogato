@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function NewPromoPage() {
   await requireRole("promos");
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       <BackLink href={PROMOS_PATH}>Promosyon kodları</BackLink>
       <PageHeader
         title="Yeni kod"

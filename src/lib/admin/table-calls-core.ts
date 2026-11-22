@@ -76,6 +76,11 @@ export interface TableCallRow {
   ackedAt: string;
   /** "panel:<name>", "lafpos:<name>", "admin:<name>"; "" while open. */
   ackedBy?: string;
+  /**
+   * The table's branch when the call was made (21 Kas 2026,
+   * src/lib/panel/branches.ts); absent on a row read before it: Tuzla.
+   */
+  branch?: string;
 }
 
 export type TableCallStatus = "open" | "acked" | "expired";

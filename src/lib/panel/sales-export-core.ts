@@ -8,6 +8,7 @@ import {
   type ManualPaymentMethod,
 } from "@/lib/admin/order-actions";
 import { orderKind } from "@/lib/admin/order-channel";
+import { branchOf, KARAOKE_BRANCH } from "@/lib/panel/branches";
 import { istanbulDayStartIso } from "@/lib/admin/order-filters";
 import type { InvoicePayment } from "@/lib/invoice/invoice-core";
 import { MILK_IDS, SYRUP_IDS } from "@/lib/mobile/customization";
@@ -55,6 +56,14 @@ import {
  * kept after its refunds. An order without a stored split (placed before
  * lines carried their rate) adds its net to `unknownKdvNetMinor` instead of
  * a guess (CLAUDE.md "Satış anındaki oran saklanır").
+ *
+ * Per branch (21 Kas 2026, src/lib/panel/branches.ts): an order is its
+ * table's branch's (a Marina table's QR order is Marina's money), every
+ * other order Tuzla's, and the karaoke room is Tuzla's. `byBranch` splits
+ * the period's café, till-settled and manual orders by branch; `?branch=`
+ * narrows the whole answer to one branch (its orders; the shop and the
+ * room only for Tuzla). Without it the totals are every branch's, as
+ * before.
  *
  * No customer data at all: no name, no order number, no e-mail.
  *
@@ -206,6 +215,8 @@ export interface PanelSalesOrderRow {
   status: string;
   kind?: string;
   source?: string;
+  /** The order's branch; absent on a row from before branches: Tuzla. */
+  branch?: string;
   createdAt: string;
   totalMinor: number;
   subtotalMinor: number;
@@ -346,6 +357,21 @@ export interface PanelSales {
    * till already, never in cafe/shop or the café lines.
    */
   counter: PanelSalesTotals;
+  /** The branch `?branch=` narrowed the answer to; null: every branch. */
+  branch: string | null;
+  /**
+   * The answer's orders by branch (added 21 Kas 2026): café (online,
+   * without lines), till-settled and manual. The shop and the room are
+   * Tuzla's and not repeated here.
+   */
+  byBranch: Record<string, PanelSalesBranch>;
+}
+
+/** One branch's share of the period's orders (`byBranch`). */
+export interface PanelSalesBranch {
+  cafe: PanelSalesTotals;
+  counter: PanelSalesTotals;
+  manual: { orders: number; grossMinor: number; netMinor: number };
 }
 
 function emptyTotals(): PanelSalesTotals {
@@ -444,40 +470,61 @@ export function buildPanelSales(input: {
   bookings: readonly PanelSalesBookingRow[];
   couponSourceOf: (orderNo: number) => string | null;
   paymentsOf: (order: PanelSalesOrderRow) => readonly InvoicePayment[];
+  /** One branch's figures only (`?branch=`); absent: every branch. */
+  branch?: string | null;
 }): PanelSales {
   const { range } = input;
+  const only = input.branch ?? null;
   const cafe = emptyTotals();
   const shop = emptyTotals();
   const counter = emptyTotals();
   const manual = { orders: 0, grossMinor: 0, netMinor: 0 };
   const lines = new Map<string, PanelSalesLine>();
+  const byBranch: Record<string, PanelSalesBranch> = {};
+  const shareOf = (branch: string): PanelSalesBranch =>
+    (byBranch[branch] ??= {
+      cafe: emptyTotals(),
+      counter: emptyTotals(),
+      manual: { orders: 0, grossMinor: 0, netMinor: 0 },
+    });
 
   for (const order of input.orders) {
     if (!(PANEL_SALES_STATUSES as readonly string[]).includes(order.status)) {
       continue;
     }
     if (!inPanelSalesRange(order.createdAt, range)) continue;
+    const branch = branchOf(order);
+    if (only && branch !== only) continue;
     const total = minor(order.totalMinor);
     const refunded = refundedOf(order, total);
     const net = total - refunded;
     if (order.source === "manual") {
-      manual.orders += 1;
-      manual.grossMinor += total;
-      manual.netMinor += net;
+      for (const m of [manual, shareOf(branch).manual]) {
+        m.orders += 1;
+        m.grossMinor += total;
+        m.netMinor += net;
+      }
       continue;
     }
     const atTill = paidAtTill(input.paymentsOf(order));
     const isCafe = orderKind(order) === "cafe";
     const block = atTill ? counter : isCafe ? cafe : shop;
-    block.orders += 1;
-    block.grossMinor += total;
-    block.discountMinor += minor(order.discountMinor);
-    block.deliveryMinor += minor(order.shippingMinor);
-    block.refundedMinor += refunded;
-    block.netMinor += net;
+    const share = atTill
+      ? shareOf(branch).counter
+      : isCafe
+        ? shareOf(branch).cafe
+        : null;
     const kdv = orderKeptKdv(order, net, input.couponSourceOf(order.orderNo));
-    if (kdv === null) block.unknownKdvNetMinor += net;
-    else block.kdvMinor += kdv;
+    for (const b of share ? [block, share] : [block]) {
+      b.orders += 1;
+      b.grossMinor += total;
+      b.discountMinor += minor(order.discountMinor);
+      b.deliveryMinor += minor(order.shippingMinor);
+      b.refundedMinor += refunded;
+      b.netMinor += net;
+      if (kdv === null) b.unknownKdvNetMinor += net;
+      else b.kdvMinor += kdv;
+    }
 
     if (atTill || !isCafe || !linesStand(order, refunded)) continue;
     for (const it of order.items ?? []) {
@@ -515,7 +562,8 @@ export function buildPanelSales(input: {
     kdvMinor: 0,
     unknownKdvNetMinor: 0,
   };
-  for (const booking of input.bookings) {
+  // The one room is Tuzla's: another branch's answer has no bookings.
+  for (const booking of only && only !== KARAOKE_BRANCH ? [] : input.bookings) {
     const money = karaokeMoneyOf(booking);
     if (!money) continue;
     if (!inPanelSalesRange(booking.paidAt || booking.createdAt, range)) {
@@ -551,5 +599,7 @@ export function buildPanelSales(input: {
     karaoke,
     manual,
     counter,
+    branch: only,
+    byBranch,
   };
 }

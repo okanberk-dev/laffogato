@@ -42,7 +42,14 @@ export async function loadAppProps({
   // The same for the home page's hero (/admin/anasayfa-hero): only `/`
   // draws it.
   withHomeHero = false,
-}: { withShopHero?: boolean; withHomeHero?: boolean } = {}) {
+  // Whose "Satışta / Tükendi" the menu shows (src/lib/panel/branches.ts):
+  // the site's pages are Tuzla's; a table's QR menu (/masa) its table's.
+  menuBranch,
+}: {
+  withShopHero?: boolean;
+  withHomeHero?: boolean;
+  menuBranch?: string;
+} = {}) {
   const [
     cachedProducts,
     settings,
@@ -56,7 +63,7 @@ export async function loadAppProps({
   ] = await Promise.all([
     listSiteShopProducts(),
     getSiteSettings(),
-    listSiteMenu(),
+    listSiteMenu(menuBranch),
     getActiveCustomer(),
     withShopHero ? listSiteShopHeroSlides() : Promise.resolve([]),
     listSitePress(),

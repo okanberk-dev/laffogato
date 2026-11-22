@@ -12,10 +12,12 @@ import {
 import type { MobileAppConfig } from "./app-config";
 import {
   DEFAULT_LINE_OPTIONS,
+  DEFAULT_OPTION_PRICES,
   isCustomizableCategory,
   resolveOptionPricing,
   UnknownOptionError,
   type LineOptions,
+  type OptionPrices,
   type OrderItemSize,
 } from "./customization";
 
@@ -53,7 +55,9 @@ export type CafeLinePrice =
 
 /**
  * Prices one cafe line: the size price from the menu row plus the option
- * surcharges from the customisation table.
+ * surcharges from the customisation table, at the menu's option prices
+ * (S8; `optionPrices`). `item.isActive` is "sold where the order is made"
+ * (the table's branch, else Tuzla: the caller resolves it).
  *
  * A two-size item must be ordered as M or L; "single" on it is a stale cart,
  * not a guess we make for the customer. A single-size item ordered as "M"
@@ -64,6 +68,8 @@ export function priceCafeLine(
   item: CafePriceable,
   size: OrderItemSize,
   options: Partial<LineOptions> | null | undefined,
+  /** The paid options' prices from the menu (S8); the constant's by default. */
+  optionPrices: OptionPrices = DEFAULT_OPTION_PRICES,
 ): CafeLinePrice {
   if (!item.isActive) {
     return {
@@ -107,7 +113,11 @@ export function priceCafeLine(
     ? options
     : DEFAULT_LINE_OPTIONS;
   try {
-    const priced = resolveOptionPricing(effective, resolvedSize);
+    const priced = resolveOptionPricing(
+      effective,
+      resolvedSize,
+      optionPrices,
+    );
     const merged = withDefaults(effective);
     return {
       ok: true,

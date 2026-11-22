@@ -60,7 +60,7 @@ export default async function MenuItemPage({ params }: PageProps) {
     : "";
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-5xl">
       <BackLink href={MENU_PATH}>Kafe menüsü</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">

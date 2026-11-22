@@ -24,7 +24,7 @@ import {
   withoutListSearch,
 } from "@/lib/admin/list-search-core";
 
-import { FIELD_INPUT } from "../forms";
+import { FIELD_INPUT, TOOLBAR_FIELD } from "../forms";
 import { LinkPending } from "./link-pending";
 import { openFromMd } from "./open-from-md";
 import { ListSearchButton } from "./list-search-button";
@@ -252,7 +252,7 @@ function DateRangeFieldset({
 
 /** A chip's × (a link, or a button for a search text). */
 const CHIP_REMOVE =
-  "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm leading-none text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none";
+  "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm leading-none text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none";
 
 /** A field's chip key (filterChips): the name, or "from|to" for a range. */
 const fieldKey = (field: FilterField) =>
@@ -317,7 +317,7 @@ function SearchGlyph() {
       stroke="currentColor"
       strokeWidth={1.75}
       strokeLinecap="round"
-      className="pointer-events-none absolute left-3 size-4 text-[var(--admin-text-mute)]"
+      className="pointer-events-none absolute left-4 size-4 text-[var(--admin-text-mute)]"
     >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
@@ -457,7 +457,7 @@ export function FilterBar({
             // shortcuts.tsx writes aria-keyshortcuts="/" on it once the shell
             // has hydrated, which can be before this page has.
             suppressHydrationWarning
-            className={cx(FIELD_INPUT, "pl-9")}
+            className={cx(TOOLBAR_FIELD, "pl-10")}
           />
         </div>
       );
@@ -609,7 +609,7 @@ export function FilterBar({
         role="search"
         aria-label={label}
         aria-busy={pending || undefined}
-        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2.5 sm:p-3"
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-2"
       >
         <form
           // Remount on a URL change (a chip removed, a tab clicked): the inputs
@@ -640,7 +640,7 @@ export function FilterBar({
               <summary
                 className={cx(
                   BUTTON.ghost,
-                  "cursor-pointer list-none select-none group-open:border-[var(--admin-border-field)] group-open:bg-[var(--admin-surface-2)] [&::-webkit-details-marker]:hidden",
+                  "cursor-pointer list-none select-none group-open:bg-[var(--admin-surface-2)] [&::-webkit-details-marker]:hidden",
                 )}
               >
                 <FilterGlyph />
@@ -650,7 +650,7 @@ export function FilterBar({
                   className="mb-0.5 ml-0.5 inline-block size-1.5 rotate-45 border-r-[1.5px] border-b-[1.5px] border-current transition-transform group-open:mt-1 group-open:mb-0 group-open:-rotate-135"
                 />
               </summary>
-              <div className="order-2 hidden basis-full flex-wrap items-start gap-3 border-t border-[var(--admin-border)] pt-3 group-open:flex">
+              <div className="order-2 hidden basis-full flex-wrap items-start gap-3 border-t border-[var(--admin-divider)] px-2 pt-3 pb-1 group-open:flex">
                 {folded.map((f) => renderField(f))}
               </div>
             </details>

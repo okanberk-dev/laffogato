@@ -10665,3 +10665,250 @@ alter table public.card_vault_purges enable row level security;
 
 insert into public._migrations (name) values ('20261119175128_card_vault_purges.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261121120000_venue_open_by_hours.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The köşk's open/closed follows the posted hours alone (21 Kas 2026,
+-- operator: "köşk açık yoğun vs. durumunu kaldır, belli aralık olan o
+-- saatlerde otomatik çeksin"). The panel no longer offers the manual
+-- override (the top bar's köşk chip is gone, Canlı durum has no Açık /
+-- Kapalı choice, every save writes 'auto'), so a row left on 'open' or
+-- 'closed' would have stayed so with no way back: the app would have kept
+-- refusing (or taking) café orders against Ayarlar → Saatler.
+--
+-- The single row is put back on 'auto'. The column stays: GET
+-- /api/mobile/v1/live-status and the order check read it (docs/API-MOBILE.md
+-- §6, unchanged), and 'auto' is the value they already understand.
+--
+-- Once only, like 20261027120000_retire_fal_ai_consents.sql: the bundle
+-- replays every migration when a deploy adds one, and a later choice must
+-- not be undone by a replay.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs and
+-- the bundle do that themselves, right after the file.
+
+update public.venue_status
+   set "manualOverride" = 'auto'
+ where "manualOverride" <> 'auto'
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261121120000_venue_open_by_hours.sql'
+   );
+
+insert into public._migrations (name) values ('20261121120000_venue_open_by_hours.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261121150719_branches.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Şubeler (21 Nov 2026; src/lib/panel/branches.ts, docs/LAFPOS.md "Şube").
+--
+-- The first LafPOS till went to Marina, and the site had no branch: both
+-- signed callers (the köşk's panel and LafPOS) read every open order,
+-- table call and booking, and one "Satışta / Tükendi" flag per item was
+-- written by both. Marina's till would have rung, moved and closed Tuzla's
+-- paid orders and calls, and each branch's sold-out mark closed the other
+-- branch's item (the owner's decision of 4 Nov 2026: per branch).
+--
+--   orders.branch       where a café order is made: the table's branch for
+--                       a table order, `tuzla` for everything else (the app
+--                       and the web serve the Tuzla köşk; gel-al, kurye and
+--                       kargo go out from there). Snapshotted like
+--                       "tableCode"/"tableName".
+--   cafe_tables.branch  where the table stands: LafPOS sends its tables
+--                       for its own branch (PUT /api/panel/tables).
+--   table_calls.branch  the table's branch when the call was made.
+--   menu_item_availability
+--                       "Satışta / Tükendi" per branch: one row per item
+--                       and branch that has one. An item is sold at a
+--                       branch while menu_items."isActive" (on the menu at
+--                       all; the site's own form) is true and the branch's
+--                       row, if any, is true. "updatedAt" is the branch's
+--                       own stamp: the panel's sold-out card keys on it.
+--
+-- Everything already written is Tuzla's (the default), which is what it
+-- was. Karaoke has no column: there is one room, in Tuzla
+-- (`KARAOKE_BRANCH`).
+--
+-- Additive only: three columns with a default and a new table. Re-runnable.
+--
+-- Rollback (the code reads the columns; roll the code back first):
+--   drop table if exists public.menu_item_availability;
+--   alter table public.table_calls drop column if exists branch;
+--   alter table public.cafe_tables drop column if exists branch;
+--   alter table public.orders drop column if exists branch;
+
+alter table public.orders
+  add column if not exists branch text not null default 'tuzla';
+alter table public.cafe_tables
+  add column if not exists branch text not null default 'tuzla';
+alter table public.table_calls
+  add column if not exists branch text not null default 'tuzla';
+
+-- lafmaliyet's id rule (branches_id_ck there).
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'orders_branch_check'
+  ) then
+    alter table public.orders
+      add constraint orders_branch_check
+      check (branch ~ '^[a-z][a-z0-9-]{1,23}$');
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'cafe_tables_branch_check'
+  ) then
+    alter table public.cafe_tables
+      add constraint cafe_tables_branch_check
+      check (branch ~ '^[a-z][a-z0-9-]{1,23}$');
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'table_calls_branch_check'
+  ) then
+    alter table public.table_calls
+      add constraint table_calls_branch_check
+      check (branch ~ '^[a-z][a-z0-9-]{1,23}$');
+  end if;
+end $$;
+
+create table if not exists public.menu_item_availability (
+  "menuItemId" text    not null
+    references public.menu_items (id) on delete cascade,
+  branch       text    not null,
+  "isActive"   boolean not null default true,
+  "updatedAt"  text    not null default '',
+  "updatedBy"  text    not null default '',
+  primary key ("menuItemId", branch),
+  constraint menu_item_availability_branch_check
+    check (branch ~ '^[a-z][a-z0-9-]{1,23}$')
+);
+
+-- A branch's rows (the panel's and LafPOS's reads).
+create index if not exists menu_item_availability_branch_idx
+  on public.menu_item_availability (branch);
+
+-- Row level security on, no policy, like every other table: the app's
+-- single owner connection bypasses it.
+alter table public.menu_item_availability enable row level security;
+
+-- NOTE: no insert into `_migrations` (scripts/db-migrate.mjs does it).
+
+insert into public._migrations (name) values ('20261121150719_branches.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261122090000_pre_branch_lafpos_data.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Şubelerden önce LafPOS'un ve panelin yazdığı veri (22 Nov 2026;
+-- tests/sube/pre-branch-data.test.ts).
+--
+-- 20261121150719_branches.sql wrote every existing row as Tuzla's. Two
+-- kinds of row were not Tuzla's, or did not fit the new rule:
+--
+-- 1. Table codes LafPOS (Marina's till) sent before branches
+--    (PUT /api/panel/tables, audit `create` with `via: "lafpos"` and no
+--    `branch`) stayed at Tuzla: a QR order or a waiter call from such a
+--    card went to Tuzla's panel, and the till's next list was refused whole
+--    (409 wrong_branch, tables-link-core.ts). They move to Marina, with the
+--    open orders and unanswered calls made at them. Tuzla's own tables (the
+--    admin form's, no `via`) and closed orders stay where they are.
+--
+-- 2. A "Tükendi" the köşk's panel or LafPOS wrote with the one flag before
+--    branches is still menu_items."isActive" = false, which now means "off
+--    the menu everywhere": Marina was closed by Tuzla's mark and LafPOS could
+--    not reopen it (409 site_closed). Only items whose last isActive change
+--    was such a write (`via` panel / lafpos, no `branch`) move to the branch
+--    row; the site's own form (no `via`) is left alone:
+--      via panel  -> Tuzla's row false (Tuzla as it was; Marina on sale);
+--      via lafpos -> Marina's row false, and Tuzla's row false too, so
+--                    Tuzla does not change (its own panel can reopen it).
+--    The row's "updatedAt" is the item's own stamp, and the item's stamp is
+--    not moved: lafmaliyet's sold-out marker keys on it (laterStamp).
+--
+-- Re-runnable: every step only touches rows still in the old state.
+--
+-- Rollback: none needed for the code; the moved rows can be read back from
+-- the audit rows this file keys on.
+
+-- Each step is one statement (data-modifying CTEs see one snapshot), so
+-- the file also runs from db/schema.sql in a console that commits every
+-- statement.
+
+-- 1. LafPOS's table codes from before branches.
+with codes as (
+  select distinct t.code
+  from public.cafe_tables t
+  join public.audit_logs a
+    on a.entity = 'cafe_table'
+   and a.action = 'create'
+   and a.payload ->> 'via' = 'lafpos'
+   and not (a.payload ? 'branch')
+   and a.payload ->> 'code' = t.code
+  where t.branch = 'tuzla'
+),
+moved_tables as (
+  update public.cafe_tables
+     set branch = 'marina'
+   where branch = 'tuzla'
+     and code in (select code from codes)
+  returning code
+),
+moved_orders as (
+  update public.orders
+     set branch = 'marina'
+   where branch = 'tuzla'
+     and "tableCode" in (select code from codes)
+     and status in ('pending_payment', 'paid', 'preparing', 'shipped')
+  returning id
+)
+update public.table_calls
+   set branch = 'marina'
+ where branch = 'tuzla'
+   and "ackedAt" = ''
+   and "tableCode" in (select code from codes);
+
+-- 2. Sold-out marks from before branches.
+with sold_out as (
+  select m.id, m."updatedAt", l.via, l.actor
+  from public.menu_items m
+  join lateral (
+    select a.payload ->> 'via' as via,
+           a.payload ->> 'isActive' as is_active,
+           a.payload ? 'branch' as has_branch,
+           a.actor
+    from public.audit_logs a
+    where a.entity = 'menu_item'
+      and a."entityId" = m.id
+      and a.payload ? 'isActive'
+    order by a."createdAt" desc, a.id desc
+    limit 1
+  ) l on true
+  where m."isActive" = false
+    and l.is_active = 'false'
+    and not l.has_branch
+    and l.via in ('panel', 'lafpos')
+),
+rows_added as (
+  insert into public.menu_item_availability
+    ("menuItemId", branch, "isActive", "updatedAt", "updatedBy")
+  select s.id, b.branch, false, s."updatedAt", s.actor
+  from sold_out s
+  cross join lateral (
+    select 'tuzla' as branch
+    union all
+    select 'marina' where s.via = 'lafpos'
+  ) b
+  on conflict ("menuItemId", branch) do nothing
+  returning "menuItemId"
+)
+update public.menu_items
+   set "isActive" = true
+ where "isActive" = false
+   and id in (select id from sold_out);
+
+-- NOTE: no insert into `_migrations` (scripts/db-migrate.mjs does it).
+
+insert into public._migrations (name) values ('20261122090000_pre_branch_lafpos_data.sql')
+  on conflict (name) do nothing;

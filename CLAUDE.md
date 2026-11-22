@@ -545,7 +545,9 @@ marinada"_: kart "Tuzla Marina, Tuzla / İstanbul" yazar ve haritayı
 2300"_ ile "10:00 - 23:00" (gün söylenmedi, "Her gün" yazılmaz). Marinadaki
 birim, posta kodu ve telefon hâlâ boş; kart yalnız eksik olanı "çok
 yakında" diye söyler (`branchPending`). Şubeler için JSON-LD hiç basılmaz (`structured-data.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
-yalnız Tuzla köşküne hizmet eder; kart bunu yazar. Hukuk metinlerinde 12 belge
+yalnız Tuzla köşküne hizmet eder; kart bunu yazar. (21 Kas 2026'dan beri tek
+istisna Marina'nın LafPOS'unun bastığı masa kartlarıdır: o masadan verilen
+sipariş ve çağrı Marina'nındır; aşağıda "Şubeler".) Hukuk metinlerinde 12 belge
 (ÖBF ve MSS dahil) hâlâ "tek şube bulunduğundan konuma bağlı bir işlev yoktur"
 der: düzeltilmesi onay sürümünü (`LEGAL_UPDATED`) taşır, ayrı bir hukuk
 revizyonudur ve operatörün onayını bekler.
@@ -712,6 +714,36 @@ isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı); açılışta siten
 Tükendi / Satışta; karaokeyi yalnız dünden yarına okur (daha genişi 403); olay kaydında
 `lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
 kalır, LafPOS gün sonunu oraya iter. Ayrıntı: `docs/LAFPOS.md`.
+
+## Şubeler: sipariş, masa, çağrı ve Satışta / Tükendi (21 Kas 2026)
+
+İlk LafPOS kasası Marina'da (Tuzla ModPOS'ta kalır). Site şube bilmediği için
+Marina'nın kasası Tuzla'nın ödenmiş siparişlerini, çağrılarını ve karaokesini
+kendi işi sayacak, tek "Satışta / Tükendi" bayrağıyla iki şube birbirinin
+ürününü kapatacaktı. Artık (`src/lib/panel/branches.ts`, göç
+`20261121150719_branches.sql`):
+
+- `orders.branch`, `cafe_tables.branch`, `table_calls.branch` (varsayılan
+  `tuzla`). Masa siparişi ve çağrısı masanın şubesi (anlık görüntü); gel-al,
+  kurye, kargo ve karaoke Tuzla'nın. Sitenin panelinde Masalar › Düzenle ›
+  Şube.
+- İmzalı her uç bir şube adınadır: `?branch=` ya da gövdede `branch`; yoksa
+  panelin anahtarı Tuzla (her şube adına konuşabilir), LafPOS'unki
+  `LAFPOS_BRANCHES` (varsayılan `marina`). Başka şubenin siparişi / çağrısı
+  409 `wrong_branch`, başka şubenin masa kodu `PUT /api/panel/tables`'ta 409
+  `wrong_branch`, karaoke başka şube adına boş.
+- "Satışta / Tükendi" şubeye göre: `menu_items."isActive"` menüde mi (her
+  şube; sitenin formu), `menu_item_availability` şubenin kendi Tükendi'si.
+  İmzalı yazım yalnız şubenin satırını yazar; LafPOS menüden kalkmışı açamaz
+  (409 `site_closed`). Site ve uygulama Tuzla'nınkini, `/masa/<kod>` masanın
+  şubesininkini gösterir; sipariş siparişin şubesinde denetlenir.
+- `GET /api/panel/sales`'a `&branch=` ve `byBranch`.
+- Seçenek ücreti (ekstra shot, şurup, ücretli süt) menü kalemlerinin
+  fiyatından (S8: `mnu-0081`, `mnu-0080`, `mnu-0082`), sabit yedek.
+- Testler `tests/sube/` (`npm run test:sube`; `TEST_DATABASE_URL` ile gerçek
+  Postgres'e karşı da), CI'da değil. Ayrıntı `docs/LAFPOS.md` "Şube",
+  `docs/PANEL-MENU.md` "Şube" ve "Seçenek fiyatları", `docs/PANEL-ORDERS.md`
+  "Şube", `docs/PANEL-SALES.md` "Şube kırılımı".
 
 ## Köşkün paneli: bar ekranı ve online satış (22 Eki 2026)
 
@@ -1032,23 +1064,32 @@ durum bozulmaya uygundur.
   0.2s, renk ve kenar), film slaytları 0.9s'de yer değiştirir, ürün
   fotoğrafı üstüne gelince %3 büyür; `prefers-reduced-motion` altında
   `foundation.css` bütün geçiş ve animasyonları sıfırlar.
-- **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
-  Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
-  `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart
-  (kenar çubuğu 15.5rem ve sayfa; köşe 12 px), 1 px çizgiler, mürekkep
-  `#0C0E1B`, etiket grisi `#616367`, birincil mavi `#2F58F7` (Innex'in
-  `#325CFF`'i gri zeminde AA'nın altında kaldığı için bir ton koyu), Inter
-  yalnız admin layout'ta. Kenar çubuğu sakin: etkin satır gri, grup rengi
-  yok; menünün beş grup rengi (`src/components/admin/ui/hues.ts`) yalnız
-  Genel bakış ve rapor kartlarının ikon kutularında. Tutar ve kodlar
-  `NUMERIC_STYLE` (Inter tablo rakamı), karakter karakter okunan kimlik ve
-  Markdown `CODE_STYLE` (sistem eş genişlikli). Düzenler (23 Eki 2026):
-  rakamlar KPI şeridinde referansıyla, kayıt sayfaları üç bölge (tutar
-  kartı + sekmeler: sipariş, karaoke rezervasyonu, müşteri), liste araç
-  çubuğu tek satır, ürün ve menü satırı hızlı bakış çekmecesi (`?gor=`);
-  `docs/ADMIN.md` "Innex düzenleri". 21 Eki'deki AkmanOS teması lafmaliyet'te kaldı. Değerler `src/app/admin/layout.tsx` `--admin-*`;
-  yukarıdaki site kuralları panele uygulanmaz, panel de siteyi değiştirmez
-  (`docs/BRAND.md` "Admin paneli görünümü").
+- **Admin paneli görünümü** (21 Kas 2026, operatör: _"laffogato admin
+  panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda
+  yap"_): `/admin`, Madame Coco Kenya panelinin StorageBox dilini izler;
+  tarif ve kararlar `docs/ADMIN-STORAGEBOX.md`, token'lar
+  `src/app/admin/admin-theme.css` (`[data-admin-root]`, yalnız açık tema).
+  Açık gri dış zemin (`#fafafa`), kenar çubuğu çerçeveli beyaz kart, sayfa
+  `#f7f7f7` kanvas çerçeve; üstünde çok açık çizgili beyaz kartlar (köşe
+  24; panelde `rounded-xl` 24'e, `rounded-lg` 16'ya çevrilir), her kontrol
+  hap (düğme, alan, rozet, sekme), mürekkep `#1F212D`, tek mavi birincil
+  `#122AFF`, etkin menü satırı / sekme / adım koyu hap (`--admin-inverse`),
+  bekleyen iş kırmızı hap (`--admin-count`). Başlık, kart başlığı ve büyük
+  rakam DM Sans 400 (`.admin-display`, `CARD_TITLE`, `FIGURE`), gerisi
+  Inter; ikisi de yalnız admin layout'ta. Rozet zemini kaynağın açık tonu,
+  yazısı koyusu (AA). Pano rakamları ayrı kartlarda, öncü rakam (bugünün
+  net cirosu) iki kart genişliğinde (`KpiStrip lead`). Menünün beş grup
+  rengi (`src/components/admin/ui/hues.ts`) yalnız rakam kartlarının
+  yuvarlak ikonlarında. Tutar ve kodlar `NUMERIC_STYLE` (Inter tablo
+  rakamı), karakter karakter okunan kimlik ve Markdown `CODE_STYLE`.
+  Düzenler Innex döneminden kaldı (`docs/ADMIN.md` "Innex düzenleri";
+  Innex tarifi `docs/ADMIN-INNEX.md` artık tarihçe). Üst çubukta köşk çipi
+  yok: köşkün açık/kapalısı Ayarlar → Saatler'den kendiliğinden gelir
+  (Canlı durum yalnız gösterir; `manualOverride` hep `auto`); boş masa da
+  sayılmaz, `live-status.freeTables` hep `null` (22 Kas 2026, sözleşme §6). Arama sade
+  bir kutudur ("Ara"), komut / asistan dili yok. Yukarıdaki site kuralları
+  panele uygulanmaz, panel de siteyi değiştirmez (`docs/BRAND.md` "Admin
+  paneli görünümü").
 - **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve

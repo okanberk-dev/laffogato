@@ -8,14 +8,8 @@ import {
   FormMessage,
   SubmitButton,
 } from "@/components/admin/action-form";
-import {
-  Card,
-  Checkbox,
-  Field,
-  Select,
-  Textarea,
-  TextInput,
-} from "@/components/admin/forms";
+import { Checkbox, Field, Select, Textarea } from "@/components/admin/forms";
+import { Section } from "@/components/admin/ui/detail";
 
 import { saveVenueStatusAction } from "./actions";
 
@@ -25,23 +19,11 @@ import { saveVenueStatusAction } from "./actions";
  * pull the database driver into the browser bundle and fail the build.
  */
 export interface VenueStatusDefaults {
-  manualOverride: "auto" | "open" | "closed";
-  freeTables: number;
-  totalTables: number;
   wifi: "stable" | "slow" | "down";
   noise: "low" | "medium" | "high";
   power: boolean;
   note: string;
 }
-
-const OVERRIDE_OPTIONS: {
-  value: VenueStatusDefaults["manualOverride"];
-  label: string;
-}[] = [
-  { value: "auto", label: "Otomatik - çalışma saatlerine göre" },
-  { value: "open", label: "Açık (saatlerden bağımsız)" },
-  { value: "closed", label: "Kapalı (saatlerden bağımsız)" },
-];
 
 const WIFI_OPTIONS: { value: VenueStatusDefaults["wifi"]; label: string }[] = [
   { value: "stable", label: "Stabil" },
@@ -67,92 +49,25 @@ function Row({ name, children }: { name: string; children: ReactNode }) {
 }
 
 /**
- * The live status form. ActionForm posts it by hand, so a refusal (more
- * free tables than tables) leaves every field as typed, a second press
+ * The live status form: Wi-Fi, noise, power and the note. ActionForm posts
+ * it by hand, so a refusal leaves every field as typed, a second press
  * before the answer is dropped, and the answer is a toast or a line by the
- * button that a screen reader hears.
- *
- * Personel (`venue` without `mobileApp`) sees the table count but cannot
- * change it: the field has no name, so nothing is posted, and the action
- * ignores a posted one anyway.
+ * button that a screen reader hears. No table counts (22 Kas 2026).
  */
 export function VenueStatusForm({
   defaults,
-  canEditTotal = true,
+  savedAt,
 }: {
   defaults: VenueStatusDefaults;
-  /** False for Personel: the table count is read-only. */
-  canEditTotal?: boolean;
+  /** "Son güncelleme: …", shown by the button. */
+  savedAt?: string;
 }) {
   return (
-    <ActionForm action={saveVenueStatusAction} className="grid gap-4">
-      <Card>
-        <div className="grid gap-4">
-          <Field
-            label="Açık / kapalı"
-            hint="Otomatikte çalışma saatleri kullanılır (Ayarlar → Saatler; sahip değiştirir). 02:00 kapanış gece yarısından sonra da açık sayılır."
-          >
-            <Select
-              name="manualOverride"
-              defaultValue={defaults.manualOverride}
-            >
-              {OVERRIDE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Row name="freeTables">
-              <Field label="Boş masa">
-                <TextInput
-                  name="freeTables"
-                  type="number"
-                  min={0}
-                  max={canEditTotal ? 999 : defaults.totalTables}
-                  inputMode="numeric"
-                  defaultValue={String(defaults.freeTables)}
-                  required
-                />
-              </Field>
-            </Row>
-            {canEditTotal ? (
-              <Row name="totalTables">
-                <Field label="Toplam masa">
-                  <TextInput
-                    name="totalTables"
-                    type="number"
-                    min={0}
-                    max={999}
-                    inputMode="numeric"
-                    defaultValue={String(defaults.totalTables)}
-                    required
-                  />
-                </Field>
-              </Row>
-            ) : (
-              <Row name="totalTables">
-                <Field
-                  label="Toplam masa"
-                  hint="Sahip ya da yönetici değiştirir."
-                >
-                  <TextInput
-                    type="text"
-                    value={String(defaults.totalTables)}
-                    readOnly
-                    aria-readonly="true"
-                    data-venue-total-readonly=""
-                  />
-                </Field>
-              </Row>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      <Card>
+    <ActionForm action={saveVenueStatusAction} className="grid gap-4 sm:gap-5">
+      <Section
+        title="Ortam"
+        description="Çalışmaya gelen misafir için: bağlantı, ses ve priz."
+      >
         <div className="grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Wi-Fi">
@@ -195,11 +110,12 @@ export function VenueStatusForm({
             </Field>
           </Row>
         </div>
-      </Card>
+      </Section>
 
       <FormMessage />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="min-w-0 flex-1 basis-56 text-xs text-[var(--admin-text-soft)]">
+          {savedAt ? <span className="block">{savedAt}</span> : null}
           Kaydedince uygulamanın ana sayfası en geç 30 saniyede güncellenir.
         </p>
         <SubmitButton>Kaydet</SubmitButton>

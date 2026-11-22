@@ -17,7 +17,7 @@ export default async function NewCategoryPage() {
   // With all five in the list the form had nothing to offer but a twin.
   const free = freeCategorySlugs(await listCategories());
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         title="Yeni kategori"
         description="Mağazanın beş sabit kategorisinden listede olmayanı panele ekle: ürün formunda ve listelerde görünecek adını ve sırasını sen verirsin."
