@@ -93,7 +93,7 @@ function ReservationList({
   return (
     <section className="karaoke-mine-section">
       <h3 className="eyebrow muted">{title}</h3>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+      <ul className="account-order-list">
         {items.map((r) => {
           const state = karaokeStatusLine({
             status: r.status,
@@ -106,7 +106,6 @@ function ReservationList({
               <Link
                 href={`/uye/hesap/karaoke/${encodeURIComponent(r.id)}`}
                 className="account-order-card"
-                style={{ textDecoration: "none", color: "inherit" }}
               >
                 <div className="account-order-head">
                   <span className="account-order-no">
@@ -116,13 +115,15 @@ function ReservationList({
                     {state.label}
                   </span>
                 </div>
-                <div style={{ fontSize: 14, color: "var(--muted)" }}>
+                <div className="account-order-items">
                   {formatReservationTime(r.startHour, r.hours)} · {r.hours} saat
                   · {r.guests} kişi
                 </div>
                 <div className="account-order-meta">
                   <span>{r.id.toUpperCase()}</span>
-                  <span>{priceLabel(r.totalMinor)}</span>
+                  <span className="account-order-total">
+                    {priceLabel(r.totalMinor)}
+                  </span>
                 </div>
               </Link>
             </li>

@@ -46,7 +46,11 @@ export default async function HesapSilPage() {
 
   return (
     <AccountShell customer={customer} active="sil">
-      <AccountCard title="Hesabını sil" hint="Silme işlemini biz yaparız">
+      <AccountCard
+        title="Hesabını sil"
+        hint="Silme işlemini biz yaparız"
+        layout="split"
+      >
         {request ? (
           <DeletionRequestNotice
             requestedOn={deletionDayLabel(request.requestedAt)}
@@ -82,7 +86,7 @@ function SignedOutDeletion() {
   const mailto = `mailto:${LEGAL_ENTITY.email}?subject=${encodeURIComponent("Hesap silme talebi")}`;
   return (
     <div className="auth-page">
-      <div className="auth-card auth-card--wide">
+      <div className="auth-card">
         <div className="auth-head">
           <Link href="/" className="auth-back">
             ← Anasayfa

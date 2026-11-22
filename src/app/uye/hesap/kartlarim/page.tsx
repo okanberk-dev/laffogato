@@ -2,6 +2,8 @@ import Link from "@/components/link";
 import {
   AccountShell,
   AccountCard,
+  AccountCol,
+  AccountCols,
   EmptyState,
 } from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
@@ -33,62 +35,72 @@ export default async function KartlarimPage() {
 
   return (
     <AccountShell customer={customer} active="kartlarim">
-      <AccountCard
-        title="Kayıtlı kartlarım"
-        hint={
-          saved.status === "ok"
-            ? `${count}/${MAX_SAVED_CARDS} kart kayıtlı`
-            : undefined
-        }
-      >
-        {saved.status === "off" ? (
-          <EmptyState
-            title="Kart kaydetme şu an kapalı"
-            hint="Ödemeni her seferinde kartını yazarak yapabilirsin."
-          />
-        ) : saved.status === "unavailable" ? (
-          <EmptyState
-            title="Kayıtlı kartların şu an gösterilemiyor"
-            hint="Ödeme kuruluşuna ulaşamadık. Birazdan sayfayı yenileyip yeniden dene."
-          />
-        ) : count === 0 ? (
-          <EmptyState
-            title="Kayıtlı kartın yok"
-            hint="Bir sonraki ödemende kart bilgilerini yazdıktan sonra “Bu kartı sonraki ödemeler için kaydet”i işaretle; kartın burada görünür."
-            cta={
-              <Link href="/magaza" className="btn btn-primary btn-sm">
-                Mağazaya git
-              </Link>
+      <AccountCols>
+        <AccountCol>
+          <AccountCard
+            title="Kayıtlı kartlarım"
+            hint={
+              saved.status === "ok"
+                ? `${count}/${MAX_SAVED_CARDS} kart kayıtlı`
+                : undefined
             }
-          />
-        ) : (
-          <SavedCardList cards={saved.cards} />
-        )}
-      </AccountCard>
-
-      <AccountCard title="Kartların nerede duruyor?">
-        <ul className="account-cards-facts">
-          <li>
-            Kartın, ödeme kuruluşu PayNkolay&apos;ın (N Kolay Ödeme ve
-            Elektronik Para Kuruluşu A.Ş.) kart saklama hizmetinde durur. Kart
-            numarasını, son kullanma tarihini ve güvenlik kodunu biz tutmayız;
-            burada yalnız son dört haneyi görürsün.
-          </li>
-          <li>
-            Bizde yalnız seni PayNkolay&apos;daki kartlarınla eşleştiren
-            rastgele bir anahtar durur; o da şifrelenmiş olarak saklanır.
-          </li>
-          <li>
-            Kayıtlı kartla ödediğinde de ödemeyi bankanın 3D Secure ekranında
-            onaylarsın.
-          </li>
-          <li>
-            Yeni bir kartı ödeme sırasında kaydedersin. Sildiğin kart
-            PayNkolay&apos;dan da silinir; hesabını kapattığında bütün kayıtlı
-            kartların silinir.
-          </li>
-        </ul>
-      </AccountCard>
+          >
+            {saved.status === "off" ? (
+              <EmptyState
+                title="Kart kaydetme şu an kapalı"
+                hint="Ödemeni her seferinde kartını yazarak yapabilirsin."
+              />
+            ) : saved.status === "unavailable" ? (
+              <EmptyState
+                title="Kayıtlı kartların şu an gösterilemiyor"
+                hint="Ödeme kuruluşuna ulaşamadık. Birazdan sayfayı yenileyip yeniden dene."
+                cta={
+                  <Link href="/uye/hesap/kartlarim" className="btn btn-sm">
+                    Yeniden dene
+                  </Link>
+                }
+              />
+            ) : count === 0 ? (
+              <EmptyState
+                title="Kayıtlı kartın yok"
+                hint="Bir sonraki ödemende kart bilgilerini yazdıktan sonra “Bu kartı sonraki ödemeler için kaydet”i işaretle; kartın burada görünür."
+                cta={
+                  <Link href="/magaza" className="btn btn-primary btn-sm">
+                    Mağazaya git
+                  </Link>
+                }
+              />
+            ) : (
+              <SavedCardList cards={saved.cards} />
+            )}
+          </AccountCard>
+        </AccountCol>
+        <AccountCol>
+          <AccountCard title="Kartların nerede duruyor?">
+            <ul className="account-cards-facts">
+              <li>
+                Kartın, ödeme kuruluşu PayNkolay&apos;ın (N Kolay Ödeme ve
+                Elektronik Para Kuruluşu A.Ş.) kart saklama hizmetinde durur.
+                Kart numarasını, son kullanma tarihini ve güvenlik kodunu biz
+                tutmayız; burada yalnız son dört haneyi görürsün.
+              </li>
+              <li>
+                Bizde yalnız seni PayNkolay&apos;daki kartlarınla eşleştiren
+                rastgele bir anahtar durur; o da şifrelenmiş olarak saklanır.
+              </li>
+              <li>
+                Kayıtlı kartla ödediğinde de ödemeyi bankanın 3D Secure
+                ekranında onaylarsın.
+              </li>
+              <li>
+                Yeni bir kartı ödeme sırasında kaydedersin. Sildiğin kart
+                PayNkolay&apos;dan da silinir; hesabını kapattığında bütün
+                kayıtlı kartların silinir.
+              </li>
+            </ul>
+          </AccountCard>
+        </AccountCol>
+      </AccountCols>
     </AccountShell>
   );
 }

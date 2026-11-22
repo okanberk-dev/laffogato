@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 
 import { PixelConversion } from "@/components/laffogato/pixel-events";
-import Link from "@/components/link";
-import { AccountCard, AccountShell } from "@/components/uye/account-shell";
+
+import {
+  AccountBack,
+  AccountCard,
+  AccountShell,
+} from "@/components/uye/account-shell";
 import {
   KaraokeReservationView,
   type KaraokeViewNotice,
@@ -66,15 +70,7 @@ export default async function KaraokeDetailPage({
 
   return (
     <AccountShell customer={customer} active="karaoke">
-      <div style={{ marginBottom: 14 }}>
-        <Link
-          href="/uye/hesap/karaoke"
-          className="eyebrow"
-          style={{ display: "inline-block" }}
-        >
-          ← Karaoke rezervasyonlarım
-        </Link>
-      </div>
+      <AccountBack href="/uye/hesap/karaoke" label="Karaoke rezervasyonlarım" />
       <AccountCard title="Karaoke rezervasyonu">
         {converted ? <PixelConversion {...karaokeConversion(r)} /> : null}
         <KaraokeReservationView

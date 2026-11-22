@@ -13,6 +13,7 @@ export default async function BildirimlerPage() {
       <AccountCard
         title="Bildirim tercihleri"
         hint="Hangi bildirimleri almak istediğini seç"
+        layout="split"
       >
         <NotificationsForm defaults={customer.notificationPrefs} />
       </AccountCard>

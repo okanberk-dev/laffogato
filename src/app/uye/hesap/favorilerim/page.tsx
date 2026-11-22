@@ -41,39 +41,14 @@ export default async function FavorilerimPage() {
                   {p.images?.[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.images[0]} alt={p.name} loading="lazy" />
-                  ) : (
-                    <div
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        background: "var(--band)",
-                      }}
-                    />
-                  )}
+                  ) : null}
                 </div>
                 <div>
-                  <div className="eyebrow">{p.tag}</div>
-                  <h3
-                    style={{
-                      fontFamily: "var(--display)",
-                      fontWeight: 700,
-                      fontSize: 17,
-                      margin: "6px 0 4px",
-                    }}
-                  >
-                    {p.name}
-                  </h3>
-                  <div
-                    style={{
-                      fontFamily: "var(--mono)",
-                      fontSize: 14,
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {formatTRY(p.priceMinor)}
-                  </div>
+                  {p.tag ? <div className="eyebrow muted">{p.tag}</div> : null}
+                  <h3 className="t-title">{p.name}</h3>
+                  <div className="t-price">{formatTRY(p.priceMinor)}</div>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="account-wishlist-actions">
                   <Link
                     href={productPath(p.slug)}
                     className="btn btn-primary btn-sm"
@@ -87,11 +62,7 @@ export default async function FavorilerimPage() {
                       name="back"
                       value="/uye/hesap/favorilerim"
                     />
-                    <button
-                      type="submit"
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: "var(--error)" }}
-                    >
+                    <button type="submit" className="link-u account-quiet-btn">
                       Favoriden çıkar
                     </button>
                   </form>

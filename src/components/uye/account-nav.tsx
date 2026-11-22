@@ -6,6 +6,7 @@ import {
   type AccountNavItem,
   type AccountSection,
 } from "./account-shell";
+import { AccountTabStrip } from "./account-tabs";
 
 export function AccountSidebar({
   active,
@@ -23,12 +24,16 @@ export function AccountSidebar({
           </li>
         ))}
       </ul>
-      <div className="account-nav-meta">
+      <dl className="account-nav-meta">
         <div className="account-nav-meta-row">
-          <span>Üyelik</span>
-          <span>{formatJoinDate(customer.createdAt)}</span>
+          <dt>E-posta</dt>
+          <dd>{customer.email}</dd>
         </div>
-      </div>
+        <div className="account-nav-meta-row">
+          <dt>Üyelik</dt>
+          <dd>{formatJoinDate(customer.createdAt)}</dd>
+        </div>
+      </dl>
     </nav>
   );
 }
@@ -48,13 +53,14 @@ function SidebarLink({
       data-active={isActive ? "true" : undefined}
     >
       <span className="account-nav-link-label">{item.label}</span>
-      <span className="account-nav-link-hint">{item.hint}</span>
     </Link>
   );
 }
 
 /**
- * The compact account menu shown above the content on narrow screens.
+ * The account menu on narrow screens: a strip of tabs across the foot of
+ * the band, the current page's tab white and scrolled into view
+ * (account-tabs.tsx).
  *
  * This was a <select> that navigated on `change`. Arrowing through a select
  * fires `change` per option in several browsers, so a keyboard user was thrown
@@ -66,8 +72,7 @@ function SidebarLink({
 export function AccountTopNav({ active }: { active: AccountSection }) {
   return (
     <nav className="account-topnav" aria-label="Hesap menüsü">
-      <span className="eyebrow">Hesap menüsü</span>
-      <ul className="account-topnav-list">
+      <AccountTabStrip>
         {ACCOUNT_NAV.map((i) => (
           <li key={i.key}>
             <Link
@@ -80,7 +85,7 @@ export function AccountTopNav({ active }: { active: AccountSection }) {
             </Link>
           </li>
         ))}
-      </ul>
+      </AccountTabStrip>
     </nav>
   );
 }

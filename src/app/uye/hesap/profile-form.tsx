@@ -21,7 +21,7 @@ export function ProfileForm({
 }) {
   const [state, action, pending] = useActionState(updateProfileAction, initial);
   return (
-    <form action={action} style={{ display: "grid", gap: 16 }}>
+    <form action={action} className="account-form">
       <div className="account-field-row">
         <div className="account-field">
           <label htmlFor="prof-name">Ad Soyad</label>

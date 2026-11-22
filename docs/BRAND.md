@@ -201,6 +201,29 @@ Archivo 600, 14px (başlık sesinin 400 olmayan tek yeri).
   filmin dik kesimi. Ödeme ve üye alanından taşınan kurallarda ek
   kırılımlar kalır (540-960px).
 - Sayfa yatay kaymaz (`body` `overflow-x: hidden`; alanlar `min-width: 0`).
+- **Üye alanı sayfayı doldurur** (`/uye/hesap/*`, 22 Kas 2026; operatör:
+  _"Bu ekranı da daha köşelere atıp doldurarak UI UX olarak geliştirip yapar
+  mısın?"_). 1024px ve üstünde sol kenarda, çubuğun altında ve onunla aynı
+  zeminde (`--band`) bir **ray** durur: başlık, selam, çıkış, on satırlık
+  menü (Archivo 14/20, 48px satır, çizgili), altında e-posta ve üyelik ayı.
+  Ray sayfanın sol kenarına ve footer'a kadar iner, sayfa kayarken yerinde
+  kalır (`top: var(--sticky-h)`); genişliği `clamp(300px, 26vw, 380px)`.
+  Bulunulan sayfanın satırı beyazdır ve yanındaki beyaz sayfaya açılır.
+  İçerik rayın yanından sağ kenar boşluğuna kadar uzanır (üst sınır yok):
+  bant paneller, aralarında 20px. 1024px altında ray üstte yatar, menü kenardan
+  kenara kayan bir sekme şerididir (Archivo 12/24, 44px; bulunulan sekme
+  beyaz ve şeridin ortasına kaydırılmış açılır), hızlı bağlantı satırı bu
+  sayfalarda bant rengindedir.
+  Paneller pencereye göre değil kendi genişliklerine göre dizilir (kapsayıcı
+  sorgusu: içerik `account`, panel gövdesi `account-panel`): içerik 860px'i
+  geçince iki sütun (`AccountCols`: ana sütun 1.55, yan sütun 1; `even` ile
+  eşit), 820px'i geçince form panellerinde başlık alanların solunda
+  (`AccountCard layout="split"`, alanlar en çok 720px), 640px'i geçince dört
+  rakam tek satırda; panel 700px'i geçince sipariş ve rezervasyon satırları
+  tek satıra iner ve sütunlarını paylaşır (subgrid), 560px'i geçince
+  favoriler sığdığı kadar sütun. Adresler `minmax(300px, 1fr)` ile sığdığı
+  kadar. Bileşenler `src/components/uye/account-shell.tsx`, stil
+  `src/styles/account.css` başı.
 
 ### 0.6 Referanslar ve lisanslı yüzler
 

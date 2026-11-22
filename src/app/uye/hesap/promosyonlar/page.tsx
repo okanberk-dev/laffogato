@@ -1,6 +1,8 @@
 import {
   AccountShell,
   AccountCard,
+  AccountCol,
+  AccountCols,
   EmptyState,
 } from "@/components/uye/account-shell";
 import { listPromos } from "@/lib/admin/store";
@@ -41,49 +43,23 @@ function CouponCard({
 }) {
   const status = couponStatus(coupon, nowMs);
   const muted = status !== "active";
+  // The site's boxed status label: green while the coupon can be used,
+  // grey once it cannot.
   const badge =
     status === "redeemed"
-      ? {
-          text: "Kullanıldı",
-          bg: "var(--band)",
-          fg: "var(--muted)",
-        }
+      ? { text: "Kullanıldı", tone: "cancelled" }
       : status === "expired"
-        ? {
-            text: "Süresi doldu",
-            bg: "var(--band)",
-            fg: "var(--muted)",
-          }
+        ? { text: "Süresi doldu", tone: "cancelled" }
         : status === "inactive"
-          ? {
-              text: "Pasif",
-              bg: "var(--band)",
-              fg: "var(--muted)",
-            }
-          : {
-              text: "Kullanıma hazır",
-              bg: "color-mix(in srgb, var(--success) 12%, white)",
-              fg: "var(--success)",
-            };
+          ? { text: "Pasif", tone: "cancelled" }
+          : { text: "Kullanıma hazır", tone: "ok" };
 
   return (
-    <div
-      className="account-promo-card"
-      style={muted ? { opacity: 0.6 } : undefined}
-    >
+    <div className="account-promo-card" data-spent={muted ? "true" : undefined}>
       <div className="account-promo-code">{coupon.code}</div>
       <div className="account-promo-meta">
         {coupon.title && (
-          <span
-            style={{
-              fontFamily: "var(--display)",
-              fontWeight: 700,
-              fontSize: 18,
-              color: "var(--ink)",
-            }}
-          >
-            {coupon.title}
-          </span>
+          <span className="account-promo-value">{coupon.title}</span>
         )}
         <span>{discountLabel(coupon.kind, coupon.value)}</span>
         {coupon.minSubtotalMinor > 0 && (
@@ -93,15 +69,8 @@ function CouponCard({
           <span>{formatShortDate(coupon.expiresAt)} tarihine kadar</span>
         )}
         <span
-          style={{
-            alignSelf: "flex-start",
-            borderRadius: 999,
-            padding: "3px 10px",
-            fontSize: 12,
-            fontWeight: 600,
-            background: badge.bg,
-            color: badge.fg,
-          }}
+          className="status-chip account-promo-badge"
+          data-tone={badge.tone}
         >
           {badge.text}
         </span>
@@ -147,68 +116,66 @@ export default async function PromosyonlarPage() {
 
   return (
     <AccountShell customer={customer} active="promosyonlar">
-      <AccountCard
-        title="Sana özel kuponlar"
-        hint="Yalnızca senin hesabına tanımlı, tek kullanımlık. Sepet ekranında kodu uygula"
-      >
-        {activeCoupons.length === 0 ? (
-          <EmptyState
-            title="Şu an kullanılabilir kuponun yok"
-            hint="Hoş geldin, doğum günü ve kampanya kuponların burada görünür."
-          />
-        ) : (
-          <div>
-            {activeCoupons.map((c) => (
-              <CouponCard key={c.id} coupon={c} nowMs={nowMs} />
-            ))}
-          </div>
-        )}
-      </AccountCard>
-
-      <AccountCard
-        title="Kullanılabilir kodlar"
-        hint="Herkese açık kampanya kodları - sepet ekranında uygula"
-      >
-        {usable.length === 0 ? (
-          <EmptyState
-            title="Şu an aktif promosyon yok"
-            hint="Yeni kampanyalardan haberdar olmak için bildirim tercihlerinde 'Kampanya & yeni ürün' seçeneğini açabilirsin."
-          />
-        ) : (
-          <div>
-            {usable.map((p) => (
-              <div key={p.id} className="account-promo-card">
-                <div className="account-promo-code">{p.code}</div>
-                <div className="account-promo-meta">
-                  <span
-                    style={{
-                      fontFamily: "var(--display)",
-                      fontWeight: 700,
-                      fontSize: 18,
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {discountLabel(p.kind, p.value)}
-                  </span>
-                  {p.minSubtotalMinor > 0 && (
-                    <span>{formatTRY(p.minSubtotalMinor)}+ sepete</span>
-                  )}
-                  {p.expiresAt && (
-                    <span>
-                      {formatShortDate(p.expiresAt)} tarihinde sona erer
-                    </span>
-                  )}
-                  {p.usageLimit > 0 && (
-                    <span>
-                      {p.usageLimit - p.usageCount} kullanım hakkı kaldı
-                    </span>
-                  )}
-                </div>
+      <AccountCols even>
+        <AccountCol>
+          <AccountCard
+            title="Sana özel kuponlar"
+            hint="Yalnızca senin hesabına tanımlı, tek kullanımlık. Sepet ekranında kodu uygula"
+          >
+            {activeCoupons.length === 0 ? (
+              <EmptyState
+                title="Şu an kullanılabilir kuponun yok"
+                hint="Hoş geldin, doğum günü ve kampanya kuponların burada görünür."
+              />
+            ) : (
+              <div>
+                {activeCoupons.map((c) => (
+                  <CouponCard key={c.id} coupon={c} nowMs={nowMs} />
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </AccountCard>
+            )}
+          </AccountCard>
+        </AccountCol>
+        <AccountCol>
+          <AccountCard
+            title="Kullanılabilir kodlar"
+            hint="Herkese açık kampanya kodları - sepet ekranında uygula"
+          >
+            {usable.length === 0 ? (
+              <EmptyState
+                title="Şu an aktif promosyon yok"
+                hint="Yeni kampanyalardan haberdar olmak için bildirim tercihlerinde 'Kampanya & yeni ürün' seçeneğini açabilirsin."
+              />
+            ) : (
+              <div>
+                {usable.map((p) => (
+                  <div key={p.id} className="account-promo-card">
+                    <div className="account-promo-code">{p.code}</div>
+                    <div className="account-promo-meta">
+                      <span className="account-promo-value">
+                        {discountLabel(p.kind, p.value)}
+                      </span>
+                      {p.minSubtotalMinor > 0 && (
+                        <span>{formatTRY(p.minSubtotalMinor)}+ sepete</span>
+                      )}
+                      {p.expiresAt && (
+                        <span>
+                          {formatShortDate(p.expiresAt)} tarihinde sona erer
+                        </span>
+                      )}
+                      {p.usageLimit > 0 && (
+                        <span>
+                          {p.usageLimit - p.usageCount} kullanım hakkı kaldı
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AccountCard>
+        </AccountCol>
+      </AccountCols>
 
       {pastCoupons.length > 0 && (
         <AccountCard
@@ -225,12 +192,12 @@ export default async function PromosyonlarPage() {
 
       {expired.length > 0 && (
         <AccountCard title="Sona eren kodlar" hint="Geçmiş kampanyalar">
-          <div style={{ opacity: 0.55 }}>
+          <div>
             {expired.slice(0, 5).map((p) => (
-              <div key={p.id} className="account-promo-card">
+              <div key={p.id} className="account-promo-card" data-spent="true">
                 <div className="account-promo-code">{p.code}</div>
                 <div className="account-promo-meta">
-                  <span style={{ fontWeight: 700, fontSize: 16 }}>
+                  <span className="account-promo-value">
                     {discountLabel(p.kind, p.value)}
                   </span>
                   <span>
