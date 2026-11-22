@@ -38,32 +38,6 @@
   border-color: var(--band);
   color: var(--band);
 }
-.loyalty-block .stamp.filled {
-  position: relative;
-}
-.loyalty-block.will-reveal.is-in .stamp.filled {
-  animation: stamp-press 0.5s var(--ease) 0.45s both;
-}
-.loyalty-block.will-reveal.is-in .stamp.filled::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 0;
-  pointer-events: none;
-  animation: stamp-ring 0.5s var(--ease) 0.6s both;
-}
-.loyalty-block.will-reveal.is-in .stamp.filled:nth-child(2) {
-  animation-delay: 0.8s;
-}
-.loyalty-block.will-reveal.is-in .stamp.filled:nth-child(2)::after {
-  animation-delay: 0.95s;
-}
-@media (prefers-reduced-motion: reduce) {
-  .loyalty-block .stamp.filled,
-  .loyalty-block .stamp.filled::after {
-    animation: none;
-  }
-}
 .app-phone {
   grid-area: 1 / 1;
   position: relative;
@@ -101,8 +75,7 @@
   /* The glass meets the bezel with a hairline, as a real screen does. */
 }
 @media (prefers-reduced-motion: no-preference) {
-  .auth-split,
-  .nf-hero--split {
+  .auth-split {
     animation: lf-rise 0.6s var(--ease) backwards;
   }
   .auth-join-perks li {
@@ -337,22 +310,6 @@
 .account-empty {
   text-align: center;
   padding: clamp(28px, 4vw, 48px);
-}
-.account-empty-icon {
-  font-family: var(--sans);
-  font-size: 48px;
-  color: var(--ink);
-  margin-bottom: 14px;
-}
-.account-empty-art {
-  display: block;
-  width: 96px;
-  height: 96px;
-  margin: 0 auto 14px;
-}
-.account-empty-art.is-picture {
-  border-radius: 0;
-  object-fit: cover;
 }
 .account-empty-title {
   font-family: var(--display);
@@ -886,12 +843,6 @@
 }
 .auth-back:hover {
   color: var(--ink);
-}
-.auth-art {
-  display: block;
-  width: clamp(104px, 28vw, 140px);
-  height: auto;
-  margin: -6px 0 12px;
 }
 .auth-title {
   margin: 0 0 10px;

@@ -1008,7 +1008,7 @@ durum bozulmaya uygundur.
   gelince `--charcoal-deep` `#1f1f1f`); üstünde `--on-dark` ve
   `--on-dark-muted`. Çizgi `--line` `#dcdcd6`, kontrol kenarı `--line-strong`.
   Vurgu rengi yok: renk yalnız durum söyler (`--error` `#b42318`, `--success`
-  `#1f6b4a`; karaoke uyarısı, açık noktası) ya da logonun pirinç
+  `#1f6b4a`, bekleyen adım `--warn` `#8a5a00`; açık noktası) ya da logonun pirinç
   çekirdeğidir; ödeme sayfasının kart şeması işaretleri kendi renklerindedir
   (`--scheme-*`). Emekli adlar (`--green-*`, `--accent*`, `--amber`,
   `--matcha`, `--rose`, `--gold*`, `--bg-*`, `--frost*`, `--glass-*`)
@@ -1063,7 +1063,10 @@ durum bozulmaya uygundur.
   yükselen başlık, çözülen etiket ve three.js yok. Geçişler kısa (`--dur`
   0.2s, renk ve kenar), film slaytları 0.9s'de yer değiştirir, ürün
   fotoğrafı üstüne gelince %3 büyür; `prefers-reduced-motion` altında
-  `foundation.css` bütün geçiş ve animasyonları sıfırlar.
+  `foundation.css` bütün geçişleri kapatır (`transition: none`; 0.01ms'lik
+  süre, ilk değeri `all` olan geçiş özelliğiyle her öğenin her özelliğini
+  geçişe sokuyor ve açılan çekmeceye odağın girmesini engelliyordu) ve
+  animasyonları tek kareye indirir.
 - **Admin paneli görünümü** (21 Kas 2026, operatör: _"laffogato admin
   panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda
   yap"_): `/admin`, Madame Coco Kenya panelinin StorageBox dilini izler;

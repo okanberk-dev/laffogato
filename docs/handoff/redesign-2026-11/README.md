@@ -36,7 +36,12 @@ Bitti:
 - Kod denetiminden doğrulanan bir bulgu düzeltildi: hukuki tablolar ve
   karaoke satıcı satırı 16px'in altına düşmüştü (MSY m.6/1).
 
-Kalan (sırayla):
+**22 Kas 2026, devralan oturum:** aşağıdaki beş madde yapıldı. Bulguların
+durumu `FINDINGS.md`'nin başında; denetlenen sayfalar, kod incelemesi ve ek
+düzeltmeler PR açıklamasında. Dal `main` ile birleştirildi (admin
+StorageBox ve şube işleri).
+
+Kalan (sırayla; tarihçe):
 
 1. `FINDINGS.md`'deki açık bulguları doğrula ve düzelt. Önce `[high]`'lar:
    mağaza slaytları (panelin `/admin/magaza-hero` slaytları) ilerlemiyor ve

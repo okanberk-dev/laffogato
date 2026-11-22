@@ -53,6 +53,7 @@ ve kontrol yansız bir groteskle.
 | `--line-strong`   | `#333333`                   | Kontrol kenarı: düğme, çip, süzgeç etiketi, kutulu ikon düğmesi.                                                                                                   |
 | `--error`         | `#b42318`                   | Hata metni ve kenarı. Durum rengidir, marka değil.                                                                                                                 |
 | `--success`       | `#1f6b4a`                   | Olumlu durum ("kaydedildi", "onaylandı"). Durum rengidir, marka değil.                                                                                             |
+| `--warn`          | `#8a5a00`                   | Birini bekleyen adım (ödeme bekleniyor, karaoke uyarısı). Durum rengidir, marka değil.                                                                               |
 
 `--scheme-*` değerleri, `/odeme`'deki kart şeması işaretlerinde
 (`scheme-marks.tsx`) şemaların kendi renkleridir; başka yerde kullanılmaz.
@@ -74,7 +75,7 @@ normal metin 4.5:1, büyük metin (24px ve üstü, ya da 18.66px ve üstü kalı
 | `--charcoal` `#333333`        | 12.63:1          | 11.66:1           | Ödeme ve hesapta kömürle yazılan etiketler, damga rakamları |
 | `--error` `#b42318`           | 6.57:1           | 6.07:1            | Alan hatası, hata bildirimi, durum etiketi                  |
 | `--success` `#1f6b4a`         | 6.44:1           | 5.94:1            | Olumlu bildirim, durum etiketi                              |
-| uyarı `#8a5a00` (token değil) | 5.92:1           | 5.47:1            | Karaoke'nin durum etiketi ve bildirimi (`karaoke.css`)      |
+| `--warn` `#8a5a00`            | 5.92:1           | 5.47:1            | Ödeme bekleyen sipariş, karaoke'nin durum etiketi           |
 
 **Koyu zeminde ve yıkamada metin**
 
@@ -184,6 +185,8 @@ Archivo 600, 14px (başlık sesinin 400 olmayan tek yeri).
 | `--content`    | `1320px`                      | İçerik genişliği (`.wrap`); uzun metin 880px (`.wrap-narrow`) |
 | `--header-h`   | `84px`, 1024px altında `56px` | Üst çubuk                                                     |
 | `--announce-h` | `32px`                        | Duyuru satırı                                                 |
+| `--quick-h`    | `0`, 1024px altında `48px`    | Telefonun hızlı bağlantı satırı (çubuğun altında)             |
+| `--sticky-h`   | `--header-h` + `--quick-h`    | Yapışkan krom; çapa ve odak kaydırması bunun altında durur    |
 
 - Bölüm başlığı ile içerik arası 32px (`.section-head`), bölüm sonundaki
   düğmenin üstü 48px (`.section-foot`).
