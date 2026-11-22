@@ -487,3 +487,22 @@
   font-size: 12px;
   line-height: 16px;
 }
+
+/* A narrow card cannot hold the name and the price on one line: on a phone
+   the price goes above the name, as the reference's phone grid sets it;
+   the menu's M / L pair, long at any width, goes under the name. */
+@media (max-width: 767px) {
+  .p-card-head {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+.product-grid--4 .p-card-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.p-card-head .t-price {
+  white-space: normal;
+}
