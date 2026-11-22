@@ -15,9 +15,20 @@ kalanından önce gelir ve projenin kurallarıyla (CLAUDE.md, `docs/BRAND.md`,
 | `server-action-pattern` | Her mutation: Zod → store → revalidate → redirect |
 | `new-migration` | Şema değişikliği + `db:bundle` |
 | `seed-db` | Yerel test verisi |
-| `frontend-redesign` | Müşteri arayüzü, arka yüze dokunmadan |
-| `design-1-1-fidelity` | SPA'nın tasarım kaynağına sadakati |
+| `frontend-redesign` | Müşteri arayüzü, arka yüze dokunmadan; görünümün kuralları `docs/BRAND.md` §0 |
 | `build-admin-panel` | Panelde yeni bir alan: araştır, kapsamı sor, kur, **gerçek tarayıcıyla doğrula** (`scripts/admin-crawl.mjs`) |
+
+**Tarihçe: `design-1-1-fidelity` (21 Kas 2026'da silindi).** Müşteri SPA'sını
+ilk Claude Design handoff'una (`/tmp/design/cafe/project/`) birebir tutmak
+içindi: handoff'un SVG geometrisini, CSS değişkenlerini ve animasyonlarını
+korumayı söylüyordu. Operatör 21 Kas 2026'da eski görünümün tamamını
+sildirdi (_"sitedeki tüm ölü cssleri sil ve sana tasarım verecğeim hatta tüm
+tasarım dosyalarını vs. temizle sna yeni tasarım örneği atacağım site ordan
+tek tek çekeceksin"_); koruduğu çizimler ve değişkenler kalmadı, kaynak
+dosyaları da depoda hiç yoktu. Görünümün kaynağı artık `docs/BRAND.md`
+(güncel değerler §0, referanslar ve alınmayanlar §0.6); ön yüz işi
+`frontend-redesign` ile yapılır. Metni:
+`git show 4962da2:.claude/skills/design-1-1-fidelity/SKILL.md`.
 
 `build-admin-panel`'in yöntemi
 [Owais232/Admin-Panel-Skill-LLM-Models](https://github.com/Owais232/Admin-Panel-Skill-LLM-Models)

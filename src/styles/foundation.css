@@ -677,6 +677,17 @@ select {
   font-size: 16px;
   line-height: 1.6;
 }
+/* The tables in the documents and the order's own facts table at the
+   payment step (checkout-preinfo.tsx), and who sells the karaoke hour
+   (MSY m.5/1-b, c): the same floor. Later per-area rules must not go
+   under it. */
+.legal-table,
+.legal-table th,
+.legal-table td,
+.karaoke-seller,
+.karaoke-preinfo h3 {
+  font-size: 16px;
+}
 
 /* The server-rendered cookie card, before hydration, for a visitor who
    already decided (layout.tsx CONSENT_SEEN): hidden before it can paint. */
