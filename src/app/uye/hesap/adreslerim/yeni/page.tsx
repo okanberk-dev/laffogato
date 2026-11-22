@@ -1,5 +1,8 @@
-import Link from "@/components/link";
-import { AccountShell, AccountCard } from "@/components/uye/account-shell";
+import {
+  AccountBack,
+  AccountCard,
+  AccountShell,
+} from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
 
 import { createAddressAction } from "../../../actions";
@@ -12,16 +15,12 @@ export default async function YeniAdresPage() {
   const customer = await requireCustomer();
   return (
     <AccountShell customer={customer} active="adreslerim">
-      <div style={{ marginBottom: 14 }}>
-        <Link
-          href="/uye/hesap/adreslerim"
-          className="eyebrow"
-          style={{ display: "inline-block" }}
-        >
-          ← Adreslerim
-        </Link>
-      </div>
-      <AccountCard title="Yeni adres" hint="Teslimat için yeni bir adres ekle">
+      <AccountBack href="/uye/hesap/adreslerim" label="Adreslerim" />
+      <AccountCard
+        title="Yeni adres"
+        hint="Teslimat için yeni bir adres ekle"
+        layout="split"
+      >
         <AddressForm action={createAddressAction} submitLabel="Adresi kaydet" />
       </AccountCard>
     </AccountShell>

@@ -14,7 +14,7 @@ export function PasswordForm() {
     initial,
   );
   return (
-    <form action={action} style={{ display: "grid", gap: 16, maxWidth: 480 }}>
+    <form action={action} className="account-form account-form--narrow">
       <div className="account-field">
         <label htmlFor="pw-current">Mevcut şifre</label>
         <input

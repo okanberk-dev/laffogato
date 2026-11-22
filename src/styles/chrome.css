@@ -427,9 +427,11 @@ a.nav-panel-head:hover {
     background: var(--bg);
   }
 }
-/* Over a page that opens on the band (sign-in, sign-up), the row is band
-   too: no white strip between the bar and the page. */
-body:has(.site-chrome-body > .auth-page:first-child) .nav-quick {
+/* Over a page that opens on the band (sign-in, sign-up, the member
+   area's rail), the row is band too: no white strip between the bar and
+   the page. */
+body:has(.site-chrome-body > .auth-page:first-child) .nav-quick,
+body:has(.site-chrome-body > .account-shell:first-child) .nav-quick {
   background: var(--band);
 }
 .nav-quick::-webkit-scrollbar {

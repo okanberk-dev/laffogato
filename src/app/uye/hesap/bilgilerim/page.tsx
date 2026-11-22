@@ -11,7 +11,11 @@ export default async function BilgilerimPage() {
   const customer = await requireCustomer();
   return (
     <AccountShell customer={customer} active="bilgilerim">
-      <AccountCard title="Bilgilerim" hint="Ad, telefon ve doğum günü">
+      <AccountCard
+        title="Bilgilerim"
+        hint="Ad, telefon ve doğum günü"
+        layout="split"
+      >
         <ProfileForm
           defaultName={customer.name}
           defaultPhone={customer.phone}

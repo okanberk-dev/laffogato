@@ -23,7 +23,7 @@ export function NotificationsForm({
     initial,
   );
   return (
-    <form action={action} style={{ display: "grid", gap: 18, maxWidth: 560 }}>
+    <form action={action} className="account-form">
       {/* What the switch really governs (docs/API-MOBILE.md §23): the
           app's order-stage phone notifications and the gel-al "hazır"
           fallback e-mail. The order, payment and shipping e-mails are
@@ -61,7 +61,6 @@ export function NotificationsForm({
         type="submit"
         disabled={pending}
         className="btn btn-primary btn-wide"
-        style={{ justifySelf: "start" }}
         aria-busy={pending}
       >
         {pending ? (
@@ -89,52 +88,11 @@ function Toggle({
   defaultChecked: boolean;
 }) {
   return (
-    <label
-      style={{
-        display: "grid",
-        gridTemplateColumns: "24px 1fr",
-        gap: 12,
-        alignItems: "flex-start",
-        cursor: "pointer",
-        padding: "12px 14px",
-        border: "1px solid var(--line)",
-        borderRadius: 12,
-        background: "var(--bg)",
-      }}
-    >
-      <input
-        type="checkbox"
-        name={name}
-        defaultChecked={defaultChecked}
-        style={{
-          width: 20,
-          height: 20,
-          accentColor: "var(--ink)",
-          marginTop: 2,
-        }}
-      />
+    <label className="account-toggle">
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} />
       <span>
-        <span
-          style={{
-            display: "block",
-            fontFamily: "var(--display)",
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            display: "block",
-            color: "var(--muted)",
-            fontSize: 14,
-            marginTop: 2,
-            lineHeight: 1.5,
-          }}
-        >
-          {hint}
-        </span>
+        <span className="account-toggle-label">{label}</span>
+        <span className="account-toggle-hint">{hint}</span>
       </span>
     </label>
   );

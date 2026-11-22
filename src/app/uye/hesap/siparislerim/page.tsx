@@ -41,13 +41,12 @@ export default async function SiparislerimPage() {
             }
           />
         ) : (
-          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          <ul className="account-order-list">
             {orders.map((o) => (
               <li key={o.id}>
                 <Link
                   href={`/uye/hesap/siparislerim/${o.orderNo}`}
                   className="account-order-card"
-                  style={{ textDecoration: "none", color: "inherit" }}
                 >
                   <div className="account-order-head">
                     <span className="account-order-no">#{o.orderNo}</span>
@@ -55,14 +54,16 @@ export default async function SiparislerimPage() {
                       {STATUS_LABEL[o.status] ?? o.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--muted)" }}>
+                  <div className="account-order-items">
                     {o.items
                       .map((it) => `${it.qty}× ${it.productName}`)
                       .join(", ")}
                   </div>
                   <div className="account-order-meta">
                     <span>{formatDate(o.createdAt)}</span>
-                    <span>{formatTRY(o.totalMinor)}</span>
+                    <span className="account-order-total">
+                      {formatTRY(o.totalMinor)}
+                    </span>
                   </div>
                 </Link>
               </li>

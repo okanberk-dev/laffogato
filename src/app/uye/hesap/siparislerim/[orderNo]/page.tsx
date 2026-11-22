@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 
 import Link from "@/components/link";
-import { AccountShell, AccountCard } from "@/components/uye/account-shell";
+import {
+  AccountBack,
+  AccountCard,
+  AccountCol,
+  AccountCols,
+  AccountShell,
+} from "@/components/uye/account-shell";
 import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 import { memberOrders } from "@/lib/customer/member-orders";
@@ -109,271 +115,262 @@ export default async function OrderDetailPage({
 
   return (
     <AccountShell customer={customer} active="siparislerim">
-      <div style={{ marginBottom: 14 }}>
-        <Link
-          href="/uye/hesap/siparislerim"
-          className="eyebrow"
-          style={{ display: "inline-block" }}
-        >
-          ← Siparişlerim
-        </Link>
-      </div>
+      <AccountBack href="/uye/hesap/siparislerim" label="Siparişlerim" />
 
-      <AccountCard
-        title={`Sipariş #${order.orderNo}`}
-        hint={formatDate(order.createdAt)}
-        action={
-          <span className="status-chip" data-tone={order.status}>
-            {STATUS_LABEL[order.status] ?? order.status}
-          </span>
-        }
-      >
-        {!isCancelled ? (
-          <ol className="account-timeline" style={{ marginBottom: 24 }}>
-            {STATUS_TIMELINE.map((step) => {
-              const done = statusReached(order.status, step.status);
-              return (
-                <li
-                  key={step.status}
-                  className="account-timeline-item"
-                  data-done={done ? "true" : undefined}
-                >
-                  <span className="account-timeline-dot" />
-                  <div>
-                    <div className="account-timeline-label">{step.label}</div>
-                    <div className="account-timeline-hint">
-                      {done ? "Tamamlandı" : "Bekliyor"}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <div
-            className="account-msg"
-            data-tone="error"
-            style={{ marginBottom: 18 }}
+      {/* The order itself beside what belongs to it: delivery, the
+          invoice, the documents, help. */}
+      <AccountCols>
+        <AccountCol>
+          <AccountCard
+            title={`Sipariş #${order.orderNo}`}
+            hint={formatDate(order.createdAt)}
+            action={
+              <span className="status-chip" data-tone={order.status}>
+                {STATUS_LABEL[order.status] ?? order.status}
+              </span>
+            }
           >
-            Bu sipariş {STATUS_LABEL[order.status]?.toLowerCase()} durumunda.
-          </div>
-        )}
+            {!isCancelled ? (
+              <ol className="account-timeline" style={{ marginBottom: 24 }}>
+                {STATUS_TIMELINE.map((step) => {
+                  const done = statusReached(order.status, step.status);
+                  return (
+                    <li
+                      key={step.status}
+                      className="account-timeline-item"
+                      data-done={done ? "true" : undefined}
+                    >
+                      <span className="account-timeline-dot" />
+                      <div>
+                        <div className="account-timeline-label">
+                          {step.label}
+                        </div>
+                        <div className="account-timeline-hint">
+                          {done ? "Tamamlandı" : "Bekliyor"}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <div
+                className="account-msg"
+                data-tone="error"
+                style={{ marginBottom: 18 }}
+              >
+                Bu sipariş {STATUS_LABEL[order.status]?.toLowerCase()}{" "}
+                durumunda.
+              </div>
+            )}
 
-        <h3
-          style={{
-            fontFamily: "var(--display)",
-            fontWeight: 700,
-            fontSize: 18,
-            marginBottom: 10,
-          }}
-        >
-          Kalemler
-        </h3>
-        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px" }}>
-          {order.items.map((it, idx) => (
-            <li
-              key={`${it.productName}-${idx}`}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "10px 0",
-                borderBottom: "1px solid var(--line)",
-                gap: 12,
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>
-                  {it.productName}
-                </div>
-                <div
+            <h3 className="eyebrow muted">Kalemler</h3>
+            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px" }}>
+              {order.items.map((it, idx) => (
+                <li
+                  key={`${it.productName}-${idx}`}
                   style={{
-                    fontFamily: "var(--mono)",
-                    fontSize: 12,
-                    color: "var(--muted)",
-                    marginTop: 2,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "10px 0",
+                    borderBottom: "1px solid var(--line)",
+                    gap: 12,
                   }}
                 >
-                  {it.qty} × {formatTRY(it.unitPriceMinor)}
-                </div>
-              </div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 14 }}>
-                {formatTRY(it.qty * it.unitPriceMinor)}
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <div>
+                    <div style={{ fontSize: 16, lineHeight: "22px" }}>
+                      {it.productName}
+                    </div>
+                    <div className="account-order-items tabular">
+                      {it.qty} × {formatTRY(it.unitPriceMinor)}
+                    </div>
+                  </div>
+                  <div className="t-price">
+                    {formatTRY(it.qty * it.unitPriceMinor)}
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-        <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
-          <Row label="Ara toplam" value={formatTRY(order.subtotalMinor)} />
-          {order.discountMinor > 0 && (
-            <Row
-              label={`İndirim${order.promoCode ? ` (${order.promoCode})` : ""}`}
-              value={`- ${formatTRY(order.discountMinor)}`}
-            />
-          )}
-          {order.shippingMinor > 0 && (
-            <Row label="Kargo" value={formatTRY(order.shippingMinor)} />
-          )}
-          <Row label="Toplam" value={formatTRY(order.totalMinor)} strong />
-        </div>
-      </AccountCard>
-
-      <AccountCard title="Teslimat bilgileri">
-        <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
-          <DetailRow k="Alıcı" v={order.customerName || "-"} />
-          <DetailRow k="E-posta" v={order.customerEmail} />
-          {order.customerPhone && (
-            <DetailRow k="Telefon" v={order.customerPhone} />
-          )}
-          {order.shippingAddress && (
-            <DetailRow k="Adres" v={order.shippingAddress} multiline />
-          )}
-          {order.trackingNumber && (
-            <DetailRow
-              k="Kargo takip"
-              v={`${order.carrier ? `${order.carrier} · ` : ""}${order.trackingNumber}`}
-            />
-          )}
-          {/* The carrier's own tracking page (Geliver writes it). The number
-              alone left the member to find the carrier's site and paste it. */}
-          {trackingHref && (
-            <div>
-              <a
-                href={trackingHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline btn-sm"
-              >
-                Kargoyu takip et
-                <span className="arrow out" aria-hidden="true">
-                  ↗
-                </span>
-              </a>
+            <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+              <Row label="Ara toplam" value={formatTRY(order.subtotalMinor)} />
+              {order.discountMinor > 0 && (
+                <Row
+                  label={`İndirim${order.promoCode ? ` (${order.promoCode})` : ""}`}
+                  value={`- ${formatTRY(order.discountMinor)}`}
+                />
+              )}
+              {order.shippingMinor > 0 && (
+                <Row label="Kargo" value={formatTRY(order.shippingMinor)} />
+              )}
+              <Row label="Toplam" value={formatTRY(order.totalMinor)} strong />
             </div>
-          )}
-        </div>
-      </AccountCard>
+          </AccountCard>
+        </AccountCol>
+        <AccountCol>
+          <AccountCard title="Teslimat bilgileri">
+            <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
+              <DetailRow k="Alıcı" v={order.customerName || "-"} />
+              <DetailRow k="E-posta" v={order.customerEmail} />
+              {order.customerPhone && (
+                <DetailRow k="Telefon" v={order.customerPhone} />
+              )}
+              {order.shippingAddress && (
+                <DetailRow k="Adres" v={order.shippingAddress} multiline />
+              )}
+              {order.trackingNumber && (
+                <DetailRow
+                  k="Kargo takip"
+                  v={`${order.carrier ? `${order.carrier} · ` : ""}${order.trackingNumber}`}
+                />
+              )}
+              {/* The carrier's own tracking page (Geliver writes it). The number
+              alone left the member to find the carrier's site and paste it. */}
+              {trackingHref && (
+                <div>
+                  <a
+                    href={trackingHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline btn-sm"
+                  >
+                    Kargoyu takip et
+                    <span className="arrow out" aria-hidden="true">
+                      ↗
+                    </span>
+                  </a>
+                </div>
+              )}
+            </div>
+          </AccountCard>
 
-      {invoiceHref && invoice ? (
-        <AccountCard title="e-Arşiv faturası">
-          <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
-            {invoice.invoiceNo ? (
-              <DetailRow k="Fatura no" v={invoice.invoiceNo} />
-            ) : null}
-            {invoice.issuedAt ? (
-              <DetailRow k="Düzenlendi" v={formatDate(invoice.issuedAt)} />
-            ) : null}
-          </div>
-          <p
-            style={{
-              margin: "16px 0 10px",
-              color: "var(--muted)",
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
-            {invoice.emailedAt
-              ? "Faturan e-Arşiv olarak düzenlendi ve siparişteki e-posta adresine gönderildi. Buradan da indirebilirsin."
-              : "Faturan e-Arşiv olarak düzenlendi. Buradan indirebilirsin."}
-          </p>
-          {/* A file, not a page: a plain link, never prefetched. */}
-          <a href={invoiceHref} download className="btn btn-outline btn-sm">
-            Faturayı indir (PDF)
-          </a>
-        </AccountCard>
-      ) : null}
+          {invoiceHref && invoice ? (
+            <AccountCard title="e-Arşiv faturası">
+              <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
+                {invoice.invoiceNo ? (
+                  <DetailRow k="Fatura no" v={invoice.invoiceNo} />
+                ) : null}
+                {invoice.issuedAt ? (
+                  <DetailRow k="Düzenlendi" v={formatDate(invoice.issuedAt)} />
+                ) : null}
+              </div>
+              <p
+                style={{
+                  margin: "16px 0 10px",
+                  color: "var(--muted)",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                }}
+              >
+                {invoice.emailedAt
+                  ? "Faturan e-Arşiv olarak düzenlendi ve siparişteki e-posta adresine gönderildi. Buradan da indirebilirsin."
+                  : "Faturan e-Arşiv olarak düzenlendi. Buradan indirebilirsin."}
+              </p>
+              {/* A file, not a page: a plain link, never prefetched. */}
+              <a href={invoiceHref} download className="btn btn-outline btn-sm">
+                Faturayı indir (PDF)
+              </a>
+            </AccountCard>
+          ) : null}
 
-      <AccountCard title="Sözleşmeler ve onay kaydı">
-        {consent ? (
-          <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
-            <DetailRow k="Onay tarihi" v={formatDate(consent.acceptedAt)} />
-            <DetailRow k="Belge sürümü" v={consent.version} />
-          </div>
-        ) : null}
-        {copyHref ? (
-          <div style={{ margin: "16px 0 0" }}>
+          <AccountCard title="Sözleşmeler ve onay kaydı">
+            {consent ? (
+              <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
+                <DetailRow k="Onay tarihi" v={formatDate(consent.acceptedAt)} />
+                <DetailRow k="Belge sürümü" v={consent.version} />
+              </div>
+            ) : null}
+            {copyHref ? (
+              <div style={{ margin: "16px 0 0" }}>
+                <p
+                  style={{
+                    margin: "0 0 10px",
+                    color: "var(--muted)",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {COPY_NOTE}
+                </p>
+                {/* A file, not a page: a plain link, never prefetched. */}
+                <a href={copyHref} download className="btn btn-outline btn-sm">
+                  Belgeleri indir
+                </a>
+              </div>
+            ) : consent ? (
+              <p
+                style={{
+                  margin: "16px 0 0",
+                  color: "var(--muted)",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                }}
+              >
+                {COPY_REQUEST}
+              </p>
+            ) : null}
             <p
               style={{
-                margin: "0 0 10px",
+                margin: consent ? "16px 0 12px" : "0 0 12px",
                 color: "var(--muted)",
                 fontSize: 14,
                 lineHeight: 1.6,
               }}
             >
-              {COPY_NOTE}
+              {consent
+                ? "Siparişini verirken onayladığın belgeler. Bağlantılar belgelerin güncel metnini açar."
+                : "Siparişlerine uygulanan sözleşme ve politikalar:"}
             </p>
-            {/* A file, not a page: a plain link, never prefetched. */}
-            <a href={copyHref} download className="btn btn-outline btn-sm">
-              Belgeleri indir
-            </a>
-          </div>
-        ) : consent ? (
-          <p
-            style={{
-              margin: "16px 0 0",
-              color: "var(--muted)",
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
-            {COPY_REQUEST}
-          </p>
-        ) : null}
-        <p
-          style={{
-            margin: consent ? "16px 0 12px" : "0 0 12px",
-            color: "var(--muted)",
-            fontSize: 14,
-            lineHeight: 1.6,
-          }}
-        >
-          {consent
-            ? "Siparişini verirken onayladığın belgeler. Bağlantılar belgelerin güncel metnini açar."
-            : "Siparişlerine uygulanan sözleşme ve politikalar:"}
-        </p>
-        <ul
-          style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.9 }}
-        >
-          {ORDER_DOCS.map((d) => (
-            <li key={d.slug}>
-              <Link
-                href={`/hukuk/${d.slug}`}
+            <ul
+              style={{
+                margin: 0,
+                paddingLeft: 18,
+                fontSize: 14,
+                lineHeight: 1.9,
+              }}
+            >
+              {ORDER_DOCS.map((d) => (
+                <li key={d.slug}>
+                  <Link
+                    href={`/hukuk/${d.slug}`}
+                    style={{
+                      color: "var(--ink)",
+                      textDecoration: "underline",
+                      textUnderlineOffset: 3,
+                    }}
+                  >
+                    {d.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </AccountCard>
+
+          <AccountCard title="Yardım gerekiyor mu?">
+            <p
+              style={{
+                margin: 0,
+                color: "var(--muted)",
+                fontSize: 14,
+                lineHeight: 1.6,
+              }}
+            >
+              Siparişinde değişiklik veya iade için bizimle iletişime geç -{" "}
+              <a
+                href="mailto:info@nextgenlab.com.tr"
                 style={{
                   color: "var(--ink)",
                   textDecoration: "underline",
                   textUnderlineOffset: 3,
                 }}
               >
-                {d.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </AccountCard>
-
-      <AccountCard title="Yardım gerekiyor mu?">
-        <p
-          style={{
-            margin: 0,
-            color: "var(--muted)",
-            fontSize: 14,
-            lineHeight: 1.6,
-          }}
-        >
-          Siparişinde değişiklik veya iade için bizimle iletişime geç -{" "}
-          <a
-            href="mailto:info@nextgenlab.com.tr"
-            style={{
-              color: "var(--ink)",
-              textDecoration: "underline",
-              textUnderlineOffset: 3,
-            }}
-          >
-            info@nextgenlab.com.tr
-          </a>
-          . Ekibimiz 24 saat içinde döner.
-        </p>
-      </AccountCard>
+                info@nextgenlab.com.tr
+              </a>
+              . Ekibimiz 24 saat içinde döner.
+            </p>
+          </AccountCard>
+        </AccountCol>
+      </AccountCols>
     </AccountShell>
   );
 }
@@ -396,9 +393,8 @@ function Row({
         borderTop: strong ? "1px solid var(--line)" : undefined,
         paddingTop: strong ? 12 : undefined,
         marginTop: strong ? 6 : undefined,
-        fontFamily: "var(--mono)",
-        fontSize: strong ? 15 : 13,
-        fontWeight: strong ? 600 : 400,
+        fontSize: strong ? 16 : 14,
+        fontVariantNumeric: "tabular-nums",
       }}
     >
       <span style={{ color: strong ? "var(--ink)" : "var(--muted)" }}>
@@ -427,18 +423,11 @@ function DetailRow({
         alignItems: multiline ? "flex-start" : "center",
       }}
     >
-      <span
-        style={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: "var(--muted)",
-        }}
-      >
-        {k}
-      </span>
+      <span style={{ fontSize: 14, color: "var(--muted)" }}>{k}</span>
       <span
         style={{
           lineHeight: 1.55,
+          overflowWrap: "anywhere",
           whiteSpace: multiline ? "pre-line" : undefined,
         }}
       >

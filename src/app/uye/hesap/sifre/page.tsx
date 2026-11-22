@@ -21,6 +21,7 @@ export default async function SifrePage() {
       <AccountCard
         title="Şifre"
         hint="Hesabını güvende tutmak için düzenli olarak güncelle"
+        layout="split"
       >
         <PasswordForm />
         {googleOpen && (

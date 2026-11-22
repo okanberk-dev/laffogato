@@ -198,6 +198,18 @@ Unutulmaması gerekenler:
   2026): alanlar ve düğmeler aynı sol ve sağ kenarı paylaşır (düğme sütun
   kadar geniştir); telefonda hızlı bağlantı satırı bu sayfalarda bant
   rengindedir, çubukla sayfa arasında beyaz şerit kalmaz.
+- **Üye alanı sayfayı doldurur** (`/uye/hesap/*`, 22 Kas 2026; operatör:
+  _"Bu ekranı da daha köşelere atıp doldurarak UI UX olarak geliştirip yapar
+  mısın?"_): 1024px ve üstünde sol kenarda çubukla aynı zeminde bir ray
+  (başlık, selam, çıkış, menü; sayfanın sol kenarına ve footer'a iner,
+  kayarken yerinde kalır, bulunulan sayfanın satırı beyaz), içerik rayın
+  yanından sağ kenar boşluğuna kadar bant panellerle dolar. Paneller kendi
+  genişliklerine göre dizilir (kapsayıcı sorgusu): geniş sayfada iki sütun
+  (`AccountCols`), form panellerinde başlık alanların solunda
+  (`AccountCard layout="split"`), geniş panelde sipariş satırları tek satır.
+  1024px altında ray üstte yatar ve menü kayan bir sekme şerididir (bulunulan
+  sekme görünür açılır). Yeni bir üye sayfası bu kabuğu ve bu yardımcıları
+  kullanır; ölçüler `docs/BRAND.md` §0.5.
 - **CSS `src/styles/`'ta.** `globals.css` yalnız içe aktarır (Tailwind, sonra
   sayfa sırasıyla `foundation`, `chrome`, `sections`, `home`, `catalog`,
   `pages`, `karaoke`, `checkout`, `account`) ve panelin geri alma ve baskı

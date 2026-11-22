@@ -29,7 +29,7 @@ export function AddressForm({
   );
   const d = defaults ?? {};
   return (
-    <form action={formAction} style={{ display: "grid", gap: 16 }}>
+    <form action={formAction} className="account-form">
       <div className="account-field-row">
         <div className="account-field">
           <label htmlFor="adr-label">Etiket</label>

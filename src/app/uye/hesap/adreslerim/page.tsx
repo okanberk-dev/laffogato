@@ -60,9 +60,7 @@ export default async function AdreslerimPage() {
                 </div>
                 <div className="account-address-body">
                   {a.recipientName && <div>{a.recipientName}</div>}
-                  {a.phone && (
-                    <div style={{ color: "var(--muted)" }}>{a.phone}</div>
-                  )}
+                  {a.phone && <div>{a.phone}</div>}
                   <div>
                     {a.line1}
                     {a.line2 ? `, ${a.line2}` : ""}
@@ -82,7 +80,10 @@ export default async function AdreslerimPage() {
                   {!a.isDefault && (
                     <form action={setDefaultAddressAction}>
                       <input type="hidden" name="addressId" value={a.id} />
-                      <button type="submit" className="btn btn-ghost btn-sm">
+                      <button
+                        type="submit"
+                        className="link-u account-quiet-btn"
+                      >
                         Varsayılan yap
                       </button>
                     </form>
@@ -91,8 +92,7 @@ export default async function AdreslerimPage() {
                     <input type="hidden" name="addressId" value={a.id} />
                     <button
                       type="submit"
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: "var(--error)" }}
+                      className="link-u account-quiet-btn account-quiet-btn--danger"
                     >
                       Sil
                     </button>

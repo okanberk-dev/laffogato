@@ -74,269 +74,515 @@
   border-radius: 0;
   /* The glass meets the bezel with a hairline, as a real screen does. */
 }
+/* ── The member area's frame ─────────────────────────────────
+   The area fills the page. A band rail runs down the left edge under
+   the bar, in the bar's own ground, so the two read as one frame: the
+   title, who is signed in, the menu, the way out. The pages stand on
+   white beside it and run to the right gutter. The rail stays in view
+   while a long page scrolls. Under 1024px the rail lies across the top
+   and its menu is a strip of tabs. */
 .account-shell {
-  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
-.account-shell-wrap {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: clamp(32px, 5vw, 64px) var(--gutter) clamp(60px, 8vw, 100px);
+.account-shell-rail {
+  background: var(--band);
 }
+.account-shell-rail-inner {
+  padding-top: 24px;
+}
+/* The title and the way out share a line; the greeting has the whole
+   width under them. */
 .account-shell-header {
-  margin-bottom: clamp(24px, 3vw, 40px);
-}
-.account-shell-greeting {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  gap: 4px 16px;
+  padding: 0 var(--gutter) 20px;
+}
+.account-shell-id {
+  display: contents;
 }
 .account-shell-title {
   margin: 0;
-  font-family: var(--headline);
-  font-weight: 400;
-  font-size: clamp(28px, 4vw, 40px);
-  line-height: 1.1;
 }
-.account-shell-body {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: clamp(20px, 3vw, 36px);
-  align-items: start;
+.account-shell-hello {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+/* The way out: the small underlined link, on a 44px target. */
+.account-shell-logout {
+  grid-column: 2;
+  grid-row: 1;
+  margin-block: -6px;
+}
+.account-shell-logout button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
 }
 .account-shell-sidebar {
-  position: sticky;
-  top: 24px;
-  align-self: start;
-}
-.account-shell-mobilenav {
   display: none;
 }
-@media (max-width: 900px) {
-  .account-shell-body {
-    /* minmax(0, …): the tab strip scrolls inside the column; a bare 1fr
-       grew to its full width and pushed a 320 px screen sideways. */
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-  }
-  .account-shell-sidebar {
-    display: none;
-  }
-  .account-shell-mobilenav {
-    display: block;
-  }
-}
-.account-nav {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  padding: 8px;
-}
-.account-nav-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 2px;
-}
-.account-nav-link {
-  display: block;
-  padding: 11px 14px;
-  border-radius: 0;
-  transition:
-    background 0.15s var(--ease),
-    color 0.15s var(--ease);
-}
-.account-nav-link:hover {
-  background: var(--band);
-}
-.account-nav-link[data-active="true"] {
-  background: var(--charcoal);
-  color: var(--on-dark);
-}
-.account-nav-link[data-active="true"] .account-nav-link-hint {
-  color: var(--on-dark);
-}
-.account-nav-link-label {
-  display: block;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 16px;
-}
-.account-nav-link-hint {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.account-nav-meta {
-  margin-top: 8px;
-  padding: 12px 14px 8px;
-  border-top: 1px solid var(--line);
-}
-.account-nav-meta-row {
+/* The pages: a column of panels with one gap between them. It is a
+   size container: the panels arrange themselves by the room they have,
+   not by the window (the rail takes a different share at each width). */
+.account-shell-content {
+  container: account / inline-size;
+  min-width: 0;
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px var(--gutter) 72px;
 }
-.account-topnav {
-  display: grid;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  padding: 14px 16px;
+.account-shell-content > *,
+.account-col > * {
+  margin-block: 0;
 }
+
+/* The menu as tabs (under 1024px): the headline voice at the label
+   size, the strip scrolling from edge to edge; the page you are on is a
+   white tab standing on the white page under it. */
 .account-topnav-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 var(--gutter);
   display: flex;
-  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
+  scroll-padding-inline: var(--gutter);
 }
 .account-topnav-list::-webkit-scrollbar {
   display: none;
 }
 .account-topnav-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 24px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
   white-space: nowrap;
-  min-height: 36px;
-  padding: 8px 15px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  font-size: 14px;
-  font-weight: 500;
   color: var(--ink);
-  transition:
-    border-color 0.15s,
-    background 0.15s,
-    color 0.15s;
 }
 .account-topnav-link:hover {
-  border-color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
 }
 .account-topnav-link[data-active="true"] {
-  background: var(--charcoal);
-  border-color: var(--charcoal);
-  color: var(--on-dark);
+  background: var(--surface);
+  text-decoration: none;
 }
 .account-topnav-link:focus-visible {
-  outline: none;
+  outline-offset: -2px;
 }
-.account-card {
+
+/* The menu as a list (from 1024px): one row a page, ruled, the rows
+   running to the rail's right edge. The page you are on is a white row:
+   it opens onto the white page beside it. */
+.account-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.account-nav-list > li {
+  margin-left: var(--gutter);
+  border-top: 1px solid var(--line);
+}
+.account-nav-list > li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.account-nav-link {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  margin-left: calc(-1 * var(--gutter));
+  padding: 10px 24px 10px var(--gutter);
+}
+.account-nav-link-label {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.account-nav-link:hover .account-nav-link-label {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+.account-nav-link[data-active="true"] {
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  overflow: hidden;
 }
-.account-card + .account-card {
-  margin-top: 18px;
+.account-nav-link[data-active="true"] .account-nav-link-label {
+  text-decoration: none;
+}
+.account-nav-link:focus-visible {
+  outline-offset: -2px;
+}
+/* Under the menu: which account this is and since when. */
+.account-nav-meta {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 20px 24px 0 var(--gutter);
+}
+.account-nav-meta-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.account-nav-meta-row dt,
+.account-nav-meta-row dd {
+  margin: 0;
+}
+.account-nav-meta-row dd {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1024px) {
+  .account-shell {
+    grid-template-columns: clamp(300px, 26vw, 380px) minmax(0, 1fr);
+  }
+  /* The rail keeps its place under the site's top (the announcement
+     line and the bar). That top slides away while the page scrolls down
+     and returns when it scrolls up (chrome.css, .site-top): the rail
+     follows it at the same pace, so no empty band is left above it and
+     nothing of it is ever under the bar. */
+  .account-shell-rail-inner {
+    position: sticky;
+    top: calc(var(--announce-h) + var(--sticky-h));
+    max-height: calc(100vh - var(--announce-h) - var(--sticky-h));
+    overflow-y: auto;
+    padding: 40px 0;
+    transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  body:has(.site-top.is-tucked:not(:focus-within)) .account-shell-rail-inner {
+    top: 0;
+    max-height: 100vh;
+  }
+  .account-shell-header {
+    padding: 0 24px 28px var(--gutter);
+  }
+  .account-shell-sidebar {
+    display: block;
+  }
+  .account-shell-mobilenav {
+    display: none;
+  }
+  .account-shell-content {
+    padding: 40px var(--gutter) 96px 40px;
+  }
+}
+@media (min-width: 1280px) {
+  .account-shell-content {
+    padding-left: 48px;
+  }
+}
+/* A short window (a 768px-high laptop): the rail tightens so the whole
+   menu stays in view; if it still does not fit, the rail scrolls by
+   itself. */
+@media (min-width: 1024px) and (max-height: 840px) {
+  .account-shell-rail-inner {
+    padding: 28px 0 24px;
+    scrollbar-width: thin;
+    overscroll-behavior: contain;
+  }
+  .account-shell-header {
+    padding-bottom: 20px;
+  }
+  .account-nav-link {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+  .account-nav-meta {
+    padding-top: 16px;
+  }
+  .account-shell-content {
+    padding-top: 28px;
+  }
+}
+
+/* ── Panels ──────────────────────────────────────────────────
+   A panel is a band block, no edge; what sits on it (tiles, order and
+   address cards, fields, stamps) is white. */
+.account-card {
+  background: var(--band);
 }
 .account-card-head {
-  padding: clamp(20px, 3vw, 28px) clamp(20px, 3vw, 32px);
-  border-bottom: 1px solid var(--line);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 12px 20px;
   justify-content: space-between;
   align-items: center;
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--line);
 }
+.account-card-hint {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+/* The body is a size container too: a list inside it lays its rows out
+   by the panel's own width. */
 .account-card-body {
-  padding: clamp(20px, 3vw, 32px);
+  container: account-panel / inline-size;
+  padding: 28px;
 }
+/* A form's panel: from a wide page the title stands beside the fields,
+   which keep a readable measure. */
+.account-card--split .account-card-body > form,
+.account-card--split .account-card-body > .deletion-lede,
+.account-card--split .account-card-body > .deletion-more {
+  max-width: 720px;
+}
+@container account (min-width: 820px) {
+  .account-card--split {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  }
+  .account-card--split > .account-card-head {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    border-bottom: 0;
+    padding-right: 0;
+  }
+}
+
+/* Two columns of panels from a wide page: the main one and a narrower
+   one beside it (or two equal ones). */
+.account-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.account-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+@container account (min-width: 860px) {
+  .account-cols {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+  .account-cols--even {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* Back from a detail page to its list. */
+.account-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 24px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.account-back:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* The summary's four figures: band tiles in one row. */
 .account-stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
-@media (max-width: 720px) {
+@container account (min-width: 640px) {
   .account-stat-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
   }
 }
 .account-stat {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  padding: 18px 20px;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 20px 24px;
+  background: var(--band);
+}
+.account-stat-label {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .account-stat-value {
-  font-family: var(--display);
-  font-size: clamp(24px, 2.4vw, 32px);
-  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  margin-top: 2px;
+  overflow-wrap: anywhere;
 }
+.account-stat-hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+/* An empty list: the title, a line, one way on. */
 .account-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: clamp(24px, 4vw, 48px) 0;
   text-align: center;
-  padding: clamp(28px, 4vw, 48px);
-}
-.account-empty-title {
-  font-family: var(--display);
-  font-size: 19px;
-  font-weight: 500;
-  margin-bottom: 6px;
 }
 .account-empty-hint {
   margin: 0;
-  color: var(--muted);
+  max-width: 46ch;
   font-size: 14px;
-  max-width: 40ch;
-  margin-left: auto;
-  margin-right: auto;
+  line-height: 20px;
+  color: var(--muted);
+}
+.account-empty-cta {
+  margin-top: 12px;
+}
+
+/* An order or a booking in a list: a white row that opens it. Stacked
+   in a narrow panel; in a wide one each row is one line and the rows
+   share their columns (number, what, when, how much, where it stands). */
+.account-order-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
 }
 .account-order-card {
   display: grid;
-  gap: 10px;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 0;
+  gap: 8px;
+  padding: 16px 20px;
+  border: 1px solid var(--surface);
   background: var(--surface);
-  transition:
-    border-color 0.15s var(--ease),
-    box-shadow 0.15s var(--ease);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s var(--ease);
 }
 .account-order-card:hover {
-  border-color: var(--line);
+  border-color: var(--line-strong);
 }
-.account-order-card + .account-order-card {
-  margin-top: 12px;
+.account-order-card:focus-visible {
+  outline-offset: -2px;
 }
 .account-order-head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 8px 12px;
 }
 .account-order-no {
-  font-family: var(--display);
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
   font-size: 14px;
-  font-weight: 500;
+  line-height: 20px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+}
+.account-order-items {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
 }
 .account-order-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 20px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
+.account-order-total {
+  color: var(--ink);
+}
+@container account-panel (min-width: 700px) {
+  @supports (grid-template-columns: subgrid) {
+    .account-order-list {
+      grid-template-columns:
+        max-content minmax(0, 1fr) max-content max-content
+        max-content;
+      column-gap: 28px;
+    }
+    .account-order-list > li,
+    .account-order-card {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
+    }
+    .account-order-card {
+      align-items: center;
+      gap: 0 28px;
+      min-height: 56px;
+      padding-block: 12px;
+    }
+    .account-order-head,
+    .account-order-meta {
+      display: contents;
+    }
+    .account-order-card > *,
+    .account-order-head > *,
+    .account-order-meta > * {
+      grid-row: 1;
+    }
+    .account-order-no {
+      grid-column: 1;
+    }
+    .account-order-items {
+      grid-column: 2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .account-order-meta > :first-child {
+      grid-column: 3;
+    }
+    .account-order-total {
+      grid-column: 4;
+      justify-self: end;
+    }
+    .account-order-head > .status-chip {
+      grid-column: 5;
+      justify-self: end;
+    }
+  }
+}
 .account-address-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-@media (max-width: 720px) {
-  .account-address-grid {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 12px;
 }
 .account-address-card {
   border: 1px solid var(--line);
@@ -532,19 +778,16 @@
   color: var(--ink);
   line-height: 1.5;
 }
+/* Favourites: two across in a narrow panel, as many as fit in a wide
+   one. */
 .account-wishlist-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
-@media (max-width: 900px) {
+@container account-panel (min-width: 560px) {
   .account-wishlist-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media (max-width: 540px) {
-  .account-wishlist-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
 .account-wishlist-item {
@@ -634,40 +877,21 @@
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
-@media (max-width: 540px) {
-  .account-shell-greeting {
-    gap: 12px;
-  }
-  .account-shell-avatar {
-    width: 48px;
-    height: 48px;
-    font-size: 19px;
-  }
+/* A phone: the panels keep the page's gutter and take a tighter pad. */
+@media (max-width: 767px) {
   .account-card-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    padding: 20px;
   }
-  .account-card-head .btn {
-    width: auto;
+  .account-card-body {
+    padding: 20px;
   }
   .account-stat {
-    padding: 14px 16px;
+    padding: 16px;
   }
   .account-order-card {
     padding: 14px 16px;
   }
-  .account-order-meta {
-    flex-direction: column;
-    gap: 4px;
-    align-items: flex-start;
-  }
-  .account-address-actions .btn {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
 }
-.site-chrome-body .account-shell-wrap,
 .site-chrome-body .legal-wrap {
   padding-top: clamp(20px, 3vw, 36px);
 }
@@ -993,7 +1217,6 @@
   }
 }
 .account-firstrun {
-  margin-bottom: 18px;
   padding: 26px;
   border-radius: 0;
   border: 1px solid var(--line);
@@ -1040,7 +1263,6 @@
   color: var(--muted);
 }
 .stamp-card {
-  margin-bottom: 18px;
   padding: 26px;
   border-radius: 0;
   border: 1px solid var(--line);
@@ -1103,8 +1325,7 @@
 }
 .account-app-block {
   --script-ink: var(--charcoal);
-  margin-bottom: 18px;
-  padding: 26px;
+  padding: clamp(24px, 3vw, 40px);
   border-radius: 0;
   background: var(--charcoal);
   color: var(--on-dark);
@@ -1154,7 +1375,7 @@
   font-weight: 500;
   letter-spacing: var(--track);
   text-transform: uppercase;
-  color: var(--charcoal);
+  color: var(--on-dark-muted);
 }
 .account-app-title {
   margin-top: 8px;
@@ -1174,8 +1395,8 @@
   margin-top: 16px;
 }
 .account-delete-link {
-  margin: 20px 4px 0;
   font-size: 14px;
+  line-height: 20px;
 }
 .account-delete-link a {
   color: var(--muted);
@@ -1367,8 +1588,7 @@
 .deletion-notice-title,
 .stamp-card-headline,
 .account-saved-card-name,
-.account-firstrun-action-t,
-.account-nav-link-label {
+.account-firstrun-action-t {
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
   font-weight: 400;
@@ -1414,44 +1634,7 @@
 /* ── Member area, reference pass ─────────────────────────────
    The panels are the reference's band panels (its cart and log-in
    drawers, its brew-guide band): ricePaper, no edge; what sits on them
-   (tiles, order and address cards, fields, stamps) is white. The menu
-   is a ruled list in the headline voice; the page you are on is
-   underlined, as in the site's bar, not filled. */
-.account-nav,
-.account-topnav {
-  padding: 0;
-  border: 0;
-  background: none;
-}
-.account-nav-list {
-  gap: 0;
-  border-bottom: 1px solid var(--line);
-}
-.account-nav-list > li {
-  border-top: 1px solid var(--line);
-}
-.account-nav-link {
-  padding: 14px 0;
-}
-.account-nav-link:hover,
-.account-nav-link[data-active="true"] {
-  background: none;
-  color: var(--ink);
-}
-.account-nav-link:hover .account-nav-link-label,
-.account-nav-link[data-active="true"] .account-nav-link-label {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 6px;
-}
-.account-nav-link[data-active="true"] .account-nav-link-hint {
-  color: var(--muted);
-}
-.account-nav-meta {
-  margin-top: 0;
-  padding: 14px 0 0;
-  border-top: 0;
-}
+   (tiles, order and address cards, fields, stamps) is white. */
 .account-card,
 .account-firstrun,
 .stamp-card {
@@ -1479,7 +1662,6 @@
 /* An empty list's way out is the reference's 350px button. */
 .account-empty .btn {
   min-width: min(350px, 100%);
-  margin-top: 16px;
 }
 /* The member forms' fields are the site's field (the reference's e-mail
    box): a charcoal edge that clears 3:1, rounded 4px, 48px, black and
@@ -1511,4 +1693,236 @@
 }
 .account-card form > .btn {
   justify-self: start;
+}
+
+/* ── Member area, the pieces on the panels ───────────────────── */
+
+/* A member form: one column of fields, 16px apart; its button keeps the
+   left edge. */
+.account-form {
+  display: grid;
+  gap: 16px;
+}
+.account-form > .btn {
+  justify-self: start;
+}
+.account-card .account-card-body > .account-form--narrow {
+  max-width: 480px;
+}
+/* A date field and the fixed e-mail line stand as tall as the fields
+   beside them. */
+.account-field input[type="date"] {
+  height: 48px;
+}
+.account-readonly {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  overflow-wrap: anywhere;
+}
+/* A preference: a white tile, the box beside its name and what it
+   governs. The whole tile is the target. */
+.account-toggle {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 16px 20px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.account-toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+.account-toggle-label {
+  display: block;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--ink);
+}
+.account-toggle-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+
+/* The first screen of a new member: what to do next, four white doors
+   in one row where the page has the room. */
+.account-firstrun-copy {
+  display: grid;
+  gap: 8px;
+}
+.account-firstrun-copy p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.account-firstrun-action {
+  align-content: start;
+  padding: 20px;
+}
+.account-firstrun-action-d {
+  line-height: 16px;
+}
+
+/* A code: what it gives in the text face, the code itself boxed. A code
+   that can no longer be used is greyed and struck, never faded (faded
+   grey on the band fell under 4.5:1). */
+.account-promo-card {
+  border: 0;
+  padding: 16px 20px;
+}
+.account-promo-card + .account-promo-card {
+  margin-top: 8px;
+}
+.account-promo-value {
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--ink);
+}
+.account-promo-meta {
+  line-height: 16px;
+  gap: 4px;
+}
+.account-promo-badge {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+.account-promo-more {
+  display: inline-block;
+  margin-top: 16px;
+}
+.account-promo-card[data-spent="true"] .account-promo-code {
+  border-color: var(--line);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.account-promo-card[data-spent="true"] .account-promo-value {
+  color: var(--muted);
+}
+
+/* A favourite: a white tile, the photograph on the band inside it. */
+.account-wishlist-item {
+  min-width: 0;
+  border: 0;
+  gap: 12px;
+}
+.account-wishlist-item .t-title {
+  overflow-wrap: anywhere;
+}
+@container account-panel (max-width: 559px) {
+  .account-wishlist-item {
+    padding: 10px;
+  }
+  .account-wishlist-item .t-title {
+    font-size: 14px;
+    line-height: 20px;
+    overflow-wrap: break-word;
+  }
+  .account-wishlist-actions .btn {
+    width: 100%;
+  }
+}
+.account-wishlist-item > div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+}
+.account-wishlist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: auto;
+}
+/* A quiet action beside a button: the small underlined link, as a
+   button, on a 44px target. */
+.account-quiet-btn {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* An address and a saved card are white tiles; the default address
+   keeps its ink edge. */
+.account-address-card,
+.account-saved-card {
+  border-color: var(--surface);
+}
+.account-address-card[data-default="true"] {
+  border-color: var(--ink);
+}
+.account-address-actions {
+  align-items: center;
+  gap: 4px 20px;
+  border-top-color: var(--line);
+}
+.account-address-body {
+  line-height: 20px;
+}
+/* "Varsayılan": the site's small boxed label, not a pill. */
+.account-address-default-badge {
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  line-height: 20px;
+}
+.account-quiet-btn--danger {
+  color: var(--error);
+}
+.account-saved-card {
+  padding: 16px 20px;
+}
+.account-cards {
+  gap: 8px;
+}
+/* What we keep and what we do not: a ruled list, flush with the
+   panel's title. */
+.account-cards-facts {
+  list-style: none;
+  gap: 0;
+  padding: 0;
+  line-height: 20px;
+}
+.account-cards-facts > li {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.account-cards-facts > li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.account-cards-facts > li:last-child {
+  padding-bottom: 0;
+}
+
+/* The bookings list: "Yaklaşan" over "Geçmiş ve iptal". */
+.karaoke-mine-section > h3 {
+  margin: 0 0 8px;
+}
+.karaoke-mine-section + .karaoke-mine-section {
+  margin-top: 28px;
+}
+
+/* The stamp card and the app's block share a panel's pad. */
+.account-firstrun,
+.stamp-card {
+  padding: 28px;
+}
+@media (max-width: 767px) {
+  .account-firstrun,
+  .stamp-card,
+  .account-app-block {
+    padding: 20px;
+  }
 }

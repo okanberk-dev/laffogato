@@ -3,6 +3,8 @@ import {
   AccountShell,
   AccountStat,
   AccountCard,
+  AccountCol,
+  AccountCols,
   EmptyState,
 } from "@/components/uye/account-shell";
 import { VerifyNotice } from "@/components/customer/verify-notice";
@@ -91,19 +93,13 @@ export default async function HesapPage() {
   return (
     <AccountShell customer={customer} active="dashboard">
       {deletion && (
-        <div style={{ marginBottom: 24 }}>
-          <DeletionRequestNotice
-            requestedOn={deletionDayLabel(deletion.requestedAt)}
-            deadline={deletionDayLabel(deletionDeadline(deletion.requestedAt))}
-            showLink
-          />
-        </div>
+        <DeletionRequestNotice
+          requestedOn={deletionDayLabel(deletion.requestedAt)}
+          deadline={deletionDayLabel(deletionDeadline(deletion.requestedAt))}
+          showLink
+        />
       )}
-      {!customer.emailVerified && (
-        <div style={{ marginBottom: 24 }}>
-          <VerifyNotice email={customer.email} />
-        </div>
-      )}
+      {!customer.emailVerified && <VerifyNotice email={customer.email} />}
       {/* A brand-new member's dashboard was four zeroes and an empty list -
           an accurate but discouraging first screen, and the one people land
           on straight after signing up. Until there is a first order, the
@@ -111,10 +107,8 @@ export default async function HesapPage() {
       {orders.length === 0 ? (
         <div className="account-firstrun">
           <div className="account-firstrun-copy">
-            <div className="eyebrow">Hoş geldin</div>
-            <h2 className="h3" style={{ marginTop: 10 }}>
-              Hesabın hazır, buradan başlayabilirsin
-            </h2>
+            <div className="eyebrow muted">Hoş geldin</div>
+            <h2 className="h3">Hesabın hazır, buradan başlayabilirsin</h2>
             <p>
               Siparişlerin, damgaların ve adreslerin burada toplanır - web’de ve
               uygulamada aynı hesapla.
@@ -175,55 +169,169 @@ export default async function HesapPage() {
         </div>
       )}
 
-      {loyalty && (
-        <div className="stamp-card">
-          <div className="stamp-card-head">
-            <span className="eyebrow muted">Damga kartı</span>
-            <span className="stamp-card-count">
-              {filledStamps}/{loyalty.stampTarget}
-            </span>
-          </div>
-          <div className="stamp-grid stamp-grid-light">
-            {Array.from({ length: loyalty.stampTarget }, (_, i) => {
-              const filled = i < filledStamps;
-              const reward = i === loyalty.stampTarget - 1;
-              return (
-                <div
-                  key={i}
-                  className={`stamp ${filled ? "filled" : ""} ${reward && !filled ? "reward" : ""}`}
-                >
-                  {filled ? "✓" : reward ? "★" : ""}
-                </div>
-              );
-            })}
-          </div>
-          <div
-            className="stamp-progress"
-            role="progressbar"
-            aria-valuenow={loyalty.stamps}
-            aria-valuemin={0}
-            aria-valuemax={loyalty.stampTarget}
-            aria-label="Damga ilerlemesi"
+      {/* The orders beside the stamp card and the codes; the app's block
+          closes the page across its whole width. */}
+      <AccountCols>
+        <AccountCol>
+          <AccountCard
+            title="Son siparişler"
+            action={
+              orders.length > 0 ? (
+                <Link href="/uye/hesap/siparislerim" className="link-u">
+                  Tümünü gör
+                </Link>
+              ) : null
+            }
           >
-            <div
-              style={{
-                width: `${Math.round((filledStamps / loyalty.stampTarget) * 100)}%`,
-              }}
-            />
-          </div>
-          <div className="stamp-card-headline">
-            {loyalty.rewardsReady > 0
-              ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` - ${loyalty.rewardsReady} adet` : ""}`
-              : `${loyalty.stampTarget - loyalty.stamps} damga kaldı - sonraki içecek bizden`}
-          </div>
-          <p className="stamp-card-note">
-            L&apos;AF 0-11 · PEARL 12+ · RUBY 36+ sipariş. Seviyen şu an{" "}
-            <strong>{loyalty.tierLabel}</strong>. Uygulamadan verilen 140 TL ve
-            üzeri kafe siparişi, başlayan her 320 TL için bir damga; damgan,
-            kuponların ve seviyen iki tarafta da aynı.
-          </p>
-        </div>
-      )}
+            {recentOrders.length === 0 ? (
+              <EmptyState
+                title="Henüz siparişin yok"
+                hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
+                cta={
+                  <Link href="/magaza" className="btn btn-primary btn-sm">
+                    Mağazaya git
+                  </Link>
+                }
+              />
+            ) : (
+              <ul className="account-order-list">
+                {recentOrders.map((o) => (
+                  <li key={o.id}>
+                    <Link
+                      href={`/uye/hesap/siparislerim/${o.orderNo}`}
+                      className="account-order-card"
+                    >
+                      <div className="account-order-head">
+                        <span className="account-order-no">#{o.orderNo}</span>
+                        <span className="status-chip" data-tone={o.status}>
+                          {STATUS_LABEL[o.status] ?? o.status}
+                        </span>
+                      </div>
+                      <div className="account-order-items">
+                        {o.items
+                          .map((it) => `${it.qty}× ${it.productName}`)
+                          .join(", ")}
+                      </div>
+                      <div className="account-order-meta">
+                        <span>
+                          {new Intl.DateTimeFormat("tr-TR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            timeZone: "Europe/Istanbul",
+                          }).format(new Date(o.createdAt))}
+                        </span>
+                        <span className="account-order-total">
+                          {formatTRY(o.totalMinor)}
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AccountCard>
+        </AccountCol>
+        <AccountCol>
+          {loyalty && (
+            <div className="stamp-card">
+              <div className="stamp-card-head">
+                <span className="eyebrow muted">Damga kartı</span>
+                <span className="stamp-card-count">
+                  {filledStamps}/{loyalty.stampTarget}
+                </span>
+              </div>
+              <div className="stamp-grid stamp-grid-light">
+                {Array.from({ length: loyalty.stampTarget }, (_, i) => {
+                  const filled = i < filledStamps;
+                  const reward = i === loyalty.stampTarget - 1;
+                  return (
+                    <div
+                      key={i}
+                      className={`stamp ${filled ? "filled" : ""} ${reward && !filled ? "reward" : ""}`}
+                    >
+                      {filled ? "✓" : reward ? "★" : ""}
+                    </div>
+                  );
+                })}
+              </div>
+              <div
+                className="stamp-progress"
+                role="progressbar"
+                aria-valuenow={loyalty.stamps}
+                aria-valuemin={0}
+                aria-valuemax={loyalty.stampTarget}
+                aria-label="Damga ilerlemesi"
+              >
+                <div
+                  style={{
+                    width: `${Math.round((filledStamps / loyalty.stampTarget) * 100)}%`,
+                  }}
+                />
+              </div>
+              <div className="stamp-card-headline">
+                {loyalty.rewardsReady > 0
+                  ? `Ücretsiz içeceğin hazır${loyalty.rewardsReady > 1 ? ` - ${loyalty.rewardsReady} adet` : ""}`
+                  : `${loyalty.stampTarget - loyalty.stamps} damga kaldı - sonraki içecek bizden`}
+              </div>
+              <p className="stamp-card-note">
+                L&apos;AF 0-11 · PEARL 12+ · RUBY 36+ sipariş. Seviyen şu an{" "}
+                <strong>{loyalty.tierLabel}</strong>. Uygulamadan verilen 140 TL
+                ve üzeri kafe siparişi, başlayan her 320 TL için bir damga;
+                damgan, kuponların ve seviyen iki tarafta da aynı.
+              </p>
+            </div>
+          )}
+
+          <AccountCard
+            title="Kullanılabilir promosyonlar"
+            hint="Sepet sayfasında kodu uygula"
+          >
+            {usablePromos.length === 0 ? (
+              <p className="account-card-hint">
+                Şu an aktif bir promosyon kodu yok.
+              </p>
+            ) : (
+              <div>
+                {usablePromos.slice(0, 3).map((p) => (
+                  <div key={p.id} className="account-promo-card">
+                    <div className="account-promo-code">{p.code}</div>
+                    <div className="account-promo-meta">
+                      <span className="account-promo-value">
+                        {p.kind === "pct"
+                          ? `%${p.value} indirim`
+                          : `${formatTRY(p.value)} indirim`}
+                      </span>
+                      {p.minSubtotalMinor > 0 && (
+                        <span>{formatTRY(p.minSubtotalMinor)}+ sepete</span>
+                      )}
+                      {p.expiresAt && (
+                        <span>
+                          {new Intl.DateTimeFormat("tr-TR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            timeZone: "Europe/Istanbul",
+                          }).format(new Date(p.expiresAt))}{" "}
+                          bitiyor
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {usablePromos.length > 3 && (
+                  <Link
+                    href="/uye/hesap/promosyonlar"
+                    className="link-u account-promo-more"
+                  >
+                    Tümünü gör ({usablePromos.length})
+                  </Link>
+                )}
+              </div>
+            )}
+          </AccountCard>
+        </AccountCol>
+      </AccountCols>
 
       {/* Single membership across both surfaces - the prototype's account
           screen makes this its own block, and it is the only place the site
@@ -256,123 +364,6 @@ export default async function HesapPage() {
           </div>
         </div>
       </div>
-
-      <AccountCard
-        title="Son siparişler"
-        action={
-          orders.length > 0 ? (
-            <Link
-              href="/uye/hesap/siparislerim"
-              className="btn btn-ghost btn-sm"
-            >
-              Tümünü gör
-            </Link>
-          ) : null
-        }
-      >
-        {recentOrders.length === 0 ? (
-          <EmptyState
-            title="Henüz siparişin yok"
-            hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
-            cta={
-              <Link href="/magaza" className="btn btn-primary btn-sm">
-                Mağazaya git
-              </Link>
-            }
-          />
-        ) : (
-          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {recentOrders.map((o) => (
-              <li key={o.id}>
-                <Link
-                  href={`/uye/hesap/siparislerim/${o.orderNo}`}
-                  className="account-order-card"
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <div className="account-order-head">
-                    <span className="account-order-no">#{o.orderNo}</span>
-                    <span className="status-chip" data-tone={o.status}>
-                      {STATUS_LABEL[o.status] ?? o.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 14, color: "var(--muted)" }}>
-                    {o.items
-                      .map((it) => `${it.qty}× ${it.productName}`)
-                      .join(", ")}
-                  </div>
-                  <div className="account-order-meta">
-                    <span>
-                      {new Intl.DateTimeFormat("tr-TR", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        timeZone: "Europe/Istanbul",
-                      }).format(new Date(o.createdAt))}
-                    </span>
-                    <span>{formatTRY(o.totalMinor)}</span>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </AccountCard>
-
-      <AccountCard
-        title="Kullanılabilir promosyonlar"
-        hint="Sepet sayfasında kodu uygula"
-      >
-        {usablePromos.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>
-            Şu an aktif bir promosyon kodu yok.
-          </p>
-        ) : (
-          <div>
-            {usablePromos.slice(0, 3).map((p) => (
-              <div key={p.id} className="account-promo-card">
-                <div className="account-promo-code">{p.code}</div>
-                <div className="account-promo-meta">
-                  <span
-                    style={{
-                      fontFamily: "var(--display)",
-                      fontWeight: 700,
-                      fontSize: 16,
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {p.kind === "pct"
-                      ? `%${p.value} indirim`
-                      : `${formatTRY(p.value)} indirim`}
-                  </span>
-                  {p.minSubtotalMinor > 0 && (
-                    <span>{formatTRY(p.minSubtotalMinor)}+ sepete</span>
-                  )}
-                  {p.expiresAt && (
-                    <span>
-                      {new Intl.DateTimeFormat("tr-TR", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        timeZone: "Europe/Istanbul",
-                      }).format(new Date(p.expiresAt))}{" "}
-                      bitiyor
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-            {usablePromos.length > 3 && (
-              <Link
-                href="/uye/hesap/promosyonlar"
-                className="btn btn-ghost btn-sm"
-                style={{ marginTop: 12 }}
-              >
-                Tümünü gör ({usablePromos.length})
-              </Link>
-            )}
-          </div>
-        )}
-      </AccountCard>
     </AccountShell>
   );
 }
