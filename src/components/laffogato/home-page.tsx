@@ -297,51 +297,9 @@ export function PageHome({
         images={images}
       />
 
-      {/* The guides ──────────────────────────────────────────── */}
-      {guides.length > 0 && (
-        <section className="section" aria-labelledby="home-guides-title">
-          <div className="wrap">
-            <div className="section-head">
-              <h2 id="home-guides-title" className="t-display">
-                Rehberler
-              </h2>
-            </div>
-            <ul className="guide-row" role="list">
-              {guides.map((g) => (
-                <li key={g.slug} className="guide-tile">
-                  <div className="media ratio-3-2 guide-tile-media">
-                    <Image
-                      src={g.image!.src}
-                      alt={g.image!.alt}
-                      fill
-                      sizes="(max-width: 767px) 100vw, 25vw"
-                    />
-                  </div>
-                  <div className="guide-tile-body">
-                    <h3 className="t-title">{g.title}</h3>
-                    <p className="t-small">{g.excerpt}</p>
-                    <Link className="link-u" href={`/rehber/${g.slug}`}>
-                      Devamını oku
-                      <span className="sr-only">: {g.title}</span>
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="section-foot">
-              <Link className="btn btn-wide" href="/rehber">
-                Tüm rehberler
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* The visit ───────────────────────────────────────────── */}
-      <section
-        className="section section--band"
-        aria-labelledby="home-visit-title"
-      >
+      {/* The visit (white), then the guides on the band, as the reference
+          ends on its brew guides ─────────────────────────────────── */}
+      <section className="section" aria-labelledby="home-visit-title">
         <div className="wrap">
           <div className="section-head">
             <h2 id="home-visit-title" className="t-display">
@@ -390,6 +348,49 @@ export function PageHome({
           </div>
         </div>
       </section>
+
+      {/* The guides ──────────────────────────────────────────── */}
+      {guides.length > 0 && (
+        <section
+          className="section section--band"
+          aria-labelledby="home-guides-title"
+        >
+          <div className="wrap">
+            <div className="section-head">
+              <h2 id="home-guides-title" className="t-display">
+                Rehberler
+              </h2>
+            </div>
+            <ul className="guide-row" role="list">
+              {guides.map((g) => (
+                <li key={g.slug} className="guide-tile">
+                  <div className="media ratio-3-2 guide-tile-media">
+                    <Image
+                      src={g.image!.src}
+                      alt={g.image!.alt}
+                      fill
+                      sizes="(max-width: 767px) 100vw, 25vw"
+                    />
+                  </div>
+                  <div className="guide-tile-body">
+                    <h3 className="t-title">{g.title}</h3>
+                    <p className="t-small">{g.excerpt}</p>
+                    <Link className="link-u" href={`/rehber/${g.slug}`}>
+                      Devamını oku
+                      <span className="sr-only">: {g.title}</span>
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="section-foot">
+              <Link className="btn btn-wide" href="/rehber">
+                Tüm rehberler
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

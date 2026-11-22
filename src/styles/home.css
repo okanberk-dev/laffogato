@@ -139,7 +139,7 @@
     min-width: 44px;
     min-height: 44px;
   }
-  }
+}
 
 /* ── The app block: text and points beside a photograph ────── */
 .app-block {
@@ -326,5 +326,13 @@
   }
   .visit-row > :not(:first-child) {
     display: none;
+  }
+}
+
+/* ── The signature split: the reference's photograph is 6:5 ── */
+@media (min-width: 1024px) {
+  .page-home .split-media {
+    min-height: 0;
+    aspect-ratio: 6 / 5;
   }
 }

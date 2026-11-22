@@ -246,7 +246,7 @@ başlığı, sağ altta bağlantısı ve 01/02/03 sayfalayıcı (telefonda alt
 alta). Filmin altında `home-page.tsx`'in bölümleri gelir:
 Şimdi barda (canlı menüden dört kalem, fotoğraflılar önce), imza içeceği,
 Kategoriler, Evde L'Affogato, karaoke (ayarlardan ve bugünün boş
-saatlerinden), uygulama, Rehberler, Bizi ziyaret edin (`home-app-intro`,
+saatlerinden), uygulama, Bizi ziyaret edin, Rehberler (`home-app-intro`,
 `home-take-home` ve `home-karaoke` buraya katıldı). Unutulmaması gerekenler:
 
 - **Film lisanslı stok, bizim çekimimiz değil.** Üç Mixkit klibi, sessiz
