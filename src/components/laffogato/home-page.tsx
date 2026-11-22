@@ -15,6 +15,7 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
 import { AppStoreLinks } from "./app-links";
+import { AppPhones, TableOrderBand } from "./app-showcase";
 import { MENU, LOCATION, type Product } from "./data";
 import { HomeHero } from "./home-hero";
 import { keepUnits } from "./keep-units";
@@ -486,7 +487,9 @@ function TakeHome({ product: p }: { product: Product }) {
 
 /**
  * The app, as the reference shows its subscriptions: the pitch and its
- * button on the left, three ruled points under it, a photograph beside.
+ * button on the left, three ruled points under it, three phones beside
+ * (app-showcase.tsx), then the table-order band with the section's
+ * photograph.
  * Only what the app does: table and pickup ordering (the courier only while
  * Mobil → Ayarlar offers it), the stamp card at the panel's target, order
  * stages.
@@ -509,61 +512,76 @@ function AppBlock({
   const step = Math.round(STAMP_STEP_MINOR / 100);
   const points = [
     {
+      title: "Masadan sipariş",
+      body: "Masandaki QR'ı okut, menüden seç, uygulamada öde. Siparişin masana gelir.",
+    },
+    {
       title: `Gel-al ${pickupMinutes} dakikada`,
       body: courierEnabled
-        ? "Masadaki QR'ı okut ya da gel-al seç; Tuzla içi kurye de uygulamada."
-        : "Masadaki QR'ı okut ya da gel-al seç; kafe menüsünün tamamı uygulamada.",
+        ? "Yoldayken sipariş ver, hazır olunca telefonuna bildirim gelsin. Tuzla içi kurye de uygulamada."
+        : "Yoldayken sipariş ver, hazır olunca telefonuna bildirim gelsin. Sıra beklemeden al.",
     },
     {
       title: `${stampTarget} damgada bir içecek`,
       body: `Uygulamadan verilen ${min} TL ve üzeri kafe siparişi damga kazandırır: ${step} TL'ye kadar bir, ${step * 2} TL'ye kadar iki. Dolan kart ücretsiz içecek kuponuna dönüşür.`,
     },
-    {
-      title: "Tek hesap",
-      body: "Uygulama ve sitede aynı üyelik: siparişlerin, damgaların ve karaoke rezervasyonların bir yerde.",
-    },
   ];
+  const photo = siteImage(images, "home.app");
   return (
-    <section
-      id="uygulama"
-      className="section section--band"
-      aria-labelledby="home-app-title"
-    >
-      <div className="wrap app-block">
-        <div className="app-block-copy">
-          <h2 id="home-app-title" className="t-display">
-            L&rsquo;Affogato uygulaması
-          </h2>
-          <p className="t-body">
-            Siparişini uygulamadan ver, hazır olunca gel al. Kafe siparişlerinde
-            damga topla, kartın dolunca içecek bizden.
-          </p>
-          <p className="t-small t-muted">
-            Gel-al siparişi ve karaoke odası Tuzla köşkü içindir.
-          </p>
-          <AppStoreLinks className="app-block-store" />
-          <ul className="ruled-list" role="list">
-            {points.map((pt) => (
-              <li key={pt.title}>
-                <h3 className="t-label">{pt.title}</h3>
-                <p className="t-body">{pt.body}</p>
-              </li>
-            ))}
-          </ul>
+    <>
+      <section
+        id="uygulama"
+        className="section section--band"
+        aria-labelledby="home-app-title"
+      >
+        <div className="wrap app-block">
+          <div className="app-block-copy">
+            <p className="t-label">L&rsquo;Affogato uygulaması</p>
+            <h2 id="home-app-title" className="t-display">
+              Siparişin uygulamada, kahven masanda
+            </h2>
+            <p className="t-body">
+              Masandan ya da yoldayken sipariş ver, uygulamada öde. Kafe
+              siparişlerin damga toplar, kartın dolunca içecek bizden.
+            </p>
+            <AppStoreLinks className="app-block-store" />
+            <ul className="ruled-list" role="list">
+              {points.map((pt) => (
+                <li key={pt.title}>
+                  <h3 className="t-label">{pt.title}</h3>
+                  <p className="t-body">{pt.body}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="t-small t-muted">
+              Uygulama ve sitede aynı üyelik. Gel-al siparişi ve karaoke odası
+              Tuzla köşkü içindir.
+            </p>
+          </div>
+          <AppPhones className="app-block-phones" />
         </div>
-        <div className="app-block-media media ratio-6-5">
-          <Image
-            src={siteImage(images, "home.app").src}
-            unoptimized={siteImage(images, "home.app").src.startsWith(
-              "/gorsel/",
-            )}
-            alt={siteImage(images, "home.app").alt}
-            fill
-            sizes="(max-width: 1023px) 100vw, 58vw"
-          />
-        </div>
-      </div>
-    </section>
+      </section>
+      <TableOrderBand
+        headingId="home-table-title"
+        media={
+          <div className="media ratio-6-5">
+            <Image
+              src={photo.src}
+              unoptimized={photo.src.startsWith("/gorsel/")}
+              alt={photo.alt}
+              fill
+              loading="lazy"
+              sizes="(max-width: 1023px) 100vw, 50vw"
+            />
+          </div>
+        }
+      >
+        <p className="t-small table-order-note">
+          Uygulaman yoksa QR menüyü tarayıcıda açar; sipariş vermek için
+          uygulamayı indirmen yeter.
+        </p>
+      </TableOrderBand>
+    </>
   );
 }
 

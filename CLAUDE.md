@@ -291,8 +291,26 @@ başlığı, sağ altta bağlantısı ve 01/02/03 sayfalayıcı (telefonda alt
 alta). Filmin altında `home-page.tsx`'in bölümleri gelir:
 Şimdi barda (canlı menüden dört kalem, fotoğraflılar önce), imza içeceği,
 Kategoriler, Evde L'Affogato, karaoke (ayarlardan ve bugünün boş
-saatlerinden), uygulama, Bizi ziyaret edin, Rehberler (`home-app-intro`,
-`home-take-home` ve `home-karaoke` buraya katıldı). Unutulmaması gerekenler:
+saatlerinden), uygulama, masadan sipariş, Bizi ziyaret edin, Rehberler
+(`home-app-intro`, `home-take-home` ve `home-karaoke` buraya katıldı).
+Unutulmaması gerekenler:
+
+- **Uygulama vitrini ve masadan sipariş bandı** (22 Kas 2026; operatör:
+  _"Uygulama mockuplarını da ekle lafmobil reposu kodundan veya app
+  storedan bak en iyi şekilde ekle teşvik et ve masadan da sipariş
+  verebildiklerinin farkında olsunlar"_; `app-showcase.tsx`, stili
+  `home.css`): uygulama bölümü üç telefon gösterir. İkisi uygulamanın App
+  Store ekran görüntüsüdür (lafmobil `store/screenshots/6.7-inch`, 600px
+  webp: `public/brand/app-screen-{menu,home}.webp`); ortadaki masa siparişi
+  ekranı mağaza setinde olmadığı için uygulamanın kendi metinleriyle
+  (lafmobil `src/i18n/screens/table.ts`) işaretlemeyle çizilir, fiyat,
+  puan, yorum ya da indirme sayısı taşımaz. Altındaki kömür bant
+  (`TableOrderBand`: QR'ı okut, seç ve öde, masana gelsin) anasayfada
+  `home.app` fotoğrafıyla, `/ziyaret`'te çizilmiş telefonla durur; `/menu`
+  başlığın altında tek satırla söyler (`/masa`'da gizli: orada kendi
+  bandı var). Masaya siparişin panel anahtarı (`tableEnabled`) sayfaya
+  gelmez: kapatılırsa bu metinler elle kaldırılır. Görseller tembel
+  yüklenir, ilk boyamaya girmez.
 
 - **Film lisanslı stok, bizim çekimimiz değil.** Üç Mixkit klibi, sessiz
   H.264, `faststart`: `public/video/hero-{1,2,3}-{wide,tall}.mp4` ve her

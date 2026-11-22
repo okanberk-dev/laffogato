@@ -141,19 +141,272 @@
   }
 }
 
-/* ── The app block: text and points beside a photograph ────── */
+/* ── The app block: the pitch and its points beside three phones ──
+   Two of the screens are the app's App Store screenshots, the middle
+   one (the table order) is drawn in markup (app-showcase.tsx). Square
+   frames, no shadow; the pills inside the screens are the app's own. */
 .app-block {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 58%);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 56%);
   gap: 48px;
-  align-items: start;
+  align-items: center;
 }
 .app-block-copy {
   display: grid;
   gap: 16px;
   justify-items: start;
 }
+.app-block-copy > .t-label {
+  color: var(--muted);
+}
+.app-block-copy .ruled-list {
+  margin-top: 16px;
+  justify-self: stretch;
+}
 .app-block-store {
+  justify-self: stretch;
+  margin-top: 8px;
+}
+.app-phones {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(12px, 2vw, 28px);
+  min-width: 0;
+}
+.app-device {
+  flex: 0 1 var(--device-w, 200px);
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+  text-align: center;
+}
+.app-device--lead {
+  --device-w: 244px;
+}
+.app-device figcaption {
+  color: var(--muted);
+}
+.app-device-screen {
+  aspect-ratio: 600 / 1300;
+  border: 7px solid var(--charcoal-deep);
+  background: var(--surface);
+  overflow: hidden;
+}
+.app-device-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.app-phones--one .app-device {
+  flex-basis: 244px;
+}
+/* The drawn screen. Sized in container units so it keeps its
+   proportions at any phone width; it is a picture (role="img"), its
+   words are not the page's type scale. */
+.app-mock {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  background: var(--sage);
+  color: var(--forest-ink);
+  font-family: var(--sans);
+}
+.app-mock :where(p, ul) {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.app-mock-status {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 5cqw 8cqw 0;
+  font-size: 5cqw;
+  font-weight: 600;
+}
+.app-mock-island {
+  width: 30cqw;
+  height: 8.6cqw;
+  border-radius: 999px;
+  background: var(--charcoal-deep);
+}
+.app-mock-signal {
+  justify-self: end;
+  width: 8cqw;
+  height: 3.6cqw;
+  border-radius: 1cqw;
+  background: var(--forest-ink);
+}
+.app-mock-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4.6cqw;
+  flex: 1;
+  min-height: 0;
+  padding: 7cqw 5cqw 8cqw;
+  font-size: 5.6cqw;
+  line-height: 1.3;
+}
+.app-mock-title {
+  text-align: center;
+  font-size: 6.2cqw;
+  font-weight: 600;
+}
+.app-mock-chip {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 2.4cqw;
+  padding: 2.4cqw 5cqw;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--sage-line);
+  font-weight: 600;
+}
+.app-mock-dot {
+  width: 2.8cqw;
+  height: 2.8cqw;
+  border-radius: 50%;
+  background: var(--forest);
+}
+.app-mock-rows {
+  display: grid;
+  border-radius: 6cqw;
+  background: var(--surface);
+  border: 1px solid var(--sage-line);
+}
+.app-mock-rows li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 3.6cqw;
+  padding: 6cqw 4.4cqw;
+}
+.app-mock-rows li + li {
+  border-top: 1px solid var(--sage-line);
+}
+.app-mock-cup {
+  width: 13cqw;
+  height: 13cqw;
+  border-radius: 50%;
+  border: 1px solid var(--sage-line);
+  background: var(--sage);
+}
+.app-mock-cup.is-brass {
+  background: var(--brass);
+}
+.app-mock-cup.is-sage {
+  background: color-mix(in srgb, var(--forest) 38%, var(--surface));
+}
+.app-mock-cup.is-rose {
+  background: color-mix(in srgb, var(--error) 30%, var(--surface));
+}
+.app-mock-name {
+  font-weight: 600;
+  min-width: 0;
+}
+.app-mock-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.6cqw;
+  padding: 1.4cqw 3cqw;
+  border-radius: 999px;
+  background: var(--sage);
+  font-weight: 600;
+}
+.app-mock-qty i {
+  font-style: normal;
+  color: var(--forest-muted);
+}
+.app-mock-card {
+  padding: 5.4cqw 4.4cqw;
+  border-radius: 6cqw;
+  background: var(--surface);
+  border: 1px solid var(--sage-line);
+}
+.app-mock-card-k {
+  font-weight: 600;
+  color: var(--forest);
+}
+.app-mock-card-v {
+  margin-top: 1cqw;
+  font-size: 4.6cqw;
+  color: var(--forest-muted);
+}
+.app-mock-cta {
+  margin-top: auto;
+  padding: 4.6cqw;
+  border-radius: 999px;
+  background: var(--forest);
+  color: var(--on-dark);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── The table-order band (home, /ziyaret) ─────────────────── */
+.table-order-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+}
+.table-order-grid--phone {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(48px, 8vw, 120px);
+}
+.table-order-grid--phone .table-order-media {
+  order: 1;
+  width: 244px;
+}
+.table-order-copy {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+  max-width: 620px;
+}
+.table-order-copy > .t-label,
+.table-order .app-device figcaption {
+  color: var(--on-dark-muted);
+}
+.table-order-copy .t-display {
+  margin: 0;
+}
+.table-order-lede,
+.table-order-note {
+  margin: 0;
+  color: var(--on-dark-muted);
+}
+.table-steps {
+  justify-self: stretch;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.table-steps > li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px;
+  padding: 16px 0 18px;
+  border-top: 1px solid color-mix(in srgb, var(--on-dark) 24%, transparent);
+}
+.table-steps > li:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--on-dark) 24%, transparent);
+}
+.table-steps-n {
+  color: var(--on-dark-muted);
+  line-height: 22px;
+}
+.table-steps .t-title {
+  margin: 0 0 4px;
+}
+.table-steps .t-body {
+  margin: 0;
+  color: var(--on-dark-muted);
+}
+.table-order-store {
   justify-self: stretch;
   margin-top: 8px;
 }
@@ -208,13 +461,45 @@
   border-radius: 50%;
   background: var(--muted);
 }
-/* Side by side only where the photo is as tall as the text beside it;
-   under 1200px the photo goes on top. */
+/* Side by side only where three phones fit beside the text; under
+   1200px the phones go on top. On a phone they are a snap row that
+   starts on the table order and runs to the screen's edges. */
 @media (max-width: 1199px) {
   .app-block {
     grid-template-columns: 1fr;
   }
-  .app-block-media {
+  .app-block-phones {
+    order: -1;
+  }
+}
+@media (max-width: 1023px) {
+  .table-order-grid,
+  .table-order-grid--phone {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .table-order-grid--phone .table-order-media {
+    width: min(244px, 70%);
+    justify-self: center;
+  }
+}
+@media (max-width: 767px) {
+  .app-block-phones {
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 16px;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+  .app-block-phones .app-device {
+    flex: 0 0 204px;
+    scroll-snap-align: start;
+  }
+  .app-block-phones .app-device--lead {
     order: -1;
   }
 }

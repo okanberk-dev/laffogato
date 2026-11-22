@@ -1821,3 +1821,13 @@
     justify-self: start;
   }
 }
+
+/* The table-order line under the menu's lede. /masa says it in its own
+   banner, so the line steps aside there. */
+.menu-app-nudge {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+main:has(.table-banner) .menu-app-nudge {
+  display: none;
+}
