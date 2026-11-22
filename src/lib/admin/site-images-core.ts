@@ -35,7 +35,6 @@ export const SITE_IMAGE_GROUPS = [
   "Karaoke",
   "Anasayfa",
   "Ziyaret ve hikâye",
-  "Menü panelleri",
 ] as const;
 
 export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
@@ -84,24 +83,6 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
     fallback: "/rehber/tiramisu-tarifi.webp",
     alt: "",
     ratio: "16:5 (telefonda 4:3)",
-  },
-  {
-    key: "hero.guides",
-    group: "Sayfa açılışları",
-    label: "Rehber",
-    where: "/rehber sayfasının üstü",
-    fallback: "/rehber/espresso-cesitleri.webp",
-    alt: "",
-    ratio: "16:5 (telefonda 4:3)",
-  },
-  {
-    key: "hero.notfound",
-    group: "Sayfa açılışları",
-    label: "Sayfa bulunamadı (404)",
-    where: "Var olmayan bir adrese gidildiğinde açılan sayfa",
-    fallback: "/photos/facade-night.webp",
-    alt: "",
-    ratio: "Tam ekran (telefonda dik)",
   },
   // ── Karaoke ──
   {
@@ -188,15 +169,6 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
     ratio: "4:3",
   },
   {
-    key: "visit.marina",
-    group: "Ziyaret ve hikâye",
-    label: "L'Affogato Marina kartı",
-    where: "/ziyaret sayfasındaki Marina kartı (yüklenene kadar boş zemin)",
-    fallback: "",
-    alt: "L'Affogato Marina",
-    ratio: "4:3",
-  },
-  {
     key: "visit.private",
     group: "Ziyaret ve hikâye",
     label: "Özel kiralama kartı",
@@ -221,34 +193,6 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
     where: "/hikayemiz sayfasındaki kurucu bölümü",
     fallback: "/photos/interior-chest.webp",
     alt: "Köşkün salonu",
-    ratio: "4:3",
-  },
-  // ── Menü panelleri ──
-  {
-    key: "nav.menu",
-    group: "Menü panelleri",
-    label: "Menü panelindeki fotoğraf",
-    where: "Üst çubukta Menü'nün üstüne gelince açılan panel",
-    fallback: "/menu/strawberry-matcha.webp",
-    alt: "",
-    ratio: "4:3",
-  },
-  {
-    key: "nav.shop",
-    group: "Menü panelleri",
-    label: "Mağaza panelindeki fotoğraf",
-    where: "Üst çubukta Mağaza'nın üstüne gelince açılan panel",
-    fallback: "/menu/espresso.webp",
-    alt: "",
-    ratio: "4:3",
-  },
-  {
-    key: "nav.visit",
-    group: "Menü panelleri",
-    label: "Ziyaret panelindeki fotoğraf",
-    where: "Üst çubukta Ziyaret & keşfet'in üstüne gelince açılan panel",
-    fallback: "/photos/facade-day.webp",
-    alt: "",
     ratio: "4:3",
   },
 ];

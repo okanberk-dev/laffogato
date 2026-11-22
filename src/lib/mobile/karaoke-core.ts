@@ -671,6 +671,26 @@ export function readExpectedCancelPolicy(
 /** The address domain a desk row without an e-mail gets: never mailed. */
 export const DESK_PLACEHOLDER_DOMAIN = "laffogato.invalid";
 
+/** The note a closed-hours desk row starts with ("Kapalı: özel etkinlik"). */
+export const DESK_BLOCK_NOTE_PREFIX = "Kapalı";
+
+/**
+ * Hours the köşk closed (karaoke-desk.ts, kind "block"): a desk row with no
+ * money and the closed-hours note. Not a booking: no guest, never counted
+ * as a reservation, revenue or occupancy.
+ */
+export function isDeskBlock(r: {
+  channel?: string | null;
+  totalMinor?: number | null;
+  note?: string | null;
+}): boolean {
+  return (
+    r.channel === "desk" &&
+    (r.totalMinor ?? 0) === 0 &&
+    (r.note ?? "").startsWith(DESK_BLOCK_NOTE_PREFIX)
+  );
+}
+
 /** Does this address belong to a desk row that has no real e-mail? */
 export function isDeskPlaceholderEmail(email: string | null | undefined) {
   return (email ?? "")

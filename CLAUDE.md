@@ -288,6 +288,23 @@ alt gölge (`.hero-film-shade`) tutar; oran kareye göre değişir. Bu oranları
 tutan test artık koşmuyor (en üstteki not): token değişince elle ölçülür
 (aşağıda "Tasarım Sistemi").
 
+## Site görselleri panelden (22 Kas 2026)
+
+Operatör: _"sitedeki görselleri panelden de yönetebiliyor olalım ... karaoke
+fotoğrafı admin panelden değiştirilebilir olsun"_. **Site metinleri ›
+Görseller** (`/admin/gorseller`, `content` bölümü): 17 alan (sayfa
+açılışları, karaoke açılışı ve odası, anasayfa bölümleri, ziyaret ve hikâye
+kartları; `src/lib/admin/site-images-core.ts`). Yüklenen fotoğraf
+`site_images`'ta durur, `/gorsel/site/<key>?v=<damga>` ile sunulur; sayfalar
+haritayı `getSiteImages()` ile önbellekten okur (`pub:site`; `loadAppProps`
+→ `images`, karaoke ve kampanya rotaları doğrudan). Yüklenen görsel
+`next/image`'da `unoptimized` çizilir (Next 16 yerel `?v=` adresini
+`localPatterns` olmadan optimize etmez); paketteki fotoğraflar optimize
+edilir. Yeni bir alan: önce sayfada okunan yere bağla, sonra listeye ekle
+(okunmayan alan panelde boşuna durur). Karaoke sayfasında sihirbazla SSS
+arasında kömür "sahne" bandı odanın fotoğrafını (`karaoke.room`) ve panelin
+üç rakamını gösterir.
+
 ## Ön yüz ↔ Arka yüz Sınırı
 
 > **Müşteri arayüzü yeniden tasarlanacak; arka yüz bundan etkilenmemeli.**

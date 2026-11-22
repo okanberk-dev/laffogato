@@ -30,7 +30,9 @@ export function CampaignsPage({
   cards,
   stampTarget,
   rewardTitle,
+  heroImage = { src: "/rehber/tiramisu-tarifi.webp", alt: "" },
 }: {
+  heroImage?: { src: string; alt: string };
   posts: CampaignPost[];
   cards: { loyalty: boolean; invite: boolean; subscription: boolean };
   stampTarget: number;
@@ -66,7 +68,7 @@ export function CampaignsPage({
       <PageHero
         title="Kampanyalar ve etkinlikler"
         lede="Sezon kampanyaları, iş birlikleri ve köşkte olan biten. Damga programı ve davet ödülü de burada: ikisi de uygulamada ve web'de aynı hesaba işler."
-        image={{ src: "/rehber/tiramisu-tarifi.webp" }}
+        image={heroImage}
       />
 
       {programmes.length > 0 && (

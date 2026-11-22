@@ -83,6 +83,9 @@ function dayLabel(date: string, today: string, tomorrow: string): string {
 const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 export interface KaraokeBookingProps {
+  /** The page's photographs (Görseller: karaoke.hero, karaoke.room). */
+  heroImage?: { src: string; alt: string };
+  roomImage?: { src: string; alt: string };
   /** The bookable window, as Istanbul calendar days. */
   days: string[];
   date: string;
@@ -217,6 +220,8 @@ export function KaraokeBooking({
   prepay,
   contact,
   now,
+  heroImage = { src: "/photos/hero-karaoke.webp", alt: "" },
+  roomImage = { src: "/photos/interior-chest.webp", alt: "Köşkün üst katı" },
 }: KaraokeBookingProps) {
   const slots = availability?.slots ?? [];
   const firstFree = slots.find((s) => s.available)?.startHour;
@@ -723,7 +728,7 @@ export function KaraokeBooking({
       data-wizard-step={s.enhanced ? current : undefined}
     >
       <PageHero
-        image={{ src: "/photos/hero-karaoke.webp" }}
+        image={heroImage}
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", `gece ${hourToLabel(closeHour)} kadar`]}
         lede={
@@ -732,7 +737,7 @@ export function KaraokeBooking({
             : `${capacity} kişilik oda. Saatini seç, isteğini gönder.`
         }
       />
-      <div className="wrap">
+      <div className="wrap" id="karaoke-takvim">
         <form
           action={formAction}
           onSubmit={onSubmit}
@@ -1444,11 +1449,7 @@ export function KaraokeBooking({
           <aside className="karaoke-side" aria-label="Rezervasyon özeti">
             <div className="karaoke-photo">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/photos/interior-chest.webp"
-                alt="Köşkün üst katı"
-                loading="lazy"
-              />
+              <img src={roomImage.src} alt={roomImage.alt} loading="lazy" />
             </div>
 
             <div className="karaoke-summary">

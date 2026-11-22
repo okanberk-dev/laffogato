@@ -7,7 +7,12 @@ import { CampaignsPage } from "@/components/laffogato/campaigns-page";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { openGraphBase } from "@/lib/seo/site";
 import { footerSettings } from "@/lib/seo/contact";
-import { getSiteSettings, listSiteAppPosts } from "@/lib/seo/site-data";
+import {
+  getSiteImages,
+  getSiteSettings,
+  listSiteAppPosts,
+} from "@/lib/seo/site-data";
+import { siteImage } from "@/lib/admin/site-images-core";
 
 export const dynamic = "force-dynamic";
 
@@ -51,9 +56,10 @@ export const metadata: Metadata = {
  * and each of those answers to its switch.
  */
 export default async function KampanyalarPage() {
-  const [settings, posts] = await Promise.all([
+  const [settings, posts, images] = await Promise.all([
     getSiteSettings(),
     listSiteAppPosts(),
+    getSiteImages(),
   ]);
 
   return (
@@ -66,6 +72,7 @@ export default async function KampanyalarPage() {
       />
       <SiteChrome settings={footerSettings(settings)}>
         <CampaignsPage
+          heroImage={siteImage(images, "hero.campaigns")}
           posts={posts.map((p) => ({
             id: p.id,
             kind: p.kind,

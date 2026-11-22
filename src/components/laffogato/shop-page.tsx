@@ -1,5 +1,6 @@
 "use client";
 
+import { siteImage } from "@/lib/admin/site-images-core";
 import Image from "next/image";
 
 import { usePathname } from "next/navigation";
@@ -86,6 +87,7 @@ export function PageShop({
   shopHeroSlides,
   settings,
   freeShippingThreshold,
+  images,
 }: PageProps) {
   const pathname = usePathname();
   // `[]` means "the shop really has nothing to show" - during a database
@@ -304,10 +306,7 @@ export function PageShop({
             olsun.
           </p>
           <div className="shop-helpline-actions">
-            <a
-              href={`tel:${phone.replace(/\s+/g, "")}`}
-              className="btn btn-sm"
-            >
+            <a href={`tel:${phone.replace(/\s+/g, "")}`} className="btn btn-sm">
               Ara
             </a>
             <a href={`mailto:${email}`} className="btn btn-sm">
@@ -346,8 +345,11 @@ export function PageShop({
       ) : (
         <div className="page-hero-media media">
           <Image
-            src="/photos/hero-shop.webp"
-            alt=""
+            src={siteImage(images, "hero.shop").src}
+            unoptimized={siteImage(images, "hero.shop").src.startsWith(
+              "/gorsel/",
+            )}
+            alt={siteImage(images, "hero.shop").alt}
             fill
             priority
             sizes="100vw"
@@ -377,7 +379,9 @@ export function PageShop({
               >
                 Filtre
                 {activeFilterCount > 0 ? (
-                  <span className="chip-count tabular">{activeFilterCount}</span>
+                  <span className="chip-count tabular">
+                    {activeFilterCount}
+                  </span>
                 ) : (
                   <svg viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M2 4h12M4 8h8M6 12h4" />
@@ -416,7 +420,11 @@ export function PageShop({
           {list.length === 0 && (
             <div className="collection-empty">
               <p className="t-title">Bu filtreyle ürün yok</p>
-              <button type="button" className="btn btn-wide" onClick={resetFilters}>
+              <button
+                type="button"
+                className="btn btn-wide"
+                onClick={resetFilters}
+              >
                 Filtreleri temizle
               </button>
             </div>
@@ -481,7 +489,10 @@ export function PageShop({
       </div>
 
       {featured && (
-        <section className="split section--band" aria-labelledby="shop-set-title">
+        <section
+          className="split section--band"
+          aria-labelledby="shop-set-title"
+        >
           <div className="split-copy">
             <p className="t-label">Evde ritüel · iki kişilik</p>
             <h2 id="shop-set-title" className="t-display">

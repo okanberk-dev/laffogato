@@ -1,5 +1,6 @@
 "use client";
 
+import { siteImage } from "@/lib/admin/site-images-core";
 import Image from "next/image";
 
 import Link from "@/components/link";
@@ -15,7 +16,12 @@ import type { PageProps } from "./page-shared";
  * pour as small grids. The copy is the panel's where the panel has a key
  * (story.hero.lede, story.founder.bio) and the timeline is /admin/hikaye.
  */
-export function PageStory({ press, storyTimeline, content }: PageProps) {
+export function PageStory({
+  press,
+  storyTimeline,
+  content,
+  images,
+}: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const heritage = storyTimeline ?? STORY.heritage;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
@@ -69,7 +75,7 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           "story.hero.lede",
           "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyük dedesinin 1897’de açtığı L’Affogato barını dördüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
         )}
-        image={{ src: "/photos/hero-story.webp" }}
+        image={siteImage(images, "hero.story")}
       />
 
       {/* The köşk ──────────────────────────────────────────── */}
@@ -89,8 +95,11 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
           <div className="story-split-media story-mosaic">
             <div className="media story-mosaic-lead">
               <Image
-                src="/photos/facade-day.webp"
-                alt="Tuzla'daki restore ahşap köşk"
+                src={siteImage(images, "story.kosk").src}
+                unoptimized={siteImage(images, "story.kosk").src.startsWith(
+                  "/gorsel/",
+                )}
+                alt={siteImage(images, "story.kosk").alt}
                 fill
                 sizes="(max-width: 767px) 100vw, 30vw"
                 style={{ objectPosition: "50% 58%" }}
@@ -132,12 +141,18 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
       </section>
 
       {/* The founder ───────────────────────────────────────── */}
-      <section className="section section--band" aria-labelledby="story-founder">
+      <section
+        className="section section--band"
+        aria-labelledby="story-founder"
+      >
         <div className="wrap story-split story-split--flip">
           <div className="story-split-media media ratio-6-5">
             <Image
-              src="/photos/interior-chest.webp"
-              alt="Köşkün içi: ahşap sandık ve vitrin"
+              src={siteImage(images, "story.founder").src}
+              unoptimized={siteImage(images, "story.founder").src.startsWith(
+                "/gorsel/",
+              )}
+              alt={siteImage(images, "story.founder").alt}
               fill
               sizes="(max-width: 767px) 100vw, 50vw"
             />
@@ -147,7 +162,9 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
             <h2 id="story-founder" className="t-display">
               Eda Mancuso
             </h2>
-            <p className="t-body">{c("story.founder.bio", STORY.founder.bio)}</p>
+            <p className="t-body">
+              {c("story.founder.bio", STORY.founder.bio)}
+            </p>
             <blockquote className="story-quote">
               <p className="t-body">
                 “Affogato benim için bir kahve değil, bir ritüel. Floransa’da
@@ -231,7 +248,10 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
 
       {/* Only quotes a publication actually gave (/admin/basin). */}
       {PRESS.length > 0 ? (
-        <section className="section section--band" aria-labelledby="story-press">
+        <section
+          className="section section--band"
+          aria-labelledby="story-press"
+        >
           <div className="wrap">
             <div className="section-head section-head--center">
               <h2

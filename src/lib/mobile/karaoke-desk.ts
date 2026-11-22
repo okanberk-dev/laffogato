@@ -14,6 +14,7 @@ import {
   setReservationStatus,
 } from "./karaoke";
 import {
+  DESK_BLOCK_NOTE_PREFIX,
   DESK_PLACEHOLDER_DOMAIN,
   isCalendarDate,
   isDeskPlaceholderEmail,
@@ -264,7 +265,9 @@ export async function createDeskReservation(
     guests: isBlock ? 1 : input.guests,
     status: "confirmed",
     ...quote,
-    note: isBlock ? `Kapalı${input.note ? `: ${input.note}` : ""}` : input.note,
+    note: isBlock
+      ? `${DESK_BLOCK_NOTE_PREFIX}${input.note ? `: ${input.note}` : ""}`
+      : input.note,
     createdAt: iso,
     updatedAt: iso,
     paymentStatus: "none",

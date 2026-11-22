@@ -42,8 +42,12 @@ export function NewsletterForm() {
           ) : (
             <>
               <span className="sr-only">Abone ol</span>
-              <svg viewBox="0 0 28 12" fill="none" aria-hidden="true">
-                <path d="M0 6h26M21 1l5 5-5 5" stroke="currentColor" strokeWidth="1.2" />
+              <svg viewBox="0 0 44 8" fill="none" aria-hidden="true">
+                <path
+                  d="M0 4h43M39.5.5 43 4l-3.5 3.5"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                />
               </svg>
             </>
           )}

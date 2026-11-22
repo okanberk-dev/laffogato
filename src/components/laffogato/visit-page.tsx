@@ -1,5 +1,6 @@
 "use client";
 
+import { siteImage } from "@/lib/admin/site-images-core";
 import Image from "next/image";
 import { useMemo } from "react";
 
@@ -26,7 +27,7 @@ import { cx } from "./cx";
  * köşk, the Marina branch, private hire), then the hours, the way there and
  * the rooms. Every figure is the panel's (Ayarlar → İletişim, saatler).
  */
-export function PageVisit({ visit, settings }: PageProps) {
+export function PageVisit({ visit, settings, images }: PageProps) {
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
   // Mobil → Ayarlar → Kurye. While it is off the courier's figure gives its
   // place to the pickup time.
@@ -76,7 +77,7 @@ export function PageVisit({ visit, settings }: PageProps) {
             ? `Her gün gece ${untilTime(closing.value)} kadar açığız.`
             : ""
         }`.trim()}
-        image={{ src: "/rehber/spanish-latte-nedir.webp" }}
+        image={siteImage(images, "hero.visit")}
       >
         <a
           href={directionsUrl}
@@ -96,8 +97,11 @@ export function PageVisit({ visit, settings }: PageProps) {
             <li className="place-card">
               <div className="media ratio-4-3">
                 <Image
-                  src="/photos/facade-day.webp"
-                  alt="Tuzla'daki restore ahşap köşk"
+                  src={siteImage(images, "visit.tuzla").src}
+                  unoptimized={siteImage(images, "visit.tuzla").src.startsWith(
+                    "/gorsel/",
+                  )}
+                  alt={siteImage(images, "visit.tuzla").alt}
                   fill
                   sizes="(max-width: 767px) 100vw, 33vw"
                   style={{ objectPosition: "50% 58%" }}
@@ -133,8 +137,12 @@ export function PageVisit({ visit, settings }: PageProps) {
             <li className="place-card">
               <div className="media ratio-4-3">
                 <Image
-                  src="/photos/interior-chest.webp"
-                  alt="Köşkün salonu"
+                  src={siteImage(images, "visit.private").src}
+                  unoptimized={siteImage(
+                    images,
+                    "visit.private",
+                  ).src.startsWith("/gorsel/")}
+                  alt={siteImage(images, "visit.private").alt}
                   fill
                   sizes="(max-width: 767px) 100vw, 33vw"
                 />
