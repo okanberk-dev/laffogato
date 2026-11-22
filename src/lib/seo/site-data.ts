@@ -35,9 +35,11 @@ import {
   type ShopCategoryId,
 } from "@/lib/admin/store";
 import { presentationCache } from "@/lib/cache/presentation";
-import { TAG_CATALOG, TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
+import { TAG_CATALOG, TAG_KARAOKE, TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
 import { isDegradedRequest, publicRead } from "@/lib/db/health";
 import { HOME_BRANCH } from "@/lib/panel/branches";
+import { getKaraokeDayUnclocked } from "@/lib/mobile/karaoke";
+import type { KaraokeDay } from "@/components/laffogato/karaoke-today";
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
   getPublishedLegalOverride,
@@ -365,4 +367,36 @@ export const getSiteLegalOverride = cache(
       : publicRead("getSiteLegalOverride", null, () =>
           cachedLegalOverride(slug),
         ),
+);
+
+// ── Karaoke: the home band's free hours ──────────────────────────────────
+
+const cachedKaraokeDay = presentationCache(
+  "site-karaoke-day",
+  async (date: string): Promise<KaraokeDay> => {
+    const day = await getKaraokeDayUnclocked(date);
+    return {
+      date: day.date,
+      slots: day.slots.map((s) => ({
+        startHour: s.startHour,
+        available: s.available,
+      })),
+    };
+  },
+  // A booking, a cancel or a sweep writes karaoke_reservations
+  // (`live:karaoke`); the room's hours are settings (`pub:site`).
+  [TAG_KARAOKE, TAG_SITE],
+);
+
+/**
+ * One day's free karaoke hours for the home page's band, with no clock:
+ * the page closes the hours that have started (`readKaraokeDay`). It used
+ * to be read in the browser from the app's availability endpoint, which
+ * woke the database and ran a function on every home page view; now the
+ * page's own render reads it from the cache. `null` when the database is
+ * away: the band then shows no hours rather than guessing.
+ */
+export const getSiteKaraokeDay = cache(
+  async (date: string): Promise<KaraokeDay | null> =>
+    publicRead("getSiteKaraokeDay", null, () => cachedKaraokeDay(date)),
 );

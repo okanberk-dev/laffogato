@@ -17,6 +17,8 @@ import { FRAPPE_GUIDE } from "./guide-content-frappe-nedir";
 import { MAGNOLIA_GUIDE } from "./guide-content-magnolia-tarifi";
 import { SPANISH_LATTE_GUIDE } from "./guide-content-spanish-latte-nedir";
 import { TIRAMISU_GUIDE } from "./guide-content-tiramisu-tarifi";
+import { TUZLA_KARAOKE_GUIDE } from "./guide-content-tuzla-karaoke";
+import { TUZLA_MARINA_KAFE_GUIDE } from "./guide-content-tuzla-marina-kafe";
 import { YENILEBILIR_BARDAK_GUIDE } from "./guide-content-yenilebilir-kahve-fincani";
 
 export interface GuideSource {
@@ -1554,4 +1556,6 @@ export const GUIDE_CONTENT: GuideSource[] = [
       },
     },
   },
+  TUZLA_KARAOKE_GUIDE,
+  TUZLA_MARINA_KAFE_GUIDE,
 ];

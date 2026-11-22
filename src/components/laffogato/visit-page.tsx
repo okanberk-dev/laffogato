@@ -353,9 +353,13 @@ function BranchCard({ branch }: { branch: SiteBranch }) {
         </p>
       ) : null}
       <p className="t-small t-muted">
-        Uygulama siparişi, masadan QR siparişi ve karaoke odası Tuzla köşkü
-        içindir.
+        Uygulamadan gel-al siparişi ve karaoke odası Tuzla köşkü içindir.
       </p>
+      {branch.id === "marina" ? (
+        <Link className="link-u" href="/rehber/tuzla-marina-kafe">
+          Marina şubesi hakkında
+        </Link>
+      ) : null}
     </li>
   );
 }

@@ -4,9 +4,10 @@
  *
  * Pure and client-safe: no store, no Zod (karaoke-core builds schemas at
  * load, see tests/client-bundle-weight.test.ts). The band's facts come from
- * the panel's settings on the server; the free hours come from the public
- * availability endpoint after hydration (use-karaoke-today.ts), so the home
- * page's server render never waits on the calendar.
+ * the panel's settings on the server; the free hours come from the site's
+ * cache in the same render (`KaraokeFacts.today`), or, when that is
+ * missing, from the public availability endpoint after hydration
+ * (use-karaoke-today.ts).
  */
 
 /** The room as the panel sets it (Ayarlar, /admin/mobil/ayarlar). */
@@ -23,6 +24,12 @@ export interface KaraokeFacts {
   rubyLabel: string;
   /** `settings.karaokePrepay`: paid online and confirmed at once. */
   prepay: boolean;
+  /**
+   * Today's free hours, read by the page's own render from the site's
+   * cache (site-data.ts `getSiteKaraokeDay`). Missing: the band asks the
+   * public availability endpoint after hydration, as before.
+   */
+  today?: KaraokeToday;
 }
 
 /** The part of `GET /api/mobile/v1/karaoke/availability` (§7) the band reads. */

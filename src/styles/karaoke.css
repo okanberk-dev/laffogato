@@ -806,3 +806,11 @@ button.kw-progress-cell:hover .kw-progress-label {
 .karaoke-link:hover {
   text-decoration-thickness: 2px;
 }
+
+/* The questions under the booking form (/karaoke). */
+.karaoke-faq .seo-faq {
+  margin-top: 24px;
+}
+.karaoke-faq-more {
+  margin: 24px 0 0;
+}

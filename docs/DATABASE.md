@@ -122,7 +122,13 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    `/magaza/<kategori>`, `/magaza/urun/<slug>` ve kartı, `/ziyaret` kartı,
    `/kampanyalar`, `/hukuk` ve `/hukuk/<slug>` gösterimi, `/rehber` ve
    `/uye` çerçevesi, 404, `robots.txt`, `sitemap.xml`, iki `.well-known`
-   belgesi, `/masa/<kod>`'un menü kısmı. Saate bağlı her şey (bugünün
+   belgesi, `/masa/<kod>`'un menü kısmı, ana sayfanın karaoke bandındaki
+   "bugün boş saatler" (22 Kas 2026: `getSiteKaraokeDay`, `live:karaoke` +
+   `pub:site`; önceden tarayıcı her ana sayfa görüntülemesinde uygulamanın
+   `/api/mobile/v1/karaoke/availability` ucunu çağırıyor, her seferinde
+   veritabanını uyandırıp ikinci bir fonksiyon çalıştırıyordu; geçmiş
+   saatler istek başına köşkün saatiyle kapanır). `/karaoke`'nin kendisi
+   rezervasyon yolu olduğu için canlı okur. Saate bağlı her şey (bugünün
    saatleri, yayın aralıkları, ana sayfa slaytı, mağazadaki indirimin "eski
    fiyatı": önbellekte indirimin günleri durur, gösterilip gösterilmeyeceği
    her istekte `liveDiscount` ile karar bağlanır) istek başına hesaplanır.

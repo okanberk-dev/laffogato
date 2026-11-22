@@ -70,6 +70,7 @@ import {
   type KaraokeLegalConsent,
   type KaraokeReservation,
   type KaraokeReservationStatus,
+  type KaraokeSlot,
   type ReservationContact,
 } from "./karaoke-core";
 
@@ -160,6 +161,27 @@ async function listByDate(date: string): Promise<KaraokeReservation[]> {
       .order("startHour", { ascending: true }),
     "karaoke.listByDate",
   );
+}
+
+/**
+ * One day's bookable hours with no clock applied: which hours the bookings
+ * leave free, nothing about which have already started. Only the home
+ * page's band reads it, through the site's cache (site-data.ts
+ * `getSiteKaraokeDay`), and closes the hours behind the köşk's clock per
+ * request. A slot's state changes only with a booking write, and every
+ * such write expires `live:karaoke`. Booking itself never reads this.
+ */
+export async function getKaraokeDayUnclocked(
+  date: string,
+): Promise<{ date: string; slots: KaraokeSlot[] }> {
+  const [settings, bookings] = await Promise.all([
+    getSettings(),
+    listByDate(date),
+  ]);
+  return {
+    date,
+    slots: buildSlots(bookings, undefined, settings.mobileApp.karaoke),
+  };
 }
 
 export async function getAvailability(
@@ -499,9 +521,7 @@ export async function createReservation(
   // the caller's: whatever `options.legalConsent` carries for either is
   // replaced.
   const shown =
-    prepay && options.legalConsent
-      ? await karaokeConsentShown(settings)
-      : null;
+    prepay && options.legalConsent ? await karaokeConsentShown(settings) : null;
   // The rule this booking is made under (`policy` above) is kept with it
   // (TKHK m.4/2, MSY m.5/2): the panel changing it later changes nothing
   // here.
@@ -1247,16 +1267,15 @@ export async function rescheduleReservation(
       ? karaokeMovedDeadline(existing, slot)
       : null;
   const patch: Pick<KaraokeReservation, "date" | "startHour"> &
-    Partial<
-      Pick<KaraokeReservation, "cancelDeadline" | "cancellationRules">
-    > = {
-    date: slot.date,
-    startHour: slot.startHour,
-    ...(deadline ? { cancelDeadline: deadline.toISOString() } : {}),
-    ...(deadline && existing.makeGoodFor
-      ? { cancellationRules: karaokeMakeGoodRules(slot, deadline) }
-      : {}),
-  };
+    Partial<Pick<KaraokeReservation, "cancelDeadline" | "cancellationRules">> =
+    {
+      date: slot.date,
+      startHour: slot.startHour,
+      ...(deadline ? { cancelDeadline: deadline.toISOString() } : {}),
+      ...(deadline && existing.makeGoodFor
+        ? { cancellationRules: karaokeMakeGoodRules(slot, deadline) }
+        : {}),
+    };
   const res = await getDb()
     .from(TABLES.karaokeReservations)
     .update(patch)
@@ -1471,9 +1490,8 @@ async function confirmationCopy(
   return durableCopyWithin(
     `karaoke=${r.id}`,
     async () => {
-      const { karaokeDurableCopy } = await import(
-        "@/lib/legal/durable-copy-load"
-      );
+      const { karaokeDurableCopy } =
+        await import("@/lib/legal/durable-copy-load");
       return karaokeDurableCopy(r);
     },
     Math.min(MAIL_BUDGET.copy, deadline - Date.now()),
