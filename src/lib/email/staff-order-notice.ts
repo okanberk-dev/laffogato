@@ -164,10 +164,10 @@ export async function notifyStaffNewOrder(
           to: r.email,
           button: r.canOpenOrders
             ? {
-                label: "SİPARİŞİ AÇ",
+                label: "Siparişi aç",
                 url: `${SITE.url}/admin/siparisler/${encodeURIComponent(order.id)}`,
               }
-            : { label: "KASAYA GİT", url: `${SITE.url}/admin/kasa` },
+            : { label: "Kasaya git", url: `${SITE.url}/admin/kasa` },
         });
         rendered.set(r.canOpenOrders, out);
         return out;

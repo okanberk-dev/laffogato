@@ -32,7 +32,7 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   content: "Site metinleri",
   customers: "Müşteriler (üye kişisel verileri, Hesabı sil)",
   newsletter: "Bülten ve kampanya e-postası",
-  leads: "",
+  leads: "Franchise başvuruları",
   legal: "Yasal belgeler",
   promos: "Promosyon",
   stock: "Stok",

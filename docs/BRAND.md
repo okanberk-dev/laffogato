@@ -192,13 +192,13 @@ Archivo 600, 14px (başlık sesinin 400 olmayan tek yeri).
   düğmenin üstü 48px (`.section-foot`).
 - Kart sırası dört sütun, 24px aralık; mağaza ızgarası üç sütun (menü dört),
   48px satır ve 16px sütun aralığı; 1024px altında ikisi de iki sütun.
-- Footer üstten 96px, alttan 36px (600px altında üstten 56px).
+- Footer üstten 72px, alttan 32px (768px altında 48px ve 28px); sıraları arasında 56px ve bir kılçizgi.
 - **Kırılımlar.** 1280px: geniş gezinme ve açılır panel; altında hamburger ve
   tam boy sayfa. 1024px: çubuk 84px'ten 56px'e iner; altında hızlı bağlantı
-  çipleri, kartın altındaki düğme, iki sütunlu ızgara, footer'ın tek sütunlu
-  ana bölümü. 768px: telefon; başlık 20/28, geniş düğme tam satır, kartta
-  fiyat başlığın üstünde, sayfa fotoğrafı 4:3, filmin dik kesimi. 600px:
-  footer sütunları tek sütun. Ödeme ve üye alanından taşınan kurallarda ek
+  çipleri, kartın altındaki düğme, iki sütunlu ızgara, footer'ın ikişer
+  sütunu ve tek sütunlu bülten bandı. 768px: telefon; başlık 20/28, geniş
+  düğme tam satır, kartta fiyat başlığın üstünde, sayfa fotoğrafı 4:3,
+  filmin dik kesimi. Ödeme ve üye alanından taşınan kurallarda ek
   kırılımlar kalır (540-960px).
 - Sayfa yatay kaymaz (`body` `overflow-x: hidden`; alanlar `min-width: 0`).
 
@@ -367,10 +367,10 @@ bir karar ve lafmobil'de ayrı bir iştir.
 | Parça                              | Dosya                                         | Ne yapar                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Duyuru satırı (`.announce`)        | `chrome.tsx`                                  | Çubuğun üstünde 32px bant, 12px: "Her siparişte damga topla \| Kampanyalar".                                                                                                                                                                                                                                                                                                                                                                                       |
-| Üst çubuk (`.site-header`, `.nav`) | `chrome.tsx`, `chrome.css`                    | Bant zemininde, yapışkan; 84px (1024px altında 56px). Solda dört büyük harf bağlantı (Menü, Mağaza, Karaoke, Ziyaret & keşfet), ortada L'Af, sağda arama, hesap ve sepet (44px; sayaç kömür hap). Bağlantının altı çizilir: üzerine gelince, paneli açıkken ve geçerli sayfada.                                                                                                                                                                                    |
+| Üst çubuk (`.site-header`, `.nav`) | `chrome.tsx`, `chrome.css`                    | Bant zemininde, yapışkan; 84px (1024px altında 56px). Solda dört büyük harf bağlantı (Menü, Mağaza, Karaoke, Ziyaret & keşfet), ortada L'Af, sağda "Franchise" bağlantısı (1280px ve üstünde) ve arama, hesap ve sepet (44px; sayaç kömür hap). Bağlantının altı çizilir: üzerine gelince, paneli açıkken ve geçerli sayfada.                                                                                                                                                                                    |
 | Açılır panel (`.nav-panel`)        | `chrome.tsx`                                  | Yalnız 1280px ve üstünde, Menü, Mağaza ve Ziyaret & keşfet'in üzerine gelince: tam genişlik, beyaz, üstte ve altta kılçizgi; solda "Tüm …" bağlantısı ve üç sütun bağlantı, sağda 4:3 bir fotoğraf ve kapısı. Klavye, bağlantının yanındaki odakta görünen okla açar.                                                                                                                                                                                              |
 | Telefonun gezinmesi                | `chrome.tsx`                                  | 1280px altında hamburger ve çubuğun altından tam boy beyaz sayfa (60px satırlar, kılçizgi, açılır alt listeler); 1024px altında çubuğun altında yana kayan çipler (Menü, Karaoke, Mağaza, Kampanyalar).                                                                                                                                                                                                                                                            |
-| Footer (`.site-footer`)            | `chrome.tsx`                                  | Kömür zemin, beyaz yazı: işaret ve "L'Affogato" yazısı; dört sütun (Keşfet, Ziyaret, Üyelik, Kurumsal); bülten (alt çizgili alan ve ok; onay kutusu işaretsiz); sosyal hesaplar; kategori kapıları (Menüde, Mağazada); şirket bilgileri (ETHS m.5/1, 6563 m.3/1); alt satır. Kampanyalar ana menüde değildir: duyuru satırında, ziyaret panelinde, telefonun çiplerinde ve footer'da durur.                                                                        |
+| Footer (`.site-footer`)            | `chrome.tsx`                                  | Kömür zemin, beyaz yazı, kılçizgilerle (beyazın %18'i) dört sıra. (1) Bülten bandı: solda büyük başlık (24-32px) ve gri cümle, sağda alt çizgili alan ve ok, işaretsiz onay kutusu. (2) Marka (işaret 36px, "L'Affogato", "Drink it. Eat the cup.", sosyal hesaplar) ve dört sütun (Keşfet, Ziyaret, Üyelik, Kurumsal) tek ızgarada; sütun adı 12px gri etiket, bağlantılar 16/22. (3) İnce yazı: solda kategori kapıları (Menüde, Mağazada; etiket kenarda asılı, satır noktayla biter), sağda şirket bilgileri (ETHS m.5/1, 6563 m.3/1). (4) Alt satır 12px. 1280px altında marka sütunların üstünde bir satır; 1024px altında sütunlar ikişer, bant ve ince yazı tek sütun. Kampanyalar ana menüde değildir: duyuru satırında, ziyaret panelinde, telefonun çiplerinde ve footer'da durur. |
 | `<PageHero>`                       | `page-hero.tsx`                               | Anasayfa dışındaki her sayfanın açılışı: geniş fotoğraf (3.2:1, en çok 560px; telefonda 4:3), altında beyazda üst etiket, büyük harf başlık ve bir paragraf. Fotoğrafsız sayfa (hukuk) yalnız başlıkla açılır. Props: `eyebrow`, `title`, `lede`, `image`, `children`.                                                                                                                                                                                             |
 | Anasayfa filmi (`<HomeHero>`)      | `home-hero.tsx`, `home.css`                   | Çubuğun altında tam ekran film, sırayla üç klip; solda altta başlık, sağda altta bağlantı, 01/02/03 sayfalayıcı ve durdur düğmesi (§6, §7).                                                                                                                                                                                                                                                                                                                        |
 | Ürün kartı (`<ProductCard>`)       | `ui.tsx`, `sections.css`                      | 5:4 fotoğraf bant zemininde, rozet; başlık ve fiyat aynı satırda (768px altında fiyat başlığın üstünde; menü kartının M / L fiyatları her genişlikte başlığın altında), altında küçük gri satır. İndirimde üstü çizili eski fiyat ve indirimin günleri (Ticari Reklam Yön. m.14/1). Üzerine gelince fotoğraf 1.03 büyür. Geniş ekranda kart hızlı bakışı açar; kartın altındaki kömür düğme ("Sepete ekle" ya da "Seçenekleri gör") yalnız 1024px altında görünür. |
@@ -532,9 +532,11 @@ resmi 4:3. Referans sitelerin görselleri kullanılmaz (§0.6).
    palette olanlar: `src/app/layout.tsx` (`themeColor` `#f6f6f3`, bant) ve
    `src/app/global-error.tsx` (bant zemin, siyah ve gri yazı, kömür düğme,
    `#b8893a` çekirdek). `src/app/manifest.ts` 22 Kas 2026'da hâlâ Roast'ın
-   kremi `#faf7f2`'yi yazıyor: yeni palete taşınacak. Eski porselen
-   paletinde (logo yeşili) kalan ve ayrı taşınacak olanlar: işlemsel e-posta
-   (`src/lib/email/templates/*.html`), bağlantı önizlemeleri
+   kremi `#faf7f2`'yi yazıyor: yeni palete taşınacak. E-postalar
+   (`src/lib/email/templates/*.html`, Supabase'in dört şablonu
+   `docs/email/`, sözleşme eki `src/lib/legal/durable-copy.ts`) 22 Kas
+   2026'da sitenin diline ve markanın yeşiline geçti (§10). Eski porselen paletinde (logo yeşili)
+   kalan ve ayrı taşınacak olanlar: bağlantı önizlemeleri
    (`src/lib/seo/og-card.tsx`), ödeme köprüsü
    (`src/lib/payment/paynkolay-page.ts`), `public/browserconfig.xml`
    (`#1d6d56` karo), JSON-LD ikonları (`public/icon-*.png`). Uygulama ikonu
@@ -659,6 +661,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 17 Kas 2026 | **Yolculuk** (operatör: _"sitede aşağıdaki promptu uygula ve kahveciye uygun hale getir sonra maine gönder"_, "alpha project" build promptu): anasayfanın girişi kaydırmanın oynattığı film oldu; Roast girişi kalktı.                                                                                     |
 | 21 Kas 2026 | **Admin paneli StorageBox** (operatör: _"laffogato admin panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda yap"_): açık gri çerçevede ince çizgili beyaz kartlar (köşe 24), hap kontroller, koyu etkin menü hapı, tek mavi `#122aff`, DM Sans başlık ve rakam; köşk çipi kalktı, arama sade kutu (`docs/ADMIN-STORAGEBOX.md`); müşteri sitesi değişmedi. |
 | 21 Kas 2026 | **Blue Bottle dili ve film** (operatör, §0.6): önceki görünüm bütünüyle silindi; beyaz ve bant, siyah, tek gri, kömür, kare köşe, Archivo + Geist, anasayfada lisanslı stok film. Güncel değerler §0.                                                                                                      |
+| 22 Kas 2026 | **E-postalar ve /franchise markanın yeşilinde** (operatör: _"mail tasarımlarını da siteyle aynı yap"_, _"renkleri de yeşilimsi yap bizim renkler gibi"_; kapsam yalnız e-postalar ve franchise): sitenin dili, derin orman yeşili `#173f35`, adaçayı `#f2f5f1`, pirinç etiket (§10). Sitenin geri kalanı kömürde. |
 
 **11-21 Kas 2026: Roast ve yolculuk (tarihçe; 21 Kas 2026'ya kadar bu
 belgenin §0'ıydı).** Krem zemin `#faf7f2` (beyaza yakın bant `#fdfcf9`, taş
@@ -728,9 +731,9 @@ Gabarito.
 `og-card.tsx`), JSON-LD ikonları (`scripts/gen-icons.mjs` →
 `public/icon-*.png`) ve PayNkolay köprüsü porselen döneminde uygulama paletine
 taşındı; e-posta şablonları 15 Eki 2026'da (zemini gömülü bantlar HTML
-çubuğa, logo çifti ile glint GIF'i tek opak karoya döndü; şablonlar açık ve
-koyu modda okunur, `src/lib/email/templates/README.md` "Palet"). Sonraki
-görünüm değişikliklerinin hiçbiri onları taşımadı (§8).
+çubuğa, logo çifti ile glint GIF'i tek opak karoya döndü). E-postalar 22 Kas
+2026'da sitenin diline ve markanın yeşiline geçti (§10); bağlantı önizlemesi, JSON-LD ikonları ve
+PayNkolay köprüsü porselende kaldı (§8).
 
 **21 Kas 2026'da kalkanlar.** Dosyalar: `journey/` (film, çiziciler, kare
 paketleri), `roast-stage.tsx`, `roast-scene.ts`, `reveal-text.tsx`,
@@ -747,3 +750,68 @@ düğmesi, telefonun alt sekme çubuğu, "karamel ile espresso" kuralı. Palet v
 kontrast testleri (`tests/brand-theme.test.ts`, `tests/contrast.test.ts`)
 zaten 16 Kas 2026'da `tests/` ile kalkmıştı; eski hâlleri
 `git show 5d777bb:tests/<dosya>` ile okunur.
+
+---
+
+## 10. Markanın yeşili: e-postalar ve /franchise (22 Kas 2026)
+
+Operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap mailleri de
+öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler gibi ve estetik
+şık yap hepsini tekrar gözden geçirip"_. Kapsam sorusuna yanıtı: **yalnız
+e-postalar ve franchise sayfası**; sitenin geri kalanı kömürde kalır. Ton:
+**derin orman yeşili** (önerilen seçenek).
+
+**Token'lar** (`src/styles/foundation.css :root`; e-postalar aynı hex'leri
+satır içi yazar):
+
+| Token            | Değer     | Rol                                                       |
+| ---------------- | --------- | --------------------------------------------------------- |
+| `--forest`       | `#173f35` | Dolu düğme, yeşil blok, footer (e-posta), başlık ve etiket |
+| `--forest-deep`  | `#10302a` | Üzerine gelme; yeşil blok içindeki kutu                   |
+| `--forest-ink`   | `#1e2a25` | Cümle metni                                               |
+| `--forest-muted` | `#5b6a63` | İkincil satır                                             |
+| `--sage`         | `#f2f5f1` | Bant: dış zemin, panel, açık ikon karosu                  |
+| `--sage-line`    | `#d8e0da` | Kılçizgi                                                  |
+| `--brass`        | `#cba258` | Logonun çekirdeği; yeşil zeminde küçük etiket             |
+
+**Sitede yalnız /franchise.** `.theme-forest` (`src/styles/pages.css`)
+sayfanın kökünde sitenin kendi token'larını yeşile bağlar (`--charcoal`,
+`--charcoal-deep`, `--line-strong`, `--band`, `--line`, `--ink`,
+`--muted`): düğmeler, alan ve düğme kenarları, onay kutusunun noktası ve
+bant yeşillenir, bileşenlerin kuralı değişmez. Başlık ve etiketler
+`--forest`, süreç bandı derin yeşil (`.franchise-process`, beyaz başlık,
+pirinç rakam). Footer sayfanın dışındadır, kömürde kalır.
+
+**E-postalar** (`src/lib/email/templates/`, `docs/email/`, sözleşme eki
+`durable-copy.ts`; ayrıntı `src/lib/email/templates/README.md` "Palet"):
+adaçayı dış zemin, çerçevesiz beyaz kart, tepede derin yeşil başlık bandı ve
+ortasında kutusuz L'Af işareti (`laf-mark-white.png`, saydam, 54×44; operatör:
+_"logomuzu daha estetik yerleştir"_; yeşil kartta bandı 1px `#3f6658` çizgi
+kapatır), başlık ve etiket `'Archivo'` yığınıyla 400,
+büyük harf, 1.6px aralık, derin yeşil; cümle `'Geist'` yığınıyla
+`#1e2a25`; kare yeşil düğme (cümle düzeni, tek çağrı 350px); yeşil açılış,
+bilet ve footer, üstünde pirinç etiket; uygulama şeridi adaçayı bantta.
+Web fontu yüklenmez (Gmail ve Outlook yüklemez, istek alıcının adresini
+üçüncü tarafa taşır). Koyu modda kart `#111c18`, düğme açık (`#eef4f0`,
+yeşil yazı).
+
+**Kontrast** (§0.2'deki yöntemle, aşağı kesilmiş):
+
+| Ön plan                 | Zemin                 | Oran  |
+| ----------------------- | --------------------- | ----- |
+| `#173f35`               | beyaz · `#f2f5f1`     | 11.67 · 10.62 |
+| `#1e2a25`               | beyaz · `#f2f5f1`     | 14.86 · 13.52 |
+| `#5b6a63`               | beyaz · `#f2f5f1`     | 5.69 · 5.18 |
+| beyaz                   | `#173f35` · `#10302a` | 11.67 · 14.20 |
+| `#c3d3cb` (e-posta)     | `#173f35` · `#10302a` | 7.50 · 9.13 |
+| `--on-dark-muted` (site) | `#173f35`            | 7.30 |
+| `#cba258`               | `#173f35` · `#10302a` | 4.91 · 5.98 |
+| `#1f6b4a`               | `#e9f0ed`             | 5.56 |
+| `#eef4f0` (koyu mod)    | `#111c18` · `#1a2a24` | 15.65 · 13.44 |
+| `#a3b4ab` (koyu mod)    | `#111c18` · `#1a2a24` | 8.04 · 6.90 |
+| `#173f35` (koyu mod düğme) | `#eef4f0`          | 10.47 |
+
+Pirinç açık zeminde 2.4:1'de kalır: yalnız yeşil zeminde, yalnız etiket.
+Görseller `scripts/gen-email-assets.mjs` ile üretilir (Lucide ikonları,
+`public/brand` işareti); eski görseller gönderilmiş e-postalar için diskte
+kalır.

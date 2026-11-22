@@ -1237,7 +1237,7 @@ export function campaignFromPost(post: AdminAppPost): CampaignInput {
     KAMPANYA_BASLIK: post.title,
     KAMPANYA_ALT: POST_ALT_BY_KIND[post.kind] ?? POST_ALT_BY_KIND.campaign,
     KAMPANYA_METIN: post.body,
-    KAMPANYA_BUTON: post.linkLabel || "AYRINTILAR",
+    KAMPANYA_BUTON: post.linkLabel || "Ayrıntılar",
     KAMPANYA_URL: isHttpsUrl(post.linkUrl)
       ? post.linkUrl
       : `${SITE.url}/kampanyalar`,

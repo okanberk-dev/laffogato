@@ -236,6 +236,15 @@ const NAV_GROUPS: NavGroupDef[] = [
           { href: "/admin/iys", label: "İYS", section: "newsletter" },
         ],
       },
+      // The /franchise form's applications (22 Kas 2026): contact details
+      // of people who asked to open a branch, the same trust as Müşteriler.
+      {
+        href: "/admin/franchise",
+        label: "Franchise",
+        section: "leads",
+        icon: "leads",
+        keywords: ["franchise başvurusu", "bayilik", "başvuru", "şube açmak"],
+      },
     ],
   },
   {

@@ -148,6 +148,30 @@ değiştir.
 
 ${SIGNATURE}`,
 
+  "franchise-basvuru": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+L'Affogato franchise başvurun bize ulaştı. Başvurunu okuyup formda
+yazdığın telefondan ya da e-postadan sana ulaşacağız. Konsept, yatırım ve
+süreçle ilgili ayrıntıları tanışma görüşmesinde yazılı olarak paylaşırız.
+
+Başvuru: [BASVURU_NO]
+Şehir: [SEHIR]
+Yer: [YER_DURUMU]
+Yatırım: [BUTCE]
+Başlangıç: [BASLANGIC]
+
+Franchise sayfası: [FRANCHISE_URL]
+
+Başvuru ücretsizdir. L'Affogato adına sizden başvuru ya da ön
+değerlendirme ücreti isteyen biri bize ait değildir.
+
+Bilgilerini yalnız başvurunu değerlendirmek ve seninle iletişime geçmek
+için kullanırız; başvurudan [SAKLAMA_AY] ay sonra sileriz. Ayrıntı:
+https://laffogato.net/hukuk/kvkk-aydinlatma-metni
+Bu başvuruyu sen yapmadıysan bu e-postayı yanıtla, kaydı sileriz.
+
+${SIGNATURE}`,
+
   "hesap-silindi": `Merhaba,
 
 [SONUC_BASLIK]. L'Affogato hesabını kapattık: adın, telefonun, adreslerin,

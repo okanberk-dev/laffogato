@@ -51,7 +51,8 @@ export type AuthPurpose =
   | "push-device"
   | "invoice-download"
   | "table-call"
-  | "table-call-hour";
+  | "table-call-hour"
+  | "franchise-apply-ip";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -182,6 +183,11 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // call that is still open answers that call and counts nothing.
   "table-call": 1,
   "table-call-hour": 10,
+  // The /franchise application form, per sender: every submit counts,
+  // success or not, because each one is a row and a mail to the team. Five a
+  // day from one address is a family filling it in twice over; a script
+  // stops at the fifth.
+  "franchise-apply-ip": 5,
 };
 
 /**
@@ -195,6 +201,7 @@ const WINDOW_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "account-deletion": 24 * 60 * 60 * 1000,
   "table-call": 60 * 1000,
   "table-call-hour": 60 * 60 * 1000,
+  "franchise-apply-ip": 24 * 60 * 60 * 1000,
 };
 
 function windowMs(purpose: AuthPurpose): number {
@@ -206,6 +213,7 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "karaoke-hold": 12 * 60 * 60 * 1000,
   "karaoke-guest-ip": 12 * 60 * 60 * 1000,
   "account-deletion": 12 * 60 * 60 * 1000,
+  "franchise-apply-ip": 12 * 60 * 60 * 1000,
   "invoice-download": 5 * 60 * 1000,
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,

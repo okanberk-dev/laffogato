@@ -56,6 +56,10 @@ export type AuditEntity =
   // A site photograph changed from Görseller (/admin/gorseller); entityId
   // is the slot's key ("karaoke.hero").
   | "site_image"
+  // A /franchise application (/admin/franchise); entityId is its id
+  // ("frn-0001"). Status changes and deletions only, never the applicant's
+  // contact details.
+  | "franchise_application"
   // The log itself, for its own CSV export.
   | "audit_log"
   // One periodic destruction run (src/lib/retention.ts), written by the

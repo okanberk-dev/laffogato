@@ -47,7 +47,7 @@ const SAMPLE: Record<string, string> = {
   KAMPANYA_BASLIK: "Eylülde köşkte matcha haftası",
   KAMPANYA_METIN:
     "Ay boyunca matcha bar'da üç yeni demleme ve yanına eşleşen bir dolce.",
-  KAMPANYA_BUTON: "MENÜYE GÖZ AT",
+  KAMPANYA_BUTON: "Menüye göz at",
   KAMPANYA_URL: "https://laffogato.net/menu",
   // The kampanya-* family. Every optional block is filled here so a preview
   // shows the whole layout; drop a value to see its block fold away.
@@ -86,6 +86,14 @@ const SAMPLE: Record<string, string> = {
   TAKIP_URL: "https://kargo.example/takip/YK123456789TR",
   IADE_TUTARI: "95,00 ₺",
   TOPLAM_IADE: "95,00 ₺",
+  // franchise-basvuru: the applicant's receipt.
+  BASVURU_NO: "frn-0001",
+  SEHIR: "Kadıköy / İstanbul",
+  YER_DURUMU: "Yer arıyorum",
+  BUTCE: "3 - 6 milyon TL",
+  BASLANGIC: "6 - 12 ay içinde",
+  FRANCHISE_URL: "https://laffogato.net/franchise",
+  SAKLAMA_AY: "12",
 };
 
 const ITEMS = [

@@ -93,7 +93,7 @@ export async function notifyStaffOfDeletionRequest(
     const rendered = renderOperatorNotice({
       ...content,
       to: recipients[0].email,
-      button: { label: "PANELDE AÇ", url: `${SITE.url}${DELETION_ADMIN_PATH}` },
+      button: { label: "Panelde aç", url: `${SITE.url}${DELETION_ADMIN_PATH}` },
     });
     const result = await deliverBatch(
       recipients.map((r) => ({

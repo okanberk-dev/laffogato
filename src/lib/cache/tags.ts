@@ -176,6 +176,9 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   // Closed accounts' saved cards still at the POS (20261119175128): read
   // by the daily purge only, never cached.
   card_vault_purges: NONE,
+  // The /franchise form's applications (20261122135425): read live by
+  // /admin/franchise only, never cached; the public page reads none.
+  franchise_applications: NONE,
 };
 
 /**

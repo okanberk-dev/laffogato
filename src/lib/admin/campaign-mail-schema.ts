@@ -241,7 +241,7 @@ const CTA: CampaignMailGroup = {
   title: "Buton",
   fields: [
     text("KAMPANYA_BUTON", "Buton yazısı", 32, true, {
-      placeholder: "MENÜYE GÖZ AT",
+      placeholder: "Menüye göz at",
     }),
     url("KAMPANYA_URL", "Buton adresi", false, {
       hint: "Boşsa laffogato.net/kampanyalar sayfasına gider.",

@@ -1,16 +1,20 @@
 # Mail şablonları
 
-Yirmi sekiz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi dokuz gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
 
-Kaynak tasarım: Starbucks Rewards e-posta dili üzerine yazılan spesifikasyon
-(8 Eyl 2026, kampanya e-postası işi). Düzen, boşluk, ikon-disk ve bant
-dili oradan; renk ve yazı tipi `src/app/globals.css` tokenlarından - bkz.
-"Palet". Dosyalar **bitmiş tasarımdır**: markup'ı yeniden çizmeden önce
-`tests/email-templates.test.ts` ve `tests/brand-theme.test.ts`'in neyi
-kilitlediğine bak.
+Görünüm sitenin dilidir, renkleri markanın yeşilidir (22 Kas 2026,
+operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap mailleri
+de öyle"_, ardından _"renkleri de yeşilimsi yap bizim renkler gibi"_):
+sitenin düzeni, yazısı ve kontrolleri, derin orman yeşili, adaçayı bant ve
+logonun pirinci satır içi yazılır (`src/styles/foundation.css :root`
+`--forest*`, `--sage*`, `--brass`; `docs/BRAND.md` §10) - bkz. "Palet". Düzen ve alan iskeleti 8 Eyl 2026'daki
+spesifikasyondan kaldı. Dosyalar **bitmiş tasarımdır**; nöbetçi testler
+(`tests/email-templates.test.ts`, `tests/brand-theme.test.ts`) 16 Kas
+2026'da kalktı, aşağıdaki kurallar elle korunur. Şablonu değiştirdikten
+sonra `/dev/mail/<ad>` ile açık ve koyu modda, telefon genişliğinde bak.
 
 ## Dosyalar
 
@@ -33,6 +37,7 @@ kilitlediğine bak.
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
 | hesap-silme-talebi.html   | işlemsel          | L'Affogato - hesap silme talebin alındı     |
 | hesap-silindi.html        | işlemsel          | L'Affogato - hesabın silindi / kapatıldı    |
+| franchise-basvuru.html    | işlemsel          | L'Affogato - franchise başvurunu aldık      |
 | bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - 3 ürün seçkisi + kod    |
 | mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |
 | dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun - kahve bizden    |
@@ -57,8 +62,14 @@ bağlı not (`<!--IF:NOT-->`) ve tek düğme. Kod tarafı `send.ts`
 gönderilmez.
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
-bağlantısı olmadan **derlemez**, işlemsel on dörde çıkış bağlantısı
-**koydurmaz** - ikisi de `tests/email-templates.test.ts`'te kilitli.
+bağlantısı olmadan **derlemez**, işlemsel şablonlara çıkış bağlantısı
+**koydurmaz** (`render.ts`).
+
+`franchise-basvuru` /franchise formunu dolduran kişinin aldığı alındıdır
+(`sendFranchiseReceivedEmail`, `src/lib/franchise/notify.ts`): yalnız ilk
+adı, şehir, yer durumu, yatırım aralığı ve başlangıç (formun kendi
+seçenek etiketleri), başvurunun ücretsiz olduğu ve saklama süresi. Ekibin
+notu ya da başvurunun durumu yazılmaz.
 
 ### Sipariş bildirimleri
 
@@ -170,89 +181,118 @@ kampanya başlığını koyar.
 Şablonların bütün sabit görselleri `public/email/` altında durur ve
 **mutlak** adresle çağrılır: `https://laffogato.net/email/…`. Mail istemcisi
 projedeki göreli yolu bilemez, önizleme ortamının adresi de alıcıya ulaşmaz;
-adres bu yüzden `SITE.url` değil, kanonik alan adıdır.
+adres bu yüzden `SITE.url` değil, kanonik alan adıdır. Hepsi
+`scripts/gen-email-assets.mjs` ile üretilir (`node scripts/gen-email-assets.mjs`;
+işaret `public/brand`'den, ikonlar Lucide'den).
 
 ```
 public/email/
-  logo-laf-tile.png                             192×192, 76 (başlık) / 34 (alt bilgi) px basılır - uygulama ikonu:
-                                                yeşil (#1d6d56) karo üstünde krem L'Af. OPAK: Gmail'in koyu modu
-                                                renkleri ters çevirir ama görselleri çevirmez; saydam bir harf
-                                                (eski espresso/cream çifti) ters çevrilmiş kartta kayboluyordu
-  bean-{gold,golddeep}.png                      66×176 kaynak, 8×22 basılır - tarih satırının çekirdeği; açık kartta
-                                                golddeep, koyu modda (`em-only-dark`) gold
-  stamp-{empty,full}.png                        96×96 kaynak, 40×40 basılır - damga kartı hücreleri (opak disk)
-  check-badge.png                               ödeme onayı rozeti (56×56, opak disk)
-  icons/<ad>-{cream,espresso,gold,hero}.png     96×96 kaynak, 40-48 px basılır - opak disk ikonlar
-  (emekli, dosyası duruyor) band-*, logo-laf-{espresso,cream,glint,gold}, mono-*, wave-success:
-                                                zemini gömülü görsellerdi; gönderilmiş eski e-postalar hâlâ bu
-                                                adreslere bağlandığı için silinmez, hiçbir şablon çağırmaz
+  laf-mark-white.png              162×132, saydam - kutusuz L'Af işareti: beyaz harf, #cba258 çekirdek.
+                                  Başlık bandında 54×44, footer'da 39×32 basılır. Yalnız derin yeşil
+                                  zeminde durur (hiçbir istemcinin koyu modu yeşili açığa çevirmez),
+                                  bu yüzden kendi zemini yoktur; zeminli bir görsel, yeşili bir ton
+                                  kaydıran istemcide kutu gibi görünürdü.
+  check-success.png               112×112, 56 px - ödeme onayı rozeti: --success disk, beyaz tik (saydam köşe)
+  stamp-sq-{full,empty}.png       96×96, 40 px - damga kartı hücreleri, yeşil panelde: dolu = adaçayı kare ve
+                                  #b8893a çekirdek, boş = kesik çizgili kare (sitenin .stamp'ı)
+  icons/<ad>-ink.png              96×96, 40-48 px - adaçayı karo üstünde yeşil çizgi ikon (açık yüzeyler; opak)
+  icons/<ad>-white.png            96×96 - saydam zeminde beyaz çizgi ikon: yeşil bloklarda, ve açık
+                                  yüzeylerde koyu mod ikizi (em-only-dark; Gmail opak karoyu gösterir)
+  (emekli, dosyası duruyor) logo-laf-tile, check-badge, stamp-{empty,full}, bean-*, icons/<ad>-{cream,
+  espresso,gold,hero}, band-*, logo-laf-{espresso,cream,glint,gold}, mono-*, wave-success:
+                                  gönderilmiş eski e-postalar hâlâ bu adreslere bağlandığı için silinmez,
+                                  hiçbir şablon çağırmaz
 ```
 
-Logo tek dosyadır: iki zeminde de okunan opak karo. Bantlar artık görsel
-değil, kartın üst kenarında 8 px'lik bir HTML hücresidir (açık kartta yeşil,
-koyu yeşil başlığın üstünde pirinç). `tests/email-templates.test.ts` hiçbir
-şablonun zemini gömülü bir görsel çağırmadığını ve her şablonun karoyu
-bastığını doğrular.
-
 İkon adları: bell · calendar · card · check · clock · cup · gift · mail ·
-phone · pin · qr · receipt · scooter · star · store · tag · users.
+mic · phone · pin · qr · receipt · scooter · star · store · tag · users.
 
 Kampanya görseli (`KAMPANYA_GORSEL_URL`) ise formdan gelen, barındırılmış
 bir `https` görselidir; boşsa hero satırı düşer. Yeni bir sabit görsel
 `public/email/`e girer ve deploy ile yayına çıkar - şablon deploy'dan önce
-gönderilirse görsel kırık gelir. `tests/brand-theme.test.ts` her şablonun
-en az bir `laffogato.net/email/` varlığı çağırdığını ve çağırdığı her
-dosyanın diskte olduğunu doğrular.
+gönderilirse görsel kırık gelir. Her şablon en az bir `laffogato.net/email/`
+varlığı çağırır (işaret) ve çağırdığı her dosya diskte durur.
+
+## Başlık bandı (logo)
+
+Her e-posta aynı bantla açılır (22 Kas 2026, operatör: _"logomuzu daha
+estetik yerleştir"_): kartın tam genişliğinde derin yeşil bir satır, ortasında
+kutusuz L'Af işareti (`laf-mark-white.png`, 54×44; üstte 32px, altta 30px).
+Beyaz kartta bant renk değişimiyle biter ve içerik 36px aşağıdan başlar;
+yeşil kartta (karaoke, sadakat, koyu kampanyalar, ekip bildirimi) bandı
+işaretin 28px altındaki 1px `#3f6658` çizgi kapatır, içerik çizginin 28px
+altından başlar. Footer aynı işareti 39×32 taşır. Görsel engellenirse
+`alt` metni ("L'Affogato") beyaz, büyük harf ve aralıklı çizilir (stil
+`<img>`'in üstündedir). İşaret çarpıtılmaz, kutuya alınmaz, açık zemine
+konmaz.
 
 ## Palet
 
-15 Eki 2026'dan beri palet **sitenin ve uygulamanın** paletidir (porselen,
-ev yeşili, pirinç, sıcak mürekkep); Köşk değerleri (`#143d2b`, `#201c17`,
-`#8a6526`, `#e8d3a4` …) emeklidir ve `tests/email-templates.test.ts` onları
-yasaklar. Bordo yeşilin üstüne yazılmaz.
+22 Kas 2026'dan beri palet **markanın yeşilidir** (`docs/BRAND.md` §10;
+token'ları `src/styles/foundation.css :root` `--forest*`, `--sage*`,
+`--brass`, sitede yalnız /franchise sayfası giyer). Porselen dönemi
+(`#f7f3ed`, `#1d6d56`, `#17594a`, `#765923`, `#e8c877` …), kömürlü ilk
+hâl (`#333333`, `#f6f6f3`) ve Köşk değerleri emeklidir; yeni öğe onları
+yazmaz.
 
-| Rol                                           | Açık mod                                                 | Koyu mod (sınıf)                                |
-| --------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
-| Dış zemin                                     | `#f7f3ed`                                                | `#12100e` (`em-bg`)                             |
-| Kart                                          | `#ffffff`                                                | `#1c1916` (`em-card`)                           |
-| İç panel / teklif kutusu                      | `#faf6ee`                                                | `#27221d` (`em-panel`)                          |
-| Alt bilgi                                     | `#f3eee6`                                                | `#171411` (`em-foot`)                           |
-| Metin / ikincil / sessiz                      | `#211c18` / `#564d46` / `#6f655d`                        | `#f3ece3` / `#d3c9bd` / `#a99d91` (`em-t1/2/3`) |
-| Altın metin (eyebrow, bağlantı, fiyat)        | `#765923`                                                | `#e8c877` (`em-tg`)                             |
-| Yeşil metin (başlık, toplam)                  | `#17594a`                                                | `#8fd3b6` (`em-tb`)                             |
-| Çizgi                                         | `#e8e0d4` / `#e3dbcf` / `#e8c877`                        | `#3a332c` (`em-ln`)                             |
-| Düğme, üst çubuk                              | `#1d6d56` (beyaz yazı)                                   | aynı                                            |
-| Tam koyu bölüm (koyu başlık, uygulama şeridi) | `#17594a` (beyaz, krem `#d4ebe1`, pirinç `#e8c877` yazı) | aynı                                            |
-| Pirinç düğme                                  | `#e8c877` (yazı `#17594a`)                               | aynı                                            |
+| Rol                                    | Açık mod                                        | Koyu mod (sınıf)                              |
+| -------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| Dış zemin                              | adaçayı `#f2f5f1`                               | `#0c1411` (`em-bg`)                           |
+| Kart                                   | `#ffffff`, çerçevesiz, köşe 0                   | `#111c18` (`em-card`)                         |
+| İç panel (kod kutusu, uygulama şeridi) | adaçayı `#f2f5f1`                               | `#1a2a24` (`em-panel`)                        |
+| Başlık, etiket, fiyat, bağlantı        | derin yeşil `#173f35`                           | `#eef4f0` (`em-t1`)                           |
+| Cümle / ikincil satır                  | `#1e2a25` / `#5b6a63`                           | `#eef4f0` / `#a3b4ab` (`em-t1/t3`)            |
+| Çizgi / kural                          | `#d8e0da` / `#173f35`                           | `#2b3d36` / `#7f998d` (`em-ln/rule`)          |
+| Dolu düğme                             | `#173f35`, beyaz yazı                           | `#eef4f0`, yeşil yazı (`em-btn`, `em-btn-t`)  |
+| Çerçeveli düğme                        | 1px `#173f35`, yeşil yazı                       | açık kenar ve yazı (`em-btn-o`, `em-t1`)      |
+| Yeşil blok (koyu açılış, bilet, footer) | `#173f35`; içinde kutu `#10302a`               | aynı                                          |
+| Yeşil blokta metin                     | `#ffffff` / `#c3d3cb`, etiket pirinç `#cba258`, kural `#3f6658` | aynı                     |
+| Yeşil blokta düğme                     | beyaz dolu (yeşil yazı) ya da beyaz çerçeve     | aynı                                          |
+| Durum ("onaylandı")                    | `#1f6b4a` / `#e9f0ed` (`em-ok`)                 | `#9fd8bd` / `#173a2b`                         |
 
-Tam koyu bölümler `#1d6d56` değil bir ton koyusu `#17594a`'dır: küçük pirinç
-yazı `#1d6d56` üstünde 3,8:1'de kalıyordu (AA altı), `#17594a` üstünde 5:1.
+Ölçülmüş oranlar `docs/BRAND.md` §10'da. Pirinç yalnız yeşil zeminde ve
+yalnız 12px büyük harf etikette (4.91:1); açık zeminde 2.4:1'e düştüğü için
+yazılmaz. Gri, yeşil zemine yazılmaz: yeşil blokta beyaz, `#c3d3cb` ve
+pirinç.
 
-Yazı: Poppins yığını (sitenin metin sesi). Web fontu Gmail/Outlook'ta
-yüklenmez, sistem fontuna düşer.
+**Yazı.** İki ses, sitenin sesleri; web fontu yüklenmez, yazı yüzü yoksa
+sistemin groteski çizer:
 
-**Koyu mod - nasıl çalışır.** Her şablon AYNI `<style>` bloğunu taşır
-(`tests/email-templates.test.ts` birebir aynılığı doğrular):
+- Başlık, etiket, kart başlığı, fiyat: `'Archivo','Helvetica Neue',
+  Helvetica, Arial, sans-serif`, 400, `text-transform: uppercase`,
+  `letter-spacing: 1.6px`. Açılış başlığı 28/36 (telefonda `em-h1` 24/32),
+  bölüm başlığı 20/28, kart başlığı 16/22 ya da 14/20, etiket 12/16. Metin
+  cümle düzeninde yazılır, büyük harfi CSS yapar.
+- Cümle ve düğme: `'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+  Helvetica, Arial, sans-serif`, 400; gövde 16/24, alt başlık 18/26, küçük
+  satır 14/22, dipnot 12/18.
+- Kod (kupon, takip, fatura no): sistemin eş genişliklisi, 24/32, 4px aralık.
+
+**Düğme.** Kare, derin yeşil, 48px (13px 36px iç boşluk), Geist 16px, **cümle düzeninde**
+("Siparişimi görüntüle"); tek çağrı `width="350"` ve telefonda tam satır.
+Koddan ya da panelden gelen düğme yazısı (`BUTON_METIN`, `KAMPANYA_BUTON`)
+da cümle düzeninde yazılır.
+
+**Koyu mod - nasıl çalışır.** Her şablon AYNI `<style>` bloğunu taşır:
 
 - Apple Mail, iOS Mail, Outlook for Mac `prefers-color-scheme`'i uygular;
   blok sınıfları koyu değerlere çevirir.
 - Outlook.com ve Outlook uygulamaları yeniden boyadığı öğelere
   `data-ogsc` / `data-ogsb` koyar; aynı sınıflar bu seçicilerle de eşlenir.
 - Gmail ikisini de uygulamaz, renkleri kendisi ters çevirir, görselleri
-  çevirmez. Bu yüzden zemini gömülü görsel yoktur ve logo opaktır.
+  çevirmez. Bu yüzden zemini gömülü görsel yoktur, açık yüzeydeki ikonlar
+  opak karodur ve logo yalnız yeşil bantta durur (koyu zemin çevrilmez).
 
-Sınıf, öğenin **üstünde durduğu yüzeye** göre konur: açık bir yüzeydeki
-metin ve zeminler sınıf taşır; yeşil ve pirinç yüzeylerdeki öğeler taşımaz,
-iki modda da okunur. Yeni bir öğe eklerken rengine karşılık gelen sınıfı da
-ver (`em-t1` `#211c18` için vb.); test, sınıfsız kalan bir eşlenen rengi
-yakalar.
+Sınıf, öğenin **üstünde durduğu yüzeye** göre konur: açık yüzeydeki metin,
+çizgi ve zeminler sınıf taşır; yeşil yüzeylerdeki öğeler taşımaz, iki modda
+da okunur. Yeni bir öğe eklerken rengine karşılık gelen sınıfı da ver
+(`em-t1` `#173f35` ve `#1e2a25` için, `em-t3` `#5b6a63` için vb.).
 
 ## Değiştirdikten sonra
 
 ```bash
 npm run email:build   # templates.generated.ts'i tazeler (commit'lenir)
-npm test -- email     # alan, 6563 ve palet nöbetçileri
-npx vitest run tests/brand-theme.test.ts   # görsel varlıkları + palet
+node scripts/gen-email-assets.mjs   # yalnız görsel değiştiyse
 ```
 
 Tarayıcıda görmek için `npm run dev` sonrası
