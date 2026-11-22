@@ -429,11 +429,12 @@ export function WizardFrame({
                     onClick={() => wizard.goTo(s.id)}
                     aria-current={current ? "step" : undefined}
                     aria-label={`${i + 1}. ${s.title}${bad ? ": düzeltilecek alan var" : done ? ": tamam" : ""}`}
-                    // Innex's step: a numbered circle and the step's name, the
-                    // current one in a pale blue pill.
-                    className={`flex min-h-11 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors pointer-fine:min-h-9 ${
+                    // StorageBox's step: a numbered circle and the step's
+                    // name, the current one a dark pill, a passed one a blue
+                    // tick, a pending one grey.
+                    className={`flex min-h-11 items-center gap-2 rounded-full py-1.5 pr-4 pl-1.5 text-sm font-medium transition-colors pointer-fine:min-h-10 ${
                       current
-                        ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
+                        ? "bg-[var(--admin-inverse)] text-[var(--admin-inverse-ink)]"
                         : bad
                           ? "border border-[var(--admin-danger)] text-[var(--admin-danger-ink)]"
                           : done
@@ -443,12 +444,12 @@ export function WizardFrame({
                   >
                     <span
                       aria-hidden="true"
-                      className={`inline-grid h-5 w-5 place-items-center rounded-full text-[11px] ${
+                      className={`inline-grid h-7 w-7 place-items-center rounded-full text-xs ${
                         current
-                          ? "bg-[var(--admin-primary)] text-white"
+                          ? "bg-white text-[var(--admin-inverse)]"
                           : done
-                            ? "bg-[var(--admin-success-soft)] text-[var(--admin-success)]"
-                            : "border border-current"
+                            ? "bg-[var(--admin-primary)] text-white"
+                            : "bg-[var(--admin-panel)] text-[var(--admin-text-mute)]"
                       }`}
                     >
                       {bad ? (

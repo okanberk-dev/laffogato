@@ -150,7 +150,12 @@ export function paletteAnchorOf(
 }
 
 /** The visible name of the search, the field's text and its label alike. */
-export const SEARCH_LABEL = "Sipariş, müşteri ya da sayfa ara";
+/**
+ * The top bar's search, in one plain word (operator, 21 Kas 2026: "arama
+ * kısmını yapay zeka gibi yapma, basit yap"): the long prompt-like line in
+ * a wide pill is gone.
+ */
+export const SEARCH_LABEL = "Ara";
 
 /** Another modal is up (an ActionModal, the phone drawer, the alert). */
 function otherDialogOpen(own: HTMLDialogElement | null): boolean {
@@ -289,12 +294,12 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
         aria-keyshortcuts="Meta+K Control+K"
         data-admin-palette-trigger=""
         className={cx(
-          "group/search grid shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-150 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] max-lg:size-11 max-lg:pointer-fine:size-9",
-          // From `lg` a real search field, Innex's: a pale box with the
-          // magnifier and the words, the results open from it.
-          // 44 px on touch (an iPad in landscape is `lg` too), 36 with a
-          // mouse.
-          "lg:flex lg:h-11 lg:w-72 lg:justify-start lg:gap-2 lg:bg-[var(--admin-surface-2)] lg:px-3 lg:text-[var(--admin-text-mute)] lg:hover:bg-[var(--admin-surface)] xl:w-96 lg:pointer-fine:h-9",
+          "group/search grid shrink-0 place-items-center rounded-full bg-[var(--admin-panel)] text-[var(--admin-text-soft)] transition-colors duration-150 hover:bg-[var(--admin-panel-hover)] hover:text-[var(--admin-text)] max-lg:size-11 max-lg:pointer-fine:size-10",
+          // From `lg` a small, plain search box: white, a thin line, the
+          // magnifier and "Ara"; the results open under it. Not a wide
+          // prompt bar. 44 px on touch (an iPad in landscape is `lg` too),
+          // 40 with a mouse.
+          "lg:flex lg:h-11 lg:w-56 lg:justify-start lg:gap-2.5 lg:rounded-[0.75rem] lg:border lg:border-[var(--admin-border-strong)] lg:bg-[var(--admin-surface)] lg:px-3.5 lg:text-[var(--admin-text-mute)] lg:hover:border-[var(--admin-text-mute)] lg:hover:bg-[var(--admin-surface)] xl:w-64 lg:pointer-fine:h-10",
           // Under the open results, transparent, never `invisible`: a
           // hidden field cannot take the focus back when they close, and
           // it fell to <body> (review of #231).
@@ -377,7 +382,7 @@ function PaletteDialog({
       }}
       data-anchored={anchor ? "" : undefined}
       className={cx(
-        "fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden",
+        "fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[var(--admin-shadow-lg)] backdrop:bg-[var(--admin-overlay)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden",
         // Opened from the top bar's field: the results grow out of it,
         // over a barely dimmed page, instead of a box in the middle.
         anchor &&

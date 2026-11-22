@@ -10,7 +10,10 @@
 export default function AdminLoading() {
   const block = "rounded-xl bg-[var(--admin-neutral-soft)]";
   return (
-    <main aria-busy="true" className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main
+      aria-busy="true"
+      className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6"
+    >
       <p role="status" className="sr-only">
         Sayfa yükleniyor
       </p>

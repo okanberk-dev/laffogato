@@ -90,8 +90,8 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    menüyü düşürmesin diye ayrı), `pub:site` (ayarlar,
    site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
    içerikleri, hukuk override'ları), `live:venue` (canlı durum,
-   `venue_status`: yalnız panelin köşk çipi ve zilin yoğunluk penceresi
-   okur; 22 Eki 2026'ya kadar `pub:site` altındaydı ve çipe her dokunuş
+   `venue_status`: yalnız zilin yoğunluk penceresi okur (panelin köşk
+   çipi 21 Kas 2026'da kalktı); 22 Eki 2026'ya kadar `pub:site` altındaydı ve çipe her dokunuş
    genel sayfaların bütün önbelleğini boşaltıyordu), `live:orders`,
    `live:karaoke`, `live:invoices` (e-Arşiv faturaları: yalnız panelin
    Faturalar rozetinin işareti taşır, 23 Eki 2026), `live:access` (panel
@@ -163,11 +163,9 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
 4. **Panel rozetleri ve sipariş listesinin sayacı da** aynı işaretlerle
    (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
    (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık
-   Neon'u bütün gece uyanık tutmaz. Üst çubuğun **köşk çipi** (UI-13, 20 Eki
-   2026) de öyle: kendi işareti `live:venue`, `pub:site` ve `live:access` altında
-   (`venue_status`, ayarlar ve panel hesapları yazılınca yenilenir), imleci
-   saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli
-   (`src/lib/admin/venue-signal.ts`); arada cevap `{ unchanged: true }`.
+   Neon'u bütün gece uyanık tutmaz. Üst çubuğun köşk çipi (UI-13, 20 Eki
+   2026) de aynı düzende yoklardı; 21 Kas 2026'da kalktı (köşkün açık/kapalısı
+   artık saatlerden gelir, `docs/ADMIN-STORAGEBOX.md`), yoklaması da onunla.
 
 **Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
 verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,

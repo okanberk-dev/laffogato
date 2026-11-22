@@ -60,7 +60,7 @@ export function QuickLookStates({
   items: readonly QuickLookState[];
 }) {
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-border)]">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-border)]">
       {items.map((item) => (
         <div
           key={item.label}
@@ -275,7 +275,7 @@ export function QuickLookActivity({
     return <p className="text-sm text-[var(--admin-text-soft)]">{empty}</p>;
   }
   return (
-    <ol className="flex flex-col divide-y divide-[var(--admin-divider)] rounded-xl border border-[var(--admin-border)]">
+    <ol className="flex flex-col divide-y divide-[var(--admin-divider)] rounded-xl border border-[var(--admin-card-border)]">
       {events.map((e) => (
         <li key={e.key} className="flex items-start gap-3 px-3.5 py-2.5">
           <span className="min-w-0 flex-1">

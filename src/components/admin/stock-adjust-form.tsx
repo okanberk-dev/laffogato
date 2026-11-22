@@ -62,7 +62,7 @@ export function StockAdjustForm({
     // under it is drawn on: two grey forms one above the other read as
     // one. On a phone it folds behind its title (the moves are what the
     // page is opened for); from md up it is always open (openFromMd).
-    <section className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 sm:p-6">
+    <section className="rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-4 sm:p-6">
       <details ref={openFromMd} className="group md:details-content:contents">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 select-none md:hidden pointer-fine:min-h-9 [&::-webkit-details-marker]:hidden">
           <span className={CARD_TITLE}>Stok düzelt</span>

@@ -81,7 +81,7 @@ export default async function CafeTablePage({ params }: PageProps) {
   ];
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-5xl">
       <BackLink href={CAFE_TABLES_PATH}>Masalar</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">

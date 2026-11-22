@@ -464,6 +464,8 @@ export default async function AdminDashboardPage() {
 
       <KpiStrip
         label="Bugünün özeti"
+        // Net revenue leads when it is there (owner and manager).
+        lead={tiles[0]?.money === true}
         cells={tiles.map((t) => ({
           ...t,
           icon: TILE_ICONS[t.key],

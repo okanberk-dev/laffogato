@@ -31,7 +31,7 @@ export default async function NewHomeSlidePage() {
     secondaryHref: "",
   };
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         title="Yeni slayt"
         description="Anasayfanın en üstündeki kayan alana bir kampanya ya da ürün slaytı ekle. Yayın aralığı verirsen o tarihlerde kendiliğinden açılıp kapanır."

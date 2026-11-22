@@ -29,7 +29,7 @@ export function SystemStatus({
     <details
       open={attention}
       data-testid="system-status"
-      className="group mb-5 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]"
+      className="group mb-5 rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)]"
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-xl px-4 py-2.5 text-sm select-none group-open:rounded-b-none hover:bg-[var(--admin-surface-2)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-fine:min-h-9 [&::-webkit-details-marker]:hidden">
         <span

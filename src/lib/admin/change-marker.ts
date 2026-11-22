@@ -39,8 +39,7 @@ import {
  * order list's count) asked the database every 10 to 60 seconds, and the
  * database (Neon, free plan) only sleeps after five idle minutes: a panel
  * tab left open kept it awake for the whole opening day, and a till screen
- * for the whole night (docs/DATABASE.md "Uyanmalar"). The top bar's köşk
- * chip (venue-signal.ts) was built on the same markers from the start.
+ * for the whole night (docs/DATABASE.md "Uyanmalar").
  *
  * A marker is a random token kept in the Data Cache under the table's tag.
  * There is no database read inside: a miss simply makes a new token. Every
@@ -62,16 +61,13 @@ import {
  * and `live:karaoke` alone.
  */
 
-export type ChangeMarkerKind = "orders" | "karaoke" | "invoices" | "venue";
+export type ChangeMarkerKind = "orders" | "karaoke" | "invoices";
 
 const MARKER_TAGS: Record<ChangeMarkerKind, readonly string[]> = {
   orders: [TAG_ORDERS, TAG_ACCESS],
   karaoke: [TAG_KARAOKE, TAG_ACCESS],
   // The Faturalar badge (invoiceAttentionSignalAction).
   invoices: [TAG_INVOICES, TAG_ACCESS],
-  // The köşk chip (venue-signal.ts): `venue_status` (`live:venue`) and the
-  // settings (the posted hours, `pub:site`).
-  venue: [TAG_SITE, TAG_VENUE, TAG_ACCESS],
 };
 
 /** "<now base36>-<64 random bits base36>" (order-alerts-core `isChangeMarker`). */

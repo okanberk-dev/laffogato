@@ -22,7 +22,7 @@ export default async function EditMenuItemPage({ params }: PageProps) {
   const boundUpdate = updateMenuItemAction.bind(null, item.id);
 
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader title={item.name} />
       <MenuItemForm
         action={boundUpdate}

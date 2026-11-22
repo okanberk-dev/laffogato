@@ -1005,23 +1005,32 @@ durum bozulmaya uygundur.
   (`<RoastPause>`, tek anahtar hepsini durdurur), ekran dışında ve gizli
   sekmede çizim yok, azaltılmış harekette tek kare, WebGL yoksa aynı yerde
   düz SVG çizim. `three` statik import edilmez.
-- **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
-  Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
-  `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart
-  (kenar çubuğu 15.5rem ve sayfa; köşe 12 px), 1 px çizgiler, mürekkep
-  `#0C0E1B`, etiket grisi `#616367`, birincil mavi `#2F58F7` (Innex'in
-  `#325CFF`'i gri zeminde AA'nın altında kaldığı için bir ton koyu), Inter
-  yalnız admin layout'ta. Kenar çubuğu sakin: etkin satır gri, grup rengi
-  yok; menünün beş grup rengi (`src/components/admin/ui/hues.ts`) yalnız
-  Genel bakış ve rapor kartlarının ikon kutularında. Tutar ve kodlar
-  `NUMERIC_STYLE` (Inter tablo rakamı), karakter karakter okunan kimlik ve
-  Markdown `CODE_STYLE` (sistem eş genişlikli). Düzenler (23 Eki 2026):
-  rakamlar KPI şeridinde referansıyla, kayıt sayfaları üç bölge (tutar
-  kartı + sekmeler: sipariş, karaoke rezervasyonu, müşteri), liste araç
-  çubuğu tek satır, ürün ve menü satırı hızlı bakış çekmecesi (`?gor=`);
-  `docs/ADMIN.md` "Innex düzenleri". 21 Eki'deki AkmanOS teması lafmaliyet'te kaldı. Değerler `src/app/admin/layout.tsx` `--admin-*`;
-  yukarıdaki site kuralları panele uygulanmaz, panel de siteyi değiştirmez
-  (`docs/BRAND.md` "Admin paneli görünümü").
+- **Admin paneli görünümü** (21 Kas 2026, operatör: _"laffogato admin
+  panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda
+  yap"_): `/admin`, Madame Coco Kenya panelinin StorageBox dilini izler;
+  tarif ve kararlar `docs/ADMIN-STORAGEBOX.md`, token'lar
+  `src/app/admin/admin-theme.css` (`[data-admin-root]`, yalnız açık tema).
+  Açık gri dış zemin (`#fafafa`), kenar çubuğu çerçeveli beyaz kart, sayfa
+  `#f7f7f7` kanvas çerçeve; üstünde çok açık çizgili beyaz kartlar (köşe
+  24; panelde `rounded-xl` 24'e, `rounded-lg` 16'ya çevrilir), her kontrol
+  hap (düğme, alan, rozet, sekme), mürekkep `#1F212D`, tek mavi birincil
+  `#122AFF`, etkin menü satırı / sekme / adım koyu hap (`--admin-inverse`),
+  bekleyen iş kırmızı hap (`--admin-count`). Başlık, kart başlığı ve büyük
+  rakam DM Sans 400 (`.admin-display`, `CARD_TITLE`, `FIGURE`), gerisi
+  Inter; ikisi de yalnız admin layout'ta. Rozet zemini kaynağın açık tonu,
+  yazısı koyusu (AA). Pano rakamları ayrı kartlarda, öncü rakam (bugünün
+  net cirosu) iki kart genişliğinde (`KpiStrip lead`). Menünün beş grup
+  rengi (`src/components/admin/ui/hues.ts`) yalnız rakam kartlarının
+  yuvarlak ikonlarında. Tutar ve kodlar `NUMERIC_STYLE` (Inter tablo
+  rakamı), karakter karakter okunan kimlik ve Markdown `CODE_STYLE`.
+  Düzenler Innex döneminden kaldı (`docs/ADMIN.md` "Innex düzenleri";
+  Innex tarifi `docs/ADMIN-INNEX.md` artık tarihçe). Üst çubukta köşk çipi
+  yok: köşkün açık/kapalısı Ayarlar → Saatler'den kendiliğinden gelir
+  (Canlı durum yalnız gösterir; `manualOverride` hep `auto`); boş masa da
+  sayılmaz, `live-status.freeTables` hep `null` (22 Kas 2026, sözleşme §6). Arama sade
+  bir kutudur ("Ara"), komut / asistan dili yok. Yukarıdaki site kuralları
+  panele uygulanmaz, panel de siteyi değiştirmez (`docs/BRAND.md` "Admin
+  paneli görünümü").
 - **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve

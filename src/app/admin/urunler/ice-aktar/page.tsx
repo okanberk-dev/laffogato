@@ -15,7 +15,7 @@ export const maxDuration = 120;
 export default async function ProductImportPage() {
   await requireRole("products");
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6">
       <PageHeader
         title="CSV ile içe aktar"
         description="Ürünleri bir tablodan toplu ekle ya da güncelle. Önce önizlersin; onaylamadan hiçbir şey yazılmaz."

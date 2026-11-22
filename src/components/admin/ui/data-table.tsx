@@ -116,10 +116,12 @@ const ALIGN: Record<NonNullable<DataTableColumn<unknown>["align"]>, string> = {
  * corners; the rows under them parted by Innex's faint rule
  * (--admin-divider).
  */
+// StorageBox's table head: no ground, 14 px medium in the full ink, the
+// rows under it ruled by a thin line.
 const TABLE_HEAD =
-  "bg-[var(--admin-surface-2)] text-left text-[13px] font-medium text-[var(--admin-text-mute)]";
-/** The header's own pinned cell: the well, not the row's white. */
-const PINNED_HEAD_GROUND = "bg-[var(--admin-surface-2)]";
+  "bg-[var(--admin-surface)] text-left text-sm font-medium text-[var(--admin-text)]";
+/** The header's own pinned cell: the card's white, like the head. */
+const PINNED_HEAD_GROUND = "bg-[var(--admin-surface)]";
 
 const PINNED = "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)]";
 const PINNED_GROUND = "bg-[var(--admin-surface)]";
@@ -220,7 +222,7 @@ export function DataTable<T>({
     const none = empty ?? <EmptyState title="Kayıt yok." />;
     if (!heading) return <>{none}</>;
     return (
-      <div className="rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)]">
+      <div className="rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)]">
         <div className={HEADING_BAR}>{heading}</div>
         <div className="p-4 sm:p-5">{none}</div>
       </div>
@@ -295,7 +297,7 @@ export function DataTable<T>({
                 CARD_PRESSED,
                 selection?.has(id)
                   ? "border-[var(--admin-primary)]"
-                  : "border-[var(--admin-border)]",
+                  : "border-[var(--admin-card-border)]",
                 rowClassName?.(row),
               )}
             >
@@ -368,7 +370,7 @@ export function DataTable<T>({
               {selection ? (
                 <th
                   scope="col"
-                  className={cx("w-10 px-4 py-2.5 text-left", COMPACT.py2)}
+                  className={cx("w-10 px-4 py-3.5 text-left", COMPACT.py2)}
                 >
                   <SelectAllCheckbox
                     ids={ids}
@@ -389,7 +391,7 @@ export function DataTable<T>({
                       : undefined
                   }
                   className={cx(
-                    "px-4 py-2.5 whitespace-nowrap",
+                    "px-4 py-3.5 whitespace-nowrap",
                     COMPACT.py2,
                     ALIGN[col.align ?? "left"],
                     col.hideBelow && HIDE_BELOW[col.hideBelow],
@@ -403,7 +405,7 @@ export function DataTable<T>({
                 <th
                   scope="col"
                   className={cx(
-                    "w-14 px-4 py-2.5 text-right",
+                    "w-14 px-4 py-3.5 text-right",
                     PINNED,
                     PINNED_HEAD_GROUND,
                   )}
@@ -474,7 +476,7 @@ export function DataTable<T>({
 
 /** The title row of a table with a `heading`, inside its card. */
 const HEADING_BAR =
-  "flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--admin-border)] px-4 py-2 sm:px-5";
+  "flex min-h-16 flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--admin-divider)] px-4 py-3 sm:px-6";
 /** The same row over a phone's cards: no card around it there. */
 const HEADING_PHONE =
   "mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 md:hidden";
@@ -493,13 +495,13 @@ function TableFrame({
 }) {
   if (!heading) {
     return (
-      <div className="relative hidden overflow-x-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+      <div className="relative hidden overflow-x-auto rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] md:block">
         {children}
       </div>
     );
   }
   return (
-    <div className="hidden overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+    <div className="hidden overflow-hidden rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] md:block">
       <div className={HEADING_BAR}>{heading}</div>
       <div className="relative overflow-x-auto">{children}</div>
     </div>

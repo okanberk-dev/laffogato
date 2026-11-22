@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { useHandPost, withPanelCatch } from "@/components/admin/action-form";
 import { Field, PrimaryButton, TextInput } from "@/components/admin/forms";
+import { AdminIcon } from "@/components/admin/ui/icons";
 
 import { loginAction, type LoginState } from "./actions";
 
@@ -39,6 +40,13 @@ export function LoginForm({ next }: { next?: string }) {
   );
   const post = useHandPost(formAction, pending);
   const formRef = useRef<HTMLFormElement>(null);
+  // The eye in the field shows what was typed (a phone's keyboard makes
+  // mistakes), and a line says when Caps Lock is on: the two reasons a
+  // right password is refused.
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  const readCaps = (e: React.KeyboardEvent<HTMLInputElement>) =>
+    setCapsLock(e.getModifierState("CapsLock"));
 
   useEffect(() => {
     const field = formRef.current?.elements.namedItem("password");
@@ -69,15 +77,51 @@ export function LoginForm({ next }: { next?: string }) {
         />
       </Field>
 
-      <Field label="Şifre">
-        <TextInput
-          type="password"
-          name="password"
-          required
-          autoComplete="current-password"
-          placeholder="••••••••"
-        />
-      </Field>
+      {/* Not <Field>: its <label> would hold the eye button too, and the
+          field's name would read "Şifre Şifreyi göster". */}
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="login-password"
+          className="text-[13px] font-medium text-[var(--admin-text-soft)]"
+          style={{ fontFamily: "var(--mono), monospace" }}
+        >
+          Şifre
+        </label>
+        <span className="relative block">
+          <TextInput
+            id="login-password"
+            type={showPassword ? "text" : "password"}
+            name="password"
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            aria-describedby={capsLock ? "login-caps" : undefined}
+            onKeyDown={readCaps}
+            onKeyUp={readCaps}
+            onBlur={() => setCapsLock(false)}
+            className="pr-12"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+            aria-pressed={showPassword}
+            className="absolute top-1/2 right-1 grid size-10 -translate-y-1/2 place-items-center rounded-full text-[var(--admin-text-mute)] transition-colors hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-[3px] focus-visible:ring-[var(--admin-ring)] focus-visible:outline-none pointer-fine:size-8"
+          >
+            <AdminIcon name={showPassword ? "hide" : "show"} size={18} />
+          </button>
+        </span>
+      </div>
+      {capsLock ? (
+        <p
+          id="login-caps"
+          role="status"
+          className="-mt-2 flex items-center gap-1.5 text-xs text-[var(--admin-warning)]"
+        >
+          <AdminIcon name="attention" size={14} />
+          Caps Lock açık.
+        </p>
+      ) : null}
 
       {state.error && (
         <div

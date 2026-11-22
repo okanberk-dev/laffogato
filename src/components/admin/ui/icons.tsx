@@ -20,6 +20,7 @@ import {
   GalleryHorizontalEnd,
   Keyboard,
   LayoutGrid,
+  LockKeyhole,
   LogOut,
   Mail,
   Megaphone,
@@ -127,6 +128,9 @@ export const ADMIN_ICONS = {
   show: Eye,
   hide: EyeOff,
   copy: Copy,
+  // The sign-in screens (components/admin/auth-card.tsx): the "Yönetim
+  // paneli" chip.
+  lock: LockKeyhole,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;

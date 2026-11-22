@@ -26,7 +26,7 @@ export default async function EditCafeTablePage({
   if (!table) notFound();
   const back = cafeTableHref(table.id);
   return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 lg:px-6 lg:pt-6 [&>:not(header)]:max-w-3xl">
       <BackLink href={back}>{table.name}</BackLink>
       <PageHeader
         title={`${table.name} - düzenle`}

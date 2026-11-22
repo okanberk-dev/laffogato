@@ -300,7 +300,7 @@ function ConfirmDialog({
         else onCancel();
       }}
       // The kit dialog's frame (ActionModal), so both read the same.
-      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] sm:max-w-lg"
+      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border border-[var(--admin-card-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] sm:max-w-lg"
       style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
     >
       <div className="grid gap-4 p-5 sm:p-6">

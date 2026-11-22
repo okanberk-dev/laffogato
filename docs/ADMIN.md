@@ -221,15 +221,16 @@ yok; tuş da ekranda yazmaz, ama klavyeden Mac'te ⌘K, Windows'ta Ctrl K
   duyuru, gönderi). Müşteri, panel kullanıcısı, abone ve olay kaydı sayfası
   tutulmaz; başlığında e-posta ya da telefon olan kayıt da. Liste hesabına
   bağlıdır, sekme kapanınca ve **Çıkış**'ta silinir.
-- **Git**: menüdeki her sayfa ve sekme, eski adlarıyla da ("Mağaza Hero",
+- **Sayfalar** (21 Kas 2026'ya kadar "Git"): menüdeki her sayfa ve sekme, eski adlarıyla da ("Mağaza Hero",
   "kupon", "damga", "qr"). Harfleri işaretsiz yazmak yeter: "siparis"
   Siparişler'i bulur.
 - **Oluştur**: rolünün açabildiği "Yeni" sayfaları.
-- **Kayıtlar**: 2 harften sonra sipariş, müşteri, ürün, menü ve karaoke
-  kayıtları, rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
+- **Kayıtlar** (başlığı kayıt türünün adı: "Siparişler", "Müşteriler" …):
+  2 harften sonra sipariş, müşteri, ürün, menü ve karaoke kayıtları,
+  rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
   adrese ve kayda düşmez. 5'ten fazlası varsa "Listede ara": liste aramasız
   açılır (metin adrese yazılmaz), metni listenin kutusuna sen yazarsın.
-- **Komutlar**: Güvenlik / 2FA, Klavye kısayolları, Sıkı görünüm (açar ya da
+- **Tercihler** (21 Kas 2026'ya kadar "Komutlar"): Güvenlik / 2FA, Klavye kısayolları, Sıkı görünüm (açar ya da
   kapatır, aşağıda "Dar menü ve Sıkı görünüm") ve sipariş sesini aç / kapat
   (bu tarayıcıda).
 - Palet hiçbir şeyi değiştirmez: sipariş adımı, çıkış ya da ayar yoktur.
@@ -257,56 +258,40 @@ sayfaları. Rozetler menüdekilerle aynı sayılardır.
 - Bildirimler, toplu işlem çubuğu, yeni sipariş kartları ve kaydet
   çubukları çubuğun üstünde durur; sayfanın sonu çubuğun altında kalmaz.
 
-## Köşk durumu (üst çubuk) ve Personel'in Canlı durumu
+## Canlı durum: açık/kapalı saatlerden, Personel'in masaları
 
 Uygulamanın ana sayfasındaki "Şu an açık", boş masa, Wi-Fi, gürültü, priz ve
-not Canlı durum'dan gelir (`GET /api/mobile/v1/live-status`). Vardiya bunu
-akşam boyunca en çok değiştiren kişidir, o yüzden (karar D3, 20 Ekim 2026):
+not Canlı durum'dan gelir (`GET /api/mobile/v1/live-status`).
 
-- **Kim.** Canlı durum ayrı bir bölüm (`venue`): Sahip, Yönetici ve
-  **Personel**. Kasiyerde yok (ne sayfa ne çip). Uygulamanın slaytları,
+- **Açık/kapalı kendiliğinden** (21 Kas 2026, operatör: _"köşk açık yoğun
+  vs. durumunu da kaldır, belli aralık olan o saatlerde otomatik çeksin"_).
+  Elle Açık / Kapalı / Yoğun seçimi ve üst çubuktaki köşk çipi kalktı.
+  Köşk Ayarlar → Saatler'deki saatlerde açık, dışında kapalıdır; gece
+  yarısını geçen kapanış (ör. 02:00) önceki günün devamıdır. Canlı durum
+  bunu yalnız gösterir: şu anki durum, bir sonraki açılış ya da kapanış
+  ("Kapanış 23:00", "Açılış yarın 09:00"), haftanın saatleri (bugün koyu)
+  ve sahip için "Saatleri düzenle" (`/admin/ayarlar?sekme=hours`). Her
+  kayıt `manualOverride: "auto"` yazar; migration
+  `20261121120000_venue_open_by_hours.sql` kayıtlı satırı bir kez `auto`'ya
+  döndürdü. Kafe siparişi (`cafe_closed`) ve zilin yoğunluk penceresi aynı
+  saatlere bakar. `/api/mobile/v1` değişmedi.
+- **Kim.** Canlı durum ayrı bir bölüm (`venue`, karar D3, 20 Ekim 2026):
+  Sahip, Yönetici ve **Personel**. Kasiyerde yok. Uygulamanın slaytları,
   duyuruları, gönderileri ve ayarları eskisi gibi yalnız Sahip ve
   Yönetici'de (`mobileApp`).
-- **Toplam masa yalnız Sahip ve Yönetici'de.** Personel sayfada toplam
-  masayı görür ama değiştiremez (alanın adı yok, gönderilmez); sunucu
-  Personel'in gönderdiği toplamı yok sayar ve kayıtlı olanı korur. Boş masa
-  kayıtlı toplamı geçemez; bu kural veritabanındaki tek `UPDATE`'in içinde
-  denetlenir (`patchVenueStatus`), arada toplamı düşüren bir yöneticinin
-  kaydı da sayılır.
-- **Üst çubuktaki çip** ("Köşk: Açık / Yoğun / Kapalı"): her panel
-  sayfasında, arama ile zilin arasında. Açılınca Otomatik / Açık / Yoğun /
-  Kapalı ve boş masa −/+ (44 px), Kaydet; sonuç bildirim olarak gelir.
-  "Diğer ayarlar" sayfaya götürür. Yoğun ayrı bir durum değildir: yalnız
-  boş masayı 0 yapar, açık/kapalı ayarı olduğu gibi kalır (sayfadaki "Boş
-  masa 0" ile aynı; uygulama "masaların hepsi dolu" der). Elle Açık
-  bırakılmış bir maç gecesi saat dışında da açık kalır, elle Kapalı kapalı
-  kalır. Açık bir köşkte boş masa 0 ise çip "Yoğun" der ve kutu Yoğun'da
-  açılır; + ile bir masa boşalınca seçim köşkün kendi ayarına (Otomatik ya
-  da Açık) döner, hiçbir zaman kendiliğinden Otomatik'e değil.
-- **Yalnız iki alan.** Çip yalnız açık/kapalı seçimini ve boş masayı yazar,
-  tek bir SQL `UPDATE` ile: aynı anda başka birinin değiştirdiği Wi-Fi,
-  gürültü, priz ya da not ezilmez. Her kayıt olay kaydına bir satır yazar
+- **Masa sayısı yok** (22 Kas 2026, operatör: _"boş masa sayısını da
+  kaldır"_). Canlı durum boş ve toplam masa sormaz; uygulamaya
+  `freeTables: null` gider (sözleşme §6), uygulama boş masa satırı
+  göstermez. Gönderilen bir `freeTables` / `totalTables` yok sayılır.
+- **Ortam:** Wi-Fi, gürültü, priz ve not (en fazla 200 karakter), tek bir
+  `UPDATE` ile (`patchVenueStatus`). Her kayıt olay kaydına bir satır yazar
   (`venue_status`, kim, ne).
-- **Veritabanını uyandırmaz.** Çip durumunu dakikada bir, yalnız sekme
-  görünürken sorar; düzende veritabanı okuması yok. Rozetler gibi her cevap
-  bir imleç taşır (`src/lib/admin/venue-signal.ts`): Canlı durum, Ayarlar
-  (saatler) ya da bir panel hesabı yazılmadıysa ve saatler köşkü açıp
-  kapatmadıysa cevap `{ unchanged: true }`: hesap okuması yok, veritabanı
-  yok, yalnız çerezin imzası ve Data Cache'teki işaret. Durumu taşıyan her
-  cevap hesabı yeniden okur (kural 30). Bir kayıt (`admin:changed`) imleci
-  düşürür, çip hemen yeniden okur; saatler köşkü açtığı ya da kapattığı
-  dakikadan sonraki ilk soru da tamdır. Önbellek çalışmazsa her soru tam
-  cevap olur (dakikada bir okuma). Çerezdeki rol Canlı durum'u açmıyorsa
-  karar hesabındır: rolü sonradan Personel'e yükseltilen bir kasiyer durumu
-  hemen görür, ama yeniden girene kadar her sorusu tam cevaptır (imleç
-  yok).
-- Uygulama yeni durumu en geç 30 saniyede görür (uç `s-maxage=30`);
-  `/api/mobile/v1` değişmedi.
+- Uygulama yeni durumu en geç 30 saniyede görür (uç `s-maxage=30`).
 
 ## Klavye kısayolları
 
 ⌘K / Ctrl K her sayfada paleti açar. Sahip, yönetici ve personel için ayrıca
-tek tuşlar vardır; `?` listelerini açar (paletin Komutlar'ındaki "Klavye
+tek tuşlar vardır; `?` listelerini açar (paletin Tercihler'indeki "Klavye
 kısayolları" da).
 
 | Tuş                                               | Ne yapar                                                                         |
@@ -755,7 +740,7 @@ hemen uygulanır (tercihle yenileyince menü bir an geniş görünüp daralır).
     küçük bir sayıdır; rozetten Açık sekmesine gitmek geniş menüde.
   - Telefonun çekmecesi hep geniştir; tercih yalnız 1024 px üstünü etkiler.
 - **Sıkı görünüm** (menünün altındaki Hesap bölümünde "Sıkı görünüm"
-  anahtarı ya da paletin Komutlar'ında; `laf_admin_density_v1`): tablo
+  anahtarı ya da paletin Tercihler'inde; `laf_admin_density_v1`): tablo
   hücreleri `py-3` yerine `py-2`, kart ve bölümler `p-6` yerine `p-4`;
   düğmeler, alanlar, "⋯" menüsü, sayfa numaraları ve sekmeler 44 px yerine
   36 px (alanlar 34 px).
