@@ -712,60 +712,118 @@
 }
 
 /* ── 404 and error pages ───────────────────────────────────── */
-.nf-page {
-  padding-block: var(--section-y);
+/* The stage: a photograph to the edges under the bar (the film's first
+   frame on the 404), dimmed flat so white type holds on any part of it,
+   the words at its bottom left as the film sets its caption. */
+.nf-stage {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: max(
+    460px,
+    calc(86svh - var(--announce-h) - var(--header-h) - var(--quick-h))
+  );
+  overflow: hidden;
+  background: var(--charcoal);
+  color: var(--on-dark);
 }
-.nf-code {
-  margin: 0;
-  font-family: var(--headline);
-  font-variation-settings: "wdth" var(--headline-wdth);
-  font-size: clamp(56px, 10vw, 120px);
-  line-height: 1;
-  letter-spacing: 4px;
+/* The error pages: the same stage on the band, ink type, no photograph
+   (above the charcoal footer a charcoal stage would run into it). */
+.nf-stage--plain {
+  min-height: max(
+    420px,
+    calc(70svh - var(--announce-h) - var(--header-h) - var(--quick-h))
+  );
+  background: var(--band);
+  color: var(--ink);
 }
-.nf-hero {
+.nf-stage--plain .nf-stage-code,
+.nf-stage--plain .nf-stage-lede {
+  color: var(--muted);
+}
+.nf-stage-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 30% 50%;
+}
+.nf-stage-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+.nf-stage-copy {
+  position: relative;
   display: grid;
   justify-items: start;
-  gap: 12px;
+  padding-top: 64px;
+  padding-bottom: 64px;
 }
-.nf-hero .t-display {
-  margin: 0;
+.nf-stage-code {
+  color: var(--on-dark-muted);
 }
-.nf-lede {
-  max-width: 60ch;
-  margin: 0;
+.nf-stage-title {
+  margin: 12px 0 0;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: clamp(32px, 4.6vw, 64px);
+  line-height: 1.12;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
-.nf-hero .btn-row {
-  margin-top: 20px;
+/* The 404's line breaks where it reads: "Aradığın sayfa / burada değil". */
+.nf-stage-title > span {
+  display: block;
 }
-.nf-stops-title {
-  margin: var(--section-y) 0 0;
+.nf-stage-lede {
+  max-width: 46ch;
+  margin: 20px 0 0;
+  color: var(--on-dark-muted);
 }
-.nf-links {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: 32px 0 0;
-  padding: 0;
+.nf-stage-actions {
+  justify-self: stretch;
+  margin-top: 32px;
 }
-.nf-links a {
-  display: grid;
-  gap: 6px;
-  padding: 24px;
-  background: var(--band);
+/* The four places, each a photograph above its name. */
+.nf-tile-media {
+  display: block;
+  aspect-ratio: 4 / 5;
 }
-.nf-links a:hover .t-title {
-  text-decoration: underline;
-  text-underline-offset: 6px;
+.nf-tile .media-img {
+  transition: transform 0.6s var(--ease);
 }
-@media (max-width: 1023px) {
-  .nf-links {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.nf-tile:hover .media-img {
+  transform: scale(1.03);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nf-tile:hover .media-img {
+    transform: none;
   }
 }
-@media (max-width: 599px) {
-  .nf-links {
-    grid-template-columns: 1fr;
+@media (max-width: 767px) {
+  .nf-stage-copy {
+    padding-top: 48px;
+    padding-bottom: 32px;
+  }
+  .nf-stage-title {
+    font-size: 28px;
+    line-height: 36px;
+    letter-spacing: var(--track);
+  }
+  .nf-stage-lede {
+    margin-top: 16px;
+  }
+  .nf-stage-actions {
+    width: 100%;
+    margin-top: 24px;
+  }
+  .nf-stage-actions .btn {
+    width: 100%;
   }
 }
 

@@ -12,7 +12,7 @@ L'Affogato, 1897 yılında İtalya Bologna şehrinin Via Galliera 21 adresinde G
 
 2026 yılında dördüncü kuşak Eda Mancuso (Bolonyalı baba, İstanbullu anne), ailesinin markasının ilk yurt dışı şubesini İstanbul Tuzla'da açtı. Kasım 2026'da ikinci şube L'Affogato Marina, Viaport Marina Tuzla'da (Cami Mah., 34940 Tuzla / İstanbul) açıldı; 10:00 - 23:00 arası açıktır ve köşkle aynı menüden servis eder. Marina içindeki tam birim ve şubenin telefonu henüz yayımlanmadı; girildiğinde laffogato.net/ziyaret sayfasında görünür. Uygulamadan gel-al siparişi ve karaoke odası yalnız Tuzla köşkü içindir.
 
-İmza ritüelimiz: yenilebilir waffle kup (edible cup) içinde tek scoop fior di latte gelato üzerine çift shot Sirena espresso. Espresso eridikçe gelato karışır, sonunda kupayı yiyebilirsiniz. Kaşığa gerek yoktur. Slogan: "Drink it. Eat the cup."
+İmza ritüelimiz: yenilebilir waffle kup içinde tek scoop fior di latte gelato üzerine çift shot Sirena espresso. Espresso eridikçe gelato karışır, sonunda kupayı yiyebilirsiniz. Kaşığa gerek yoktur. Slogan: "Drink it. Eat the cup."
 
 ---
 
@@ -70,7 +70,7 @@ Fiyat ve kurallar panelden değişebilir; güncel değerler https://laffogato.ne
 
 ## MENÜ
 
-Basılı menünün tamamı — 12 kategori, 82 kalem. M ve L olarak iki boy sunulan içeceklerde her iki fiyat da belirtilmiştir.
+Basılı menü aşağıdadır. M ve L olarak iki boy sunulan içeceklerde her iki fiyat da belirtilmiştir. Fiyatlar ve kalemler değişebilir; güncel menü laffogato.net/menu sayfasındadır.
 
 ### MATCHA BAR
 
@@ -216,35 +216,39 @@ Her içeceğe eklenebilir.
 
 ---
 
-## MAĞAZA (ONLINE + IN-STORE)
+## MAĞAZA (ONLINE)
 
-Tüm ürünler Türkiye geneli 1–3 iş günü kargo. Online sipariş için site içi ödeme kullanılır. Uluslararası kart kabul edilir (EUR/USD).
+Mağaza ürünleri laffogato.net/magaza üzerinden online sipariş edilir ve Türkiye geneline kargoyla gönderilir; ödeme sitede kartla alınır. Fiyatlar KDV dahildir ve değişebilir; güncel fiyat ürün sayfasındadır.
 
 ### Çekirdek Kahve
 
-- **Sirena — Espresso Harmanı**, 250g whole bean — 320₺. Brezilya doğal + Etiyopya yıkanmış. Tat notları: kakao, kuru incir, esmer şeker.
-- **Notturna — Filtre Lotu**, 200g whole bean — 380₺. Kenya AA Nyeri. Tat notları: frenk üzümü, bergamot, parlak asidite.
+- **Sirena — Espresso Harmanı** — 320₺. Brezilya ve Etiyopya harmanı, çekirdek halinde.
+- **Notturna — Filtre Lotu** — 380₺. Kenya AA Nyeri, çekirdek halinde.
+- **Çekirdek Kahve — 1 kg** — 2.000₺.
+- **Filtre Kahve — 1 kg** — 1.800₺.
+- **Cold Brew Kahvesi — 1 kg** — 2.250₺.
 
-### Hediye ve Edible
+### Hediye
 
-- **Edible Cups — 6'lı kutu** — 240₺. Çıtır waffle kupları, içi yenilebilir glaze.
-- **Affogato Seti — İki Kişilik**, hediye kutusu — 780₺. 200 g Sirena, fior di latte gelato, iki yenilebilir kup, porselen kaşık. En çok satan.
+- **Yenilebilir Kup — 6'lı Kutu** — 240₺. Waffle kup.
+- **Affogato Seti — İki Kişilik** — 780₺. Hediye kutusu.
 
-### Pantry
+### Kiler
 
-- **Uji Matcha — Seremoni Sınıfı**, 40g teneke — 420₺. Japonya Uji bahçesi, seremoni sınıfı. Bambu chasen ile eşleştirilir.
-- **Cantucci — Bronte Pistachio**, 180g biskoti — 180₺. İki kez pişmiş, yavaş fırın.
+- **Uji Matcha — Seremoni Sınıfı** — 420₺.
+- **Matcha — 250 g** — 6.000₺.
+- **Cantucci — Bronte Pistachio** — 180₺.
 
 ### Ekipman
 
-- **Moka — Bialetti × L'Affogato**, 3-cup brushed aluminium — 690₺. Özel amblem.
-- **Porselen Fincan Seti**, espresso 2'li — 420₺. Kemik porseleni, cobogó desen, 60 ml.
-- **Bambu Chasen**, matcha çırpıcı — 320₺. 80 dişli, Nara'dan.
+- **Moka — Bialetti × L'Affogato** — 690₺.
+- **Porselen Fincan Seti** — 420₺.
+- **Bambu Chasen** — 750₺. Matcha çırpıcı.
 
-### Giyim & Merch
+### Giyim
 
-- **Pamuk Önlük**, heavyweight canvas — 480₺. Deri boyun askısı, gravür amblem.
-- **Emaye Bardak**, 350ml double wall — 320₺. Vakum yalıtım, dış benekli emaye.
+- **Pamuk Önlük** — 480₺.
+- **Emaye Bardak** — 320₺.
 
 ---
 
@@ -284,13 +288,13 @@ Cevap: Her gün 09:00 - 02:00; kapanış ertesi sabaha sarkar. Tüm yıl açık.
 Cevap: Bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiği; evin imza içeceği, 280₺. Matcha sevenler için Matcha Affogato da menüde: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺.
 
 **Soru: Vegan veya glutensiz seçeneğiniz var mı?**
-Cevap: Sütlü içecekler laktozsuz sütle (fark yok) ya da 25₺ fark ile badem sütüyle hazırlanır. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındıklı kalemler menüde işaretlidir.
+Cevap: Sütlü içecekler laktozsuz sütle fark olmadan ya da 25₺ fark ile badem sütüyle hazırlanır. Kalemlerin alerjen bilgisi menüde ve köşkte mevcuttur; alerjisi olan misafir sipariş verirken personele söylemelidir.
 
 **Soru: Matcha bar'da hangi çay kullanılıyor?**
 Cevap: Ceremonial grade matcha; her bardak siparişten sonra çırpılır, premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Çilekli Matcha 245₺, Matcha Affogato 245₺.
 
 **Soru: Online sipariş ve kargo var mı?**
-Cevap: Evet — çekirdek kahve, matcha, edible cup, ekipman, hediye seti, giyim. Türkiye geneli 1–3 iş günü. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.
+Cevap: Evet — çekirdek kahve, matcha, yenilebilir kup, ekipman, hediye seti, giyim. Türkiye geneli 1–3 iş günü. Tatlılar, sandviçler ve tüm bar içecekleri sadece mekanda servis edilir.
 
 **Soru: Kahve nereden geliyor, kim kavuruyor?**
 Cevap: Sirena espresso harmanı (Brezilya + Etiyopya) ve Notturna filtre lotu (Kenya AA Nyeri). Bologna'da Mancuso ailesi haftalık kavurur, İstanbul'a uçakla gelir. Kavurma tarihi her paketin üzerindedir.
@@ -299,7 +303,7 @@ Cevap: Sirena espresso harmanı (Brezilya + Etiyopya) ve Notturna filtre lotu (K
 Cevap: Evet. Köşkün avlusu bebek arabası erişimine uygundur. Çocuklar için kafeinsiz sıcak çikolata, salep ve vitrindeki tatlılar tercih edilebilir. Köpekler köşk avlusunda karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.
 
 **Soru: Ödeme yöntemleri?**
-Cevap: Nakit, Visa, Mastercard, Amex, Apple Pay, Google Pay. Online mağaza için tüm Türk bankaları + uluslararası kart (EUR/USD).
+Cevap: Köşkte nakit ve kartla ödenir. Online siparişte (site ve uygulama) ödeme yalnızca kartla, tek çekim alınır: kredi kartı ya da internetten alışverişe açık banka kartı. Dijital cüzdan, havale ve kapıda ödeme yoktur; yurt dışı kartlarda tahsilat Türk lirasıyla yapılır.
 
 ---
 

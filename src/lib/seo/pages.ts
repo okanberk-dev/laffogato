@@ -40,7 +40,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.menu,
     title: "Menü - Matcha, Espresso, Buzlu Kahve, Tatlılar",
     description:
-      "L'Affogato Tuzla menüsü: matcha bar, espresso, buzlu kahveler, frappe, smoothie, frozen, tatlılar ve atıştırmalıklar - 12 kategori, 82 lezzet.",
+      "L'Affogato Tuzla menüsü: matcha bar, espresso, soğuk kahveler, frappe, smoothie, frozen, soğuk çay, tatlılar ve atıştırmalıklar. Fiyatlar güncel menüden.",
     keywords: [
       "Tuzla menü",
       "matcha bar İstanbul",
@@ -56,13 +56,13 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
   shop: {
     route: "shop",
     path: ROUTE_PATHS.shop,
-    title: "Mağaza - Çekirdek Kahve, Edible Cup, Ekipman",
+    title: "Mağaza - Çekirdek Kahve, Yenilebilir Kup, Ekipman",
     description:
       "Çekirdek kahve, yenilebilir kup, moka pot ve hediye setleri L'Affogato online mağazada. Tüm Türkiye'ye hızlı kargo.",
     keywords: [
       "L'Affogato mağaza",
       "çekirdek kahve online",
-      "edible cup satın al",
+      "yenilebilir kup satın al",
       "moka pot Türkiye",
       "matcha chasen",
       "hediye kahve seti",
@@ -80,7 +80,7 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     keywords: [
       "L'Affogato hikayesi",
       "İtalyan kafe markası",
-      "edible cup tarihi",
+      "yenilebilir kup tarihi",
       "Mancuso ailesi",
     ],
     breadcrumbLabel: "Hikayemiz",
@@ -126,9 +126,9 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "matcha",
     menuKey: "matcha",
-    title: "Matcha Bar - Strawberry Aşkı",
+    title: "Matcha Bar - Matcha Latte ve Çilekli Matcha",
     description:
-      "Siparişten sonra çırpılan ceremonial grade matcha. Matcha Latte, Çilekli Matcha ve Matcha Affogato - L'Affogato Tuzla matcha bar menüsü.",
+      "Siparişten sonra çırpılan seremoni sınıfı matcha: Matcha Latte, Çilekli Matcha ve Matcha Affogato. L'Affogato Tuzla matcha bar menüsü.",
     keywords: [
       "matcha bar Tuzla",
       "strawberry matcha",
@@ -148,7 +148,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "espresso",
     title: "Espresso - Sıcak Kahveler",
     description:
-      "L'Affogato, espresso, americano, latte, flat white, cappuccino, mocha, spanish latte, cortado, Türk kahvesi ve filtre kahve. Çoğu M ve L boy servis edilir.",
+      "L'Affogato, espresso, americano, latte, flat white, cappuccino, mocha, İspanyol latte, cortado, Türk kahvesi ve filtre kahve. Çoğu M ve L boy servis edilir.",
     keywords: [
       "espresso Tuzla",
       "latte İstanbul",
@@ -168,7 +168,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "ice-coffee",
     title: "Soğuk Kahveler",
     description:
-      "Iced americano, iced caffè latte, iced mocha, iced spanish latte, cold brew ve çıtır latte. Buzlu kahvelerin tamamı M ve L boy hazırlanır.",
+      "Buzlu americano, buzlu caffè latte, buzlu caffè mocha, buzlu İspanyol latte, cold brew ve çıtır latte. Çoğu M ve L boy hazırlanır.",
     keywords: [
       "buzlu kahve Tuzla",
       "cold brew İstanbul",
@@ -188,7 +188,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "cold",
     title: "Soğuk İçecekler",
     description:
-      "Kahvesiz serinleticiler: günlük sürpriz karışım, cool lime, ev yapımı L'Af Limon, soda ve su.",
+      "Kahvesiz serinleticiler: sürpriz içecek, cool lime, L'Af Limon, Brezilya limonatası, soda ve su.",
     keywords: [
       "soğuk içecek Tuzla",
       "limonata İstanbul",
@@ -207,7 +207,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "hot",
     title: "Sıcak İçecekler",
     description:
-      "Chai tea latte, sıcak çikolata, beyaz sıcak çikolata, karamelli sıcak çikolata, salep ve demlik çay.",
+      "Chai latte, sıcak çikolata, beyaz sıcak çikolata, karamelli sıcak çikolata, salep ve çay.",
     keywords: [
       "sıcak çikolata Tuzla",
       "salep İstanbul",
@@ -221,16 +221,16 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "frappe",
     title: "Frappe - Buzla Çırpılmış",
     description:
-      "Klasik frappe, espresso frappe, mocha frappe ve caramel frappe. Buzla çırpılır, yoğun köpüklü servis edilir.",
+      "Klasik frappe, espresso frappe, mocha frappe ve karamel frappe. Buzla çırpılır, köpüklü servis edilir.",
     keywords: ["frappe Tuzla", "espresso frappe", "mocha frappe İstanbul"],
     breadcrumbLabel: "Frappe",
   },
   {
     slug: "smoothie",
     menuKey: "smoothie",
-    title: "Smoothie - Meyve & Süt",
+    title: "Smoothie - Meyveli Smoothie ve Protein Shake",
     description:
-      "Blueberry, mango ve apple smoothie ile protein shake. Taze meyve ve sütle çırpılır; alternatif süt talep edilebilir.",
+      "Yaban mersini, mango ve elma smoothie ile protein shake. Siparişten sonra çırpılır.",
     keywords: ["smoothie Tuzla", "protein shake İstanbul", "mango smoothie"],
     breadcrumbLabel: "Smoothie",
   },
@@ -239,7 +239,7 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     menuKey: "frozen",
     title: "Frozen - Meyveli Frozen",
     description:
-      "Çilekli, frambuazlı, çarkıfelekli ve ananaslı frozen. Meyve püresi ve buzla hazırlanır; süt içermez.",
+      "Çilekli, frambuazlı, çarkıfelekli ve ananaslı frozen. Meyve ve buzla hazırlanır.",
     keywords: ["frozen Tuzla", "çilekli frozen", "meyveli frozen İstanbul"],
     breadcrumbLabel: "Frozen",
   },
@@ -247,9 +247,8 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
     slug: "ice-tea",
     menuKey: "ice-tea",
     title: "Buzlu Çay - Limonlu ve Şeftalili",
-    description:
-      "Limonlu ve şeftalili soğuk çay. Buz ve taze meyve dilimiyle servis edilir.",
-    keywords: ["buzlu çay Tuzla", "lemon ice tea", "şeftalili buzlu çay"],
+    description: "Limonlu ve şeftalili soğuk çay, buzla servis edilir.",
+    keywords: ["buzlu çay Tuzla", "limonlu buzlu çay", "şeftalili buzlu çay"],
     breadcrumbLabel: "Soğuk Çay",
   },
   {
@@ -294,10 +293,10 @@ export const MENU_CATEGORY_ROUTES: MenuCategoryRoute[] = [
   {
     slug: "extras",
     menuKey: "extras",
-    title: "Extras - Ekstralar",
+    title: "Ekstralar - Şurup, Ekstra Shot, Alternatif Süt",
     description:
-      "Her içeceğe eklenebilen aroma şurubu, ekstra espresso shot ve alternatif süt (yulaf, badem, laktozsuz).",
-    keywords: ["alternatif süt Tuzla", "yulaf sütü kahve", "extra shot"],
+      "Kahvene eklenebilen aroma şurubu, ekstra espresso shot ve alternatif süt (laktozsuz ya da badem).",
+    keywords: ["alternatif süt Tuzla", "badem sütlü kahve", "ekstra shot"],
     breadcrumbLabel: "Ekstralar",
   },
 ];
@@ -316,28 +315,28 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "cekirdek",
     productCat: "beans",
-    title: "Çekirdek Kahve - Sirena & Notturna",
+    title: "Çekirdek Kahve - Sirena ve Notturna",
     description:
-      "Bologna'da kavrulan tek-origin çekirdek kahve. Sirena espresso blend (Brezilya + Etiyopya), Notturna filter lot (Kenya AA Nyeri). Whole bean, 200-250g paketler.",
+      "Bologna'da kavrulan çekirdek kahve: Sirena espresso harmanı (Brezilya ve Etiyopya) ve Notturna filtre lotu (Kenya AA Nyeri). Çekirdek halinde paketler.",
     keywords: [
       "çekirdek kahve satın al",
       "Bologna kavurma çekirdek",
-      "Sirena espresso blend",
+      "Sirena espresso harmanı",
       "Kenya AA filter",
-      "whole bean coffee Türkiye",
+      "çekirdek kahve Türkiye",
     ],
     breadcrumbLabel: "Çekirdek Kahve",
   },
   {
     slug: "hediye",
     productCat: "gift",
-    title: "Hediye Seti - Edible Cup & Affogato Kit",
+    title: "Hediye Seti - Affogato Seti ve Yenilebilir Kup",
     description:
-      "Affogato Kit for Two: 200g Sirena, iki edible kup, porselen kaşık. 6'lı edible waffle cup kutusu. Mekan ritüelini eve taşı - özel kahveseverler için ideal hediye.",
+      "İki kişilik affogato seti ve 6'lı yenilebilir kup kutusu: köşkteki affogato ritüelini eve taşıyın. Kahveseverler için hediye.",
     keywords: [
       "kahve hediye seti",
-      "affogato kit",
-      "edible cup hediye",
+      "affogato seti",
+      "yenilebilir kup hediye",
       "kahve sevenler için hediye",
     ],
     breadcrumbLabel: "Hediye Seti",
@@ -345,12 +344,12 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "ekipman",
     productCat: "gear",
-    title: "Ekipman - Moka Pot, Chasen, Cup Set",
+    title: "Ekipman - Moka Pot, Chasen, Fincan Seti",
     description:
-      "Bialetti × L'Affogato 3-cup moka pot, bone china espresso cup seti, Nara'dan 80 dişli bambu chasen. Evde İtalyan ritüeli için seçilmiş ekipman.",
+      "Bialetti × L'Affogato moka pot, porselen fincan seti ve bambu chasen. Evde İtalyan kahvesi ve matcha için seçilmiş ekipman.",
     keywords: [
       "Bialetti moka pot",
-      "espresso cup seti",
+      "espresso fincan seti",
       "bambu chasen",
       "matcha takımı",
       "kahve ekipmanı",
@@ -360,13 +359,13 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "giyim",
     productCat: "merch",
-    title: "Giyim - Apron & Tumbler",
+    title: "Giyim - Önlük ve Emaye Bardak",
     description:
-      "Ağır kanvas önlük (deri boyun askısı, gravür L'Affogato amblemi), 350ml çift cidarlı emaye tumbler. Bar ekibinden esinlenilmiş günlük parçalar.",
+      "Pamuk önlük ve emaye bardak: bar ekibinden esinlenen günlük parçalar.",
     keywords: [
-      "kahve aprons",
+      "kahve önlüğü",
       "barista önlüğü",
-      "emaye tumbler",
+      "emaye bardak",
       "L'Affogato merch",
     ],
     breadcrumbLabel: "Giyim",
@@ -374,12 +373,12 @@ export const SHOP_CATEGORY_ROUTES: ShopCategoryRoute[] = [
   {
     slug: "kiler",
     productCat: "pantry",
-    title: "Kiler - Matcha & Cantucci",
+    title: "Kiler - Matcha ve Cantucci",
     description:
-      "Japonya Uji ceremonial matcha (40g tin) ve Bronte pistacchio cantucci. Bar menümüzden eve uzanan saklayışlık raf - çekirdek harici tatlar.",
+      "Uji seremoni sınıfı matcha ve Bronte fıstıklı cantucci: bar menümüzden eve, çekirdek dışındaki tatlar.",
     keywords: [
-      "Uji matcha tin",
-      "ceremonial matcha satın al",
+      "Uji matcha",
+      "seremoni sınıfı matcha satın al",
       "cantucci",
       "İtalyan bisküvi",
       "Bronte pistacchio",

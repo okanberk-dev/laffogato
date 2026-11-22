@@ -17,7 +17,7 @@ import Link from "@/components/link";
  * fetch) so a transient DB blip recovers without a full reload.
  *
  * It sits inside the site's own chrome so the way out is where it always
- * is.
+ * is, on the 404's stage without its photograph: the band, ink type.
  *
  * One failure gets its own words: a form on a page loaded before a deploy
  * calls an action the new build no longer has (stale-action.ts). "Tekrar
@@ -41,54 +41,52 @@ export default function AppError({
 
   return (
     <SiteChrome>
-      <div className="nf-page">
-        <div className="wrap">
-          <section className="nf-hero" aria-labelledby="err-title">
-            <p className="t-label t-muted">
-              {stale ? "Site güncellendi" : "Geçici bir aksaklık"}
-            </p>
-            {stale ? (
-              <>
-                <h1 id="err-title" className="t-display">
-                  Sayfa güncellendi
-                </h1>
-                <p className="t-body nf-lede">{STALE_ACTION_MESSAGE}</p>
-                <div className="btn-row">
-                  <button
-                    type="button"
-                    onClick={() => window.location.reload()}
-                    className="btn btn-dark btn-wide"
-                  >
-                    Sayfayı yenile
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h1 id="err-title" className="t-display">
-                  Bir şey yarım kaldı
-                </h1>
-                <p className="t-body nf-lede">
-                  Şu an bağlanamadık; büyük ihtimalle birkaç saniyelik bir şey.
-                  Tekrar dener misin? Sorun sürerse bize yazabilirsin.
-                </p>
-                <div className="btn-row">
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="btn btn-dark btn-wide"
-                  >
-                    Tekrar dene
-                  </button>
-                  <Link href="/" className="btn btn-wide">
-                    Ana sayfa
-                  </Link>
-                </div>
-              </>
-            )}
-          </section>
+      <section className="nf-stage nf-stage--plain" aria-labelledby="err-title">
+        <div className="wrap nf-stage-copy">
+          <p className="t-label nf-stage-code">
+            {stale ? "Site güncellendi" : "Geçici bir aksaklık"}
+          </p>
+          {stale ? (
+            <>
+              <h1 id="err-title" className="nf-stage-title">
+                Sayfa güncellendi
+              </h1>
+              <p className="t-body nf-stage-lede">{STALE_ACTION_MESSAGE}</p>
+              <div className="btn-row nf-stage-actions">
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="btn btn-dark btn-wide"
+                >
+                  Sayfayı yenile
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 id="err-title" className="nf-stage-title">
+                Bir şey yarım kaldı
+              </h1>
+              <p className="t-body nf-stage-lede">
+                Şu an bağlanamadık; büyük ihtimalle birkaç saniyelik bir şey.
+                Tekrar dener misin? Sorun sürerse bize yazabilirsin.
+              </p>
+              <div className="btn-row nf-stage-actions">
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="btn btn-dark btn-wide"
+                >
+                  Tekrar dene
+                </button>
+                <Link href="/" className="btn">
+                  Ana sayfa
+                </Link>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      </section>
     </SiteChrome>
   );
 }
