@@ -1,5 +1,6 @@
 "use client";
 
+import { siteImage } from "@/lib/admin/site-images-core";
 import { useState, useMemo, useRef } from "react";
 
 import Link from "@/components/link";
@@ -14,7 +15,7 @@ import { MenuPhotoNote } from "./menu-photo-note";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
 
-export function PageMenu({ menu, settings }: PageProps) {
+export function PageMenu({ menu, settings, images }: PageProps) {
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
   // A single-category menu means this is /menu/<kategori>, which is scoped
@@ -74,7 +75,7 @@ export function PageMenu({ menu, settings }: PageProps) {
        <main> is two landmarks with the same role. */
     <div className="page" data-screen-label="02 Menu">
       <PageHero
-        image={{ src: "/photos/hero-menu.webp" }}
+        image={siteImage(images, "hero.menu")}
         eyebrow={active === "all" ? undefined : "Menü"}
         /* The category's own name: every menu category is an indexable URL
            and they must not all ship the same H1. */
@@ -87,7 +88,10 @@ export function PageMenu({ menu, settings }: PageProps) {
             {/* Real links, one per category URL. On /menu itself a click
                 filters in place (the page already holds every category); on
                 a category page it navigates. */}
-            <nav className="chip-row collection-cats" aria-label="Menü kategorileri">
+            <nav
+              className="chip-row collection-cats"
+              aria-label="Menü kategorileri"
+            >
               <Link
                 href="/menu"
                 className="chip"
@@ -102,7 +106,9 @@ export function PageMenu({ menu, settings }: PageProps) {
                 }
               >
                 Tümü
-                {!scoped && <span className="chip-count tabular">{totalCount}</span>}
+                {!scoped && (
+                  <span className="chip-count tabular">{totalCount}</span>
+                )}
               </Link>
               {MENU_CATEGORY_ROUTES.map((r) => {
                 const cat = liveMenu[r.menuKey];
@@ -125,7 +131,9 @@ export function PageMenu({ menu, settings }: PageProps) {
                   >
                     {cat?.title ?? r.breadcrumbLabel}
                     {cat && (
-                      <span className="chip-count tabular">{cat.items.length}</span>
+                      <span className="chip-count tabular">
+                        {cat.items.length}
+                      </span>
                     )}
                   </Link>
                 );
@@ -133,8 +141,18 @@ export function PageMenu({ menu, settings }: PageProps) {
             </nav>
             <div className="search-input">
               <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.2" />
+                <circle
+                  cx="7"
+                  cy="7"
+                  r="5"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
+                <path
+                  d="M11 11l3.5 3.5"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                />
               </svg>
               <input
                 type="search"
@@ -185,7 +203,9 @@ export function PageMenu({ menu, settings }: PageProps) {
               </h2>
               {active !== "all" && (
                 <>
-                  <p className="t-body t-muted">Menünün geri kalanına göz at.</p>
+                  <p className="t-body t-muted">
+                    Menünün geri kalanına göz at.
+                  </p>
                   <Link
                     href="/menu"
                     className="btn btn-wide"

@@ -346,7 +346,9 @@ export function ProductDetail({
                 ) : (
                   <>
                     Sepete ekle <span aria-hidden="true">|</span>{" "}
-                    <span className="tabular">{priceLabel(unitMinor * qty)}</span>
+                    <span className="tabular">
+                      {priceLabel(unitMinor * qty)}
+                    </span>
                   </>
                 )}
               </button>

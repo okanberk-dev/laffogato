@@ -33,11 +33,14 @@ export function PageHero({
         <div className="page-hero-media media">
           <Image
             src={image.src}
+            unoptimized={image.src.startsWith("/gorsel/")}
             alt={image.alt ?? ""}
             fill
             priority
             sizes="100vw"
-            style={image.position ? { objectPosition: image.position } : undefined}
+            style={
+              image.position ? { objectPosition: image.position } : undefined
+            }
           />
         </div>
       ) : null}

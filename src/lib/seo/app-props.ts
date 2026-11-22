@@ -9,6 +9,7 @@ import { istanbulDay } from "@/lib/mobile/menu-mapper";
 import { footerSettings, venueContact } from "@/lib/seo/contact";
 import {
   getSiteContentForSite,
+  getSiteImages,
   getSiteSettings,
   listSiteHomeSlides,
   listSiteMenu,
@@ -60,6 +61,7 @@ export async function loadAppProps({
     story,
     content,
     homeHero,
+    images,
   ] = await Promise.all([
     listSiteShopProducts(),
     getSiteSettings(),
@@ -70,6 +72,7 @@ export async function loadAppProps({
     listSiteStory(),
     getSiteContentForSite(),
     withHomeHero ? listSiteHomeSlides() : Promise.resolve(null),
+    getSiteImages(),
   ]);
 
   // After every read: the signed-in member's account is read live, so a
@@ -128,6 +131,7 @@ export async function loadAppProps({
         d: e.body,
       })),
       content,
+      images,
       // The panel's live slides. Undefined while the bundled HOME_SLIDES
       // stand in (home-hero.ts): the client already ships those, so they
       // are not sent twice. Only `/` asks.

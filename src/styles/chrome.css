@@ -1,6 +1,8 @@
 /* ─────────────────────────────────────────────────────────────
-   Chrome: the mark, the announcement line, the bar and its panel, the
-   phone's sheet, the footer. Tokens in src/app/globals.css.
+   Chrome: the mark, the announcement line, the bar and its panels, the
+   phone's pills and sheet, the account drawer, the footer, the cookie
+   strip and its preferences. Tokens in src/styles/foundation.css.
+   Measured against bluebottlecoffee.com (22 Kas 2026) at 1440 and 390.
    ───────────────────────────────────────────────────────────── */
 
 /* The L'Af mark. Masks, so it takes any ink (brand-mark.tsx): black
@@ -50,7 +52,21 @@ body.is-no-scroll {
   overflow: hidden;
 }
 
-/* ── The announcement line ─────────────────────────────────── */
+/* ── The top: the announcement line and the bar, one sticky block ──
+   As the reference's: it slides up out of sight while the page scrolls
+   down (0.5s) and back as soon as it scrolls up; never while something in
+   it is open or holds the keyboard. */
+.site-top {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.site-top.is-tucked:not(:focus-within) {
+  transform: translateY(-100%);
+}
+
+/* ── The announcement line: 12/16 on the band, 32px ───────── */
 .announce {
   background: var(--band);
   min-height: var(--announce-h);
@@ -62,14 +78,17 @@ body.is-no-scroll {
 }
 .announce-link {
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 2px;
+}
+@media (max-width: 767px) {
+  .announce {
+    padding-inline: 0;
+  }
 }
 
-/* ── The bar ───────────────────────────────────────────────── */
+/* ── The bar: 84px on the band (56px on a tablet, 48px on a phone) ── */
 .site-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  position: relative;
   background: var(--band);
 }
 .nav {
@@ -78,12 +97,17 @@ body.is-no-scroll {
   align-items: center;
   height: var(--header-h);
   padding-inline: var(--gutter);
-  max-width: calc(var(--content) + 2 * var(--gutter));
-  margin-inline: auto;
 }
+/* The menu button: the reference's 20px three lines, 16px in from its
+   edge, 4px from the screen's. */
 .nav-burger {
   justify-self: start;
-  margin-left: -10px;
+  width: 52px;
+  margin-left: calc(4px - var(--gutter));
+}
+.nav-burger svg {
+  width: 20px;
+  height: 20px;
 }
 .nav-links {
   display: none;
@@ -100,25 +124,36 @@ body.is-no-scroll {
   position: relative;
   display: flex;
   align-items: center;
+  height: 31px;
 }
 .nav-link {
-  display: inline-block;
-  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+/* The line is the text's own lower edge, 1px, faded in over 0.3s; the
+   open destination's letters are heavier (the reference's synthesised
+   bold: the strokes thicken, the word keeps its width). */
+.nav-link-text {
+  display: block;
   white-space: nowrap;
-  text-decoration: none;
-  text-underline-offset: 8px;
-  text-decoration-thickness: 1px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
 }
-.nav-link:hover,
-.nav-link.is-open,
-.nav-link[aria-current="page"] {
-  text-decoration-line: underline;
+.nav-link:hover .nav-link-text,
+.nav-link.is-open .nav-link-text,
+.nav-link[aria-current="page"] .nav-link-text {
+  border-bottom-color: var(--ink);
 }
-/* While another item is hovered or open, the current page's mark steps
-   back, so one underline means one thing. */
+.nav-link.is-open .nav-link-text {
+  -webkit-text-stroke: 0.6px currentColor;
+}
+/* While another item is hovered or open, the current page's line steps
+   back, so one line means one thing. */
 .nav-links:has(.nav-link.is-open, .nav-link:hover)
-  .nav-link[aria-current="page"]:not(.is-open):not(:hover) {
-  text-decoration-line: none;
+  .nav-link[aria-current="page"]:not(.is-open):not(:hover)
+  .nav-link-text {
+  border-bottom-color: transparent;
 }
 /* The caret is the keyboard's way into a panel: out of sight until it has
    focus (hover opens the panel for the mouse). */
@@ -142,29 +177,46 @@ body.is-no-scroll {
 .nav-caret:focus-visible {
   opacity: 1;
 }
+/* The mark, 28px clear on each side; 70% under the pointer. */
 .nav-brand {
   justify-self: center;
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  padding-inline: 28px;
+}
+.nav-brand:hover .laf-mark {
+  opacity: 0.7;
 }
 .nav-brand .laf-mark {
   --laf-h: 44px;
 }
+/* Search, account, bag: 17px glyphs in 41px cells, 46px from the edge on
+   a wide screen, 6px below it. */
 .nav-tools {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-right: -10px;
+  margin-right: calc(6px - var(--gutter));
+}
+.nav-tools .icon-btn {
+  width: 41px;
+  height: 52px;
+}
+.nav-tools .icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+.nav-tools .icon-btn:hover svg,
+.nav-burger:hover svg {
+  opacity: 0.7;
 }
 .nav-cart {
   position: relative;
 }
 .nav-cart-count {
   position: absolute;
-  top: 3px;
-  right: 1px;
+  top: calc(50% - 20px);
+  right: 0;
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
@@ -175,236 +227,8 @@ body.is-no-scroll {
   line-height: 18px;
   text-align: center;
 }
-
-/* The account menu: a white card under the person button. */
 .nav-account {
-  position: relative;
-}
-.nav-account-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 20px);
-  z-index: 60;
-  width: 240px;
-  display: grid;
-  gap: 8px;
-  padding: 20px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-/* Under 1024px the card is a full-width panel under the whole header
-   (bar and quick-link row), not a card hanging over the chips. */
-@media (max-width: 1023px) {
-  .nav-account {
-    position: static;
-  }
-  .nav-account-menu {
-    left: 0;
-    right: 0;
-    top: 100%;
-    width: auto;
-    padding: 16px var(--gutter) 24px;
-    border-inline: 0;
-  }
-}
-.nav-account-item {
-  display: block;
-  width: 100%;
-  padding: 6px 0;
-  background: none;
-  border: 0;
-  text-align: left;
-  font-size: 14px;
-  line-height: 20px;
-}
-.nav-account-item:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-
-/* The phone's quick links under the bar. */
-.nav-quick {
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 4px 0 8px;
-}
-.nav-quick::-webkit-scrollbar {
-  display: none;
-}
-.nav-quick ul {
-  display: flex;
-  gap: 8px;
-  width: max-content;
-  margin: 0;
-  padding: 0 var(--gutter);
-}
-/* A 44px target around the 36px pill. */
-.nav-quick .chip {
-  position: relative;
-}
-.nav-quick .chip::after {
-  content: "";
-  position: absolute;
-  inset: -4px 0;
-}
-@media (max-width: 400px) {
-  .nav-quick .chip {
-    padding-inline: 12px;
-  }
-}
-/* While the sheet is open, the sheet is the navigation. */
-.site-header.is-sheet-open .nav-quick {
-  display: none;
-}
-
-/* The panel under the bar (wide screens only). */
-.nav-panel {
-  display: none;
-}
-.nav-panel.open {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-.nav-panel-inner {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 48px;
-  padding-block: 40px 48px;
-}
-.nav-panel-all {
-  display: inline-block;
-  margin-bottom: 20px;
-  text-decoration: underline;
-  text-underline-offset: 8px;
-}
-.nav-panel-list {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px 32px;
-  margin: 0;
-  padding: 0;
-}
-.nav-panel-list a {
-  display: grid;
-  gap: 2px;
-}
-.nav-panel-label {
-  font-size: 16px;
-  line-height: 22px;
-}
-.nav-panel-more {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  margin: 24px 0 0;
-  padding: 20px 0 0;
-  border-top: 1px solid var(--line);
-  font-size: 14px;
-  line-height: 20px;
-}
-.nav-panel-more a:hover,
-.nav-panel-list a:hover .nav-panel-label {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.nav-panel-feature {
-  display: grid;
-  gap: 10px;
-  align-content: start;
-}
-.nav-panel-feature img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  background: var(--band);
-}
-
-/* The phone's sheet: full height, right under the bar. */
-.mobile-sheet {
-  display: none;
-}
-.mobile-sheet.open {
-  display: block;
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: var(--sheet-top, var(--header-h));
-  bottom: 0;
-  z-index: 45;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-}
-.sheet-list {
-  margin: 0;
-  padding: 0;
-}
-.sheet-list > li {
-  border-bottom: 1px solid var(--line);
-}
-.sheet-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 60px;
-  padding: 0 var(--gutter);
-  background: none;
-  border: 0;
-  text-align: left;
-  color: inherit;
-}
-.sheet-chev {
-  width: 12px;
-  height: 8px;
-  transition: transform var(--dur) var(--ease);
-}
-.sheet-chev.open {
-  transform: rotate(180deg);
-}
-.sheet-sub {
-  margin: 0;
-  padding: 0 var(--gutter) 16px;
-}
-.sheet-sub[hidden] {
-  display: none;
-}
-.sheet-sub a {
-  display: block;
-  padding: 11px 0;
-  font-size: 16px;
-  line-height: 22px;
-}
-.sheet-account {
-  margin: 0;
-  padding: 24px var(--gutter) calc(40px + env(safe-area-inset-bottom));
-  display: grid;
-}
-.sheet-account a {
-  display: block;
-  padding: 12px 0;
-  font-size: 14px;
-  line-height: 20px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-@media (min-width: 768px) {
-  .mobile-sheet.open > nav {
-    max-width: 480px;
-    min-height: 100%;
-    border-right: 1px solid var(--line);
-  }
-}
-/* The cookie strip gives way while the sheet is open, so the sheet's last
-   links are never under it. */
-html:has(.mobile-sheet.open) .cookie-banner {
-  visibility: hidden;
+  display: contents;
 }
 
 @media (min-width: 1280px) {
@@ -414,51 +238,466 @@ html:has(.mobile-sheet.open) .cookie-banner {
   .nav-links {
     display: block;
   }
+  .nav-tools {
+    margin-right: calc(46px - var(--gutter));
+  }
+}
+@media (max-width: 1023px) {
+  .nav-brand .laf-mark {
+    --laf-h: 40px;
+  }
+}
+@media (max-width: 767px) {
+  .nav-brand .laf-mark {
+    --laf-h: 32px;
+  }
+}
+/* A finger gets 44px on every bar control. */
+@media (max-width: 1023px), (pointer: coarse) {
+  .nav-tools .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .nav-tools {
+    margin-right: calc(4px - var(--gutter));
+  }
+}
+
+/* ── The panel under the bar (wide screens) ────────────────────
+   The band, a black line on top, 30px by 60px: the columns of links 40px
+   apart, then the row of pictures taking the rest. It fades in over
+   0.2s. */
+.nav-panel {
+  display: none;
+}
+.nav-panel-inner {
+  display: flex;
+  gap: 40px;
+  padding: 30px var(--gutter);
+  background: var(--band);
+  border-top: 1px solid var(--ink);
+}
+.nav-panel-cols {
+  display: flex;
+  flex: none;
+  gap: 40px;
+  margin: 0;
+  padding: 0;
+}
+.nav-panel-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+/* The column's name: the headline face 14/20, its line under the pointer
+   when it is a door. */
+.nav-panel-head {
+  display: inline-flex;
+  margin-bottom: 16px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+a.nav-panel-head:hover {
+  border-bottom-color: var(--ink);
+}
+.nav-panel-head-text {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.nav-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+.nav-panel-list a {
+  display: inline-flex;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.nav-panel-list a:hover {
+  border-bottom-color: var(--ink);
+}
+.nav-panel-cards {
+  flex: 1 1 0;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+@media (min-width: 1280px) {
   .nav-panel {
     display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.2s,
+      visibility 0s linear 0.2s;
   }
+  .nav-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s;
+  }
+}
+
+/* The row of pictures (the panel's and the sheet's): a 17:15 photograph,
+   8px, its name in the headline face 12/16, underlined 4px under it
+   under the pointer. */
+.highlight-cards {
+  display: grid;
+  align-items: start;
+  margin: 0;
+  padding: 0;
+}
+.highlight-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.highlight-card-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 17 / 15;
+  overflow: hidden;
+  background: var(--band);
+}
+.highlight-card-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.highlight-card-title {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  text-underline-offset: 4px;
+}
+.highlight-card:hover .highlight-card-title {
+  text-decoration-line: underline;
+}
+
+/* ── The phone's pills: under the bar, scrolling with the page ──
+   28px pills, a 1px black edge, 14/20 on a 12px side pad, 8px apart, on
+   a 16px by 12px row; the word's line under the pointer and on the
+   current page. */
+.nav-quick {
+  display: none;
+}
+@media (max-width: 767px) {
+  .nav-quick {
+    display: block;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--bg);
+  }
+}
+.nav-quick::-webkit-scrollbar {
+  display: none;
+}
+.nav-quick ul {
+  display: flex;
+  gap: 8px;
+  width: max-content;
+  margin: 0;
+  padding: 16px 12px;
+}
+.nav-quick .nav-quick-chip {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 12px;
+  border-color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.nav-quick .nav-quick-chip,
+.nav-quick .nav-quick-chip:hover,
+.nav-quick .nav-quick-chip[aria-current="page"] {
+  background: transparent;
+  color: var(--ink);
+}
+.nav-quick-text {
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.nav-quick-chip:hover .nav-quick-text,
+.nav-quick-chip[aria-current="page"] .nav-quick-text {
+  border-bottom-color: var(--ink);
+}
+/* A 44px target round the 28px pill. */
+.nav-quick .nav-quick-chip::before {
+  content: "";
+  position: absolute;
+  inset: -8px 0;
+}
+
+/* ── The sheet below the wide layout ───────────────────────────
+   Under the bar, on the band, full width: the destinations in the
+   headline face (14/20, 16/22 from 768px) 40px in from the top, one level
+   at a time; the pictures under them; the account's links on the last
+   line. */
+.mobile-sheet {
+  display: none;
+}
+.mobile-sheet.open {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--sheet-top, var(--header-h));
+  bottom: 0;
+  z-index: 45;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--band);
+}
+.sheet-nav {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 20px 0;
+}
+.sheet-level {
+  display: flex;
+  flex-direction: column;
+}
+.sheet-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0 0 4px;
+}
+/* Each row a 44px target: the 20px line with 12px above and below. */
+.sheet-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 44px;
+  padding: 12px 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+}
+.sheet-row-text {
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.sheet-row:hover .sheet-row-text,
+.sheet-row[aria-current="page"] .sheet-row-text {
+  border-bottom-color: var(--ink);
+}
+.sheet-back-arrow {
+  width: 28px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.sheet-cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-bottom: 32px;
+}
+.sheet-account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  margin: 0;
+  padding: 0 16px env(safe-area-inset-bottom);
+  border-top: 1px solid var(--line);
+}
+.sheet-account a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  font-size: 12px;
+  line-height: 16px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+@media (min-width: 768px) {
+  .sheet-cards {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+  }
+}
+@media (min-width: 1280px) {
   .mobile-sheet,
   .mobile-sheet.open {
     display: none;
   }
 }
-@media (min-width: 1280px) and (max-width: 1359px) {
-  .nav-links > ul {
-    gap: 20px;
+/* The cookie strip gives way while the sheet is open, so the sheet's last
+   links are never under it. */
+html:has(.mobile-sheet.open) .cookie-banner {
+  visibility: hidden;
+}
+
+/* ── The account drawer: from the right, on the band ───────────
+   621px wide (the whole screen on a phone) over a 60% black scrim;
+   "Kapat" and its cross at the top right, the name in large capitals
+   60px under it, the column 40px in. */
+.account-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+.account-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  opacity: 0.6;
+  animation: chrome-fade-in 0.15s var(--ease);
+}
+.account-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(621px, 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 44px 72px 36px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--band);
+  animation: chrome-drawer-in 0.35s var(--ease);
+}
+.account-drawer:focus {
+  outline: none;
+}
+.account-drawer-top {
+  display: flex;
+  justify-content: flex-end;
+}
+.account-drawer-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 22px;
+}
+.account-drawer-close svg {
+  width: 14px;
+  height: 14px;
+}
+.account-drawer-body {
+  margin-top: 60px;
+  padding-inline: 40px;
+}
+.account-drawer-title {
+  margin: 0 0 12px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 48px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--charcoal);
+}
+.account-drawer-text {
+  margin: 0 0 32px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--charcoal);
+}
+.account-drawer-actions {
+  display: grid;
+  gap: 12px;
+}
+.account-drawer-links {
+  display: grid;
+  margin: 8px 0 32px;
+  padding: 0;
+}
+.account-drawer-links a {
+  display: inline-flex;
+  padding-block: 11px;
+  font-size: 16px;
+  line-height: 22px;
+}
+.account-drawer-links a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+@media (max-width: 639px) {
+  .account-drawer {
+    padding: 44px 20px 36px;
   }
-  .nav-links .t-nav {
-    font-size: 14px;
-    letter-spacing: 1.2px;
+  .account-drawer-title {
+    font-size: 20px;
+    line-height: 32px;
   }
 }
-@media (min-width: 1024px) {
-  .nav-quick {
-    display: none;
+@media (max-width: 1023px), (pointer: coarse) {
+  .account-drawer-close {
+    min-height: 44px;
+    margin-block: -11px;
   }
 }
-@media (max-width: 1023px) {
-  .nav-brand .laf-mark {
-    --laf-h: 32px;
+@keyframes chrome-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes chrome-fade-in {
+  from {
+    opacity: 0;
   }
 }
 
-/* ── The footer ────────────────────────────────────────────── */
+/* ── The footer: the charcoal block ────────────────────────────
+   96px over it and 36px under it, 60px from each side (48px and 20px on
+   a phone); 40px between its rows. Links have the bar's line: 1px, white,
+   faded in under the pointer. */
 .site-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 96px var(--gutter) 36px;
   background: var(--charcoal);
   color: var(--on-dark);
-  padding: 96px 0 36px;
 }
-.site-footer a:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+.site-footer :is(.footer-col-list, .footer-cats, .footer-legal) a,
+.footer-linkish {
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+.site-footer :is(.footer-col-list, .footer-cats, .footer-legal) a:hover,
+.footer-linkish:hover {
+  border-bottom-color: var(--on-dark);
 }
 .footer-brand {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 12px;
+  min-height: 48px;
 }
 .footer-brand .laf-mark {
-  --laf-h: 28px;
+  --laf-h: 30px;
 }
 .footer-wordmark {
   font-family: var(--headline);
@@ -469,50 +708,83 @@ html:has(.mobile-sheet.open) .cookie-banner {
   text-transform: uppercase;
 }
 .footer-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 410px);
-  gap: 64px;
-  margin-top: 48px;
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
 }
 .footer-cols {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px 56px;
+}
+/* The headline face 16/22 (14/20 on a phone), 12px over the list. */
+.footer-heading {
+  margin: 0;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
 }
 .footer-col-title {
-  margin: 0;
   padding-bottom: 12px;
 }
+.footer-col--wide {
+  max-width: 220px;
+}
 .footer-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   margin: 0;
-  padding: 0;
+  padding: 12px 0 0;
 }
 .footer-col-list li {
-  padding: 4px 0;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 16px;
+  line-height: 22px;
   overflow-wrap: anywhere;
+}
+.footer-col-list a {
+  display: inline-block;
 }
 .footer-col-list a[href^="tel:"] {
   white-space: nowrap;
 }
+.footer-col-list li.footer-note,
+.footer-col-list li.footer-note-live {
+  font-size: 14px;
+  line-height: 20px;
+}
 .footer-note {
   color: var(--on-dark-muted);
+}
+.footer-col-list li.footer-note-live:empty {
+  display: none;
 }
 .footer-linkish {
   padding: 0;
   background: none;
-  border: 0;
+  border-top: 0;
+  border-inline: 0;
   color: inherit;
   font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
   text-align: left;
 }
-.footer-linkish:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+
+/* The letter, 410px at most: its name, a sentence, then the field on a
+   white line with the long arrow at its end. */
+.footer-letter {
+  flex: 0 1 410px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .footer-letter-text {
-  margin: 12px 0 20px;
+  margin: 8px 0 16px;
   font-size: 16px;
   line-height: 22px;
 }
@@ -528,29 +800,32 @@ html:has(.mobile-sheet.open) .cookie-banner {
   background: transparent;
   border: 0;
   color: var(--on-dark);
+  line-height: 16px;
 }
 .newsletter-form input::placeholder {
-  color: var(--on-dark-muted);
+  color: var(--on-dark);
+  opacity: 1;
 }
 .newsletter-form input:focus {
   outline: none;
 }
 .newsletter-form:focus-within {
-  border-bottom-width: 2px;
+  box-shadow: 0 1px 0 var(--on-dark);
 }
 .newsletter-submit {
   display: grid;
   place-items: center;
+  flex-shrink: 0;
   width: 44px;
-  height: 44px;
-  margin-right: -8px;
+  height: 32px;
+  padding: 0;
   background: none;
   border: 0;
   color: var(--on-dark);
 }
 .newsletter-submit svg {
-  width: 28px;
-  height: 12px;
+  width: 44px;
+  height: 8px;
 }
 .newsletter-consent {
   display: flex;
@@ -601,62 +876,91 @@ html:has(.mobile-sheet.open) .cookie-banner {
 .newsletter-status.is-error {
   color: #ffb4a8;
 }
+/* The networks: bare glyphs 28px apart, 12px under the letter. */
 .footer-social {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin-top: 24px;
+  gap: 28px;
+  margin: 0;
+  padding: 12px 0 0;
+}
+.footer-social a {
+  display: grid;
+  place-items: center;
+}
+.footer-social a:hover {
+  opacity: 0.7;
 }
 .footer-social svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
-.footer-handle {
-  color: var(--on-dark-muted);
-}
+
 .footer-cats {
   display: grid;
   gap: 8px;
-  margin-top: 56px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.24);
   color: var(--on-dark-muted);
+  font-size: 14px;
+  line-height: 20px;
 }
-.footer-cats .t-label {
-  color: var(--on-dark);
+.footer-cats p {
+  margin: 0;
+}
+.footer-cats-label,
+.footer-company dt {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.footer-cats-label {
   margin-right: 8px;
+  color: var(--on-dark);
 }
 .footer-company {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, auto));
-  justify-content: start;
-  gap: 8px 40px;
-  margin: 32px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+  margin: 0;
 }
 .footer-company dt {
   color: var(--on-dark-muted);
 }
 .footer-company dd {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: 14px;
   line-height: 20px;
 }
+
+/* The bottom line: a white rule, 20px, the remaining documents in tracked
+   capitals 14/20 on the left, the name on the right. */
 .footer-bottom {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  gap: 16px 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--on-dark);
 }
 .footer-legal {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 28px;
+  gap: 8px 16px;
   margin: 0;
   padding: 0;
+}
+.footer-legal,
+.footer-copy {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.footer-legal a,
+.footer-legal .footer-linkish {
+  display: inline-block;
 }
 
 /* The live line: a dot and the words, never colour alone. */
@@ -682,32 +986,63 @@ html:has(.mobile-sheet.open) .cookie-banner {
 
 @media (max-width: 1279px) {
   .footer-main {
-    grid-template-columns: 1fr;
-    gap: 48px;
+    flex-direction: column;
   }
 }
-@media (max-width: 1023px) {
-  .footer-cols {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .footer-company {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 599px) {
+/* A phone: everything in one column, the headings and links 14/20, the
+   bottom line's links one under the other at 12/16. */
+@media (max-width: 767px) {
   .site-footer {
-    padding-top: 56px;
+    padding: 48px var(--gutter);
   }
   .footer-cols {
-    grid-template-columns: 1fr;
-    gap: 36px;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .footer-col--wide {
+    max-width: none;
+  }
+  .footer-heading,
+  .footer-col-list li,
+  .footer-letter-text {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .footer-letter .footer-heading {
+    line-height: 24px;
+  }
+  .footer-social {
+    padding-top: 18px;
   }
   .footer-company {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
   .footer-bottom {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .footer-legal {
+    flex-direction: column;
+  }
+  .footer-legal,
+  .footer-copy {
+    font-size: 12px;
+    line-height: 16px;
+  }
+}
+@media (max-width: 767px) {
+  .footer-col-list {
+    gap: 23px;
+  }
+  .footer-col-list a::after {
+    inset: -12px 0;
+  }
+  .footer-legal {
+    gap: 27px;
+  }
+  .footer-legal a::after,
+  .footer-legal .footer-linkish::after {
+    inset: -14px 0;
   }
 }
 
@@ -903,33 +1238,41 @@ html:has(.mobile-sheet.open) .cookie-banner {
   }
 }
 
-/* ── Touch: every chrome control is a 44px target ──────────── */
+/* ── Touch: every chrome control is a 44px target ──────────────
+   The footer's links keep their line under the letters: the target
+   reaches out round them (a transparent layer) and the rows open up to
+   44px apart so no two targets overlap. */
 @media (max-width: 1023px), (pointer: coarse) {
-  .nav-account-item {
-    padding-block: 12px;
+  .footer-col-list {
+    gap: 21px;
   }
-  .footer-col-list li:has(> a, > button) {
-    padding: 0;
+  .footer-col-list a,
+  .footer-legal a,
+  .footer-legal .footer-linkish {
+    position: relative;
   }
-  .footer-col-list li > a,
-  .footer-col-list li > .footer-linkish {
-    display: inline-block;
-    padding-block: 12px;
+  .footer-col-list a::after,
+  .footer-legal a::after,
+  .footer-legal .footer-linkish::after {
+    content: "";
+    position: absolute;
+    inset: -11px 0;
   }
-  .footer-social {
-    gap: 4px;
-    margin-left: -12px;
+  .footer-legal {
+    gap: 24px 16px;
   }
   .footer-social a {
-    display: grid;
-    place-items: center;
     width: 44px;
     height: 44px;
+    margin: -13px;
   }
-  .footer-legal a {
-    display: inline-block;
-    padding-block: 12px;
-    margin-block: -12px;
+  .newsletter-submit {
+    height: 44px;
+    margin-block: -6px;
+  }
+  .cookie-banner-actions .btn,
+  .cookie-modal-actions .btn {
+    min-height: 44px;
   }
   .announce-link {
     display: inline-block;

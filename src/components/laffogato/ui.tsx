@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
 import { checkoutFromCart, trackCartAdd } from "./pixel-events";
@@ -275,6 +275,337 @@ export function ProductCard({ product, addToCart, onOpen }: ProductCardProps) {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Collection controls: the reference's FILTER panel, its SORT BY box and
+   the phone's one / two column switch. The shop and the menu share them.
+   ───────────────────────────────────────────────────────────── */
+
+/** The small chevron of a filter section, pointing down; open turns it. */
+function Chevron() {
+  return (
+    <svg viewBox="0 0 10 6" aria-hidden="true">
+      <path d="M1 1l4 4 4-4" />
+    </svg>
+  );
+}
+
+export interface SortOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * The SORT BY box: a 48px square button with a small triangle; open, its
+ * bottom edge gives way to a white list hung under it, the label goes grey
+ * and the triangle turns. A listbox: arrows move, Enter or Space chooses,
+ * Escape and Tab close, a click outside closes.
+ */
+export function SortMenu({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: SortOption[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const current = options.find((o) => o.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    listRef.current?.focus({ preventScroll: true });
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  const openList = () => {
+    setActive(
+      Math.max(
+        0,
+        options.findIndex((o) => o.value === value),
+      ),
+    );
+    setOpen(true);
+  };
+  const choose = (i: number) => {
+    onChange(options[i].value);
+    setOpen(false);
+    btnRef.current?.focus();
+  };
+  const onListKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => Math.min(options.length - 1, a + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => Math.max(0, a - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActive(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActive(options.length - 1);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      choose(active);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+      btnRef.current?.focus();
+    } else if (e.key === "Tab") {
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="sort-menu" ref={wrapRef} data-open={open || undefined}>
+      <button
+        ref={btnRef}
+        id={id}
+        type="button"
+        className="sort-menu-btn"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? `${id}-list` : undefined}
+        aria-label={`${label}: ${current.label}`}
+        onClick={() => (open ? setOpen(false) : openList())}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            openList();
+          }
+        }}
+      >
+        <span className="sort-menu-label">{label}</span>
+        <svg className="sort-menu-caret" viewBox="0 0 10 5" aria-hidden="true">
+          <path d="M0 0h10L5 5z" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          ref={listRef}
+          id={`${id}-list`}
+          role="listbox"
+          tabIndex={-1}
+          aria-labelledby={id}
+          aria-activedescendant={`${id}-opt-${active}`}
+          className="sort-menu-list"
+          onKeyDown={onListKey}
+        >
+          {options.map((o, i) => (
+            <li
+              key={o.value}
+              id={`${id}-opt-${i}`}
+              role="option"
+              aria-selected={o.value === value}
+              className={cx("sort-menu-opt", i === active && "is-active")}
+              onClick={() => choose(i)}
+              onMouseMove={() => i !== active && setActive(i)}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The FILTER panel: from the right on the band, 480px wide (the whole
+ * screen on a phone), a large title and a bare close, accordion sections
+ * of round options, and "Tümünü temizle" / "Uygula (n)" at the foot. It
+ * stays mounted so it can slide, so it is inert while closed (useDialog).
+ */
+export function FilterSheet({
+  open,
+  onClose,
+  onApply,
+  onClear,
+  count,
+  children,
+  after,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onApply: () => void;
+  onClear: () => void;
+  /** Options chosen in the panel, shown on the apply button. */
+  count: number;
+  children: ReactNode;
+  /** A quiet note under the sections (not a filter). */
+  after?: ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useDialog(open, onClose, panelRef);
+  return (
+    <>
+      <div
+        className={cx("sheet-scrim", open && "open")}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        ref={panelRef}
+        className={cx("sheet", open && "open")}
+        role={open ? "dialog" : undefined}
+        aria-modal={open ? true : undefined}
+        aria-label="Filtreler"
+        aria-hidden={open ? undefined : true}
+        inert={!open}
+        tabIndex={-1}
+      >
+        <header className="sheet-head">
+          <h2 className="sheet-title">Filtre</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="icon-btn icon-btn--boxed"
+            aria-label="Kapat"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </header>
+        <div className="sheet-body">
+          <ul className="filter-sections">{children}</ul>
+          {after}
+        </div>
+        <footer className="sheet-foot">
+          <button type="button" className="btn" onClick={onClear}>
+            Tümünü temizle
+          </button>
+          <button type="button" className="btn btn-dark" onClick={onApply}>
+            Uygula (<span className="tabular">{count}</span>)
+          </button>
+        </footer>
+      </div>
+    </>
+  );
+}
+
+/** One accordion section of the filter panel: its title over its options. */
+export function FilterSection({
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  return (
+    <li className="filter-section" data-open={open || undefined}>
+      <h3 className="filter-section-title">
+        <button
+          type="button"
+          className="filter-section-head"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span>{title}</span>
+          <Chevron />
+        </button>
+      </h3>
+      <div id={bodyId} className="filter-section-body" hidden={!open}>
+        {children}
+      </div>
+    </li>
+  );
+}
+
+/** A section's round options: a radio group or a set of checkboxes. */
+export function FilterOptions({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <ul className="filter-options" role="group" aria-label={label}>
+      {children}
+    </ul>
+  );
+}
+
+export function FilterOption({
+  type,
+  name,
+  checked,
+  onChange,
+  children,
+}: {
+  type: "radio" | "checkbox";
+  name: string;
+  checked: boolean;
+  onChange: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <li>
+      <label className="filter-option">
+        <input type={type} name={name} checked={checked} onChange={onChange} />
+        <span>{children}</span>
+      </label>
+    </li>
+  );
+}
+
+/** The phone's one / two column switch over a collection. */
+export function GridToggle({
+  cols,
+  onChange,
+}: {
+  cols: 1 | 2;
+  onChange: (cols: 1 | 2) => void;
+}) {
+  return (
+    <div className="grid-toggle" role="group" aria-label="Izgara">
+      <button
+        type="button"
+        aria-pressed={cols === 1}
+        aria-label="Tek sütun"
+        onClick={() => onChange(1)}
+      >
+        <svg viewBox="0 0 26 26" aria-hidden="true">
+          <rect x="4.5" y="4.5" width="17" height="17" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        aria-pressed={cols === 2}
+        aria-label="İki sütun"
+        onClick={() => onChange(2)}
+      >
+        <svg viewBox="0 0 26 26" aria-hidden="true">
+          <rect x="4.5" y="4.5" width="7" height="7" />
+          <rect x="14.5" y="4.5" width="7" height="7" />
+          <rect x="4.5" y="14.5" width="7" height="7" />
+          <rect x="14.5" y="14.5" width="7" height="7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
    Cart drawer
    ───────────────────────────────────────────────────────────── */
 
@@ -326,7 +657,11 @@ export function CartDrawer({
       />
       <aside
         ref={panelRef}
-        className={cx("cart-drawer", open && "open")}
+        className={cx(
+          "cart-drawer",
+          open && "open",
+          items.length === 0 && "cart-drawer--empty",
+        )}
         // The drawer stays mounted so it can animate out. While it is closed
         // its buttons and links were still in the tab order off-screen, and
         // `aria-modal` was announced permanently - a screen reader believed a
@@ -339,26 +674,17 @@ export function CartDrawer({
         tabIndex={-1}
       >
         <header className="cart-drawer-header">
-          <p className="t-display">
+          <h2 className="t-display cart-drawer-title">
             {items.length === 0 ? "Sepetin boş" : "Sepetin"}
-            {items.length > 0 ? (
-              <span className="t-small t-muted cart-drawer-count">
-                {itemCount} ürün
-              </span>
-            ) : null}
-          </p>
+          </h2>
           <button
             type="button"
             onClick={onClose}
             className="icon-btn icon-btn--boxed"
             aria-label="Kapat"
           >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                d="M3 3l10 10M13 3 3 13"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" />
             </svg>
           </button>
         </header>
@@ -367,42 +693,62 @@ export function CartDrawer({
         )}
         <div className="cart-drawer-body">
           {items.length === 0 ? (
-            <div className="cart-empty">
-              <p className="t-body">
-                Kahve, ekipman ya da hediye: mağazada köşkün raflarındaki her
-                şey var.
-              </p>
-              {suggestions.length > 0 ? (
-                <div className="cart-suggest">
-                  <p className="t-label">Beğenebileceklerin</p>
-                  <ul className="cart-suggest-list" role="list">
-                    {suggestions.map((p) => (
-                      <li key={p.id ?? p.slug}>
+            suggestions.length > 0 ? (
+              <section
+                className="cart-suggest"
+                aria-labelledby="cart-suggest-title"
+              >
+                <h3 id="cart-suggest-title" className="cart-suggest-title">
+                  Beğenebileceklerin
+                </h3>
+                <ul className="cart-suggest-row" role="list">
+                  {suggestions.map((p) => {
+                    const discount = productDiscount(p);
+                    return (
+                      <li key={p.id ?? p.slug} className="p-card">
                         <Link
                           href={productPath(p.slug!)}
-                          className="cart-suggest-item"
+                          className="p-card-link"
                           onClick={onClose}
                         >
-                          <span className="cart-item-thumb media ratio-1">
+                          <span className="media ratio-5-4 p-card-media">
                             <ProductSurface label={p.name} images={p.images} />
                           </span>
-                          <span className="cart-suggest-copy">
+                          <span className="p-card-head">
                             <span className="t-title">
-                              {shortProductName(p.name)}
+                              {keepUnits(shortProductName(p.name))}
                             </span>
                             <span className="t-price tabular">
+                              {discount ? (
+                                <span className="price-was">
+                                  {discount.was}
+                                </span>
+                              ) : null}
                               {typeof p.priceMinor === "number"
                                 ? priceLabel(p.priceMinor)
                                 : p.price}
                             </span>
                           </span>
+                          {p.tag ? (
+                            <span className="t-small p-card-sub">{p.tag}</span>
+                          ) : null}
+                          <span className="t-small t-muted">
+                            {discount
+                              ? discount.short
+                              : (SHOP_CAT_LABELS[p.cat] ?? "")}
+                          </span>
                         </Link>
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-            </div>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : (
+              <p className="t-body cart-empty-text">
+                Kahve, ekipman ya da hediye: mağazada köşkün raflarındaki her
+                şey var.
+              </p>
+            )
           ) : (
             <ul className="cart-lines">
               {items.map((it, i) => {
@@ -410,25 +756,32 @@ export function CartDrawer({
                 const lineTotal = (it.price || 0) * qty;
                 const atMax = it.maxStock !== undefined && qty >= it.maxStock;
                 return (
-                  <li key={cartItemKey(it) + i} className="cart-item-grid">
-                    <div className="cart-item-thumb media ratio-1">
-                      <ProductSurface label={it.name} images={imagesFor(it)} />
+                  <li key={cartItemKey(it) + i} className="cart-line">
+                    <div className="cart-line-thumb">
+                      <span className="cart-item-thumb media">
+                        <ProductSurface
+                          label={it.name}
+                          images={imagesFor(it)}
+                        />
+                      </span>
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div className="cart-item-name">
-                        {it.slug ? (
-                          <a href={productPath(it.slug)} onClick={onClose}>
-                            {shortProductName(it.name)}
-                          </a>
-                        ) : (
-                          shortProductName(it.name)
+                    <div className="cart-line-main">
+                      <div>
+                        <div className="cart-item-name">
+                          {it.slug ? (
+                            <a href={productPath(it.slug)} onClick={onClose}>
+                              {shortProductName(it.name)}
+                            </a>
+                          ) : (
+                            shortProductName(it.name)
+                          )}
+                        </div>
+                        {it.variantName && (
+                          <div className="cart-item-variant">
+                            {it.variantName}
+                          </div>
                         )}
                       </div>
-                      {it.variantName && (
-                        <div className="cart-item-variant">
-                          {it.variantName}
-                        </div>
-                      )}
                       {setQty ? (
                         <div className="cart-qty-stepper">
                           <button
@@ -436,7 +789,7 @@ export function CartDrawer({
                             aria-label="Azalt"
                             onClick={() => setQty(i, qty - 1)}
                           >
-                            −
+                            -
                           </button>
                           <span className="tabular">{qty}</span>
                           <button
@@ -455,16 +808,20 @@ export function CartDrawer({
                         <div className="cart-item-cap">Stok sınırı</div>
                       )}
                     </div>
-                    <div className="cart-item-side">
+                    <div className="cart-line-side">
                       <div className="cart-item-price tabular">
                         {priceLabel(Math.round(lineTotal * 100))}
                       </div>
                       <button
                         type="button"
                         className="cart-item-remove"
+                        aria-label="Sil"
+                        title="Sil"
                         onClick={() => removeItem(i)}
                       >
-                        Sil
+                        <svg viewBox="0 0 16 17" aria-hidden="true">
+                          <path d="M1.5 3.5h13M6 3.5V1.5h4v2M3 3.5l.9 12h8.2l.9-12M6.5 6.5v6.5M9.5 6.5v6.5" />
+                        </svg>
                       </button>
                     </div>
                   </li>
@@ -474,12 +831,12 @@ export function CartDrawer({
           )}
         </div>
         {items.length > 0 ? (
-          <CartFooter total={total} items={items} />
+          <CartFooter total={total} count={itemCount} items={items} />
         ) : (
           <div className="cart-drawer-foot">
             <Link
               href="/magaza"
-              className="btn btn-dark btn-block"
+              className="btn btn-dark cart-return"
               onClick={onClose}
             >
               Mağazaya dön
@@ -503,45 +860,52 @@ function FreeShippingBar({
   const reached = remaining <= 0;
   return (
     <div className="cart-freeship">
-      <div className="cart-freeship-text">
+      <p className="cart-freeship-text">
         {reached ? (
-          <>
-            <span aria-hidden>✓</span> Ücretsiz kargoyu kazandın
-          </>
+          <>Ücretsiz kargoyu kazandın!</>
         ) : (
           <>
-            <strong>{priceLabel(Math.round(remaining * 100))}</strong> daha
-            ekle, kargo bizden
+            Ücretsiz kargoya{" "}
+            <span className="tabular">
+              {priceLabel(Math.round(remaining * 100))}
+            </span>{" "}
+            kaldı
           </>
         )}
-      </div>
-      <div className="cart-freeship-track">
+      </p>
+      <div className="cart-freeship-track" aria-hidden="true">
         <div className="cart-freeship-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
 }
 
-/** The app's cart bar: the total and one ink capsule to checkout. */
+/** The cart's foot: the shipping note, the total and the checkout button. */
 function CartFooter({
   total,
+  count,
   items,
 }: {
   total: number;
+  count: number;
   items: readonly CartItem[];
 }) {
   return (
     <footer className="cart-drawer-foot">
-      <div className="cart-sum-row">
-        <span>Ara toplam</span>
-        <span className="cart-sum tabular">
-          {priceLabel(Math.round(total * 100))}
-        </span>
-      </div>
-      <div className="cart-sum-note">
-        <span>Kargo</span>
-        <span>Ödeme adımında hesaplanır</span>
-      </div>
+      <dl className="cart-sums">
+        <div className="cart-sum-note">
+          <dt>Kargo</dt>
+          <dd>Ödeme adımında hesaplanır</dd>
+        </div>
+        <div className="cart-sum-row">
+          <dt>
+            Ara toplam ( <span className="tabular">{count}</span> ürün )
+          </dt>
+          <dd className="cart-sum tabular">
+            {priceLabel(Math.round(total * 100))}
+          </dd>
+        </div>
+      </dl>
       <a
         href="/odeme"
         className="btn btn-dark btn-block cart-checkout"
@@ -679,8 +1043,10 @@ function ProductModalBody({
         )}
       </div>
       <div className="product-modal-info">
-        <h2 className="t-display">{p.name}</h2>
-        {p.tag ? <p className="t-body">{p.tag}</p> : null}
+        <div className="pdp-titles">
+          <h2 className="t-display t-display--xl">{p.name}</h2>
+          {p.tag ? <p className="pdp-tag">{p.tag}</p> : null}
+        </div>
         <p className="t-price tabular product-modal-price">
           {discount ? <span className="price-was">{discount.was}</span> : null}
           {priceLabel(Math.round(unitPrice * 100))}
@@ -688,32 +1054,14 @@ function ProductModalBody({
         {discount && <p className="t-small t-muted">{discount.notice}</p>}
 
         {variants.length > 0 && (
-          <div className="buy-variants">
-            <p className="t-label">Seçenek</p>
-            <div className="chip-row">
-              {variants.map((v) => {
-                const vOut = v.stock !== undefined && v.stock <= 0;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    className="tag variant-chip"
-                    aria-pressed={v.id === variantId}
-                    disabled={vOut}
-                    onClick={() => {
-                      setVariantId(v.id);
-                      setQty(1);
-                    }}
-                  >
-                    {v.name}
-                    {v.priceDelta
-                      ? ` · ${v.priceDelta > 0 ? "+" : ""}${priceLabel(Math.round(v.priceDelta * 100))}`
-                      : ""}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <VariantTiles
+            variants={variants}
+            value={variantId}
+            onChange={(id) => {
+              setVariantId(id);
+              setQty(1);
+            }}
+          />
         )}
 
         <div className="buy-row">
@@ -798,6 +1146,54 @@ function ProductModalBody({
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * The variant choice as the reference's SELECT SIZE tiles: square boxes
+ * three to a row, the name in small capitals, the price difference on a
+ * grey strip under it; the chosen one white with a 2px charcoal ring.
+ */
+export function VariantTiles({
+  variants,
+  value,
+  onChange,
+}: {
+  variants: ReturnType<typeof activeVariants>;
+  value?: string;
+  onChange: (id: string) => void;
+}) {
+  const labelId = useId();
+  return (
+    <div className="variant-tiles" role="group" aria-labelledby={labelId}>
+      <p id={labelId} className="t-label variant-tiles-label">
+        Seçenek
+      </p>
+      <div className="variant-tiles-grid">
+        {variants.map((v) => {
+          const vOut = v.stock !== undefined && v.stock <= 0;
+          return (
+            <button
+              key={v.id}
+              type="button"
+              className="variant-tile"
+              aria-pressed={v.id === value}
+              disabled={vOut}
+              onClick={() => onChange(v.id)}
+            >
+              <span className="variant-tile-name">{v.name}</span>
+              {v.priceDelta ? (
+                <span className="variant-tile-note tabular">
+                  {v.priceDelta > 0 ? "+" : ""}
+                  {priceLabel(Math.round(v.priceDelta * 100))}
+                </span>
+              ) : null}
+              {vOut ? <span className="variant-tile-note">Tükendi</span> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

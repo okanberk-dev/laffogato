@@ -1,3 +1,4 @@
+import type { SiteImages } from "@/lib/admin/site-images-core";
 /**
  * What the five SPA pages share. Each page lives in its own file
  * (home-page.tsx, menu-page.tsx, shop-page.tsx, story-page.tsx,
@@ -52,6 +53,8 @@ export interface PageProps {
   /** Admin-managed editorial content; undefined ise data.ts seed'ine düşer. */
   press?: typeof SEED_PRESS;
   storyTimeline?: typeof STORY.heritage;
+  /** The site's photographs from Görseller (/admin/gorseller); absent: the bundled ones. */
+  images?: SiteImages;
   /** Admin-managed editable copy (key → value); undefined ise inline fallback. */
   content?: Record<string, string>;
   /** Visit page contact block from admin settings; undefined ise LOCATION seed. */

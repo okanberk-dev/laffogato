@@ -1,5 +1,6 @@
 "use client";
 
+import { siteImage, type SiteImages } from "@/lib/admin/site-images-core";
 import { useMemo } from "react";
 import Image from "next/image";
 
@@ -50,6 +51,7 @@ export function PageHome({
   settings,
   karaoke,
   products,
+  images,
 }: PageProps) {
   const courierEnabled = settings?.courierEnabled !== false;
   const pickupMinutes = settings?.pickupReadyMinutes ?? DEFAULT_PICKUP_MINUTES;
@@ -239,8 +241,11 @@ export function PageHome({
         </div>
         <div className="split-media media">
           <Image
-            src="/photos/affogato-cup.webp"
-            alt="Yenilebilir waffle kupta affogato"
+            src={siteImage(images, "home.signature").src}
+            unoptimized={siteImage(images, "home.signature").src.startsWith(
+              "/gorsel/",
+            )}
+            alt={siteImage(images, "home.signature").alt}
             fill
             sizes="(max-width: 1023px) 100vw, 63vw"
           />
@@ -280,13 +285,16 @@ export function PageHome({
       {takeHome ? <TakeHome product={takeHome} /> : null}
 
       {/* The karaoke room ────────────────────────────────────── */}
-      {karaoke ? <KaraokeBlock facts={karaoke} today={karaokeToday} /> : null}
+      {karaoke ? (
+        <KaraokeBlock facts={karaoke} today={karaokeToday} images={images} />
+      ) : null}
 
       {/* The app and its stamps ──────────────────────────────── */}
       <AppBlock
         stampTarget={stampTarget}
         courierEnabled={courierEnabled}
         pickupMinutes={pickupMinutes}
+        images={images}
       />
 
       {/* The guides ──────────────────────────────────────────── */}
@@ -341,16 +349,19 @@ export function PageHome({
             </h2>
           </div>
           <div className="visit-row">
-            {VISIT_PHOTOS.map((p) => (
-              <div key={p.src} className="media ratio-4-3">
-                <Image
-                  src={p.src}
-                  alt={p.alt}
-                  fill
-                  sizes="(max-width: 767px) 100vw, 33vw"
-                />
-              </div>
-            ))}
+            {(["home.visit.1", "home.visit.2", "home.visit.3"] as const)
+              .map((key) => ({ key, ...siteImage(images, key) }))
+              .map((p) => (
+                <div key={p.key} className="media ratio-4-3">
+                  <Image
+                    src={p.src}
+                    unoptimized={p.src.startsWith("/gorsel/")}
+                    alt={p.alt}
+                    fill
+                    sizes="(max-width: 767px) 100vw, 33vw"
+                  />
+                </div>
+              ))}
           </div>
           <div className="visit-card">
             <div>
@@ -409,12 +420,6 @@ const HOME_TILES = [
     sub: "Çekirdek kahve, hediye, ekipman",
     image: "/menu/espresso.webp",
   },
-] as const;
-
-const VISIT_PHOTOS = [
-  { src: "/photos/facade-day.webp", alt: "Köşkün gündüz cephesi" },
-  { src: "/photos/terrace-wide.webp", alt: "Köşkün terası" },
-  { src: "/photos/interior-mirror.webp", alt: "Köşkün içi" },
 ] as const;
 
 /**
@@ -489,10 +494,12 @@ function AppBlock({
   stampTarget,
   courierEnabled,
   pickupMinutes,
+  images,
 }: {
   stampTarget: number;
   courierEnabled: boolean;
   pickupMinutes: number;
+  images?: SiteImages;
 }) {
   // The stamp rule as loyalty-core counts it: one stamp per started step
   // from the minimum up (₺140-₺320 one, up to ₺640 two), app cafe orders
@@ -545,8 +552,11 @@ function AppBlock({
         </div>
         <div className="app-block-media media ratio-6-5">
           <Image
-            src="/photos/drinks-tray.webp"
-            alt="Köşkün terasında içecekler"
+            src={siteImage(images, "home.app").src}
+            unoptimized={siteImage(images, "home.app").src.startsWith(
+              "/gorsel/",
+            )}
+            alt={siteImage(images, "home.app").alt}
             fill
             sizes="(max-width: 1023px) 100vw, 58vw"
           />
@@ -564,9 +574,11 @@ function AppBlock({
 function KaraokeBlock({
   facts,
   today,
+  images,
 }: {
   facts: KaraokeFacts;
   today: KaraokeToday;
+  images?: SiteImages;
 }) {
   const lines = [
     `${facts.capacity} kişiye kadar`,
@@ -581,8 +593,11 @@ function KaraokeBlock({
       <div className="wrap-wide karaoke-block">
         <div className="media ratio-16-9">
           <Image
-            src="/photos/hero-karaoke.webp"
-            alt=""
+            src={siteImage(images, "home.karaoke").src}
+            unoptimized={siteImage(images, "home.karaoke").src.startsWith(
+              "/gorsel/",
+            )}
+            alt={siteImage(images, "home.karaoke").alt}
             fill
             sizes="(max-width: 1200px) 100vw, 1216px"
           />

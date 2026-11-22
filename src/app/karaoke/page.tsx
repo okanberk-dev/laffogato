@@ -25,6 +25,9 @@ import { openGraphBase, SITE } from "@/lib/seo/site";
 import { KaraokeBooking } from "@/components/laffogato/karaoke-booking";
 import { parseSaatParam } from "@/components/laffogato/karaoke-today";
 import { footerSettings } from "@/lib/seo/contact";
+import { priceLabel } from "@/lib/utils/format";
+import { getSiteImages } from "@/lib/seo/site-data";
+import { siteImage } from "@/lib/admin/site-images-core";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +77,10 @@ export default async function KaraokePage({ searchParams }: PageProps) {
   // window below must agree on what "now" is.
   const now = new Date();
   const clock = istanbulClock(now);
-  const settings = await getPublicSettings();
+  const [settings, images] = await Promise.all([
+    getPublicSettings(),
+    getSiteImages(),
+  ]);
 
   // Availability is per-day, and the day lives in the URL rather than in
   // client state: picking a date is a server round-trip that re-reads the
@@ -112,6 +118,9 @@ export default async function KaraokePage({ searchParams }: PageProps) {
     unavailable = true;
   }
 
+  // The stage band's photograph: the room (Görseller › Karaoke › Oda).
+  const stageImage = siteImage(images, "karaoke.room");
+
   // The questions under the form and in the JSON-LD, from the same panel
   // values the form uses (src/lib/seo/karaoke-faq.ts).
   const rules = settings.mobileApp.karaoke;
@@ -141,6 +150,8 @@ export default async function KaraokePage({ searchParams }: PageProps) {
       <JsonLd data={karaokeLd(faqFacts, faq)} />
       <SiteChrome settings={footerSettings(settings)}>
         <KaraokeBooking
+          heroImage={siteImage(images, "karaoke.hero")}
+          roomImage={siteImage(images, "karaoke.room")}
           days={days}
           date={date}
           // `?saat=` (the home page's free-hour chips): preselected only if
@@ -185,6 +196,59 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           // `getSettings()` and decides there.
           prepay={availability?.paymentRequired ?? settings.karaokePrepay}
         />
+        {/* The stage (operator, 22 Kas 2026: "karaoke sayfasını daha
+            eğlenceli ... fotoyu öyle kullan, admin panelden değiştirilebilir
+            olsun"): the room's photograph from Görseller to the edge on the
+            charcoal band, three numbers from the panel, one call back up to
+            the calendar. No gradient, shadow or motion (docs/BRAND.md). */}
+        <section
+          className="section--dark karaoke-stage"
+          data-ground="dark"
+          aria-labelledby="karaoke-stage-title"
+        >
+          <div className="karaoke-stage-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={stageImage.src}
+              alt={stageImage.alt}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div className="karaoke-stage-copy">
+            <p className="t-label">Köşkün üst katı · Tuzla</p>
+            <h2 id="karaoke-stage-title" className="karaoke-stage-title">
+              Kapıyı kapat, mikrofonu al
+            </h2>
+            <p className="t-body karaoke-stage-lede">
+              Oda yalnız sizin. Şarkıyı birlikte geldiğiniz kişiler dinler; alt
+              katta kahve, gelato ve affogato bir merdiven uzakta.
+            </p>
+            <ul className="karaoke-stage-facts">
+              <li>
+                <span className="karaoke-stage-num">
+                  {settings.karaokeCapacity}
+                </span>
+                <span>kişiye kadar</span>
+              </li>
+              <li>
+                <span className="karaoke-stage-num">
+                  {String(rules.closeHour).padStart(2, "0")}:00
+                </span>
+                <span>gece son saat</span>
+              </li>
+              <li>
+                <span className="karaoke-stage-num">
+                  {priceLabel(settings.karaokeHourlyMinor)}
+                </span>
+                <span>saati, KDV dahil</span>
+              </li>
+            </ul>
+            <a className="btn btn-light btn-wide" href="#karaoke-takvim">
+              Saatini seç
+            </a>
+          </div>
+        </section>
         <section
           className="section section--band karaoke-faq"
           aria-labelledby="karaoke-faq-title"
