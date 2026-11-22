@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { accountMenuStateAction, logoutAction } from "@/app/uye/actions";
@@ -87,6 +87,11 @@ const LINKS: LinkEntry[] = [
   },
 ];
 
+/** The bar's right-hand word, before the tools (operator, 22 Kas 2026:
+ *  "franchise ekle header sağ tarafına"); a top-level row in the phone's
+ *  sheet too. */
+const TOOL_LINK: LinkEntry = { href: "/franchise", label: "Franchise" };
+
 interface PanelLink {
   href: string;
   label: string;
@@ -108,7 +113,6 @@ const VISIT_LEARN: PanelLink[] = [
   { href: "/hikayemiz", label: "Hikayemiz" },
   { href: "/kampanyalar", label: "Kampanyalar" },
   { href: "/rehber", label: "Rehber" },
-  { href: "/franchise", label: "Franchise" },
 ];
 
 const PANEL_GROUPS: Record<DropdownKey, PanelGroup[]> = {
@@ -502,6 +506,16 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               className="nav-tools"
               onMouseEnter={() => setOpenDropdown(null)}
             >
+              <a
+                href={TOOL_LINK.href}
+                onClick={go(TOOL_LINK)}
+                className="nav-link nav-tool-link"
+                aria-current={
+                  isActivePath(pathname, TOOL_LINK.href) ? "page" : undefined
+                }
+              >
+                <span className="t-nav nav-link-text">{TOOL_LINK.label}</span>
+              </a>
               <button
                 type="button"
                 className="icon-btn"
@@ -583,7 +597,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           {mobileSection === null ? (
             <>
               <ul className="sheet-list" role="list">
-                {LINKS.map((l) => (
+                {[...LINKS, TOOL_LINK].map((l) => (
                   <li key={l.href}>
                     {l.dropdown ? (
                       <button
@@ -1056,12 +1070,66 @@ export function Footer({ navigate, settings }: FooterProps) {
 
   return (
     <footer className="site-footer" data-ground="dark">
-      <Link href="/" className="footer-brand" aria-label="L'Affogato ana sayfa">
-        <LafMark tone="cream" />
-        <span className="footer-wordmark">L&apos;Affogato</span>
-      </Link>
+      {/* The monthly letter opens the block: 6563 consent records behind
+          it. */}
+      <div className="footer-letter">
+        <div className="footer-letter-copy">
+          <h2 className="footer-letter-title">Bültene abone ol</h2>
+          <p className="footer-letter-text">
+            Yeni sezon affogatoları, kavurma notları, küçük gelato denemeleri.
+            Hiçbir zaman ayda birden fazla.
+          </p>
+        </div>
+        <div className="footer-letter-form">
+          <NewsletterForm />
+        </div>
+      </div>
 
       <div className="footer-main">
+        <div className="footer-about">
+          <Link
+            href="/"
+            className="footer-brand"
+            aria-label="L'Affogato ana sayfa"
+          >
+            <LafMark tone="cream" />
+            <span className="footer-wordmark">L&apos;Affogato</span>
+          </Link>
+          <p className="footer-motto">Drink it. Eat the cup.</p>
+          <ul className="footer-social" role="list">
+            <li>
+              <a
+                href={SITE.social.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <SocialGlyph network="instagram" />
+              </a>
+            </li>
+            <li>
+              <a
+                href={SITE.social.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+              >
+                <SocialGlyph network="tiktok" />
+              </a>
+            </li>
+            <li>
+              <a
+                href={SITE.social.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+              >
+                <SocialGlyph network="youtube" />
+              </a>
+            </li>
+          </ul>
+        </div>
+
         <nav className="footer-cols" aria-label="Site haritası">
           <FooterColumn title="Keşfet">
             <li>
@@ -1089,7 +1157,7 @@ export function Footer({ navigate, settings }: FooterProps) {
               <Link href="/rehber">Rehber</Link>
             </li>
           </FooterColumn>
-          <FooterColumn title="Ziyaret" wide>
+          <FooterColumn title="Ziyaret">
             <li>
               <a href={hrefFor("visit")} onClick={go("visit")}>
                 Tuzla köşkü
@@ -1166,98 +1234,62 @@ export function Footer({ navigate, settings }: FooterProps) {
             ))}
           </FooterColumn>
         </nav>
+      </div>
 
-        {/* The monthly letter: 6563 consent records behind it. */}
-        <div className="footer-letter">
-          <h2 className="footer-heading">Bültene abone ol</h2>
-          <p className="footer-letter-text">
-            Yeni sezon affogatoları, kavurma notları, küçük gelato denemeleri.
-            Hiçbir zaman ayda birden fazla.
+      <div className="footer-fine">
+        {/* Every category page keeps a door in the footer. */}
+        <div className="footer-cats">
+          <p>
+            <span className="footer-cats-label">Menüde</span>{" "}
+            {[...MENU_LINKS, ...MENU_MORE].map((m, i, all) => (
+              <Fragment key={m.slug}>
+                <span className="footer-cats-item">
+                  <a href={`/menu/${m.slug}`}>{m.label}</a>
+                  {i < all.length - 1 ? " ·" : ""}
+                </span>{" "}
+              </Fragment>
+            ))}
           </p>
-          <NewsletterForm />
-          <ul className="footer-social" role="list">
-            <li>
-              <a
-                href={SITE.social.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram"
-              >
-                <SocialGlyph network="instagram" />
-              </a>
-            </li>
-            <li>
-              <a
-                href={SITE.social.tiktok}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="TikTok"
-              >
-                <SocialGlyph network="tiktok" />
-              </a>
-            </li>
-            <li>
-              <a
-                href={SITE.social.youtube}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="YouTube"
-              >
-                <SocialGlyph network="youtube" />
-              </a>
-            </li>
-          </ul>
+          <p>
+            <span className="footer-cats-label">Mağazada</span>{" "}
+            {SHOP_LINKS.map((s, i, all) => (
+              <Fragment key={s.slug}>
+                <span className="footer-cats-item">
+                  <a href={`/magaza/${s.slug}`}>{s.label}</a>
+                  {i < all.length - 1 ? " ·" : ""}
+                </span>{" "}
+              </Fragment>
+            ))}
+          </p>
         </div>
-      </div>
 
-      {/* Every category page keeps a door in the footer. */}
-      <div className="footer-cats">
-        <p>
-          <span className="footer-cats-label">Menüde</span>{" "}
-          {[...MENU_LINKS, ...MENU_MORE].map((m, i) => (
-            <span key={m.slug}>
-              {i > 0 ? " · " : ""}
-              <a href={`/menu/${m.slug}`}>{m.label}</a>
-            </span>
-          ))}
-        </p>
-        <p>
-          <span className="footer-cats-label">Mağazada</span>{" "}
-          {SHOP_LINKS.map((s, i) => (
-            <span key={s.slug}>
-              {i > 0 ? " · " : ""}
-              <a href={`/magaza/${s.slug}`}>{s.label}</a>
-            </span>
-          ))}
-        </p>
-      </div>
-
-      {/* Who runs the site and where it can be reached directly (ETHS
+        {/* Who runs the site and where it can be reached directly (ETHS
           Yön. m.5/1, 6563 m.3/1), straight from LEGAL_ENTITY. */}
-      <dl className="footer-company">
-        <div>
-          <dt>Ticaret unvanı</dt>
-          <dd>{LEGAL_ENTITY.legalName}</dd>
-        </div>
-        <div>
-          <dt>MERSİS</dt>
-          <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
-        </div>
-        <div>
-          <dt>Merkez</dt>
-          <dd>{COMPANY_ADDRESS}</dd>
-        </div>
-        {LEGAL_ENTITY.kep ? (
+        <dl className="footer-company">
           <div>
-            <dt>KEP</dt>
-            <dd>{LEGAL_ENTITY.kep}</dd>
+            <dt>Ticaret unvanı</dt>
+            <dd>{LEGAL_ENTITY.legalName}</dd>
           </div>
-        ) : null}
-        <div>
-          <dt>Ödeme</dt>
-          <dd>Visa · Mastercard · Troy</dd>
-        </div>
-      </dl>
+          <div>
+            <dt>MERSİS</dt>
+            <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
+          </div>
+          <div>
+            <dt>Merkez</dt>
+            <dd>{COMPANY_ADDRESS}</dd>
+          </div>
+          {LEGAL_ENTITY.kep ? (
+            <div>
+              <dt>KEP</dt>
+              <dd>{LEGAL_ENTITY.kep}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Ödeme</dt>
+            <dd>Visa · Mastercard · Troy</dd>
+          </div>
+        </dl>
+      </div>
 
       <div className="footer-bottom">
         <ul className="footer-legal" role="list">
@@ -1295,18 +1327,14 @@ export function Footer({ navigate, settings }: FooterProps) {
 
 function FooterColumn({
   title,
-  wide,
   children,
 }: {
   title: string;
-  /** The column whose lines are sentences (an address): it may wrap
-      wider than the others. */
-  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className={cx("footer-col", wide && "footer-col--wide")}>
-      <h2 className="footer-heading footer-col-title">{title}</h2>
+    <div className="footer-col">
+      <h2 className="footer-heading">{title}</h2>
       <ul className="footer-col-list" role="list">
         {children}
       </ul>

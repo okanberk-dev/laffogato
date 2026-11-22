@@ -175,12 +175,20 @@ Unutulmaması gerekenler:
 - **Krom** (`chrome.tsx`): bantta duyuru satırı ("Her siparişte damga topla |
   Kampanyalar") ve yapışkan çubuk: solda dört büyük harf bağlantı (Menü,
   Mağaza, Karaoke, Ziyaret & keşfet; üçü fareyle tam genişlik panel açar),
-  ortada L'Af, sağda arama, hesap, sepet. 1280px altında menü düğmesi ve tam
-  boy panel, 1024px altında hızlı bağlantı çipleri. Kampanyalar ana menüden
-  çıktı (duyuru satırında, ziyaret panelinde, çiplerde ve footer'da). Footer
-  kömür blok: dört sütun (Keşfet, Ziyaret, Üyelik, Kurumsal), bülten
-  (`email`, `consent`; kutu işaretsiz), şirket satırları. Buzlu ya da saydam
-  çubuk, yüzen sipariş düğmesi (`.frap`) ve telefon sekme çubuğu yok.
+  ortada L'Af, sağda "Franchise" bağlantısı (operatör, 22 Kas 2026:
+  _"franchise ekle header sağ tarafına"_; yalnız 1280px ve üstünde, altında
+  telefon panelinin beşinci satırı), sonra arama, hesap, sepet. 1280px
+  altında menü düğmesi ve tam boy panel, 1024px altında hızlı bağlantı
+  çipleri. Kampanyalar ana menüden çıktı (duyuru satırında, ziyaret
+  panelinde, çiplerde ve footer'da). Footer kömür blok, kılçizgilerle dört
+  sıra (operatör, 22 Kas 2026: _"footer'ı daha estetik yap"_): bülten bandı
+  (solda büyük başlık ve cümle, sağda alan; `email`, `consent`, kutu
+  işaretsiz), marka (işaret, "Drink it. Eat the cup.", sosyal hesaplar) ile
+  dört bağlantı sütunu (Keşfet, Ziyaret, Üyelik, Kurumsal) tek ızgarada,
+  ince yazı (kategori kapıları ve şirket satırları iki yarıda), alt satır.
+  1280px altında marka sütunların üstünde bir satır, 1024px altında sütunlar
+  ikişer. Buzlu ya da saydam çubuk, yüzen sipariş düğmesi (`.frap`) ve
+  telefon sekme çubuğu yok.
 - **CSS `src/styles/`'ta.** `globals.css` yalnız içe aktarır (Tailwind, sonra
   sayfa sırasıyla `foundation`, `chrome`, `sections`, `home`, `catalog`,
   `pages`, `karaoke`, `checkout`, `account`) ve panelin geri alma ve baskı
@@ -336,8 +344,8 @@ Sayfa markanın yeşilini giyer (operatör: _"renkleri de yeşilimsi yap bizim
 renkler gibi"_; sitede yalnız bu sayfa): kökteki `.theme-forest` sitenin
 token'larını `--forest`, `--sage` ailesine bağlar, süreç bandı derin yeşil
 (beyaz başlık, pirinç rakam); footer kömürde kalır (`docs/BRAND.md` §10).
-Bağlantılar: footer'ın Kurumsal sütunu, Ziyaret & keşfet panelinin Keşfet
-sütunu (telefon paneli de), site haritası. Görüntüleme veritabanını
+Bağlantılar: üst çubuğun sağı (1280px ve üstünde; altında telefon panelinin
+satırı), footer'ın Kurumsal sütunu, site haritası. Görüntüleme veritabanını
 uyandırmaz (`getSiteSettings`, `getSiteImages`; fotoğraflar `hero.franchise`
 ve `franchise.concept`).
 

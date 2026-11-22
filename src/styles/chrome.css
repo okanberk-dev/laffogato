@@ -198,6 +198,13 @@ body.is-no-scroll {
   align-items: center;
   margin-right: calc(6px - var(--gutter));
 }
+/* The word before the tools ("Franchise"): the bar's own link, only where
+   the links are shown; below that it is a row in the sheet. */
+.nav-tool-link {
+  display: none;
+  height: 31px;
+  margin-right: 18px;
+}
 .nav-tools .icon-btn {
   width: 41px;
   height: 52px;
@@ -237,6 +244,9 @@ body.is-no-scroll {
   }
   .nav-links {
     display: block;
+  }
+  .nav-tool-link {
+    display: flex;
   }
   .nav-tools {
     margin-right: calc(46px - var(--gutter));
@@ -669,14 +679,17 @@ html:has(.mobile-sheet.open) .cookie-banner {
 }
 
 /* ── The footer: the charcoal block ────────────────────────────
-   96px over it and 36px under it, 60px from each side (48px and 20px on
-   a phone); 40px between its rows. Links have the bar's line: 1px, white,
-   faded in under the pointer. */
+   Four rows on hairlines (22 Kas 2026, operator: "footer'ı daha estetik
+   yap"): the letter as an opening band, the brand beside the four link
+   columns on one grid, the fine print (categories and the company) in two
+   halves, the bottom line. 72px over it and 32px under it, the bar's
+   gutter at each side. Links have the bar's line: 1px, white, faded in
+   under the pointer. */
 .site-footer {
+  --footer-line: color-mix(in srgb, var(--on-dark) 18%, transparent);
   display: flex;
   flex-direction: column;
-  gap: 40px;
-  padding: 96px var(--gutter) 36px;
+  padding: 72px var(--gutter) 32px;
   background: var(--charcoal);
   color: var(--on-dark);
 }
@@ -689,104 +702,37 @@ html:has(.mobile-sheet.open) .cookie-banner {
 .footer-linkish:hover {
   border-bottom-color: var(--on-dark);
 }
-.footer-brand {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: 12px;
-  min-height: 48px;
+
+/* The letter: its name large on the left with one sentence under it, the
+   field on its white line on the right, both resting on the same
+   baseline. */
+.footer-letter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  gap: 32px 80px;
+  align-items: end;
+  padding-bottom: 56px;
+  border-bottom: 1px solid var(--footer-line);
 }
-.footer-brand .laf-mark {
-  --laf-h: 30px;
-}
-.footer-wordmark {
-  font-family: var(--headline);
-  font-variation-settings: "wdth" var(--headline-wdth);
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: var(--track);
-  text-transform: uppercase;
-}
-.footer-main {
-  display: flex;
-  justify-content: space-between;
-  gap: 48px;
-}
-.footer-cols {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 40px 56px;
-}
-/* The headline face 16/22 (14/20 on a phone), 12px over the list. */
-.footer-heading {
+.footer-letter-title {
   margin: 0;
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
   font-weight: 400;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: clamp(24px, 2.4vw, 32px);
+  line-height: 1.25;
   letter-spacing: var(--track);
   text-transform: uppercase;
 }
-.footer-col-title {
-  padding-bottom: 12px;
-}
-.footer-col--wide {
-  max-width: 220px;
-}
-.footer-col-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin: 0;
-  padding: 12px 0 0;
-}
-.footer-col-list li {
+.footer-letter-text {
+  max-width: 46ch;
+  margin: 12px 0 0;
   font-size: 16px;
-  line-height: 22px;
-  overflow-wrap: anywhere;
-}
-.footer-col-list a {
-  display: inline-block;
-}
-.footer-col-list a[href^="tel:"] {
-  white-space: nowrap;
-}
-.footer-col-list li.footer-note,
-.footer-col-list li.footer-note-live {
-  font-size: 14px;
-  line-height: 20px;
-}
-.footer-note {
+  line-height: 24px;
   color: var(--on-dark-muted);
 }
-.footer-col-list li.footer-note-live:empty {
-  display: none;
-}
-.footer-linkish {
-  padding: 0;
-  background: none;
-  border-top: 0;
-  border-inline: 0;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  text-align: left;
-}
-
-/* The letter, 410px at most: its name, a sentence, then the field on a
-   white line with the long arrow at its end. */
-.footer-letter {
-  flex: 0 1 410px;
-  display: flex;
-  flex-direction: column;
+.footer-letter-form {
   min-width: 0;
-}
-.footer-letter-text {
-  margin: 8px 0 16px;
-  font-size: 16px;
-  line-height: 22px;
 }
 .newsletter-form {
   display: flex;
@@ -796,11 +742,11 @@ html:has(.mobile-sheet.open) .cookie-banner {
 .newsletter-form input {
   flex: 1;
   min-width: 0;
-  padding: 8px 0;
+  padding: 12px 0;
   background: transparent;
   border: 0;
   color: var(--on-dark);
-  line-height: 16px;
+  line-height: 20px;
 }
 .newsletter-form input::placeholder {
   color: var(--on-dark);
@@ -876,13 +822,48 @@ html:has(.mobile-sheet.open) .cookie-banner {
 .newsletter-status.is-error {
   color: #ffb4a8;
 }
-/* The networks: bare glyphs 28px apart, 12px under the letter. */
+
+/* The brand, then the four columns, on one grid. */
+.footer-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 4.7fr);
+  gap: 48px 40px;
+  padding-block: 56px;
+}
+.footer-about {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.footer-brand .laf-mark {
+  --laf-h: 36px;
+}
+.footer-wordmark {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.footer-motto {
+  margin: 16px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--on-dark-muted);
+}
+/* The networks: bare glyphs 24px apart, under the brand. */
 .footer-social {
   display: flex;
   align-items: center;
-  gap: 28px;
-  margin: 0;
-  padding: 12px 0 0;
+  gap: 24px;
+  margin: 24px 0 0;
+  padding: 0;
 }
 .footer-social a {
   display: grid;
@@ -895,16 +876,87 @@ html:has(.mobile-sheet.open) .cookie-banner {
   width: 18px;
   height: 18px;
 }
-
-.footer-cats {
+.footer-cols {
   display: grid;
-  gap: 8px;
+  grid-template-columns:
+    minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1.15fr)
+    minmax(0, 1.35fr);
+  gap: 40px;
+}
+/* A column's name: the small tracked label, quieter than its links. */
+.footer-heading {
+  margin: 0;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
   color: var(--on-dark-muted);
+}
+.footer-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 20px 0 0;
+}
+.footer-col-list li {
+  font-size: 16px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+.footer-col-list a {
+  display: inline-block;
+}
+.footer-col-list a[href^="tel:"] {
+  white-space: nowrap;
+}
+.footer-col-list li.footer-note,
+.footer-col-list li.footer-note-live {
   font-size: 14px;
   line-height: 20px;
 }
+.footer-note {
+  color: var(--on-dark-muted);
+}
+.footer-col-list li.footer-note-live:empty {
+  display: none;
+}
+.footer-linkish {
+  padding: 0;
+  background: none;
+  border-top: 0;
+  border-inline: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+}
+
+/* The fine print: every category's door on the left (the label hangs in
+   the margin, the links wrap beside it), who runs the site on the right. */
+.footer-fine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px 80px;
+  padding-block: 32px;
+  border-top: 1px solid var(--footer-line);
+}
+.footer-cats {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  color: var(--on-dark-muted);
+  font-size: 14px;
+  line-height: 22px;
+}
 .footer-cats p {
   margin: 0;
+  padding-left: 104px;
+  text-indent: -104px;
 }
 .footer-cats-label,
 .footer-company dt {
@@ -915,14 +967,24 @@ html:has(.mobile-sheet.open) .cookie-banner {
   letter-spacing: var(--track);
   text-transform: uppercase;
 }
+/* 100px and the space after it: the first line starts where the wrapped
+   ones do (104px). */
 .footer-cats-label {
-  margin-right: 8px;
+  display: inline-block;
+  width: 100px;
+  text-indent: 0;
   color: var(--on-dark);
 }
+/* A name and its dot stay on one line; a line ends on the dot, never
+   starts on it. */
+.footer-cats-item {
+  white-space: nowrap;
+}
 .footer-company {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 40px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 20px 40px;
   margin: 0;
 }
 .footer-company dt {
@@ -934,29 +996,36 @@ html:has(.mobile-sheet.open) .cookie-banner {
   line-height: 20px;
 }
 
-/* The bottom line: a white rule, 20px, the remaining documents in tracked
-   capitals 14/20 on the left, the name on the right. */
+/* The bottom line: a hairline, the remaining documents in tracked
+   capitals on the left, the name on the right. */
 .footer-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px 40px;
-  padding-top: 20px;
-  border-top: 1px solid var(--on-dark);
+  padding-top: 24px;
+  border-top: 1px solid var(--footer-line);
 }
 .footer-legal {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 8px 24px;
   margin: 0;
   padding: 0;
 }
 .footer-legal,
 .footer-copy {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 16px;
   letter-spacing: var(--track);
   text-transform: uppercase;
+}
+.footer-bottom {
+  flex-wrap: wrap;
+}
+.footer-copy {
+  margin-left: auto;
+  color: var(--on-dark-muted);
 }
 .footer-legal a,
 .footer-legal .footer-linkish {
@@ -984,60 +1053,116 @@ html:has(.mobile-sheet.open) .cookie-banner {
   background: #2f9e6a;
 }
 
+/* Below the wide bar: the brand in a row of its own over the columns. */
 @media (max-width: 1279px) {
   .footer-main {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .footer-about {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px 32px;
+  }
+  .footer-motto {
+    margin: 0;
+  }
+  .footer-social {
+    margin: 0 0 0 auto;
   }
 }
-/* A phone: everything in one column, the headings and links 14/20, the
-   bottom line's links one under the other at 12/16. */
-@media (max-width: 767px) {
-  .site-footer {
-    padding: 48px var(--gutter);
+/* A tablet and a phone: the letter in one column, the links two by two,
+   the fine print one under the other. */
+@media (max-width: 1023px) {
+  .footer-letter {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 28px;
+  }
+  .footer-letter-form {
+    max-width: 480px;
   }
   .footer-cols {
-    flex-direction: column;
-    gap: 40px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 40px 32px;
   }
-  .footer-col--wide {
-    max-width: none;
+  .footer-fine {
+    grid-template-columns: minmax(0, 1fr);
   }
-  .footer-heading,
-  .footer-col-list li,
+}
+/* A phone: tighter air, the links 14/20, the bottom line's links one
+   under the other. */
+@media (max-width: 767px) {
+  .site-footer {
+    padding: 48px var(--gutter) 28px;
+  }
+  .footer-letter {
+    padding-bottom: 40px;
+  }
+  .footer-letter-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
   .footer-letter-text {
     font-size: 14px;
     line-height: 20px;
   }
-  .footer-letter .footer-heading {
-    line-height: 24px;
+  .footer-main {
+    padding-block: 40px;
+    gap: 40px;
+  }
+  /* The brand and the networks on one line, the motto under them. */
+  .footer-about {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 16px;
+  }
+  .footer-brand {
+    grid-area: 1 / 1;
+    justify-self: start;
   }
   .footer-social {
-    padding-top: 18px;
+    grid-area: 1 / 2;
+    margin: 0;
+  }
+  .footer-motto {
+    grid-area: 2 / 1 / auto / -1;
+  }
+  .footer-cols {
+    gap: 40px 24px;
+  }
+  .footer-col-list {
+    gap: 23px;
+  }
+  .footer-col-list li {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .footer-col-list a::after {
+    inset: -12px 0;
+  }
+  .footer-cats p {
+    padding-left: 0;
+    text-indent: 0;
+  }
+  .footer-cats-label {
+    display: block;
+    width: auto;
+    margin: 0 0 4px;
   }
   .footer-company {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
   }
   .footer-bottom {
     flex-direction: column;
     align-items: flex-start;
   }
+  .footer-copy {
+    margin-left: 0;
+  }
   .footer-legal {
     flex-direction: column;
-  }
-  .footer-legal,
-  .footer-copy {
-    font-size: 12px;
-    line-height: 16px;
-  }
-}
-@media (max-width: 767px) {
-  .footer-col-list {
-    gap: 23px;
-  }
-  .footer-col-list a::after {
-    inset: -12px 0;
-  }
-  .footer-legal {
     gap: 27px;
   }
   .footer-legal a::after,
