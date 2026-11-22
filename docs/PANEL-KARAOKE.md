@@ -102,7 +102,10 @@ ona e-posta gitmez. Çakışmayı her zaman olduğu gibi veritabanı
 (ilk saat ile kapanış arası, bugün geçmiş saat değil, rezervasyon penceresi
 kadar ileri); müşteriye uygulanan en uzun süre sınırı burada yoktur (bir
 kapatma bütün akşamı tutabilir). GET'in satırında `desk: true` (ekleme) bu
-satırları ayırır.
+satırları, `block: true` (ekleme) kapatılmış saatleri ayırır
+(`isDeskBlock`: ücretsiz ve notu "Kapalı" ile başlayan elle satır); panel
+kapalı saati rezervasyon, ciro ya da doluluk saymaz. ladmin'de aynı işler
+Karaoke ekranındaki **Elle ekle** ile yapılır (lafmaliyet `docs/KARAOKE.md`).
 
 ```
 POST https://laffogato.net/api/panel/karaoke

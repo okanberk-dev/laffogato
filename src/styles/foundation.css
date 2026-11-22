@@ -657,9 +657,12 @@
 /* Checkboxes and radios, as the reference's filter options: a round 16px
    ring, 1px black, white inside; chosen, a 10px charcoal dot 2px inside
    the ring. Keyboard focus draws the 2px outline round it. Area rules may
-   size them; the dot keeps its 2px gap at any size. */
-input[type="checkbox"],
-input[type="radio"] {
+   size them; the dot keeps its 2px gap at any size. Not in the admin
+   panel, which keeps its own controls; `:where` keeps the weight of a
+   bare input selector, so every area rule still wins. */
+input:where([type="checkbox"], [type="radio"]):where(
+    :not([data-admin-root] *)
+  ) {
   appearance: none;
   -webkit-appearance: none;
   flex-shrink: 0;
@@ -670,8 +673,9 @@ input[type="radio"] {
   background: var(--surface);
   vertical-align: middle;
 }
-input[type="checkbox"]:checked,
-input[type="radio"]:checked {
+input:where([type="checkbox"], [type="radio"]):where(
+    :not([data-admin-root] *)
+  ):checked {
   background: var(--surface)
     radial-gradient(
       circle closest-side,
@@ -680,8 +684,9 @@ input[type="radio"]:checked {
     )
     no-repeat;
 }
-input[type="checkbox"]:disabled,
-input[type="radio"]:disabled {
+input:where([type="checkbox"], [type="radio"]):where(
+    :not([data-admin-root] *)
+  ):disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }

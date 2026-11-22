@@ -1,9 +1,10 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
-import type {
-  KaraokePaymentStatus,
-  KaraokeReservation,
-  KaraokeReservationStatus,
+import {
+  isDeskBlock,
+  type KaraokePaymentStatus,
+  type KaraokeReservation,
+  type KaraokeReservationStatus,
 } from "@/lib/mobile/karaoke-core";
 import {
   karaokeEndInstant,
@@ -332,6 +333,12 @@ export interface PanelKaraokeReservation {
    * with the POST's `cancel`.
    */
   desk: boolean;
+  /**
+   * Of the desk rows, hours the köşk closed rather than a booking (additive,
+   * 22 Kas 2026; `isDeskBlock`): the room is taken but no guest comes, so
+   * the panel counts it as neither a reservation nor revenue nor occupancy.
+   */
+  block: boolean;
 }
 
 /** The columns the mapper reads; a full row is accepted and narrowed. */
@@ -420,6 +427,7 @@ export function toPanelReservation(
     totalMinor: Number.isFinite(totalMinor) ? totalMinor : 0,
     channel: r.channel === "web" || r.channel === "app" ? r.channel : "",
     desk: r.channel === "desk",
+    block: isDeskBlock({ channel: r.channel, totalMinor, note: r.note }),
     createdAt: r.createdAt ?? "",
     updatedAt: r.updatedAt ?? "",
     refundMinor,
