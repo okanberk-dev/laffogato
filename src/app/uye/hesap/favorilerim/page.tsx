@@ -29,7 +29,7 @@ export default async function FavorilerimPage() {
             hint="Mağazadaki ürünlerin köşesindeki kalp ikonuna dokun, sonra burada bir araya getirelim."
             cta={
               <Link href="/magaza" className="btn btn-primary btn-sm">
-                Mağazaya git →
+                Mağazaya git
               </Link>
             }
           />
@@ -46,7 +46,7 @@ export default async function FavorilerimPage() {
                       style={{
                         width: "100%",
                         height: "100%",
-                        background: "var(--bg-stone)",
+                        background: "var(--band)",
                       }}
                     />
                   )}
@@ -66,8 +66,8 @@ export default async function FavorilerimPage() {
                   <div
                     style={{
                       fontFamily: "var(--mono)",
-                      fontSize: 13,
-                      color: "var(--gold-deep)",
+                      fontSize: 14,
+                      color: "var(--ink)",
                     }}
                   >
                     {formatTRY(p.priceMinor)}
@@ -78,7 +78,7 @@ export default async function FavorilerimPage() {
                     href={productPath(p.slug)}
                     className="btn btn-primary btn-sm"
                   >
-                    Ürüne git →
+                    Ürüne git
                   </Link>
                   <form action={toggleWishlistAction}>
                     <input type="hidden" name="productId" value={p.id} />
@@ -90,7 +90,7 @@ export default async function FavorilerimPage() {
                     <button
                       type="submit"
                       className="btn btn-ghost btn-sm"
-                      style={{ color: "var(--rose)" }}
+                      style={{ color: "var(--error)" }}
                     >
                       Favoriden çıkar
                     </button>

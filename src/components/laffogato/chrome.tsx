@@ -168,18 +168,34 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     setOpenDropdown(null);
   }
 
+  const burgerRef = useRef<HTMLButtonElement | null>(null);
   useEffect(() => {
     document.body.classList.toggle("is-no-scroll", open);
     if (!open) return;
     // The sheet opens right under the bar, wherever the bar is: under the
     // announcement line at the top of the page, at the top once scrolled.
     const bottom = headerRef.current?.getBoundingClientRect().bottom ?? 0;
-    sheetRef.current?.style.setProperty("--sheet-top", `${Math.max(0, bottom)}px`);
+    sheetRef.current?.style.setProperty(
+      "--sheet-top",
+      `${Math.max(0, bottom)}px`,
+    );
+    // The page behind the sheet is out of reach while it is open: Tab goes
+    // from the last link back to the bar, not into the hidden page.
+    const behind = [
+      document.getElementById("main"),
+      document.querySelector<HTMLElement>(".site-footer"),
+    ].filter((el): el is HTMLElement => el !== null);
+    behind.forEach((el) => el.setAttribute("inert", ""));
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      burgerRef.current?.focus();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      behind.forEach((el) => el.removeAttribute("inert"));
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   useEffect(() => {
@@ -274,8 +290,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
     <>
       <div className="announce">
         <p className="t-micro">
-          Her siparişte damga topla{" "}
-          <span aria-hidden="true">|</span>{" "}
+          Uygulamadan siparişte damga topla <span aria-hidden="true">|</span>{" "}
           <Link href="/kampanyalar" className="announce-link">
             Kampanyalar
           </Link>
@@ -295,6 +310,7 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
         <div className="nav">
           <button
             type="button"
+            ref={burgerRef}
             className="icon-btn nav-burger"
             aria-expanded={open}
             aria-controls="mobile-sheet"
@@ -337,9 +353,20 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                         aria-expanded={!!isOpen}
                         aria-controls="nav-panel"
                         aria-label={`${l.label} alt menüsü`}
-                        onClick={() =>
-                          setOpenDropdown(isOpen ? null : l.dropdown!)
-                        }
+                        onClick={() => {
+                          if (isOpen) {
+                            setOpenDropdown(null);
+                            return;
+                          }
+                          setOpenDropdown(l.dropdown!);
+                          // Into the panel it opened, not on to the next
+                          // link: the panel sits later in the bar's order.
+                          requestAnimationFrame(() =>
+                            document
+                              .querySelector<HTMLElement>("#nav-panel a")
+                              ?.focus(),
+                          );
+                        }}
                       >
                         <ChevronGlyph />
                       </button>
@@ -353,13 +380,14 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
           <a
             href={home.href}
             onClick={go(home)}
+            onMouseEnter={() => setOpenDropdown(null)}
             className="nav-brand"
             aria-label="L'Affogato ana sayfa"
           >
             <LafMark tone="duo" />
           </a>
 
-          <div className="nav-tools">
+          <div className="nav-tools" onMouseEnter={() => setOpenDropdown(null)}>
             <button
               type="button"
               className="icon-btn"
@@ -395,7 +423,9 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                 <Link
                   href={q.href}
                   className="chip"
-                  aria-current={isActivePath(pathname, q.href) ? "page" : undefined}
+                  aria-current={
+                    isActivePath(pathname, q.href) ? "page" : undefined
+                  }
                 >
                   {q.label}
                 </Link>
@@ -446,7 +476,9 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
                         }
                       >
                         {l.label}
-                        <ChevronGlyph className={cx("sheet-chev", expanded && "open")} />
+                        <ChevronGlyph
+                          className={cx("sheet-chev", expanded && "open")}
+                        />
                       </button>
                       <ul
                         className={cx("sheet-sub", expanded && "open")}
@@ -496,13 +528,20 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
               </a>
             </li>
             <li>
-              <Link href="/uye/hesap/siparislerim" onClick={() => setOpen(false)}>
+              <Link
+                href="/uye/hesap/siparislerim"
+                onClick={() => setOpen(false)}
+              >
                 Siparişlerim
               </Link>
             </li>
             {APP_STORE_URL ? (
               <li>
-                <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={APP_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Uygulamayı indir
                 </a>
               </li>
@@ -515,7 +554,9 @@ export function Nav({ navigate, cart, onCart, onSearch }: NavProps) {
 }
 
 /** A panel's links: the category pages, or the places and pages to visit. */
-function panelLinks(key: DropdownKey): Array<{ href: string; label: string; sub?: string }> {
+function panelLinks(
+  key: DropdownKey,
+): Array<{ href: string; label: string; sub?: string }> {
   if (key === "menu")
     return [...MENU_LINKS, ...MENU_MORE].map((m) => ({
       href: `/menu/${m.slug}`,
@@ -539,7 +580,12 @@ function NavPanel({
   onPick: () => void;
 }) {
   const feature = PANEL_FEATURE[panel];
-  const links = panelLinks(panel);
+  const all = panelLinks(panel);
+  // Entries with a sub-line keep the two-line grid; the rest (the menu's
+  // smaller families) follow as one compact row, so the grid's rhythm does
+  // not change halfway down.
+  const links = all.filter((e) => e.sub);
+  const more = all.filter((e) => !e.sub);
   return (
     <div className="wrap nav-panel-inner">
       <div className="nav-panel-cols">
@@ -562,6 +608,17 @@ function NavPanel({
             </li>
           ))}
         </ul>
+        {more.length > 0 ? (
+          <ul className="nav-panel-more" role="list" aria-label="Diğer">
+            {more.map((e) => (
+              <li key={e.href}>
+                <a href={e.href} onClick={onPick}>
+                  {e.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       <a href={feature.href} className="nav-panel-feature" onClick={onPick}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -630,7 +687,11 @@ function AccountMenu() {
               <span className="t-label">
                 {state.firstName ? `Merhaba ${state.firstName}` : "Hesabın"}
               </span>
-              <Link href="/uye/hesap" role="menuitem" className="nav-account-item">
+              <Link
+                href="/uye/hesap"
+                role="menuitem"
+                className="nav-account-item"
+              >
                 Hesabım
               </Link>
               <Link
@@ -659,11 +720,7 @@ function AccountMenu() {
               >
                 Giriş yap
               </Link>
-              <Link
-                href="/uye/kayit"
-                role="menuitem"
-                className="btn btn-block"
-              >
+              <Link href="/uye/kayit" role="menuitem" className="btn btn-block">
                 Üye ol
               </Link>
             </>
@@ -677,7 +734,11 @@ function AccountMenu() {
 function BurgerGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M3 7h18M3 12h18M3 17h18" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M3 7h18M3 12h18M3 17h18"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
     </svg>
   );
 }
@@ -690,7 +751,12 @@ function CloseGlyph() {
 }
 function ChevronGlyph({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 12 8" fill="none" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 12 8"
+      fill="none"
+      aria-hidden="true"
+    >
       <path d="M1 1.5 6 6.5l5-5" stroke="currentColor" strokeWidth="1.2" />
     </svg>
   );
@@ -698,7 +764,13 @@ function ChevronGlyph({ className }: { className?: string }) {
 function SearchGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle
+        cx="10.5"
+        cy="10.5"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
       <path d="m15.5 15.5 5 5" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
@@ -707,15 +779,28 @@ function PersonGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M4.5 20.5c.6-4 3.6-6.5 7.5-6.5s6.9 2.5 7.5 6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M4.5 20.5c.6-4 3.6-6.5 7.5-6.5s6.9 2.5 7.5 6.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 }
 function BagGlyph() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 8.5h14l-1.2 12H6.2L5 8.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M9 10.5V7a3 3 0 0 1 6 0v3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M5 8.5h14l-1.2 12H6.2L5 8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 10.5V7a3 3 0 0 1 6 0v3.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
     </svg>
   );
 }
@@ -788,7 +873,11 @@ export function Footer({ navigate, settings }: FooterProps) {
   return (
     <footer className="site-footer" data-ground="dark">
       <div className="wrap">
-        <Link href="/" className="footer-brand" aria-label="L'Affogato ana sayfa">
+        <Link
+          href="/"
+          className="footer-brand"
+          aria-label="L'Affogato ana sayfa"
+        >
           <LafMark tone="cream" />
           <span className="footer-wordmark">L&apos;Affogato</span>
         </Link>
@@ -854,14 +943,22 @@ export function Footer({ navigate, settings }: FooterProps) {
             <FooterColumn title="Üyelik">
               {APP_STORE_URL ? (
                 <li>
-                  <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={APP_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     iPhone için App Store
                   </a>
                 </li>
               ) : null}
               {PLAY_STORE_URL ? (
                 <li>
-                  <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={PLAY_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     Android için Google Play
                   </a>
                 </li>
@@ -908,8 +1005,8 @@ export function Footer({ navigate, settings }: FooterProps) {
           <div className="footer-letter">
             <h2 className="t-nav">Bültene abone ol</h2>
             <p className="footer-letter-text">
-              Yeni sezon affogatoları, kavurma notları, küçük gelato
-              denemeleri. Hiçbir zaman ayda birden fazla.
+              Yeni sezon affogatoları, kavurma notları, küçük gelato denemeleri.
+              Hiçbir zaman ayda birden fazla.
             </p>
             <NewsletterForm />
             <div className="footer-social">
@@ -937,7 +1034,9 @@ export function Footer({ navigate, settings }: FooterProps) {
               >
                 <SocialGlyph network="youtube" />
               </a>
-              <span className="t-small footer-handle">{SITE.social.handle}</span>
+              <span className="t-small footer-handle">
+                {SITE.social.handle}
+              </span>
             </div>
           </div>
         </div>

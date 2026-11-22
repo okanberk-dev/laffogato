@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 
+import Link from "@/components/link";
 import {
   OTHER_BRANCHES,
   branchAddressLines,
@@ -115,10 +116,16 @@ export function PageVisit({ visit, settings }: PageProps) {
                       {l}
                     </span>
                   ))}
-                  <span className="sr-only"> (Google Haritalar, yeni sekme)</span>
+                  <span className="sr-only">
+                    {" "}
+                    (Google Haritalar, yeni sekme)
+                  </span>
                 </a>
                 <OpenNow rows={visitHours} />
               </div>
+              <Link className="link-u" href="/karaoke">
+                Karaoke odası rezervasyonu
+              </Link>
             </li>
             {OTHER_BRANCHES.map((b) => (
               <BranchCard key={b.id} branch={b} />
@@ -289,7 +296,10 @@ export function PageVisit({ visit, settings }: PageProps) {
 
 const GALLERY = [
   { src: "/photos/terrace-wide.webp", alt: "Köşkün terası ve bahçesi" },
-  { src: "/photos/interior-mirror.webp", alt: "Terracotta duvar ve altın ayna" },
+  {
+    src: "/photos/interior-mirror.webp",
+    alt: "Terracotta duvar ve altın ayna",
+  },
   { src: "/photos/terrace-canopy.webp", alt: "Hasır gölgelikli teras" },
   { src: "/photos/facade-night.webp", alt: "Gece ışıklarıyla köşk cephesi" },
 ] as const;
@@ -338,7 +348,9 @@ function BranchCard({ branch }: { branch: SiteBranch }) {
         </a>
       ) : null}
       {lines.length > 0 && !(branch.hoursLabel && tel) ? (
-        <p className="t-small t-muted">{branchPending(branch.hoursLabel, tel)}</p>
+        <p className="t-small t-muted">
+          {branchPending(branch.hoursLabel, tel)}
+        </p>
       ) : null}
       <p className="t-small t-muted">
         Uygulama siparişi, masadan QR siparişi ve karaoke odası Tuzla köşkü

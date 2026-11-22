@@ -398,9 +398,14 @@ export function KaraokeBooking({
     heading?.focus({ preventScroll: true });
     // Out of sight, or far down the screen behind the bar on a phone: the
     // new step is brought up to just under the header.
+    // "Out of sight" starts under the sticky bar, not at the window's top
+    // edge: a step whose progress row sat behind the bar was left there.
     const top = flowRef.current;
     const at = top?.getBoundingClientRect().top ?? 0;
-    if (top && (at < 0 || at > window.innerHeight * 0.3)) {
+    const covered =
+      document.querySelector(".site-header")?.getBoundingClientRect().bottom ??
+      0;
+    if (top && (at < covered || at > window.innerHeight * 0.3)) {
       const still = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;

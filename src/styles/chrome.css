@@ -78,7 +78,7 @@ body.is-no-scroll {
   align-items: center;
   height: var(--header-h);
   padding-inline: var(--gutter);
-  max-width: calc(var(--content) + 2 * var(--gutter) + 120px);
+  max-width: calc(var(--content) + 2 * var(--gutter));
   margin-inline: auto;
 }
 .nav-burger {
@@ -114,13 +114,20 @@ body.is-no-scroll {
 .nav-link[aria-current="page"] {
   text-decoration-line: underline;
 }
+/* While another item is hovered or open, the current page's mark steps
+   back, so one underline means one thing. */
+.nav-links:has(.nav-link.is-open, .nav-link:hover)
+  .nav-link[aria-current="page"]:not(.is-open):not(:hover) {
+  text-decoration-line: none;
+}
 /* The caret is the keyboard's way into a panel: out of sight until it has
    focus (hover opens the panel for the mouse). */
 .nav-caret {
   position: absolute;
-  right: -18px;
-  width: 16px;
+  right: -16px;
+  width: 12px;
   height: 16px;
+  outline-offset: 0;
   padding: 0;
   display: grid;
   place-items: center;
@@ -156,16 +163,16 @@ body.is-no-scroll {
 }
 .nav-cart-count {
   position: absolute;
-  top: 6px;
-  right: 4px;
-  min-width: 16px;
-  height: 16px;
+  top: 3px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
   border-radius: 999px;
   background: var(--charcoal);
   color: var(--on-dark);
-  font-size: 10px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 18px;
   text-align: center;
 }
 
@@ -176,7 +183,7 @@ body.is-no-scroll {
 .nav-account-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
+  top: calc(100% + 20px);
   z-index: 60;
   width: 240px;
   display: grid;
@@ -184,6 +191,21 @@ body.is-no-scroll {
   padding: 20px;
   background: var(--surface);
   border: 1px solid var(--line);
+}
+/* Under 1024px the card is a full-width panel under the whole header
+   (bar and quick-link row), not a card hanging over the chips. */
+@media (max-width: 1023px) {
+  .nav-account {
+    position: static;
+  }
+  .nav-account-menu {
+    left: 0;
+    right: 0;
+    top: 100%;
+    width: auto;
+    padding: 16px var(--gutter) 24px;
+    border-inline: 0;
+  }
 }
 .nav-account-item {
   display: block;
@@ -204,7 +226,7 @@ body.is-no-scroll {
 .nav-quick {
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 0 var(--gutter) 12px;
+  padding: 4px 0 8px;
 }
 .nav-quick::-webkit-scrollbar {
   display: none;
@@ -212,8 +234,27 @@ body.is-no-scroll {
 .nav-quick ul {
   display: flex;
   gap: 8px;
+  width: max-content;
   margin: 0;
-  padding: 0;
+  padding: 0 var(--gutter);
+}
+/* A 44px target around the 36px pill. */
+.nav-quick .chip {
+  position: relative;
+}
+.nav-quick .chip::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+@media (max-width: 400px) {
+  .nav-quick .chip {
+    padding-inline: 12px;
+  }
+}
+/* While the sheet is open, the sheet is the navigation. */
+.site-header.is-sheet-open .nav-quick {
+  display: none;
 }
 
 /* The panel under the bar (wide screens only). */
@@ -256,6 +297,17 @@ body.is-no-scroll {
   font-size: 16px;
   line-height: 22px;
 }
+.nav-panel-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 24px 0 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 20px;
+}
+.nav-panel-more a:hover,
 .nav-panel-list a:hover .nav-panel-label {
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -325,22 +377,34 @@ body.is-no-scroll {
 }
 .sheet-sub a {
   display: block;
-  padding: 10px 0;
+  padding: 11px 0;
   font-size: 16px;
   line-height: 22px;
 }
 .sheet-account {
   margin: 0;
-  padding: 24px var(--gutter) 40px;
+  padding: 24px var(--gutter) calc(40px + env(safe-area-inset-bottom));
   display: grid;
-  gap: 4px;
 }
 .sheet-account a {
   display: block;
-  padding: 8px 0;
+  padding: 12px 0;
   font-size: 14px;
+  line-height: 20px;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+@media (min-width: 768px) {
+  .mobile-sheet.open > nav {
+    max-width: 480px;
+    min-height: 100%;
+    border-right: 1px solid var(--line);
+  }
+}
+/* The cookie strip gives way while the sheet is open, so the sheet's last
+   links are never under it. */
+html:has(.mobile-sheet.open) .cookie-banner {
+  visibility: hidden;
 }
 
 @media (min-width: 1280px) {
@@ -358,7 +422,7 @@ body.is-no-scroll {
     display: none;
   }
 }
-@media (min-width: 1280px) and (max-width: 1439px) {
+@media (min-width: 1280px) and (max-width: 1359px) {
   .nav-links > ul {
     gap: 20px;
   }
@@ -427,6 +491,10 @@ body.is-no-scroll {
   padding: 4px 0;
   font-size: 14px;
   line-height: 20px;
+  overflow-wrap: anywhere;
+}
+.footer-col-list a[href^="tel:"] {
+  white-space: nowrap;
 }
 .footer-note {
   color: var(--on-dark-muted);
@@ -495,8 +563,35 @@ body.is-no-scroll {
 }
 .newsletter-consent input {
   flex-shrink: 0;
-  margin-top: 1px;
-  accent-color: var(--on-dark);
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--on-dark);
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.newsletter-consent input::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  margin-top: -2px;
+  border-left: 2px solid var(--charcoal);
+  border-bottom: 2px solid var(--charcoal);
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+.newsletter-consent input:checked {
+  background: var(--on-dark);
+}
+.newsletter-consent input:checked::before {
+  opacity: 1;
+}
+.newsletter-consent input:focus-visible {
+  outline: 2px solid var(--on-dark);
+  outline-offset: 2px;
 }
 .newsletter-status {
   margin: 12px 0 0;
@@ -585,11 +680,13 @@ body.is-no-scroll {
   background: #2f9e6a;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .footer-main {
     grid-template-columns: 1fr;
     gap: 48px;
   }
+}
+@media (max-width: 1023px) {
   .footer-cols {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -624,7 +721,7 @@ body.is-no-scroll {
   display: flex;
   align-items: center;
   gap: 16px 32px;
-  padding: 20px var(--gutter);
+  padding: 20px var(--gutter) calc(20px + env(safe-area-inset-bottom));
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
@@ -642,8 +739,8 @@ body.is-no-scroll {
 }
 .cookie-banner-text {
   margin: 0;
-  font-size: 13px;
-  line-height: 19px;
+  font-size: 14px;
+  line-height: 20px;
 }
 .cookie-banner-text a {
   text-decoration: underline;
@@ -656,15 +753,13 @@ body.is-no-scroll {
   flex-shrink: 0;
 }
 .cookie-banner-actions .btn {
-  min-height: 42px;
-  padding: 10px 16px;
-  font-size: 13px;
+  padding-inline: 24px;
 }
 @media (max-width: 767px) {
   .cookie-banner {
     flex-direction: column;
     align-items: stretch;
-    padding: 16px 20px 20px;
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
   }
   .cookie-banner-actions {
     display: grid;
@@ -708,10 +803,20 @@ body.is-no-scroll {
   text-transform: uppercase;
 }
 .cookie-modal-close {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px -6px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+}
+.cookie-modal-close svg {
+  width: 16px;
+  height: 16px;
 }
 .cookie-cat {
   padding: 16px 0;
@@ -726,7 +831,8 @@ body.is-no-scroll {
 .cookie-cat-title {
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 24px;
   letter-spacing: var(--track);
   text-transform: uppercase;
 }
@@ -786,4 +892,91 @@ body.is-no-scroll {
 }
 .cookie-modal-actions .btn {
   flex: 1 1 auto;
+  padding-inline: 24px;
+}
+@media (max-width: 599px) {
+  .cookie-modal {
+    padding: 24px 20px;
+  }
+  .cookie-modal-scrim {
+    padding: 12px;
+  }
+}
+
+/* ── Touch: every chrome control is a 44px target ──────────── */
+@media (max-width: 1023px), (pointer: coarse) {
+  .nav-account-item {
+    padding-block: 12px;
+  }
+  .footer-col-list li:has(> a, > button) {
+    padding: 0;
+  }
+  .footer-col-list li > a,
+  .footer-col-list li > .footer-linkish {
+    display: inline-block;
+    padding-block: 12px;
+  }
+  .footer-social {
+    gap: 4px;
+    margin-left: -12px;
+  }
+  .footer-social a {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+  }
+  .footer-legal a {
+    display: inline-block;
+    padding-block: 12px;
+    margin-block: -12px;
+  }
+  .announce-link {
+    display: inline-block;
+    padding-block: 8px;
+    margin-block: -8px;
+  }
+}
+
+/* ── The shell's notice (/?cart=…, /?hesap=silindi) and the degraded
+   strip: square charcoal, under the sticky chrome. ─────────── */
+.site-notice {
+  position: fixed;
+  top: calc(var(--sticky-h) + 12px);
+  left: 50%;
+  z-index: 80;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 2 * var(--gutter)));
+  padding: 8px 8px 8px 20px;
+  background: var(--charcoal);
+  color: var(--on-dark);
+  font-size: 14px;
+  line-height: 20px;
+}
+.site-notice-text {
+  flex: 1;
+  min-width: 0;
+}
+.site-notice-close {
+  flex-shrink: 0;
+  color: var(--on-dark);
+}
+.site-notice-close svg {
+  width: 14px;
+  height: 14px;
+}
+.site-notice :focus-visible {
+  outline-color: var(--on-dark);
+}
+.degraded-notice {
+  padding: 10px var(--gutter);
+  background: var(--charcoal);
+  color: var(--on-dark);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
 }

@@ -13,6 +13,7 @@ import {
 import { CONSENT_OPEN_EVENT, pushConsentUpdate } from "@/lib/consent/script";
 
 import { useClientValue } from "./use-client-value";
+import { useDialog } from "./use-dialog";
 
 type Choice = Omit<ConsentState, "decidedAt">;
 
@@ -137,10 +138,8 @@ export function CookieConsent({
   // cookie every time the panel opens.
   const [draft, setDraft] = useState<Choice>(CONSENT_DENIED);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
 
   const openPanel = useCallback(() => {
-    openerRef.current = document.activeElement as HTMLElement | null;
     const stored = readConsent();
     setDraft(
       stored
@@ -162,22 +161,9 @@ export function CookieConsent({
     return () => window.removeEventListener(CONSENT_OPEN_EVENT, openPanel);
   }, [openPanel]);
 
-  useEffect(() => {
-    if (!panelOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPanelOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    panelRef.current?.querySelector("button")?.focus();
-    return () => document.removeEventListener("keydown", onKey);
-  }, [panelOpen]);
-
-  useEffect(() => {
-    if (!panelOpen && openerRef.current) {
-      openerRef.current.focus?.();
-      openerRef.current = null;
-    }
-  }, [panelOpen]);
+  // A real modal: Escape, focus in and back to whatever opened it, Tab kept
+  // inside, the page behind locked (it used to scroll under the wheel).
+  useDialog(panelOpen, () => setPanelOpen(false), panelRef);
 
   const commit = useCallback(
     (choice: Choice) => {
@@ -220,11 +206,7 @@ export function CookieConsent({
             </p>
           </div>
           <div className="cookie-banner-actions">
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={openPanel}
-            >
+            <button type="button" className="btn" onClick={openPanel}>
               Ayarla
             </button>
             {/* Refusing is exactly as easy and as prominent as accepting -
@@ -232,14 +214,14 @@ export function CookieConsent({
                 Rehberi). The accept used to be the only filled button. */}
             <button
               type="button"
-              className="btn btn-ink btn-sm"
+              className="btn btn-dark"
               onClick={() => commit(CONSENT_DENIED)}
             >
               Yalnızca zorunlu
             </button>
             <button
               type="button"
-              className="btn btn-ink btn-sm"
+              className="btn btn-dark"
               onClick={() => commit(ALL_GRANTED)}
             >
               Tümünü kabul et
@@ -270,7 +252,13 @@ export function CookieConsent({
                 onClick={() => setPanelOpen(false)}
                 aria-label="Kapat"
               >
-                ×
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M3 3 L13 13 M13 3 L3 13"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                  />
+                </svg>
               </button>
             </div>
 
@@ -310,21 +298,21 @@ export function CookieConsent({
             <div className="cookie-modal-actions">
               <button
                 type="button"
-                className="btn btn-ink btn-sm"
+                className="btn btn-dark"
                 onClick={() => commit(CONSENT_DENIED)}
               >
                 Tümünü reddet
               </button>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn"
                 onClick={() => commit(draft)}
               >
                 Seçimimi kaydet
               </button>
               <button
                 type="button"
-                className="btn btn-ink btn-sm"
+                className="btn btn-dark"
                 onClick={() => commit(ALL_GRANTED)}
               >
                 Tümünü kabul et

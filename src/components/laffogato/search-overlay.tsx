@@ -358,7 +358,6 @@ export function SearchOverlay({
             </span>
             <input
               ref={inputRef}
-              autoFocus
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);

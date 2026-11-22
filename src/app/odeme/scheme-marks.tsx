@@ -30,7 +30,7 @@ const FRAME = (
     height="23"
     rx="4"
     fill="var(--surface)"
-    stroke="var(--ink-line-strong)"
+    stroke="var(--line)"
   />
 );
 

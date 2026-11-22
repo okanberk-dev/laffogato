@@ -6,6 +6,8 @@ import { cssUrl } from "./css-url";
 import { useClientValue } from "./use-client-value";
 
 const isBrowser = () => true;
+const prefersStill = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 export interface ShopHeroSlide {
   id: string;
@@ -54,22 +56,25 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
     setLoaded(next);
   }
 
+  // Rotation never starts for anyone who asks the platform not to animate -
+  // it is decoration, and WCAG 2.2.2 gives a moving thing a way to be
+  // stopped. Their slider has no play/pause button either: nothing moves.
+  const still = useClientValue(prefersStill, false);
   useEffect(() => {
-    if (total <= 1 || paused) return;
-    // Rotation stops for anyone who asks the platform not to animate - it is
-    // decoration, and WCAG 2.2.2 gives a moving thing a way to be stopped.
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (total <= 1 || paused || still) return;
     const t = window.setInterval(() => {
       setIndex((i) => (i + 1) % total);
     }, ROTATE_MS);
     return () => window.clearInterval(t);
-  }, [total, paused]);
+  }, [total, paused, still]);
 
   if (total === 0) return null;
 
   return (
     <section
       className="shop-hero-slider"
+      // The controls (dots, counter) take the current slide's ink.
+      data-theme={slides[index]?.textTheme ?? "light"}
       aria-roledescription="carousel"
       aria-label="Mağaza vitrini"
       // Hovering or tabbing in stops the rotation, so a slide cannot slide out
@@ -123,16 +128,26 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
               />
             </svg>
           </button>
-          <button
-            type="button"
-            className="shop-hero-playpause"
-            aria-label={
-              paused ? "Slaytları otomatik oynat" : "Otomatik geçişi durdur"
-            }
-            onClick={() => setPaused((p) => !p)}
-          >
-            {paused ? "▶" : "❚❚"}
-          </button>
+          {still ? null : (
+            <button
+              type="button"
+              className="shop-hero-playpause"
+              aria-label={
+                paused ? "Slaytları otomatik oynat" : "Otomatik geçişi durdur"
+              }
+              onClick={() => setPaused((p) => !p)}
+            >
+              {paused ? (
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M5 3.5v9l7.5-4.5z" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M5 3v10M11 3v10" />
+                </svg>
+              )}
+            </button>
+          )}
           <div
             className="shop-hero-dots"
             role="group"
@@ -180,23 +195,14 @@ export function Slide({
   loaded: boolean;
 }) {
   const isLight = slide.textTheme === "light";
-  // The ground is a colour: the espresso band under light type, the stone
-  // cream under dark (5 Kas 2026: colour-block, no gradient fills). Until
-  // 12 Kas 2026 it was handed to background-image, where a colour is not
-  // valid, so a slide without a photo had no ground at all and its cream
-  // title stood on the cream page at 1.12:1.
-  const ground = isLight ? "var(--roast)" : "var(--bg-stone)";
+  // "light" is white type: on the charcoal, or on the photo under a shade
+  // that darkens its lower half. "dark" is black type: on the band, or on
+  // the photo under a pale shade. The ground is a colour, never the
+  // page's white, so a slide without a photo still has a slide behind it.
+  const ground = isLight ? "var(--charcoal)" : "var(--band)";
   const overlay = isLight
-    ? "linear-gradient(to right, rgba(35,18,11,0.55), rgba(35,18,11,0.24) 60%, rgba(35,18,11,0.55))"
-    : "linear-gradient(to right, rgba(255,255,255,0.35), rgba(255,255,255,0.1) 60%, rgba(255,255,255,0.35))";
-
-  const words = slide.title.trim().split(/\s+/);
-  const lead = words.slice(0, -1).join(" ");
-  const accent = words.length > 1 ? words[words.length - 1] : null;
-  // Brass is kept for the reward moments, so the accent word is the amber on
-  // a dark slide and the accent's text colour on a pale one (the amber
-  // itself is 2.6:1 on cream).
-  const accentColor = isLight ? "var(--amber)" : "var(--accent)";
+    ? "linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.28) 55%, rgba(0, 0, 0, 0.12))"
+    : "linear-gradient(to top, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.45) 55%, rgba(255, 255, 255, 0.15))";
 
   return (
     <article
@@ -218,20 +224,9 @@ export function Slide({
       }}
     >
       <div className="shop-hero-content">
-        <span className="eyebrow shop-hero-eyebrow">La bottega</span>
+        <span className="t-label shop-hero-eyebrow">La bottega</span>
         <h2 className="shop-hero-title">
-          {lead || slide.title || <span style={{ opacity: 0.5 }}>Başlık</span>}
-          {accent && (
-            <>
-              {" "}
-              <span
-                className="shop-hero-title-accent"
-                style={{ color: accentColor }}
-              >
-                {accent}
-              </span>
-            </>
-          )}
+          {slide.title || <span style={{ opacity: 0.5 }}>Başlık</span>}
         </h2>
         {slide.subtitle && (
           <p className="shop-hero-subtitle">{slide.subtitle}</p>
@@ -239,11 +234,10 @@ export function Slide({
         {slide.ctaLabel && slide.ctaHref && (
           <a
             href={slide.ctaHref}
-            className={`btn ${isLight ? "btn-light" : "btn-primary"} btn-lg shop-hero-cta`}
+            className={`btn ${isLight ? "btn-light" : "btn-dark"} shop-hero-cta`}
             tabIndex={active ? undefined : -1}
           >
             {slide.ctaLabel}
-            <span className="arrow">→</span>
           </a>
         )}
       </div>

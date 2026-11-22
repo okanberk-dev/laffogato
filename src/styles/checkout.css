@@ -7,8 +7,6 @@
    the pre-contract texts is in foundation.css).
    ───────────────────────────────────────────────────────────── */
 
-
-
 .checkout-page {
   min-height: 100vh;
 }
@@ -203,7 +201,7 @@
 .checkout-gate-lede {
   margin: 0 0 22px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
 }
 .checkout-gate-actions {
@@ -224,7 +222,7 @@
   border-radius: 0;
   background: var(--band);
   color: var(--ink);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: var(--track);
   text-transform: uppercase;
@@ -282,7 +280,7 @@
   border-radius: 0;
   border: 1px solid var(--line);
   background: var(--surface);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
   text-transform: uppercase;
@@ -406,7 +404,7 @@
 }
 .app-fail-ref {
   margin: 18px 0 0;
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -437,7 +435,7 @@
   display: inline-flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.25;
   color: var(--ink);
   text-decoration: none;
@@ -459,7 +457,7 @@
   justify-content: center;
   gap: 8px 20px;
   padding: 24px var(--gutter) 32px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   border-top: 1px solid var(--line);
 }
@@ -692,13 +690,13 @@ button.co-steps-link {
 .co-field-hint,
 .co-quiet {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--muted);
 }
 .co-field-error {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--error);
 }
@@ -738,7 +736,7 @@ button.co-steps-link {
 }
 .co-delivery-summary-text {
   margin: 4px 0 2px;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -972,6 +970,7 @@ button.co-steps-link {
 }
 .co-docpanel-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   flex: 1 1 auto;
   min-height: 0;
@@ -985,6 +984,8 @@ button.co-steps-link {
 }
 .co-facts {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 4px;
   padding: 16px 20px 8px;
   border: 1px solid var(--line);
@@ -1106,7 +1107,7 @@ button.co-steps-link {
   color: var(--ink);
 }
 .co-method-meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .co-method-confirm {
@@ -1114,7 +1115,7 @@ button.co-steps-link {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink);
 }
 .co-pay-form,
@@ -1154,7 +1155,7 @@ button.co-steps-link {
   background: none;
   color: var(--muted);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1172,7 +1173,7 @@ button.co-steps-link {
   padding: 10px 12px;
   border-radius: 0;
   background: var(--band);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .co-save {
@@ -1211,7 +1212,7 @@ button.co-steps-link {
   display: flex;
   gap: 8px;
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--muted);
 }
@@ -1315,7 +1316,7 @@ button.co-steps-link {
   border: 0;
   background: none;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
   text-align: left;
@@ -1386,7 +1387,7 @@ button.co-steps-link {
 .co-line-side .co-link {
   min-width: 44px;
   min-height: 44px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--muted);
 }
@@ -1550,7 +1551,7 @@ button.co-steps-link {
   }
   .co-chrome-help-label {
     display: inline;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink);
   }
   .co-chrome-help-number {

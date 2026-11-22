@@ -172,7 +172,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 .karaoke-hour-t {
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: 1px;
 }
 .karaoke-hour-n {
@@ -227,7 +227,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 .karaoke-step-value {
   min-width: 80px;
   text-align: center;
-  font-size: 15px;
+  font-size: 16px;
 }
 .karaoke-hint {
   margin: 0;
@@ -380,7 +380,7 @@ button.kw-progress-cell:hover .kw-progress-label {
   text-underline-offset: 3px;
 }
 .karaoke-fine {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .karaoke-pay {
@@ -465,8 +465,13 @@ button.kw-progress-cell:hover .kw-progress-label {
 .kw-kdv,
 .karaoke-kdv,
 .kdv-part {
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 16px;
   color: var(--muted);
+}
+/* "KDV dahil" and "(KDV 166,67₺)" break between them, never inside. */
+.kdv-part {
+  white-space: nowrap;
 }
 
 /* Geri and Devam under the step. */
@@ -604,9 +609,16 @@ button.kw-progress-cell:hover .kw-progress-label {
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
   }
-  /* Room for the bar under the last line of the page. */
+  /* Room for the bar under the last line of the page and of the footer,
+     and a focused field scrolls clear of it (WCAG 2.4.11). */
   .karaoke-page[data-wizard="on"] {
     padding-bottom: 120px;
+  }
+  html:has(.karaoke-page[data-wizard="on"]) {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  body:has(.karaoke-page[data-wizard="on"]) .site-footer {
+    padding-bottom: calc(36px + 88px + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 640px) {
@@ -686,7 +698,7 @@ button.kw-progress-cell:hover .kw-progress-label {
 }
 .karaoke-mine-kdv {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .karaoke-mine-rules {
@@ -729,8 +741,8 @@ button.kw-progress-cell:hover .kw-progress-label {
   color: var(--success);
 }
 .karaoke-mine-notice--warn {
-  border-color: #8a5a00;
-  color: #8a5a00;
+  border-color: var(--warn);
+  color: var(--warn);
 }
 .karaoke-mine-notice--error {
   border-color: var(--error);
@@ -746,9 +758,29 @@ button.kw-progress-cell:hover .kw-progress-label {
   border: 1px solid var(--line-strong);
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 16px;
   letter-spacing: 1.2px;
   text-transform: uppercase;
+}
+/* An order's own status (uye/hesap: data-tone={order.status}): waiting
+   for payment warns, done is green, refunded red, cancelled grey, the
+   steps in between keep the ink. */
+.status-chip[data-tone="pending_payment"] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.status-chip[data-tone="completed"] {
+  border-color: var(--success);
+  color: var(--success);
+}
+.status-chip[data-tone="refunded"] {
+  border-color: var(--error);
+  color: var(--error);
+}
+.status-chip[data-tone="cancelled"] {
+  border-color: var(--line);
+  color: var(--muted);
 }
 .status-chip[data-tone="ok"],
 .status-chip.tone-ok {
@@ -757,11 +789,20 @@ button.kw-progress-cell:hover .kw-progress-label {
 }
 .status-chip[data-tone="warn"],
 .status-chip.tone-warn {
-  border-color: #8a5a00;
-  color: #8a5a00;
+  border-color: var(--warn);
+  color: var(--warn);
 }
 .status-chip[data-tone="bad"],
 .status-chip.tone-bad {
   border-color: var(--error);
   color: var(--error);
+}
+
+/* A text link inside the wizard's hints ("Üyeysen giriş yap"). */
+.karaoke-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.karaoke-link:hover {
+  text-decoration-thickness: 2px;
 }

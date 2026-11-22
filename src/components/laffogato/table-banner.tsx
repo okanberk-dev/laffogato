@@ -32,7 +32,12 @@ export function TableBanner({ tableName }: { tableName: string | null }) {
           {tableName ? (
             <>
               <p className="table-banner-kicker">Hoş geldin</p>
-              <h2 className="table-banner-title">Masa: {tableName}</h2>
+              {/* "Masa 4" stays "Masa 4", not "Masa: Masa 4". */}
+              <h2 className="table-banner-title">
+                {/^masa\b/i.test(tableName.trim())
+                  ? tableName
+                  : `Masa: ${tableName}`}
+              </h2>
               {appLive ? (
                 <p className="table-banner-text">
                   Siparişini L’Affogato uygulamasından ver, ödemeni kartınla

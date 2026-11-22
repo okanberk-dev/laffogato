@@ -168,6 +168,7 @@
 .guide-hub-card {
   display: grid;
   grid-template-rows: auto auto 1fr auto;
+  height: 100%;
   gap: 12px;
   padding: 28px 24px 24px;
   background: var(--band);
@@ -178,7 +179,10 @@
   width: 100%;
   margin: 8px 0;
 }
-.guide-hub-card:hover .t-title {
+.guide-hub-title {
+  margin: 24px 0 32px;
+}
+.guide-hub-card:hover .guide-hub-name {
   text-decoration: underline;
   text-underline-offset: 6px;
 }
@@ -231,7 +235,7 @@
   bottom: 8px;
   padding: 2px 8px;
   background: rgba(255, 255, 255, 0.85);
-  font-size: 11px;
+  font-size: 12px;
 }
 .guide-toc {
   margin: 0 0 32px;
@@ -306,7 +310,7 @@
 .guide-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: 14px;
 }
 .guide-table th,
 .guide-table td {
@@ -434,15 +438,21 @@
   content: "−";
 }
 .seo-faq details p {
+  max-width: 72ch;
   margin: 0 0 16px;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 22px;
 }
 
 /* ── The SEO block under every page (seo-content.tsx) ─────── */
 .seo-block {
   padding-block: var(--section-y);
   background: var(--band);
+}
+/* The home page ends on the visit band; the block after it goes white so
+   the two read as two sections, not one long band. */
+.page-home + .seo-block {
+  background: var(--bg);
 }
 .seo-block-inner {
   width: 100%;
@@ -459,7 +469,7 @@
 .seo-block-lede {
   margin: 12px 0 0;
   font-size: 16px;
-  line-height: 24px;
+  line-height: 22px;
 }
 .seo-facts {
   display: grid;
@@ -477,6 +487,11 @@
   margin: 0;
   font-style: normal;
 }
+.seo-facts a {
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .seo-facts-label {
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
@@ -485,20 +500,37 @@
   text-transform: uppercase;
   color: var(--muted);
 }
+/* The guide links: the label on its own line, the links as square tags
+   that wrap, 44px tall on a touch screen. */
 .seo-guides {
+  display: grid;
+  gap: 12px;
+  margin-top: 40px;
+}
+.seo-guides h3 {
+  margin: 0;
+}
+.seo-guides h3 a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.seo-guides ul {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .chip-link {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 4px 12px;
+  min-height: 36px;
+  padding: 6px 14px;
   border: 1px solid var(--line-strong);
   background: var(--surface);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 20px;
 }
 .chip-link:hover,
 .chip-link.active {
@@ -513,6 +545,24 @@
 @media (max-width: 767px) {
   .seo-facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (pointer: coarse), (max-width: 1023px) {
+  .chip-link {
+    min-height: 44px;
+  }
+  /* The phone and e-mail lines grow to 44px each rather than overlap. */
+  .seo-facts a {
+    display: inline-block;
+    padding-block: 12px;
+  }
+  .seo-facts p:has(a) {
+    margin-top: -12px;
+  }
+  .seo-guides h3 a {
+    display: inline-block;
+    padding-block: 12px;
+    margin-block: -12px;
   }
 }
 
@@ -583,6 +633,7 @@
 }
 .legal-article {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
 .legal-section {
@@ -600,7 +651,7 @@
   text-transform: uppercase;
 }
 .legal-section h3 {
-  font-size: 15px;
+  font-size: 16px;
 }
 .legal-section p {
   margin: 0 0 12px;
@@ -637,6 +688,7 @@
   border: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
 }
 .legal-table th {
   background: var(--band);
@@ -673,11 +725,29 @@
   line-height: 1;
   letter-spacing: 4px;
 }
+.nf-hero {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.nf-hero .t-display {
+  margin: 0;
+}
+.nf-lede {
+  max-width: 60ch;
+  margin: 0;
+}
+.nf-hero .btn-row {
+  margin-top: 20px;
+}
+.nf-stops-title {
+  margin: var(--section-y) 0 0;
+}
 .nf-links {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin: 40px 0 0;
+  margin: 32px 0 0;
   padding: 0;
 }
 .nf-links a {

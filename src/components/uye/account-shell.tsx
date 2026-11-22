@@ -43,7 +43,7 @@ export function AccountShell({
               <p
                 style={{
                   marginTop: 6,
-                  color: "var(--ink-soft)",
+                  color: "var(--muted)",
                   fontSize: 14,
                 }}
               >
@@ -172,7 +172,7 @@ export function AccountCard({
             {title && <h2 className="h3">{title}</h2>}
             {hint && (
               <p
-                style={{ marginTop: 4, fontSize: 13, color: "var(--ink-soft)" }}
+                style={{ marginTop: 4, fontSize: 14, color: "var(--muted)" }}
               >
                 {hint}
               </p>
@@ -202,7 +202,7 @@ export function AccountStat({
       </div>
       <div className="account-stat-value">{value}</div>
       {hint && (
-        <div style={{ marginTop: 4, fontSize: 12, color: "var(--ink-mute)" }}>
+        <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
           {hint}
         </div>
       )}

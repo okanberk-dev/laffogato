@@ -111,7 +111,7 @@ export default async function LegalDocPage({
           </Link>
           <div
             className="eyebrow"
-            style={{ color: "var(--accent)", marginBottom: 12 }}
+            style={{ color: "var(--ink)", marginBottom: 12 }}
           >
             {doc.category}
           </div>
@@ -198,7 +198,7 @@ export default async function LegalDocPage({
             style={{
               marginTop: 28,
               fontSize: 12,
-              color: "var(--ink-mute)",
+              color: "var(--muted)",
               lineHeight: 1.6,
             }}
           >
@@ -208,7 +208,7 @@ export default async function LegalDocPage({
             <a
               href={`mailto:${LEGAL_ENTITY.email}`}
               style={{
-                color: "var(--accent)",
+                color: "var(--ink)",
                 textDecoration: "underline",
                 textUnderlineOffset: 3,
               }}

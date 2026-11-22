@@ -35,7 +35,7 @@ export interface HeroSlide {
 export const HERO_SLIDES: HeroSlide[] = [
   {
     media: "hero-1",
-    title: "Tuzla'da İtalyan kahvesi",
+    title: "Tuzla’da İtalyan kahvesi",
     link: { href: "/menu", label: "Menüyü gör" },
   },
   {
@@ -160,7 +160,20 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
     }
   };
 
-  const toggle = () => setUserPaused((p) => !p);
+  // The button answers what the visitor sees, not the last thing they
+  // pressed: when the browser refused to autoplay (low-power mode), the
+  // film is stopped though nobody paused it, and the first tap must play
+  // it. play() runs inside the tap, so it carries the user's activation.
+  const toggle = () => {
+    if (playing) {
+      setUserPaused(true);
+      return;
+    }
+    setUserPaused(false);
+    videoRefs.current[index]?.play()?.catch(() => {
+      // Still refused: the poster stays and the button keeps saying "oynat".
+    });
+  };
   const current = slides[index];
 
   return (
@@ -175,6 +188,9 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
           <div
             key={s.media}
             className="hero-film-slide"
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${i + 1} / ${slides.length}: ${s.title}`}
             data-active={i === index ? "true" : undefined}
             aria-hidden={i === index ? undefined : true}
           >
@@ -220,7 +236,10 @@ export function HomeHero({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
       </div>
 
       <div className="hero-film-caption">
-        <p className="hero-film-title" aria-live="polite">
+        {/* Announced only when the visitor turns the slide; while the film
+            turns them itself, a new title every few seconds would talk
+            over whatever they are reading (WAI-ARIA carousel pattern). */}
+        <p className="hero-film-title" aria-live={playing ? "off" : "polite"}>
           {current.title}
         </p>
         <div className="hero-film-controls">

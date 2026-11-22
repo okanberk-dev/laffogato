@@ -16,6 +16,7 @@ import { priceLabel } from "@/lib/utils/format";
 import { AppStoreLinks } from "./app-links";
 import { MENU, LOCATION, type Product } from "./data";
 import { HomeHero } from "./home-hero";
+import { keepUnits } from "./keep-units";
 import {
   hourToLabel,
   type KaraokeFacts,
@@ -100,24 +101,30 @@ export function PageHome({
       }
     }
     // Photographed items lead; the order inside each group is the panel's.
-    return [...out.filter((i) => i.image), ...out.filter((i) => !i.image)]
-      .slice(0, 4);
+    return [
+      ...out.filter((i) => i.image),
+      ...out.filter((i) => !i.image),
+    ].slice(0, 4);
   }, [liveMenu]);
 
   const takeHome = useMemo(() => pickTakeHomeProduct(products), [products]);
   const karaokeToday = useKaraokeToday(!!karaoke);
 
-  const [introLead, introMore] = splitLead(
-    content?.["home.hero.lede"] ?? "",
-  );
+  // The panel's "Ana sayfa giriş etiketi" / "giriş metni" (/admin/icerik):
+  // the band under the film, first sentence as its title. An empty text
+  // hides the band, as the panel's hint says.
+  const introKicker = content?.["home.hero.eyebrow"]?.trim();
+  const [introLead, introMore] = splitLead(content?.["home.hero.lede"] ?? "");
 
   const guides = useMemo(() => {
     const wanted = ["affogato-nedir", "matcha-nedir", "espresso-cesitleri"];
     const picked = wanted
       .map((slug) => GUIDES.find((g) => g.slug === slug))
       .filter((g): g is (typeof GUIDES)[number] => Boolean(g?.image));
-    return (picked.length >= 2 ? picked : GUIDES.filter((g) => g.image))
-      .slice(0, 2);
+    return (picked.length >= 2 ? picked : GUIDES.filter((g) => g.image)).slice(
+      0,
+      2,
+    );
   }, []);
 
   const hours = visit?.hours ?? LOCATION.hours;
@@ -130,11 +137,33 @@ export function PageHome({
   return (
     <div className="page page-home" data-screen-label="01 Home">
       <h1 className="sr-only">
-        L&apos;Affogato - Tuzla&apos;da İtalyan kahve ve gelato barı. Menü,
+        L&rsquo;Affogato - Tuzla&rsquo;da İtalyan kahve ve gelato barı. Menü,
         mağaza, karaoke ve ziyaret bilgileri
       </h1>
 
       <HomeHero />
+
+      {introLead ? (
+        <section
+          className="section home-intro-section"
+          aria-labelledby="home-intro-title"
+        >
+          <div className="wrap home-intro">
+            {introKicker ? <p className="t-kicker">{introKicker}</p> : null}
+            <h2 id="home-intro-title" className="t-display">
+              {introLead.replace(/\.$/, "")}
+            </h2>
+            {introMore ? <p className="t-body">{introMore}</p> : null}
+            <a
+              href={ROUTE_PATHS.story}
+              onClick={go("story")}
+              className="link-u"
+            >
+              Hikayemiz
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       {/* What is on the bar ───────────────────────────────────── */}
       {barItems.length > 0 && (
@@ -148,11 +177,7 @@ export function PageHome({
             <ul className="card-row" role="list">
               {barItems.map((it) => (
                 <li key={it.key} className="p-card">
-                  <Link
-                    className="p-card-link"
-                    href={it.href}
-                    aria-label={`${it.name}, ${it.catLabel} menüsünde`}
-                  >
+                  <Link className="p-card-link" href={it.href}>
                     <div className="media ratio-5-4 p-card-media">
                       <MenuPlate
                         image={it.image}
@@ -262,15 +287,11 @@ export function PageHome({
         stampTarget={stampTarget}
         courierEnabled={courierEnabled}
         pickupMinutes={pickupMinutes}
-        intro={introLead ? [introLead, introMore].filter(Boolean).join(" ") : ""}
       />
 
       {/* The guides ──────────────────────────────────────────── */}
       {guides.length > 0 && (
-        <section
-          className="section"
-          aria-labelledby="home-guides-title"
-        >
+        <section className="section" aria-labelledby="home-guides-title">
           <div className="wrap">
             <div className="section-head">
               <h2 id="home-guides-title" className="t-display">
@@ -423,24 +444,31 @@ function TakeHome({ product: p }: { product: Product }) {
     typeof p.priceMinor === "number" ? priceLabel(p.priceMinor) : p.price;
   const discount = productDiscount(p);
   return (
-    <section className="section section--band" aria-labelledby="take-home-title">
+    <section
+      className="section section--band"
+      aria-labelledby="take-home-title"
+    >
       <div className="wrap feature">
         <div className="feature-media media ratio-6-5">
           <ProductSurface label={p.name} images={p.images} />
         </div>
         <div className="feature-copy">
           <h2 id="take-home-title" className="t-display">
-            Evde L&apos;Affogato
+            Evde L&rsquo;Affogato
           </h2>
-          <p className="t-title">{p.name}</p>
+          <p className="t-title">{keepUnits(p.name)}</p>
           {p.desc ? <p className="t-body">{p.desc}</p> : null}
           <p className="t-price tabular">
-            {discount ? <span className="price-was">{discount.was}</span> : null}
+            {discount ? (
+              <span className="price-was">{discount.was}</span>
+            ) : null}
             {price}
           </p>
           {/* The discount's days beside the struck price (Ticari Reklam
               Yön. m.14/1), as on the shop's own cards. */}
-          {discount ? <p className="t-small t-muted">{discount.notice}</p> : null}
+          {discount ? (
+            <p className="t-small t-muted">{discount.notice}</p>
+          ) : null}
           <Link className="btn btn-wide" href={productPath(p.slug!)}>
             Ürünü gör
           </Link>
@@ -461,13 +489,14 @@ function AppBlock({
   stampTarget,
   courierEnabled,
   pickupMinutes,
-  intro,
 }: {
   stampTarget: number;
   courierEnabled: boolean;
   pickupMinutes: number;
-  intro: string;
 }) {
+  // The stamp rule as loyalty-core counts it: one stamp per started step
+  // from the minimum up (₺140-₺320 one, up to ₺640 two), app cafe orders
+  // only. The same sentence as the campaigns page.
   const min = Math.round(STAMP_MIN_ORDER_MINOR / 100);
   const step = Math.round(STAMP_STEP_MINOR / 100);
   const points = [
@@ -479,7 +508,7 @@ function AppBlock({
     },
     {
       title: `${stampTarget} damgada bir içecek`,
-      body: `${min} TL'den itibaren her ${step} TL bir damga. Dolan kart ücretsiz içecek kuponuna dönüşür.`,
+      body: `Uygulamadan verilen ${min} TL ve üzeri kafe siparişi damga kazandırır: ${step} TL'ye kadar bir, ${step * 2} TL'ye kadar iki. Dolan kart ücretsiz içecek kuponuna dönüşür.`,
     },
     {
       title: "Tek hesap",
@@ -495,11 +524,14 @@ function AppBlock({
       <div className="wrap app-block">
         <div className="app-block-copy">
           <h2 id="home-app-title" className="t-display">
-            L&apos;Affogato uygulaması
+            L&rsquo;Affogato uygulaması
           </h2>
           <p className="t-body">
-            {intro ||
-              "Siparişini uygulamadan ver, hazır olunca gel al. Her siparişte damga topla, kartın dolunca içecek bizden."}
+            Siparişini uygulamadan ver, hazır olunca gel al. Kafe siparişlerinde
+            damga topla, kartın dolunca içecek bizden.
+          </p>
+          <p className="t-small t-muted">
+            Gel-al siparişi ve karaoke odası Tuzla köşkü içindir.
           </p>
           <AppStoreLinks className="app-block-store" />
           <ul className="ruled-list" role="list">
@@ -566,7 +598,14 @@ function KaraokeBlock({
               ? "Saatini seç, kartınla öde, rezervasyonun hemen kesinleşsin."
               : "Saatini seç, isteğini gönder."}
           </p>
-          <p className="t-small t-muted">{lines.join(" · ")}</p>
+          <p className="t-small t-muted karaoke-facts">
+            {lines.map((l, i) => (
+              <span key={l}>
+                {l}
+                {i < lines.length - 1 ? " ·" : ""}
+              </span>
+            ))}
+          </p>
           <KaraokeLive today={today} />
           <Link className="btn btn-wide" href="/karaoke">
             Saatini seç

@@ -265,7 +265,7 @@ export default async function HesapPage() {
               href="/uye/hesap/siparislerim"
               className="btn btn-ghost btn-sm"
             >
-              Tümünü gör →
+              Tümünü gör
             </Link>
           ) : null
         }
@@ -276,7 +276,7 @@ export default async function HesapPage() {
             hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
             cta={
               <Link href="/magaza" className="btn btn-primary btn-sm">
-                Mağazaya git →
+                Mağazaya git
               </Link>
             }
           />
@@ -295,7 +295,7 @@ export default async function HesapPage() {
                       {STATUS_LABEL[o.status] ?? o.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                  <div style={{ fontSize: 14, color: "var(--muted)" }}>
                     {o.items
                       .map((it) => `${it.qty}× ${it.productName}`)
                       .join(", ")}
@@ -323,7 +323,7 @@ export default async function HesapPage() {
         hint="Sepet sayfasında kodu uygula"
       >
         {usablePromos.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--ink-soft)", fontSize: 14 }}>
+          <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>
             Şu an aktif bir promosyon kodu yok.
           </p>
         ) : (
@@ -367,7 +367,7 @@ export default async function HesapPage() {
                 className="btn btn-ghost btn-sm"
                 style={{ marginTop: 12 }}
               >
-                Tümünü gör ({usablePromos.length}) →
+                Tümünü gör ({usablePromos.length})
               </Link>
             )}
           </div>

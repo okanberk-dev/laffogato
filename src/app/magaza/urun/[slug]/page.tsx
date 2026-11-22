@@ -152,7 +152,7 @@ function ProductUnavailable() {
       </h1>
       <p
         style={{
-          color: "var(--ink-soft)",
+          color: "var(--muted)",
           lineHeight: 1.6,
           marginBottom: 24,
         }}

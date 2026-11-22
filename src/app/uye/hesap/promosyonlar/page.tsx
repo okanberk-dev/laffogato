@@ -45,25 +45,25 @@ function CouponCard({
     status === "redeemed"
       ? {
           text: "Kullanıldı",
-          bg: "var(--bg-stone)",
-          fg: "var(--ink-mute)",
+          bg: "var(--band)",
+          fg: "var(--muted)",
         }
       : status === "expired"
         ? {
             text: "Süresi doldu",
-            bg: "var(--bg-stone)",
-            fg: "var(--ink-mute)",
+            bg: "var(--band)",
+            fg: "var(--muted)",
           }
         : status === "inactive"
           ? {
               text: "Pasif",
-              bg: "var(--bg-stone)",
-              fg: "var(--ink-mute)",
+              bg: "var(--band)",
+              fg: "var(--muted)",
             }
           : {
               text: "Kullanıma hazır",
-              bg: "var(--green-mist)",
-              fg: "var(--matcha)",
+              bg: "color-mix(in srgb, var(--success) 12%, white)",
+              fg: "var(--success)",
             };
 
   return (

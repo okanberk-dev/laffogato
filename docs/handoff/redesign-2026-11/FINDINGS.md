@@ -1,5 +1,26 @@
 # Açık bulgular (22 Kas 2026)
 
+> **Durum (22 Kas 2026, devralan oturum).** Aşağıdaki bulguların hepsi
+> koda ve gerçek ekran görüntüsüne bakılarak doğrulandı; hepsi doğruydu ve
+> aşağıdaki istisnalar dışında düzeltildi. Düzeltmeyle birlikte değişen sayfalar 360, 390,
+> 768 ve 1440 genişlikte yeniden çekildi.
+>
+> Yapılmayanlar ve gerekçeleri:
+>
+> - SSS sorularındaki düz kesme işareti (`src/lib/seo/faq.ts`) ve panelin
+>   eski ipucu metinleri (`src/lib/admin/content-fields.ts`): arka yüz
+>   dosyaları, ön yüz PR'ında değişmez (ayrı PR).
+> - Yatay telefonda sol/sağ güvenli alan (`env(safe-area-inset-left/right)`):
+>   alt kenar güvenli alanı eklendi, yan kenar yalnız çentikli telefon yan
+>   tutulunca önem taşır; ayrı bir iş.
+> - Footer'daki "Menüde / Mağazada" satır içi bağlantılar 44px'e
+>   büyütülmedi: cümle içindeki bağlantılar WCAG 2.5.8'in satır içi
+>   istisnasındadır, büyütmek satırı bozar.
+> - "Duyuru satırı bağlantısı" 44px yerine 32px dokunma alanında kaldı:
+>   satırın kendisi 32px.
+>
+> Denetim sırasında bulunan ek düzeltmeler PR açıklamasında.
+
 Bu dosya, devredilen oturumun yarıda kalan iki denetiminin **tamamlanmış** kısmının çıktısıdır. Bulgular ajanların raporudur, **henüz doğrulanmadı ve uygulanmadı**: her birini koda ve ekran görüntüsüne bakarak doğrula, sonra düzelt. Dosya ve satır numaraları `26d59ec` (+ belge commit'leri) üzerindedir.
 
 - Tasarım denetimi (8 sayfa grubundan 2'si bitti): ana sayfa ve krom (üst çubuk, panel, mobil menü, arama, sepet, çerez, footer). Kalan 6 grup (katalog, menü, hikâye/ziyaret/kampanyalar, rehber/hukuk/küçük sayfalar, karaoke sihirbazı, ödeme ve üye alanı) hiç denetlenmedi.

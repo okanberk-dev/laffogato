@@ -3,10 +3,15 @@
    only the home page has.
    ───────────────────────────────────────────────────────────── */
 
+/* The film fills the first screen under the chrome (announcement line,
+   bar and, under 1024px, the quick-link row), down to a floor that still
+   holds the caption on a phone held sideways. */
 .hero-film {
   position: relative;
-  height: calc(100svh - var(--header-h) - var(--announce-h));
-  min-height: 520px;
+  height: max(
+    240px,
+    calc(100svh - var(--announce-h) - var(--header-h) - var(--quick-h))
+  );
   max-height: 980px;
   overflow: hidden;
   background: var(--charcoal);
@@ -36,8 +41,13 @@
 .hero-film-shade {
   position: absolute;
   inset: auto 0 0 0;
-  height: 40%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0));
+  height: 50%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62),
+    rgba(0, 0, 0, 0.28) 45%,
+    rgba(0, 0, 0, 0)
+  );
   pointer-events: none;
 }
 .hero-film-caption {
@@ -49,18 +59,21 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding: 0 32px 32px;
+  width: 100%;
+  max-width: calc(var(--content) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding: 0 var(--gutter) 32px;
 }
 .hero-film-title {
   margin: 0;
   max-width: 640px;
   font-family: var(--headline);
   font-variation-settings: "wdth" var(--headline-wdth);
-  font-size: clamp(24px, 2.6vw, 32px);
-  line-height: 1.2;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
   letter-spacing: var(--track);
   text-transform: uppercase;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.2);
 }
 .hero-film-controls {
   display: flex;
@@ -78,17 +91,17 @@
   display: flex;
   gap: 2px;
 }
+/* The digits are white on every frame; the current one is underlined. */
 .hero-film-dot {
   padding: 4px 6px;
   background: none;
   border: 0;
-  color: var(--on-dark-muted);
-  font-size: 12px;
-  line-height: 16px;
+  color: var(--on-dark);
+  font-size: 14px;
+  line-height: 20px;
   font-variant-numeric: tabular-nums;
 }
 .hero-film-dot[aria-current="true"] {
-  color: var(--on-dark);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
@@ -113,19 +126,39 @@
   outline-color: var(--on-dark);
 }
 @media (max-width: 767px) {
-  .hero-film {
-    height: calc(100svh - var(--header-h) - var(--announce-h) - 52px);
-    min-height: 460px;
-  }
   .hero-film-caption {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
-    padding: 0 20px 24px;
+    gap: 8px;
+    padding-bottom: 12px;
   }
+  .hero-film-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  /* The link on the left; the pager and the pause button together on the
+     right. Every control is a 44px target on a touch screen. */
   .hero-film-controls {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .hero-film-pager {
+    margin-left: auto;
+    gap: 0;
+  }
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .hero-film-link {
+    padding-block: 11px;
+  }
+  .hero-film-dot {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .hero-film-pause {
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -142,6 +175,7 @@
   justify-items: start;
 }
 .app-block-store {
+  justify-self: stretch;
   margin-top: 8px;
 }
 .app-links {
@@ -195,7 +229,9 @@
   border-radius: 50%;
   background: var(--muted);
 }
-@media (max-width: 1023px) {
+/* Side by side only where the photo is as tall as the text beside it;
+   under 1200px the photo goes on top. */
+@media (max-width: 1199px) {
   .app-block {
     grid-template-columns: 1fr;
   }
@@ -227,8 +263,19 @@
   justify-self: center;
   margin-top: 24px;
 }
+.karaoke-facts {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.3em;
+}
+.karaoke-facts > span {
+  white-space: nowrap;
+}
 .karaoke-live {
   min-height: 24px;
+}
+.feature-copy .t-title {
+  text-wrap: balance;
 }
 .karaoke-live-chips {
   display: flex;
@@ -251,7 +298,9 @@
   align-items: center;
   gap: 16px 32px;
   margin-top: 24px;
-  padding-inline: 4px;
+}
+.visit-card .btn {
+  min-width: 350px;
 }
 .visit-card-address {
   display: inline-block;
@@ -266,6 +315,31 @@
     grid-template-columns: 1fr;
     align-items: start;
   }
+  .visit-card .btn {
+    justify-self: start;
+  }
+}
+@media (max-width: 767px) {
+  .visit-card .btn {
+    min-width: 0;
+    justify-self: stretch;
+  }
+}
+
+/* ── The statement under the film (the panel's intro text) ── */
+.home-intro-section {
+  padding-bottom: 0;
+}
+.home-intro {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.home-intro > * {
+  max-width: 760px;
+}
+.home-intro .t-display {
+  margin: 0;
 }
 @media (max-width: 767px) {
   .visit-row {

@@ -18,11 +18,10 @@ export function DegradedAuthNotice() {
          instead would only trade one mistake for another and make "we are
          down" look like an offer. */
       style={{
-        background: "var(--bg-stone, #f1eee8)",
-        border: "1px solid var(--ink-line-strong, #e1dcd1)",
-        borderRadius: "var(--r-sm, 10px)",
+        background: "var(--band)",
+        border: "1px solid var(--line)",
         padding: "12px 14px",
-        fontSize: 13,
+        fontSize: 14,
         lineHeight: 1.55,
         color: "var(--ink, #201c17)",
         marginBottom: 18,

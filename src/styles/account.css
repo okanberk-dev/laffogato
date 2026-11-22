@@ -5,7 +5,6 @@
    Form names and the unticked consent boxes are the markup's.
    ───────────────────────────────────────────────────────────── */
 
-
 .stamp-grid {
   margin-top: 14px;
   display: grid;
@@ -221,7 +220,7 @@
   display: block;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: -0.01em;
 }
 .account-nav-link-hint {
@@ -396,7 +395,7 @@
 }
 .account-order-no {
   font-family: var(--display);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -449,7 +448,7 @@
   border-radius: 999px;
 }
 .account-address-body {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--muted);
 }
@@ -497,16 +496,16 @@
 }
 .account-saved-card-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   overflow-wrap: anywhere;
 }
 .account-saved-card-number {
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: 0.04em;
 }
 .account-saved-card-meta {
   margin-top: 2px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .account-saved-card-ask {
@@ -586,12 +585,12 @@
   background: transparent;
   color: var(--muted);
   border: 1px dashed var(--line);
-  font-size: 15px;
+  font-size: 16px;
 }
 .account-msg {
   padding: 10px 12px;
   border-radius: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 .account-msg[data-tone="error"] {
@@ -706,7 +705,7 @@
 }
 .account-timeline-label {
   font-family: var(--display);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 .account-timeline-hint {
@@ -836,7 +835,7 @@
   grid-template-columns: 28px 1fr;
   align-items: center;
   gap: 12px;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.45;
   color: var(--on-dark);
 }
@@ -906,7 +905,7 @@
 }
 .auth-lede {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.55;
   margin: 0 0 26px;
 }
@@ -1002,7 +1001,7 @@
   gap: 12px;
   margin: 18px 0 4px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 .auth-or::before,
 .auth-or::after {
@@ -1116,7 +1115,7 @@
   color: inherit;
 }
 .account-firstrun-action-t {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--charcoal);
 }
@@ -1139,7 +1138,7 @@
   gap: 12px;
 }
 .stamp-card-count {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
@@ -1263,7 +1262,7 @@
 }
 .account-delete-link {
   margin: 20px 4px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 .account-delete-link a {
   color: var(--muted);
@@ -1304,7 +1303,7 @@
 .deletion-more {
   margin: 20px 0 0;
   max-width: 560px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .deletion-more a,
@@ -1332,13 +1331,13 @@
   color: var(--muted);
 }
 .deletion-notice-title {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
 }
 .deletion-notice-link {
   display: inline-block;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .deletion-notice-msg {
   grid-column: 1 / -1;
@@ -1350,7 +1349,7 @@
 }
 .deletion-channels-title {
   margin: 28px 0 10px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
 }

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 
 import {
   Footer,
@@ -74,17 +74,7 @@ function readStoredCart(): CartItem[] {
 
 function DegradedNotice() {
   return (
-    <div
-      role="status"
-      style={{
-        background: "var(--ink, #14100b)",
-        color: "#fff",
-        padding: "10px 16px",
-        textAlign: "center",
-        fontSize: 13,
-        lineHeight: 1.5,
-      }}
-    >
+    <div role="status" className="degraded-notice">
       Şu an canlı verilerimize ulaşamıyoruz - menü ve mağaza geçici olarak
       güncel olmayabilir, sipariş alamıyoruz. Kısa süre içinde döneceğiz.
     </div>
@@ -181,7 +171,6 @@ export function LaffogatoApp({
   const [searchOpen, setSearchOpen] = useState(false);
   const [productOpen, setProductOpen] = useState<Product | null>(null);
   const [mounted, setMounted] = useState(false);
-  const hydratedRef = useRef(false);
 
   useEffect(() => {
     // Backward-compat: if user lands on `/` with a legacy hash like #menu,
@@ -200,7 +189,6 @@ export function LaffogatoApp({
     // useSyncExternalStore snapshot would not model.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCart(readStoredCart());
-    hydratedRef.current = true;
     setMounted(true);
     // `?ara=1` opens the search: the header's search button on pages outside
     // the SPA (member area, checkout, legal, 404) lands here, and used to
@@ -225,8 +213,12 @@ export function LaffogatoApp({
     };
   }, [initialRoute, router]);
 
+  // Write-back, from the render that carries the stored cart on: `mounted`
+  // turns true in the same batch as setCart(stored). A ref set in the read
+  // effect let this run once with the initial empty cart first, which
+  // removed the stored cart (and, under StrictMode, lost it on reload).
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!mounted) return;
     try {
       if (cart.length === 0) {
         window.localStorage.removeItem(CART_STORAGE_KEY);
@@ -236,7 +228,7 @@ export function LaffogatoApp({
     } catch {
       // localStorage may be unavailable (private mode, etc.) - silent no-op.
     }
-  }, [cart]);
+  }, [cart, mounted]);
 
   const navigate = (r: Route) => {
     const target = ROUTE_PATHS[r];
@@ -403,47 +395,19 @@ export function LaffogatoApp({
         onOpenProduct={setProductOpen}
       />
       {notice && noticeOpen && (
-        <div
-          role="alert"
-          style={{
-            position: "fixed",
-            top: 96,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 80,
-            maxWidth: "min(540px, calc(100vw - 32px))",
-            background: "var(--ink)",
-            color: "#FFF",
-            padding: "14px 18px",
-            borderRadius: 999,
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            boxShadow: "var(--shadow-lg)",
-            fontSize: 13,
-            lineHeight: 1.45,
-          }}
-        >
-          <span style={{ flex: 1 }}>{notice}</span>
+        <div role="alert" className="site-notice">
+          <span className="site-notice-text">{notice}</span>
           <button
+            type="button"
+            className="icon-btn site-notice-close"
             onClick={() => setNoticeOpen(false)}
             aria-label="Kapat"
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.12)",
-              color: "#FFF",
-              display: "grid",
-              placeItems: "center",
-            }}
           >
-            <svg width="10" height="10" viewBox="0 0 16 16">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
               <path
                 d="M3 3 L13 13 M13 3 L3 13"
                 stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
+                strokeWidth="1.4"
               />
             </svg>
           </button>

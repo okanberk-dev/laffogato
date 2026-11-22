@@ -22,6 +22,7 @@ import {
   shortProductName,
 } from "@/lib/utils/format";
 import { cx } from "./cx";
+import { keepUnits } from "./keep-units";
 
 export interface CartItem {
   /** Stable product id - preferred match key for merge + server resolution. */
@@ -150,11 +151,7 @@ const SHOP_CAT_LABELS: Record<string, string> = {
   pantry: "Kiler",
 };
 
-export function ProductCard({
-  product,
-  addToCart,
-  onOpen,
-}: ProductCardProps) {
+export function ProductCard({ product, addToCart, onOpen }: ProductCardProps) {
   const p = product;
   const outOfStock = p.stock !== undefined && p.stock <= 0;
   const lowStock =
@@ -162,7 +159,7 @@ export function ProductCard({
     p.stock !== undefined &&
     p.lowStockThreshold !== undefined &&
     p.stock <= p.lowStockThreshold;
-  const name = shortProductName(p.name);
+  const name = keepUnits(shortProductName(p.name));
   const href = p.slug ? productPath(p.slug) : undefined;
   // A product sold in variants cannot go in from the card: its button opens
   // it so the variant is chosen first (toCartItem refuses a line without one).
@@ -266,7 +263,9 @@ export function ProductCard({
           className="btn btn-dark btn-block p-card-add"
           onClick={onAdd}
           disabled={outOfStock}
-          aria-label={outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`}
+          aria-label={
+            outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`
+          }
         >
           {outOfStock ? "Tükendi" : "Sepete ekle"}
         </button>
@@ -308,6 +307,15 @@ export function CartDrawer({
 
   const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
   const itemCount = items.reduce((s, it) => s + (it.qty || 1), 0);
+  // An empty bag shows a few things from the shelf, the panel's featured
+  // ones first, as the reference's empty cart does.
+  const suggestions =
+    items.length === 0
+      ? (products ?? [])
+          .filter((p) => p.slug && (p.stock === undefined || p.stock > 0))
+          .sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
+          .slice(0, 3)
+      : [];
 
   return (
     <>
@@ -346,7 +354,11 @@ export function CartDrawer({
             aria-label="Kapat"
           >
             <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M3 3l10 10M13 3 3 13" stroke="currentColor" strokeWidth="1.2" />
+              <path
+                d="M3 3l10 10M13 3 3 13"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
             </svg>
           </button>
         </header>
@@ -360,13 +372,36 @@ export function CartDrawer({
                 Kahve, ekipman ya da hediye: mağazada köşkün raflarındaki her
                 şey var.
               </p>
-              <Link
-                href="/magaza"
-                className="btn btn-dark btn-wide"
-                onClick={onClose}
-              >
-                Mağazaya dön
-              </Link>
+              {suggestions.length > 0 ? (
+                <div className="cart-suggest">
+                  <p className="t-label">Beğenebileceklerin</p>
+                  <ul className="cart-suggest-list" role="list">
+                    {suggestions.map((p) => (
+                      <li key={p.id ?? p.slug}>
+                        <Link
+                          href={productPath(p.slug!)}
+                          className="cart-suggest-item"
+                          onClick={onClose}
+                        >
+                          <span className="cart-item-thumb media ratio-1">
+                            <ProductSurface label={p.name} images={p.images} />
+                          </span>
+                          <span className="cart-suggest-copy">
+                            <span className="t-title">
+                              {shortProductName(p.name)}
+                            </span>
+                            <span className="t-price tabular">
+                              {typeof p.priceMinor === "number"
+                                ? priceLabel(p.priceMinor)
+                                : p.price}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           ) : (
             <ul className="cart-lines">
@@ -438,7 +473,19 @@ export function CartDrawer({
             </ul>
           )}
         </div>
-        {items.length > 0 && <CartFooter total={total} items={items} />}
+        {items.length > 0 ? (
+          <CartFooter total={total} items={items} />
+        ) : (
+          <div className="cart-drawer-foot">
+            <Link
+              href="/magaza"
+              className="btn btn-dark btn-block"
+              onClick={onClose}
+            >
+              Mağazaya dön
+            </Link>
+          </div>
+        )}
       </aside>
     </>
   );
@@ -563,7 +610,11 @@ export function ProductModal({
           className="icon-btn icon-btn--boxed product-modal-close"
         >
           <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M3 3l10 10M13 3 3 13" stroke="currentColor" strokeWidth="1.2" />
+            <path
+              d="M3 3l10 10M13 3 3 13"
+              stroke="currentColor"
+              strokeWidth="1.2"
+            />
           </svg>
         </button>
         {/* Keyed: the chosen variant belongs to this product only. */}
@@ -711,7 +762,8 @@ function ProductModalBody({
           </button>
         </div>
 
-        {stock !== undefined && !outOfStock &&
+        {stock !== undefined &&
+        !outOfStock &&
         p.lowStockThreshold !== undefined &&
         stock <= p.lowStockThreshold ? (
           <p className="t-small field-error">Son {stock} adet</p>
@@ -735,8 +787,8 @@ function ProductModalBody({
 
         <p className="t-small t-muted">
           İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün iade hakkı
-          (çabuk bozulan gıda, açılmış hijyen ürünü ve sana özel hazırlanan
-          ürün hariç).
+          (çabuk bozulan gıda, açılmış hijyen ürünü ve sana özel hazırlanan ürün
+          hariç).
         </p>
 
         {p.slug && (

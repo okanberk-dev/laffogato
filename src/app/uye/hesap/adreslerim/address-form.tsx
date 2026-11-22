@@ -128,7 +128,7 @@ export function AddressForm({
           alignItems: "center",
           gap: 10,
           fontSize: 14,
-          color: "var(--ink-soft)",
+          color: "var(--muted)",
         }}
       >
         <input

@@ -86,6 +86,7 @@
     scrollbar-width: none;
     margin-inline: calc(-1 * var(--gutter));
     padding-inline: var(--gutter);
+    scroll-padding-inline: var(--gutter);
   }
   .card-row::-webkit-scrollbar {
     display: none;
@@ -261,10 +262,14 @@
   font-size: 12px;
   opacity: 0.7;
 }
-.btn-row {
+.btn-row,
+.cta-row {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+.cta-row {
+  margin-top: 24px;
 }
 
 /* ── Galleries and photo rows ────────────────────────────── */
@@ -445,6 +450,11 @@
   background: var(--surface);
   min-height: 220px;
 }
+/* On a white section the tile is drawn on the band, as the reference's
+   brew-guide tiles are; on the band it is white. */
+.section:not(.section--band) .guide-tile {
+  background: var(--band);
+}
 .guide-tile-media {
   height: 100%;
   aspect-ratio: auto;
@@ -457,6 +467,7 @@
   padding: 32px 20px 24px;
 }
 .guide-tile-body .t-small {
+  align-self: start;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
@@ -498,11 +509,20 @@
     gap: 2px;
   }
 }
-.product-grid--4 .p-card-head {
+.product-grid--4 .p-card-head,
+.card-row .p-card-head {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
 }
-.p-card-head .t-price {
+/* Only a stacked head may let the price wrap; side by side it stays on
+   one line. */
+.product-grid--4 .p-card-head .t-price,
+.card-row .p-card-head .t-price {
   white-space: normal;
+}
+@media (max-width: 767px) {
+  .p-card-head .t-price {
+    white-space: normal;
+  }
 }

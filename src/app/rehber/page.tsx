@@ -52,13 +52,14 @@ export default function GuideHubPage() {
           <span>Rehber</span>
         </nav>
 
-        <h2 className="t-display guide-hub-title">Barın arkasında öğrendiklerimiz</h2>
+        <h2 className="t-display guide-hub-title">
+          Barın arkasında öğrendiklerimiz
+        </h2>
         <ul className="guide-hub-grid" role="list">
           {GUIDES.map((g) => (
             <li key={g.slug}>
               <Link href={`/rehber/${g.slug}`} className="guide-hub-card">
                 <span className="t-display guide-hub-name">{g.title}</span>
-                <span className="t-small">{g.primaryKeyword}</span>
                 {g.image ? (
                   <span className="media ratio-6-5">
                     <Image

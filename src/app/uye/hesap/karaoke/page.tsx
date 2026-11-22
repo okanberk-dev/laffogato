@@ -64,7 +64,7 @@ export default async function KaraokeMinePage() {
             title="Henüz karaoke rezervasyonun yok"
             cta={
               <Link href="/karaoke" className="btn btn-primary btn-sm">
-                Saat seç →
+                Saat seç
               </Link>
             }
           />
@@ -116,7 +116,7 @@ function ReservationList({
                     {state.label}
                   </span>
                 </div>
-                <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                <div style={{ fontSize: 14, color: "var(--muted)" }}>
                   {formatReservationTime(r.startHour, r.hours)} · {r.hours} saat
                   · {r.guests} kişi
                 </div>
