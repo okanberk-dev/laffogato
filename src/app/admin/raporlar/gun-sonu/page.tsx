@@ -62,9 +62,11 @@ export default async function DayClosePage({ searchParams }: PageProps) {
               sonra kapanıyorsan önceki güne geç.
             </p>
             <p>
-              Ciro Raporlar&apos;daki gibi sayılır: ödemesi alınmış siparişler.
+              Ciro kutuları günün siparişleridir: ödemesi alınmış siparişler.
               Ödeme bekleyen ve iptal edilen sipariş ciroya girmez; iade,
-              siparişin verildiği günden düşülür.
+              siparişin verildiği günden düşülür. Sitede kartla ödenen karaoke
+              ön ödemesi Karaoke bölümünde ayrı yazar; Raporlar&apos;ın o günkü
+              çubuğu ikisinin toplamıdır.
             </p>
             <p>
               İadeler bölümü bu gün yapılan iadeleri gösterir, sipariş başka gün

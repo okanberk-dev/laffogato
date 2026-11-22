@@ -2362,7 +2362,7 @@ export async function listPanelSalesOrderRows(
 
 /**
  * Every karaoke booking whose money reached the POS, as the sales export
- * reads it (`karaokeRevenue`'s rows, with the rate it was sold at). The
+ * reads it (`karaokeRevenueFrom`'s rows, with the rate it was sold at). The
  * room is one, booked by the hour: a few hundred rows a year.
  */
 export async function listPanelSalesBookingRows(): Promise<
@@ -6614,7 +6614,7 @@ export interface LowStockRow {
  * What the dashboard's tiles and lists count. Every figure is the count of
  * a list a tile opens, read by the same rule, so the number on the tile is
  * the number of rows behind it. No money: the revenue tile reads the
- * report's buckets (`revenueBuckets`) and only for the roles that may see
+ * report's buckets (`dashboardRevenue`) and only for the roles that may see
  * reports (admin audit SHE-14).
  */
 export interface DashboardStats {
@@ -7763,6 +7763,14 @@ export interface RevenueBucket {
   grossMinor: number;
   /** Refunds on the counted orders (Raporlar's "İade"). */
   refundedMinor: number;
+  /**
+   * The part of `grossMinor` that is prepaid karaoke, when the buckets carry
+   * it ({@link withKaraokeBuckets}): the basket figure leaves it out, a
+   * booking is not an order.
+   */
+  karaokeGrossMinor?: number;
+  /** The part of `revenueMinor` that is prepaid karaoke. */
+  karaokeNetMinor?: number;
 }
 
 function pad2(n: number): string {
@@ -7928,7 +7936,7 @@ export interface RevenuePace {
 
 /** The dashboard's money: the 14 day buckets and last week's pace. */
 export interface DashboardRevenue {
-  /** The last 14 days, today last: `revenueBuckets("day", 14)`'s own. */
+  /** The last 14 days, today last: Raporlar's daily buckets. */
   buckets: RevenueBucket[];
   /**
    * The same weekday a week ago, from its midnight to the clock time it is
@@ -7976,32 +7984,31 @@ export function revenuePaceAt(
 export async function dashboardRevenue(
   now: Date = new Date(),
 ): Promise<DashboardRevenue> {
-  const orders = await reportOrders(
-    ["status", "createdAt", "totalMinor", "refunds"],
-    "dashboardRevenue",
-    reportPeriodSince("day", 14, now),
-  );
+  const [orders, bookings] = await Promise.all([
+    reportOrders(
+      ["status", "createdAt", "totalMinor", "refunds"],
+      "dashboardRevenue",
+      reportPeriodSince("day", 14, now),
+    ),
+    karaokeRevenueRows("dashboardRevenue"),
+  ]);
+  // Prepaid karaoke is online revenue too (22 Kas 2026): the same days on
+  // Raporlar carry it, and so does the day today is measured against.
+  const lastWeek = revenuePaceAt(orders, now, 7);
+  lastWeek.revenueMinor += karaokePaceAt(bookings, now, 7);
   return {
-    buckets: bucketRevenue(orders, "day", 14, now),
-    lastWeek: revenuePaceAt(orders, now, 7),
+    buckets: withKaraokeBuckets(
+      bucketRevenue(orders, "day", 14, now),
+      bookings,
+      "day",
+    ),
+    lastWeek,
   };
 }
 
-export async function revenueBuckets(
-  granularity: BucketGranularity,
-  count: number,
-): Promise<RevenueBucket[]> {
-  const now = new Date();
-  const orders = await reportOrders(
-    ["status", "createdAt", "totalMinor", "refunds"],
-    "revenueBuckets",
-    reportPeriodSince(granularity, count, now),
-  );
-  return bucketRevenue(orders, granularity, count, now);
-}
-
 /**
- * The pure half of {@link revenueBuckets}, exported for tests.
+ * The order revenue of a period, bucket by bucket: the pure half of the
+ * reports' reads ({@link reportsOverview}, {@link dashboardRevenue}).
  *
  * Month steps start from the 1st: `setMonth(m - 1)` on 31 October is
  * "31 September", which JavaScript rolls over to 1 October - so on the 29th,
@@ -8232,25 +8239,11 @@ export function previousPeriodEnd(
 }
 
 /**
- * {@link analyticsHeadline} and the period before it, from one read of
- * twice the period: every figure on Raporlar is read against the same
- * stretch of time just before it (Innex, 22 Eki 2026), cut at the same
- * point ({@link previousPeriodEnd}).
+ * {@link analyticsHeadline} and the period before it, from the orders of
+ * twice the period ({@link reportsOverview} reads them once): every figure
+ * on Raporlar is read against the same stretch of time just before it
+ * (Innex, 22 Eki 2026), cut at the same point ({@link previousPeriodEnd}).
  */
-export async function analyticsHeadlineCompared(
-  granularity: BucketGranularity,
-  count: number,
-): Promise<AnalyticsCompared> {
-  const now = new Date();
-  const orders = await reportOrders(
-    ["status", "createdAt", "totalMinor", "refunds"],
-    "analyticsHeadlineCompared",
-    reportPeriodSince(granularity, count * 2, now),
-  );
-  return comparedHeadlines(orders, granularity, count, now);
-}
-
-/** The pure half of {@link analyticsHeadlineCompared}, exported for tests. */
 export function comparedHeadlines(
   orders: readonly RevenueOrder[],
   granularity: BucketGranularity,
@@ -8338,25 +8331,229 @@ export interface KaraokeRevenue {
  * more (`refundSettledMinor`): the money owed has not gone back (CLAUDE.md
  * rule 29) and is shown apart as "iadesi bekleyen". The period figure books
  * a payment in the bucket of its `paidAt`, and its refund against that same
- * bucket, as the order chart does.
+ * bucket, as the order chart does. Counted by {@link karaokeRevenueFrom}.
+ *
+ * The read: every booking whose money reached the POS.
  */
-export async function karaokeRevenue(
-  granularity: BucketGranularity,
-  count: number,
-): Promise<KaraokeRevenue> {
-  const data = rows<KaraokeRevenueRow>(
+async function karaokeRevenueRows(ctx: string): Promise<KaraokeRevenueRow[]> {
+  return rows<KaraokeRevenueRow>(
     await getDb()
       .from(TABLES.karaokeReservations)
       .select(
         "paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt",
       )
       .in("paymentStatus", [...KARAOKE_COLLECTED]),
-    "karaokeRevenue",
+    ctx,
   );
-  return karaokeRevenueFrom(data, granularity, count, new Date());
 }
 
-/** The pure half of {@link karaokeRevenue}, exported for tests. */
+// ─── Prepaid karaoke inside the order reports (22 Kas 2026) ───────────────
+//
+// Operator: "raporlarda karaoke cirosu online'da gözükmüyor". Raporlar read
+// only `orders`, so a booking paid by card on the site was online revenue
+// that sat in no tile and no bar of the chart, only in its own card at the
+// foot of the page. It is in "Net ciro", "Brüt ciro" and "İade" now, booked
+// as `karaokeRevenueFrom` books it (on the day it was paid, its refund
+// against that same day). "Sipariş" and "Ortalama sepet" stay the orders'
+// own: a booking is not an order. A booking taken at the köşk (`desk`,
+// nothing collected by the POS) is not online revenue and is not counted;
+// its money is rung up at the till.
+
+/** What prepaid karaoke adds to a report figure. */
+export interface KaraokeShare {
+  /** What the POS collected for bookings (inside "Brüt ciro"). */
+  grossMinor: number;
+  /** What the köşk keeps of it (inside "Net ciro"). */
+  netMinor: number;
+  /** Collected and given back (inside "İade"). */
+  refundedMinor: number;
+  /** Bookings whose money, or a part of it, is still with the köşk. */
+  count: number;
+}
+
+interface KaraokeEntry {
+  at: Date;
+  paid: number;
+  kept: number;
+}
+
+/** A collected booking on the instant the reports book it at: its payment. */
+function karaokeEntries(
+  bookings: readonly KaraokeRevenueRow[],
+): KaraokeEntry[] {
+  const out: KaraokeEntry[] = [];
+  for (const r of bookings) {
+    const money = karaokeMoneyOf(r);
+    if (!money) continue;
+    const at = new Date(r.paidAt || r.createdAt);
+    if (Number.isNaN(at.getTime())) continue;
+    out.push({ at, paid: money.paidMinor, kept: money.keptMinor });
+  }
+  return out;
+}
+
+function addToShare(share: KaraokeShare, e: KaraokeEntry): void {
+  share.grossMinor += e.paid;
+  share.netMinor += e.kept;
+  share.refundedMinor += e.paid - e.kept;
+  // As the karaoke card counts them: a booking paid back in full is none.
+  if (e.kept > 0) share.count += 1;
+}
+
+/**
+ * The order buckets with prepaid karaoke added: collected into gross, kept
+ * into net, the difference into refunds. `orderCount` is untouched, and the
+ * karaoke part rides along so a figure per order can leave it out.
+ */
+export function withKaraokeBuckets(
+  buckets: readonly RevenueBucket[],
+  bookings: readonly KaraokeRevenueRow[],
+  granularity: BucketGranularity,
+): RevenueBucket[] {
+  const out = buckets.map((b) => ({
+    ...b,
+    karaokeGrossMinor: 0,
+    karaokeNetMinor: 0,
+  }));
+  const byKey = new Map(out.map((b) => [b.bucket, b]));
+  for (const e of karaokeEntries(bookings)) {
+    const slot = byKey.get(bucketKey(istanbulWall(e.at), granularity));
+    if (!slot) continue;
+    slot.grossMinor += e.paid;
+    slot.revenueMinor += e.kept;
+    slot.refundedMinor += e.paid - e.kept;
+    slot.karaokeGrossMinor += e.paid;
+    slot.karaokeNetMinor += e.kept;
+  }
+  return out;
+}
+
+/**
+ * Prepaid karaoke of the period and of the same stretch just before it,
+ * cut as {@link comparedHeadlines} cuts the orders.
+ */
+export function karaokeShares(
+  bookings: readonly KaraokeRevenueRow[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): { current: KaraokeShare; previous: KaraokeShare } {
+  const inCurrent = reportPeriodFilter(granularity, count, now);
+  const inBoth = reportPeriodFilter(granularity, count * 2, now);
+  const end = previousPeriodEnd(granularity, count, now).getTime();
+  const current: KaraokeShare = {
+    grossMinor: 0,
+    netMinor: 0,
+    refundedMinor: 0,
+    count: 0,
+  };
+  const previous: KaraokeShare = { ...current };
+  for (const e of karaokeEntries(bookings)) {
+    const iso = e.at.toISOString();
+    if (inCurrent(iso)) addToShare(current, e);
+    else if (inBoth(iso) && e.at.getTime() <= end) addToShare(previous, e);
+  }
+  return { current, previous };
+}
+
+/**
+ * A headline with prepaid karaoke in its money. The order count and the
+ * basket (gross per order) stay the orders' own.
+ */
+export function headlineWithKaraoke(
+  headline: AnalyticsHeadline,
+  share: KaraokeShare,
+): AnalyticsHeadline {
+  return {
+    ...headline,
+    grossRevenueMinor: headline.grossRevenueMinor + share.grossMinor,
+    netRevenueMinor: headline.netRevenueMinor + share.netMinor,
+    refundedMinor: headline.refundedMinor + share.refundedMinor,
+  };
+}
+
+/**
+ * What prepaid karaoke adds to {@link revenuePaceAt}: kept money of the
+ * bookings paid on the köşk's day `daysAgo` days back, up to the clock time
+ * of `now`.
+ */
+export function karaokePaceAt(
+  bookings: readonly KaraokeRevenueRow[],
+  now: Date,
+  daysAgo: number,
+): number {
+  const wall = istanbulWall(now);
+  const midnight = new Date(wall);
+  midnight.setUTCHours(0, 0, 0, 0);
+  const elapsed = wall.getTime() - midnight.getTime();
+  const from = midnight.getTime() - REPORT_TZ_OFFSET_MS - daysAgo * DAY_MS;
+  const to = from + elapsed;
+  let kept = 0;
+  for (const e of karaokeEntries(bookings)) {
+    const at = e.at.getTime();
+    if (at >= from && at <= to) kept += e.kept;
+  }
+  return kept;
+}
+
+/** Everything Raporlar draws but the top list, from two reads. */
+export interface ReportsOverview {
+  /** The tiles, prepaid karaoke inside their money. */
+  compared: AnalyticsCompared;
+  /** The chart's buckets, prepaid karaoke inside their money. */
+  buckets: RevenueBucket[];
+  /** The karaoke card: the period's and all time's figures. */
+  karaoke: KaraokeRevenue;
+  /** How much of the tiles is karaoke, for the line that says so. */
+  karaokeShare: { current: KaraokeShare; previous: KaraokeShare };
+}
+
+/**
+ * Raporlar's figures for a period: the orders of twice the period (the
+ * tiles' comparison) and the collected bookings, read once each.
+ */
+export async function reportsOverview(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<ReportsOverview> {
+  const now = new Date();
+  const [orders, bookings] = await Promise.all([
+    reportOrders(
+      ["status", "createdAt", "totalMinor", "refunds"],
+      "reportsOverview",
+      reportPeriodSince(granularity, count * 2, now),
+    ),
+    karaokeRevenueRows("reportsOverview"),
+  ]);
+  return reportsOverviewFrom(orders, bookings, granularity, count, now);
+}
+
+/** The pure half of {@link reportsOverview}. */
+export function reportsOverviewFrom(
+  orders: readonly RevenueOrder[],
+  bookings: readonly KaraokeRevenueRow[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): ReportsOverview {
+  const karaokeShare = karaokeShares(bookings, granularity, count, now);
+  const compared = comparedHeadlines(orders, granularity, count, now);
+  return {
+    compared: {
+      current: headlineWithKaraoke(compared.current, karaokeShare.current),
+      previous: headlineWithKaraoke(compared.previous, karaokeShare.previous),
+    },
+    buckets: withKaraokeBuckets(
+      bucketRevenue([...orders], granularity, count, now),
+      bookings,
+      granularity,
+    ),
+    karaoke: karaokeRevenueFrom(bookings, granularity, count, now),
+    karaokeShare,
+  };
+}
+
+/** The karaoke card's figures, from {@link karaokeRevenueRows}' read. */
 export function karaokeRevenueFrom(
   bookings: readonly KaraokeRevenueRow[],
   granularity: BucketGranularity,
@@ -8417,7 +8614,7 @@ export interface DayCloseBooking {
   updatedAt: string;
 }
 
-/** A booking whose money reached the POS: `karaokeRevenue`'s rows, with the refund's day. */
+/** A booking whose money reached the POS: `karaokeRevenueFrom`'s rows, with the refund's day. */
 export type DayCloseKaraokeMoney = KaraokeRevenueRow & {
   id: string;
   refundedAt?: string | null;
@@ -8451,7 +8648,7 @@ export interface DayCloseRows {
   refunded: DayCloseRefundedOrder[];
   /** The karaoke bookings on the day's calendar. */
   bookings: DayCloseBooking[];
-  /** The bookings whose money reached the POS (`karaokeRevenue`'s read). */
+  /** The bookings whose money reached the POS (`karaokeRevenueFrom`'s read). */
   karaokeMoney: DayCloseKaraokeMoney[];
   /** The loyalty ledger rows written in the day. */
   stamps: DayCloseStamp[];

@@ -19,10 +19,8 @@ import {
   type ReportMetric,
 } from "@/lib/admin/report-metrics";
 import {
-  analyticsHeadlineCompared,
-  karaokeRevenue,
   parseGranularity,
-  revenueBuckets,
+  reportsOverview,
   topProducts,
   type BucketGranularity,
 } from "@/lib/admin/store";
@@ -73,6 +71,13 @@ const G_OPTIONS: Array<{
  * top list's bars were drawn by quantity under a ranking by money (admin
  * audit SYS-16, decision D31). The "Dönüşüm" card, which promised to fill
  * itself once an analytics tool was connected, is gone (D32).
+ *
+ * Prepaid karaoke is inside the money figures (22 Kas 2026; operator:
+ * "raporlarda karaoke cirosu online'da gözükmüyor"): a booking paid by card
+ * on the site is online revenue, and it sat only in its own card at the foot
+ * of the page. Net, gross and refunds carry it now, on the day it was paid;
+ * the order count and the basket stay the orders' own, and a line under the
+ * strip says how much of the net is karaoke.
  */
 export default async function ReportsPage({ searchParams }: PageProps) {
   await requireRole("reports");
@@ -84,12 +89,12 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const metric = parseReportMetric(sp.m);
   const spec = REPORT_METRICS[metric];
 
-  const [compared, buckets, top, karaoke] = await Promise.all([
-    analyticsHeadlineCompared(opt.value, opt.count),
-    revenueBuckets(opt.value, opt.count),
+  const [overview, top] = await Promise.all([
+    reportsOverview(opt.value, opt.count),
     topProducts(opt.value, opt.count, 5),
-    karaokeRevenue(opt.value, opt.count),
   ]);
+  const { compared, buckets, karaoke } = overview;
+  const karaokeNow = overview.karaokeShare.current;
   const head = compared.current;
   const prev = compared.previous;
 
@@ -170,7 +175,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       key: "basket",
       label: "Ortalama sepet",
       value: formatTRY(head.averageOrderMinor),
-      reference: `Brüt / sipariş · ${opt.before.toLocaleLowerCase("tr-TR")} ${formatTRY(prev.averageOrderMinor)}`,
+      reference: `Sipariş brütü / sipariş · ${opt.before.toLocaleLowerCase("tr-TR")} ${formatTRY(prev.averageOrderMinor)}`,
       delta: dashboardDelta(
         head.averageOrderMinor,
         prev.averageOrderMinor,
@@ -198,7 +203,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           <p>
             Seçtiğin dönemde ödemesi alınmış siparişler sayılır; ödeme bekleyen
             ve iptal edilenler sayılmaz. İade, siparişin verildiği dönemden
-            düşülür. Karaoke ön ödemeleri ayrı.
+            düşülür. Sitede kartla ödenen karaoke ön ödemeleri de ciroya
+            dahildir (ödendiği günde); köşkte ödenen, elle eklenen rezervasyon
+            dahil değildir. Sipariş sayısı ve ortalama sepet yalnız
+            siparişlerden hesaplanır.
           </p>
         }
         action={
@@ -219,8 +227,16 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         label={`${opt.label}: özet`}
         cells={tabs}
         linkScroll={false}
-        className="mb-5"
+        className={karaokeNow.grossMinor > 0 ? "mb-2" : "mb-5"}
       />
+      {karaokeNow.grossMinor > 0 ? (
+        <p className="mb-5 text-xs text-[var(--admin-text-soft)]">
+          Net cironun{" "}
+          <span style={NUMERIC_STYLE}>{formatTRY(karaokeNow.netMinor)}</span>
+          &apos;si karaoke ön ödemesi ({karaokeNow.count} rezervasyon, sitede
+          kartla ödenen). Sipariş sayısı ve ortalama sepet yalnız siparişlerden.
+        </p>
+      ) : null}
 
       <Card className="mb-5">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -307,7 +323,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           <div className="mt-3 flex flex-col gap-3">
             <div className="min-w-0">
               <div className={EYEBROW} style={MONO_STYLE}>
-                Bu dönemde, net
+                Bu dönemde, net · ciroya dahil
               </div>
               <div
                 className="mt-1 text-2xl font-semibold text-[var(--admin-text)]"

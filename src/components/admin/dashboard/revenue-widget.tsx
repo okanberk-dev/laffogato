@@ -8,8 +8,9 @@ import { WidgetCard } from "./widget-card";
 /**
  * The last 14 days of net revenue, for the roles that may see reports
  * (decision D38; staff never get it, D1). The buckets are the report's own
- * (`revenueBuckets`), so the figures here are the ones Raporlar shows for
- * the same days.
+ * (`dashboardRevenue`), so the figures here are the ones Raporlar shows for
+ * the same days: prepaid karaoke inside the money (22 Kas 2026), the order
+ * count the orders' own.
  */
 export function RevenueWidget({
   buckets,
@@ -28,7 +29,8 @@ export function RevenueWidget({
           {formatTRY(total)}
         </span>
         <span className="text-[13px] text-[var(--admin-text-mute)]">
-          Net ciro · {orders} sipariş · iadeler düşülmüş
+          Net ciro · {orders} sipariş · iadeler düşülmüş, karaoke ön ödemesi
+          dahil
         </span>
       </p>
       <RevenueChart data={buckets} caption="Son 14 günün net cirosu" />
