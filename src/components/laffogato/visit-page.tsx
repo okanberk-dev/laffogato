@@ -15,6 +15,8 @@ import {
 import { SITE } from "@/lib/seo/site";
 import { priceLabel } from "@/lib/utils/format";
 
+import { AppStoreLinks } from "./app-links";
+import { AppPhones, TableOrderBand } from "./app-showcase";
 import { PageHero } from "./page-hero";
 import { LOCATION } from "./data";
 import { openStatusDetail, useOpenStatus } from "./use-open-status";
@@ -275,6 +277,15 @@ export function PageVisit({ visit, settings, images }: PageProps) {
           </dl>
         </div>
       </section>
+
+      {/* Ordering from the table: the app's own screen and the steps. */}
+      <TableOrderBand
+        headingId="visit-table-title"
+        mediaSide="end"
+        media={<AppPhones only="table" />}
+      >
+        <AppStoreLinks tone="dark" className="table-order-store" />
+      </TableOrderBand>
 
       {/* The rooms ─────────────────────────────────────────── */}
       <section className="section section--band" aria-labelledby="visit-rooms">

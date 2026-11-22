@@ -174,6 +174,15 @@ export function PageMenu({ menu, settings, images }: PageProps) {
               {activeLabel ? `Menü · ${activeLabel}` : "Menü"}
             </h1>
             <p className="t-body">{activeNote || LEDE}</p>
+            {/* The table order, said once where the menu starts; /masa has
+                its own banner and hides this line (catalog.css). */}
+            <p className="t-small menu-app-nudge">
+              Köşkte misin? Masandaki QR&rsquo;ı okut, uygulamadan sipariş ver;
+              masana gelsin.{" "}
+              <Link href="/#uygulama" className="link-u">
+                Uygulamayı gör
+              </Link>
+            </p>
           </div>
           <div className="collection-tools">
             <div className="search-input">
@@ -468,8 +477,8 @@ export function PageMenu({ menu, settings, images }: PageProps) {
             <li>
               <p className="t-label">Self-servis</p>
               <p className="t-small">
-                Menüye buradan göz at, beğendiğini barda söyle. Sipariş ve
-                servis bardan verilir, garson beklemeden.
+                Menüye buradan göz at, beğendiğini barda söyle. Uygulaman varsa
+                masandaki QR&rsquo;ı okut: sipariş masana gelir.
               </p>
             </li>
             <li>
