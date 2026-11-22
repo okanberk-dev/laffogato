@@ -200,6 +200,13 @@
   height: 100%;
   object-fit: cover;
 }
+/* A store screenshot is shown from its top down to just above the
+   app's bottom bar (the bar has changed since the shot was taken): the
+   frame is open at the foot, the screen runs on below it. */
+.app-device-screen--shot {
+  aspect-ratio: 600 / 1150;
+  border-bottom: 0;
+}
 .app-phones--one .app-device {
   flex-basis: 244px;
 }

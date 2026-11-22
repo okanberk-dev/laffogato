@@ -278,14 +278,17 @@ export function PageVisit({ visit, settings, images }: PageProps) {
         </div>
       </section>
 
-      {/* Ordering from the table: the app's own screen and the steps. */}
-      <TableOrderBand
-        headingId="visit-table-title"
-        mediaSide="end"
-        media={<AppPhones only="table" />}
-      >
-        <AppStoreLinks tone="dark" className="table-order-store" />
-      </TableOrderBand>
+      {/* Ordering from the table: the app's own screen and the steps.
+          Only while the panel offers it (Mobil → Ayarlar → Masaya sipariş). */}
+      {settings?.tableOrderEnabled !== false ? (
+        <TableOrderBand
+          headingId="visit-table-title"
+          mediaSide="end"
+          media={<AppPhones only="table" />}
+        >
+          <AppStoreLinks tone="dark" className="table-order-store" />
+        </TableOrderBand>
+      ) : null}
 
       {/* The rooms ─────────────────────────────────────────── */}
       <section className="section section--band" aria-labelledby="visit-rooms">

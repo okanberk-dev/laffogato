@@ -273,10 +273,14 @@ Bir videodan kare alınacaksa:
 - **Kalan iki çizim:** `public/illustrations/karaoke-room.webp` ve
   `karaoke-mic-cut.webp`; panelin anasayfa slaytları ve karaoke paylaşım
   kartı okur (`docs/BRAND.md` §6).
-- **Uygulama ekranları:** `public/brand/app-screen-home.webp` ve
-  `app-screen-menu.webp` (22 Kas 2026) kendi uygulamamızın App Store ekran
-  görüntüleridir (`RiosenBeq/lafmobil` `store/screenshots/6.7-inch/`
-  `01-ana-sayfa.jpg`, `02-menu.jpg`; 600 × 1300 webp). Anasayfanın uygulama
+- **Uygulama ekranları:** `public/brand/app-screen-home.webp` (üye
+  alanındaki küçük telefon; 600 × 1300) ile anasayfa vitrininin
+  `app-shot-home.webp` ve `app-shot-menu.webp` dosyaları (22 Kas 2026) kendi
+  uygulamamızın App Store ekran görüntüleridir (`RiosenBeq/lafmobil`
+  `store/screenshots/6.7-inch/` `01-ana-sayfa.jpg`, `02-menu.jpg`). `app-shot`
+  dosyaları 600 × 1150'ye, alt çubuğun üstünden kırpılmıştır: mağaza
+  görüntüsündeki alt çubuk (ortada "Sepet") uygulamanın bugünkü çubuğu
+  değil. Anasayfanın uygulama
   bölümündeki masa siparişi ekranı görsel değil, işaretlemedir
   (`src/components/laffogato/app-showcase.tsx`).
 - **Yazı yüzleri:** `src/app/layout.tsx` (Archivo, Geist; SIL OFL 1.1).
