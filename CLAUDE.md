@@ -513,7 +513,9 @@ marinada"_: kart "Tuzla Marina, Tuzla / İstanbul" yazar ve haritayı
 2300"_ ile "10:00 - 23:00" (gün söylenmedi, "Her gün" yazılmaz). Marinadaki
 birim, posta kodu ve telefon hâlâ boş; kart yalnız eksik olanı "çok
 yakında" diye söyler (`branchPending`). Şubeler için JSON-LD hiç basılmaz (`structured-data.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
-yalnız Tuzla köşküne hizmet eder; kart bunu yazar. Hukuk metinlerinde 12 belge
+yalnız Tuzla köşküne hizmet eder; kart bunu yazar. (21 Kas 2026'dan beri tek
+istisna Marina'nın LafPOS'unun bastığı masa kartlarıdır: o masadan verilen
+sipariş ve çağrı Marina'nındır; aşağıda "Şubeler".) Hukuk metinlerinde 12 belge
 (ÖBF ve MSS dahil) hâlâ "tek şube bulunduğundan konuma bağlı bir işlev yoktur"
 der: düzeltilmesi onay sürümünü (`LEGAL_UPDATED`) taşır, ayrı bir hukuk
 revizyonudur ve operatörün onayını bekler.
@@ -680,6 +682,36 @@ isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı); açılışta siten
 Tükendi / Satışta; karaokeyi yalnız dünden yarına okur (daha genişi 403); olay kaydında
 `lafpos:<ad>`. Maliyet ve muhasebe lafmaliyet'te
 kalır, LafPOS gün sonunu oraya iter. Ayrıntı: `docs/LAFPOS.md`.
+
+## Şubeler: sipariş, masa, çağrı ve Satışta / Tükendi (21 Kas 2026)
+
+İlk LafPOS kasası Marina'da (Tuzla ModPOS'ta kalır). Site şube bilmediği için
+Marina'nın kasası Tuzla'nın ödenmiş siparişlerini, çağrılarını ve karaokesini
+kendi işi sayacak, tek "Satışta / Tükendi" bayrağıyla iki şube birbirinin
+ürününü kapatacaktı. Artık (`src/lib/panel/branches.ts`, göç
+`20261121150719_branches.sql`):
+
+- `orders.branch`, `cafe_tables.branch`, `table_calls.branch` (varsayılan
+  `tuzla`). Masa siparişi ve çağrısı masanın şubesi (anlık görüntü); gel-al,
+  kurye, kargo ve karaoke Tuzla'nın. Sitenin panelinde Masalar › Düzenle ›
+  Şube.
+- İmzalı her uç bir şube adınadır: `?branch=` ya da gövdede `branch`; yoksa
+  panelin anahtarı Tuzla (her şube adına konuşabilir), LafPOS'unki
+  `LAFPOS_BRANCHES` (varsayılan `marina`). Başka şubenin siparişi / çağrısı
+  409 `wrong_branch`, başka şubenin masa kodu `PUT /api/panel/tables`'ta 409
+  `wrong_branch`, karaoke başka şube adına boş.
+- "Satışta / Tükendi" şubeye göre: `menu_items."isActive"` menüde mi (her
+  şube; sitenin formu), `menu_item_availability` şubenin kendi Tükendi'si.
+  İmzalı yazım yalnız şubenin satırını yazar; LafPOS menüden kalkmışı açamaz
+  (409 `site_closed`). Site ve uygulama Tuzla'nınkini, `/masa/<kod>` masanın
+  şubesininkini gösterir; sipariş siparişin şubesinde denetlenir.
+- `GET /api/panel/sales`'a `&branch=` ve `byBranch`.
+- Seçenek ücreti (ekstra shot, şurup, ücretli süt) menü kalemlerinin
+  fiyatından (S8: `mnu-0081`, `mnu-0080`, `mnu-0082`), sabit yedek.
+- Testler `tests/sube/` (`npm run test:sube`; `TEST_DATABASE_URL` ile gerçek
+  Postgres'e karşı da), CI'da değil. Ayrıntı `docs/LAFPOS.md` "Şube",
+  `docs/PANEL-MENU.md` "Şube" ve "Seçenek fiyatları", `docs/PANEL-ORDERS.md`
+  "Şube", `docs/PANEL-SALES.md` "Şube kırılımı".
 
 ## Köşkün paneli: bar ekranı ve online satış (22 Eki 2026)
 

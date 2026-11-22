@@ -104,12 +104,14 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
 
    ```
    GET https://laffogato.net/api/panel/menu
+   GET https://laffogato.net/api/panel/menu?branch=marina
    ```
 
    ```json
    {
      "version": 1,
      "now": "2026-10-21T10:00:00.000Z",
+     "branch": "tuzla",
      "items": [
        {
          "id": "mnu-0011",
@@ -119,13 +121,20 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
          "priceMinor": 14000,
          "priceMinorL": 0,
          "isActive": true,
+         "onMenu": true,
          "sortOrder": 6,
          "updatedAt": "2026-10-20T08:00:00.000Z"
        }
      ],
-     "writes": { "expect": true }
+     "writes": { "expect": true, "branch": true }
    }
    ```
+
+   21 Kasım 2026'dan beri okuma **bir şubenindir** (aşağıda "Şube"):
+   `isActive` o şubede satılıyor mu, `onMenu` sitenin kendi "Menüde" bayrağı
+   (her şube), `updatedAt` kalemin ve şubenin kendi damgasından geç olanı;
+   `branch` hangi şube olduğunu söyler. `?branch=` yoksa çağıranın şubesi:
+   panel Tuzla, LafPOS `LAFPOS_BRANCHES` (varsayılan Marina).
 
    Bütün kalemler, satışta olmayanlar da (panel bağlıyı gizlemek için onu da
    görmeli). `writes` yazma ucunun ilk sürümden sonra kabul ettiği isteğe
@@ -165,10 +174,12 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
    | ----- | -------------------------------- | -------------------------------------------------------------------------- |
    | 400   | `{"error":"invalid","field"}`    | Alan kurala uymuyor ya da hiçbiri yok (`expect` bozuksa `field: "expect"`) |
    | 401   | `{"error":"unauthorized"}`       | İmza yok, yanlış ya da 5 dakikadan eski                                    |
-   | 403   | `{"error":"forbidden","field"}`  | LafPOS'un anahtarıyla fiyat yazımı (`docs/LAFPOS.md`)                      |
+   | 400   | `{"error":"invalid","field":"branch"}` | `branch` bozuk ya da sitenin bilmediği bir şube                      |
+   | 403   | `{"error":"forbidden","field"}`  | LafPOS'un anahtarıyla fiyat yazımı (`docs/LAFPOS.md`); `field: "branch"`: anahtarın şubesi değil |
    | 404   | `{"error":"not_found"}`          | Kalem sitede yok (silinmiş)                                                |
    | 409   | `{"error":"single_size"}`        | Kalem tek boy, istek L fiyatı veriyor                                      |
    | 409   | `{"error":"stale","item":{...}}` | `expect` tutmuyor: alan sitede bu arada değişti; `item` güncel             |
+   | 409   | `{"error":"site_closed","item":{...}}` | LafPOS menüden kalkmış (`onMenu: false`) kalemi açmak istedi; hiçbir şey yazılmadı |
    | 413   | `{"error":"too_large"}`          | Gövde 4 KB'tan büyük                                                       |
    | 503   | `{"error":"not_configured"}`     | Anahtar yok                                                                |
    | 503   | `{"error":"unavailable"}`        | Veritabanı okunamadı ya da yazılamadı                                      |
@@ -251,6 +262,69 @@ Bu değişiklik yayına çıkmadan önce açılmış bir sekme gizli alanları
 göndermez; onun kaydı eskisi gibi bütün satırı yazar. Kurallar `tests/menu-sale-guard.test.ts`,
 gerçek Postgres'e karşı `tests/db-integration-panel-menu.test.ts`.
 
+## Şube: Satışta / Tükendi şubeye göre (21 Kas 2026)
+
+Sahibin 4 Kasım 2026 kararı (lafmaliyet `docs/SUBE.md`): "Satışta / Tükendi"
+şubeye göre değişir. Sitede kalem başına tek `isActive` vardı ve iki çağıran da
+onu yazıyordu: Tuzla barının lafmaliyet'te "Tükendi"si Marina'nın kasasında
+ürünü kilitliyor (LafPOS 403 `site_closed`), Marina'da porsiyonu biten ürün
+Tuzla'nın uygulama ve QR menüsünden de kalkıyor, Marina müdürü Tuzla'nın
+kapattığını açabiliyordu.
+
+- **İki bayrak.** `menu_items."isActive"` kalemin **menüde** olup olmadığıdır
+  (sitenin formu ve listesi yazar, her şube için birden). Şubenin kendi
+  "Tükendi"si `menu_item_availability` satırındadır (`menuItemId`, `branch`,
+  `isActive`, `updatedAt`, `updatedBy`; satır yoksa "Satışta"). Kalem bir
+  şubede, menüdeyken ve o şubenin satırı (varsa) açıkken satılır
+  (`src/lib/panel/menu-availability-core.ts`).
+- **Şube** `src/lib/panel/branches.ts`: imzalı istek `branch` söyleyebilir
+  (GET'te sorguda, POST'ta gövdede; ikisi de imzalı). Söylemezse çağıranın
+  şubesi: panelin anahtarı Tuzla (her şube adına konuşabilir), LafPOS'unki
+  `LAFPOS_BRANCHES` (varsayılan `marina`). Anahtarın konuşamadığı şube 403
+  `forbidden` `field: "branch"`, bozuk ya da bilinmeyen 400.
+- **Yazım.** `isActive` yalnız o şubenin satırını yazar (koşullu: okunan
+  satırda kaldıysa, yoksa 409 `stale`). Fiyatlar her şubenindir, eskisi gibi
+  kalemin sütunlarına yazılır. Menüden kalkmış (`onMenu: false`) kalemi açmak:
+  panel kalemi menüye geri koyar (önceki yetkisi; şubenin kapalı satırını da
+  açar), LafPOS 409 `site_closed` alır, hiçbir şey yazılmaz.
+- **Okuma.** `isActive` şubenin gördüğü, `onMenu` sitenin bayrağı. `updatedAt`
+  kalemin ve şubenin damgasından geç olanı: başka şubenin değişikliği bu şubenin
+  damgasını oynatmaz (lafmaliyet'in Tükenenler kaydı `markerValid` buna bakar).
+- **Müşteri yüzleri.** Site sayfaları ve uygulamanın `/menu`'sü Tuzla'nın
+  satırını okur (uygulama Tuzla köşküne hizmet eder); `/masa/<kod>` masanın
+  şubesininkini. Sipariş anındaki karar her zaman siparişin şubesine göredir:
+  masa siparişi masanın şubesi, öteki her sipariş Tuzla (`resolveCafeLines`).
+- **Sitenin paneli.** Kafe menüsü listesi menünün bayrağını gösterir ve
+  menüdeki kalemin yanına şubelerin kendi Tükendi'sini yazar ("Marina:
+  tükendi"). Listedeki tek dokunuşla Tükendi ve form eskisi gibi menünün
+  bayrağını (her şube) yazar.
+- Satır yazımı `pub:menu`'yu düşürür: ping, LafPOS'un menü işareti ve
+  önbellekler kalemin kendi yazımındaki gibi.
+- Fiyat hâlâ tek: şubeye göre satış fiyatı (aynı kararın ikinci yarısı) ayrı
+  bir iştir; uygulamanın sipariş fiyatı ve sözleşmesi de değişir.
+
+Testler `tests/sube/` (`npm run test:sube`; `TEST_DATABASE_URL` verilirse
+gerçek Postgres'e karşı da).
+
+## Seçenek fiyatları menüden (S8, 21 Kas 2026)
+
+Ekstra shot, şurup ve ücretli alternatif süt menüde kalem olarak da durur
+("Extra Shot" `mnu-0081`, "Syrup" `mnu-0080`, "Alternatif Süt" `mnu-0082`;
+kasada ayrı satır çalınır, lafmaliyet onları ürün olarak fiyatlar ve
+maliyetler). Seçenek ücreti ise kod sabitinden geliyordu
+(`CUSTOMIZATION`): panelden ya da sitede bu kalemlerin fiyatı değişince
+uygulama ve LafPOS eski ücreti almaya devam ediyordu (lafmaliyet
+`docs/planlar/senkron.md` S8).
+
+Artık `/api/mobile/v1/menu`'nün `customization`'ı ve sipariş fiyatı
+(`resolveOptionPricing`) bu üç kalemin `priceMinor`'ını okur
+(`optionPricesFromMenu`, `customizationFor`;
+`src/lib/mobile/customization.ts`). "Satışta" okunmaz. Kalem yoksa, iki
+boyluysa ya da fiyatı geçersizse (tam kuruş değil, 0, tavanın üstü) o
+seçenek sabitine düşer. Normal ve laktozsuz süt, "Şurup yok" 0 kalır; ücretli
+süt (badem) `mnu-0082`'nin fiyatını alır. Biçim ve kimlikler aynı; LafPOS
+yeni ücreti bir sonraki menü eşitlemesinde alır (`upsertOptionGroups`).
+
 ## Panel ne zaman çeker
 
 Pingde, ürünler sayfası açılınca (son çekmeden 5 dakika geçtiyse), günlük
@@ -277,4 +351,5 @@ günceller; Kafe menüsü sayfası, son değişiklik girilen günden yeniyse
   (`pos_mappings`), bu bağlantıdan etkilenmez.
 - **Kalem açmak / silmek, ad ve kategori.** Bilerek elle (yukarıda).
 - **Boy boy satış durumu.** Sitede yok; eklenmesi uygulama sözleşmesini
-  (`docs/API-MOBILE.md`) değiştirir.
+  (`docs/API-MOBILE.md`) değiştirir. Şubeye göre Satışta / Tükendi var
+  (yukarıda "Şube"); şubeye göre fiyat yok.

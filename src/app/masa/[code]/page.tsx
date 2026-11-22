@@ -28,10 +28,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-async function tableNameFor(code: string): Promise<string | null> {
+async function tableFor(
+  code: string,
+): Promise<{ name: string; branch: string } | null> {
   try {
     const lookup = await lookupTableLimited(code, await clientIp());
-    return lookup.ok ? lookup.table.name : null;
+    return lookup.ok ? lookup.table : null;
   } catch (err) {
     // The banner is a nicety; the menu below has its own outage handling.
     if (!isDbUnreachable(err)) console.error("[masa] table lookup failed", err);
@@ -45,10 +47,14 @@ export default async function TablePage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const [tableName, { appProps }] = await Promise.all([
-    tableNameFor(code),
-    loadAppProps({ withShopHero: false }),
-  ]);
+  // The table first: its branch's "Satışta / Tükendi" is the menu's
+  // (src/lib/panel/branches.ts); a code that names nothing shows Tuzla's.
+  const table = await tableFor(code);
+  const tableName = table?.name ?? null;
+  const { appProps } = await loadAppProps({
+    withShopHero: false,
+    menuBranch: table?.branch,
+  });
   return (
     <LaffogatoApp
       {...appProps}

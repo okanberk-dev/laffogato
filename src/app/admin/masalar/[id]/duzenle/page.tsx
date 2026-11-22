@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/admin/auth";
 import { cafeTableIdSchema } from "@/lib/admin/cafe-table-schema";
 import { getCafeTable } from "@/lib/admin/cafe-tables";
 import { cafeTableHref } from "@/lib/admin/cafe-tables-panel";
+import { branchLabel, siteBranches } from "@/lib/panel/branches";
 
 import { updateCafeTableAction } from "../../actions";
 import { CafeTableForm } from "../../table-form";
@@ -33,7 +34,16 @@ export default async function EditCafeTablePage({
       />
       <CafeTableForm
         action={updateCafeTableAction}
-        table={{ id: table.id, name: table.name, sortOrder: table.sortOrder }}
+        table={{
+          id: table.id,
+          name: table.name,
+          sortOrder: table.sortOrder,
+          branch: table.branch,
+        }}
+        branches={siteBranches(process.env).map((id) => ({
+          id,
+          label: branchLabel(id),
+        }))}
         submitLabel="Kaydet"
         back={back}
       />

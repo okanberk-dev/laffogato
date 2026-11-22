@@ -34,7 +34,7 @@ birkaç saniyede bir sormadan.
 
    `from` varsayılanı İstanbul'da dün, `to` varsayılanı `from` + 90 gün; en
    geniş pencere 400 gün (LafPOS'un anahtarıyla yalnız dünden yarına,
-   aşağıda). Yanıt `{ now, from, to, complete, reservations }`,
+   aşağıda). Yanıt `{ now, from, to, branch, complete, reservations }`,
    `Cache-Control: no-store`. Her rezervasyon yalnız şunları taşır: kimlik,
    gün, başlangıç saati, süre, başlangıç ve bitiş anı, kişi sayısı, durum,
    ödeme durumu, **yalnız ad** (soyad değil), not (en çok 300 karakter),
@@ -57,6 +57,17 @@ birkaç saniyede bir sormadan.
    `expired` olan satırda da `null` gelir ve orada iade yoktur. Alanı
    okumayan bir panel eski sözleriyle çalışmaya devam eder; okuyan panel
    "iade edildi" yerine "iade yok" yazar (lafmaliyet bar ekranı).
+
+   **Şube (21 Kas 2026).** Okuma bir şubenindir: `?branch=` (imzalı
+   sorgunun parçası) ya da çağıranın şubesi; panelin anahtarı Tuzla,
+   LafPOS'unki `LAFPOS_BRANCHES` (varsayılan Marina; `src/lib/panel/
+   branches.ts`, `docs/LAFPOS.md` "Şube"). Karaoke odası tek ve Tuzla
+   köşkündedir (`KARAOKE_BRANCH`): başka şube adına okuma veritabanına
+   gitmeden `reservations: []` (`complete: true`) alır, yanıt `branch`'i
+   söyler. Böylece Marina'nın kasası Tuzla'nın rezervasyonlarını okuyup
+   çalmaz. İkinci bir oda bir sütun değil, ayrı bir iştir (saatler, fiyat,
+   rezervasyon formu). Anahtarın konuşamadığı şube 403 `{"error":
+   "forbidden","field":"branch"}`, bozuk ya da bilinmeyen 400 `invalid`.
 
    Liste günün ve saatin sırasıyladır (erkenden geçe). Pencere 2000 satırı
    aşarsa (tek oda saatlik kiralanınca gerçek bir durum değil) site okumayı

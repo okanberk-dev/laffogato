@@ -3,6 +3,8 @@
 
 import { z } from "zod";
 
+import { BRANCH_ID_PATTERN } from "@/lib/panel/branches";
+
 import { TABLE_NAME_MAX } from "./cafe-tables-core";
 
 const name = z
@@ -18,11 +20,21 @@ export const cafeTableIdSchema = z
   .trim()
   .regex(/^tbl-\d{4,}$/, { error: "Masa geçersiz." });
 
-export const createCafeTableSchema = z.object({ name });
+/**
+ * Where the table stands (src/lib/panel/branches.ts): an id the
+ * deployment knows. The action checks it against `siteBranches`.
+ */
+const branch = z
+  .string({ error: "Şube geçersiz." })
+  .trim()
+  .regex(BRANCH_ID_PATTERN, { error: "Şube geçersiz." });
+
+export const createCafeTableSchema = z.object({ name, branch });
 
 export const updateCafeTableSchema = z.object({
   id: cafeTableIdSchema,
   name,
+  branch,
   sortOrder: z.coerce
     .number({ error: "Sıra bir sayı olmalı." })
     .int({ error: "Sıra tam sayı olmalı." })

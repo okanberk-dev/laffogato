@@ -29,6 +29,15 @@ bir bağlantıdır, kendi anahtarıyla: `docs/LAFPOS.md`.
 Saatler, kapanışlar, ayarlar ve tarihli kapanış henüz panele gitmiyor
 (planın Faz 2'si).
 
+**Şube (21 Kas 2026).** Siparişler, masa çağrıları, masalar ve Satışta /
+Tükendi şubeye göredir; her imzalı uç bir şube adına okur ve yazar
+(`?branch=` ya da gövdede `branch`; yoksa panel Tuzla, LafPOS
+`LAFPOS_BRANCHES`). Kural `src/lib/panel/branches.ts`; uç uç ayrıntı
+[LAFPOS.md](LAFPOS.md) "Şube", [PANEL-ORDERS.md](PANEL-ORDERS.md) "Şube",
+[PANEL-MENU.md](PANEL-MENU.md) "Şube", [PANEL-SALES.md](PANEL-SALES.md)
+"Şube kırılımı". Seçenek ücreti (ekstra shot, şurup, alternatif süt) menü
+kalemlerinin fiyatından gelir (S8, [PANEL-MENU.md](PANEL-MENU.md)).
+
 ## Ortak kurallar
 
 - **Yön.** Site yazar, panel okur; panelin siteye yazdığı tek şey menü
@@ -119,5 +128,10 @@ LafPOS. Kural: **yazan, gördüğünü taşır; site yalnız o hâlâ geçerliys
   sayılıyorsa sayıyı artırmaz).
 - **Sırada (Faz 1):** panelin ödeme takibi (P2), uygulamanın menü ve mağaza
   tazeliği (lafmobil M2). Faz 2:
-  panel ayar ucu, 304, ping sınaması, elle kapalı / tarihli kapanış, seçenek
-  fiyatı. Hepsi planın §4'ünde.
+  panel ayar ucu, 304, ping sınaması, elle kapalı / tarihli kapanış. Hepsi
+  planın §4'ünde.
+- **S8 (21 Kas 2026):** seçenek fiyatı menüden: `customization` ve sipariş
+  fiyatı `mnu-0080` / `mnu-0081` / `mnu-0082`'nin fiyatını okur.
+- **Şube (21 Kas 2026):** yukarıda; panel ve LafPOS tarafları kendi
+  depolarında (lafmaliyet `planlar/sube.md` Dalga 5, lafpos
+  `docs/03-ENTEGRASYON.md` §2.3).

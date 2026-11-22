@@ -31,6 +31,7 @@ import {
   cafeTablePrintHref,
 } from "@/lib/admin/cafe-tables-panel";
 import { wantsAnother } from "@/lib/admin/save-and-new";
+import { HOME_BRANCH, siteBranches } from "@/lib/panel/branches";
 
 // Every export here is a public POST endpoint (CLAUDE.md rule 27): each one
 // checks the session and the role itself. Nothing deletes - a table leaves
@@ -61,6 +62,13 @@ function storeRefusal(res: { error: string; message: string }): ActionResult {
     : actionError(res.message);
 }
 
+/** A branch the deployment knows, else the form's "branch" refusal. */
+function unknownBranch(branch: string): ActionResult | null {
+  if (siteBranches(process.env).includes(branch)) return null;
+  const message = "Şube geçersiz.";
+  return actionError(message, { branch: message });
+}
+
 function revalidateTables(id?: string) {
   revalidatePath(CAFE_TABLES_PATH);
   revalidatePath(cafeTablePrintHref());
@@ -80,15 +88,18 @@ export async function createCafeTableAction(
   await requireRole("tables");
   const parsed = createCafeTableSchema.safeParse({
     name: String(formData.get("name") ?? ""),
+    branch: String(formData.get("branch") ?? HOME_BRANCH),
   });
   if (!parsed.success) return refused(parsed.error.issues);
-  const res = await createCafeTable(parsed.data.name);
+  const badBranch = unknownBranch(parsed.data.branch);
+  if (badBranch) return badBranch;
+  const res = await createCafeTable(parsed.data.name, parsed.data.branch);
   if (!res.ok) return storeRefusal(res);
   await safeAudit({
     action: "create",
     entity: "cafe_table",
     entityId: res.value.id,
-    payload: { name: res.value.name },
+    payload: { name: res.value.name, branch: res.value.branch },
   });
   revalidateTables(res.value.id);
   // "Kaydet ve yenisini ekle": the next table's form; the cards of all of
@@ -113,18 +124,26 @@ export async function updateCafeTableAction(
     id: String(formData.get("id") ?? ""),
     name: String(formData.get("name") ?? ""),
     sortOrder: String(formData.get("sortOrder") ?? "0"),
+    branch: String(formData.get("branch") ?? HOME_BRANCH),
   });
   if (!parsed.success) return refused(parsed.error.issues);
+  const badBranch = unknownBranch(parsed.data.branch);
+  if (badBranch) return badBranch;
   const res = await updateCafeTable(parsed.data.id, {
     name: parsed.data.name,
     sortOrder: parsed.data.sortOrder,
+    branch: parsed.data.branch,
   });
   if (!res.ok) return storeRefusal(res);
   await safeAudit({
     action: "update",
     entity: "cafe_table",
     entityId: res.value.id,
-    payload: { name: res.value.name, sortOrder: res.value.sortOrder },
+    payload: {
+      name: res.value.name,
+      sortOrder: res.value.sortOrder,
+      branch: res.value.branch,
+    },
   });
   revalidateTables(res.value.id);
   await setAdminFlash(`${res.value.name} kaydedildi.`);

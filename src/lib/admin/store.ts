@@ -25,6 +25,12 @@ import {
   raiseDbError,
 } from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
+import { listBranchAvailability } from "@/lib/admin/menu-availability";
+import { HOME_BRANCH } from "@/lib/panel/branches";
+import {
+  itemsSoldAtBranch,
+  soldAtBranch,
+} from "@/lib/panel/menu-availability-core";
 import { deriveSku } from "@/lib/admin/sku";
 import { variantStockTotal } from "@/lib/admin/stock-delta";
 import {
@@ -66,7 +72,11 @@ import {
   normalizeMobileAppConfig,
   type MobileAppConfig,
 } from "@/lib/mobile/app-config";
-import type { LineOptions } from "@/lib/mobile/customization";
+import {
+  OPTION_MENU_ITEM_IDS,
+  optionPricesFromMenu,
+  type LineOptions,
+} from "@/lib/mobile/customization";
 import {
   computeTotalsWithShipping,
   fulfillmentAllowed,
@@ -547,6 +557,12 @@ export interface AdminOrder {
   attention?: string;
   /** "manual" for an order typed into the panel, '' for every other. */
   source?: string;
+  /**
+   * Where the order is made (21 Kas 2026, src/lib/panel/branches.ts): the
+   * table's branch for a table order, Tuzla for every other. Absent on a
+   * row read before it: Tuzla (`branchOf`).
+   */
+  branch?: string;
 }
 
 export {
@@ -2200,6 +2216,7 @@ export async function listPanelOpenOrderRows(
   paidSince: string,
   limit: number,
   live: { dueSince: string; readySince: string },
+  branch: string = HOME_BRANCH,
 ): Promise<PanelOrderSourceRow[]> {
   const cap = Math.max(1, Math.min(500, Math.trunc(limit)));
   const columns =
@@ -2212,6 +2229,8 @@ export async function listPanelOpenOrderRows(
       .in("status", ["paid", "preparing"])
       .eq("kind", "cafe")
       .neq("source", "manual")
+      // The caller's branch only (src/lib/panel/branches.ts).
+      .eq("branch", branch)
       .gte("paidAt", paidSince)
       // Due by its planned time, else its payment ("" sorts first).
       .anyOf([
@@ -2227,6 +2246,7 @@ export async function listPanelOpenOrderRows(
       .eq("kind", "cafe")
       .eq("fulfillment", "pickup")
       .neq("source", "manual")
+      .eq("branch", branch)
       .gte("paidAt", paidSince)
       .anyOf([
         { column: "shippedAt", op: "gte", value: live.readySince },
@@ -2261,6 +2281,7 @@ export async function listPanelOpenOrderRows(
  */
 export async function countPanelAwaitingPaymentOrders(
   since: string,
+  branch: string = HOME_BRANCH,
 ): Promise<number> {
   const db = getDb();
   const recent = await db
@@ -2270,6 +2291,7 @@ export async function countPanelAwaitingPaymentOrders(
     .eq("kind", "cafe")
     .neq("source", "manual")
     .in("fulfillment", [...PANEL_ORDER_FULFILLMENTS])
+    .eq("branch", branch)
     .gte("createdAt", since);
   if (recent.error) {
     raiseDbError("countPanelAwaitingPaymentOrders", recent.error, recent.status);
@@ -2281,6 +2303,7 @@ export async function countPanelAwaitingPaymentOrders(
     .eq("kind", "cafe")
     .neq("source", "manual")
     .in("fulfillment", [...PANEL_ORDER_FULFILLMENTS])
+    .eq("branch", branch)
     .lt("createdAt", since)
     .order("createdAt", { ascending: false })
     .limit(PANEL_AWAITING_REOPEN_READ_MAX);
@@ -2326,7 +2349,7 @@ export async function listPanelSalesOrderRows(
     await getDb()
       .from(TABLES.orders)
       .select(
-        "id, orderNo, status, kind, source, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
+        "id, orderNo, status, kind, source, branch, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
       )
       .in("status", [...PANEL_SALES_STATUSES])
       .gte("createdAt", since)
@@ -3102,6 +3125,8 @@ interface FinalizeOrderInput {
   /** Table orders only: the table snapshot (see `AdminOrder.tableCode`). */
   tableCode?: string;
   tableName?: string;
+  /** The table's branch on a table order; absent: the column's default (Tuzla). */
+  branch?: string;
   /** "manual" for the panel's manual order (`AdminOrder.source`). */
   source?: "manual";
   /** How shipping is charged; the shop's settings when omitted. */
@@ -3298,6 +3323,7 @@ async function insertOrderRow(
     ...(f.tableCode
       ? { tableCode: f.tableCode, tableName: f.tableName ?? "" }
       : {}),
+    ...(f.branch ? { branch: f.branch } : {}),
     ...(f.source ? { source: f.source } : {}),
   };
   // The discount was claimed before the row existed - deliberately, so it
@@ -4196,6 +4222,12 @@ export interface AppOrderInput {
    */
   tableCode?: string;
   tableName?: string;
+  /**
+   * `fulfillment: "table"` only: the table's branch (`cafe_tables.branch`),
+   * written onto the row; its "Satışta / Tükendi" prices the lines. Every
+   * other order is Tuzla's.
+   */
+  branch?: string;
 }
 
 export type PlaceAppOrderResult =
@@ -4223,6 +4255,7 @@ type CafeLinesResult =
 async function resolveCafeLines(
   lines: AppCafeLineInput[],
   rates: TaxRates,
+  branch: string = HOME_BRANCH,
 ): Promise<CafeLinesResult> {
   const clean = lines.filter((l) => l.qty > 0);
   if (clean.length === 0) {
@@ -4230,11 +4263,21 @@ async function resolveCafeLines(
   }
   const ids = Array.from(new Set(clean.map((l) => l.menuItemId)));
   const sb = getDb();
-  const docs = rows<AdminMenuItem>(
-    await sb.from(TABLES.menuItems).select("*").in("id", ids),
-    "placeAppOrder.menuItems",
-  );
+  // The basket's items and the three option items whose price is the
+  // option's (S8, `optionPricesFromMenu`), in one read; the branch's
+  // "Satışta / Tükendi" beside it (menu-availability-core.ts).
+  const [docs, availability] = await Promise.all([
+    sb
+      .from(TABLES.menuItems)
+      .select(
+        "id, name, categoryKey, priceMinor, priceMinorL, isActive, taxRatePct",
+      )
+      .in("id", [...new Set([...ids, ...OPTION_MENU_ITEM_IDS])])
+      .then((res) => rows<AdminMenuItem>(res, "placeAppOrder.menuItems")),
+    listBranchAvailability(branch, ids),
+  ]);
   const byId = new Map(docs.map((d) => [d.id, d]));
+  const optionPrices = optionPricesFromMenu(docs);
 
   const items: AdminOrderItem[] = [];
   for (const line of clean) {
@@ -4260,7 +4303,12 @@ async function resolveCafeLines(
         },
       };
     }
-    const priced = priceCafeLine(item, line.size, line.options);
+    const priced = priceCafeLine(
+      { ...item, isActive: soldAtBranch(item, availability.get(item.id)) },
+      line.size,
+      line.options,
+      optionPrices,
+    );
     if (!priced.ok) {
       return {
         ok: false,
@@ -4344,6 +4392,8 @@ export type AppOrderLinesResult =
 export async function previewAppOrderLines(
   lines: AppOrderLineInput[],
   rates: TaxRates,
+  /** A table order's table branch; every other basket is Tuzla's. */
+  branch: string = HOME_BRANCH,
 ): Promise<AppOrderLinesResult> {
   await ensureSeed();
   const { cafe, shop } = splitAppLines(lines);
@@ -4354,7 +4404,7 @@ export async function previewAppOrderLines(
     };
   }
   if (cafe.length > 0) {
-    const res = await resolveCafeLines(cafe, rates);
+    const res = await resolveCafeLines(cafe, rates, branch);
     return res.ok
       ? { ok: true, items: res.items, kind: "cafe" }
       : { ok: false, result: res.result };
@@ -4474,12 +4524,20 @@ export async function placeAppOrder(
       ? {
           tableCode,
           tableName: (input.tableName ?? "").trim().slice(0, 40),
+          ...(input.branch ? { branch: input.branch } : {}),
         }
       : {}),
   };
+  // Where the order is made: the table's branch, else Tuzla's (branches.ts).
+  const orderBranch =
+    input.fulfillment === "table" && input.branch ? input.branch : HOME_BRANCH;
 
   if (kind === "cafe") {
-    const cafeRes = await resolveCafeLines(cafe, settings.taxRates);
+    const cafeRes = await resolveCafeLines(
+      cafe,
+      settings.taxRates,
+      orderBranch,
+    );
     if (!cafeRes.ok) return cafeRes.result;
 
     const orderSeq = await nextSeq("ord");
@@ -7344,19 +7402,27 @@ export function menuWithoutPrices(): Record<string, DesignMenuCategory> {
   return out;
 }
 
-export async function listMenuForCustomer(): Promise<
-  Record<string, DesignMenuCategory>
-> {
+export async function listMenuForCustomer(
+  branch: string = HOME_BRANCH,
+): Promise<Record<string, DesignMenuCategory>> {
   return publicRead("listMenuForCustomer", menuWithoutPrices(), () =>
-    listMenuForCustomerLive(),
+    listMenuForCustomerLive(branch),
   );
 }
 
-/** `listMenuForCustomer` without the outage fallback (throws instead). */
-export async function listMenuForCustomerLive(): Promise<
-  Record<string, DesignMenuCategory>
-> {
-  const all = await listMenuItems();
+/**
+ * `listMenuForCustomer` without the outage fallback (throws instead).
+ * `branch`: whose "Satışta / Tükendi" (menu-availability-core.ts): the
+ * site's pages are Tuzla's, a table's QR menu its table's.
+ */
+export async function listMenuForCustomerLive(
+  branch: string = HOME_BRANCH,
+): Promise<Record<string, DesignMenuCategory>> {
+  const [items, availability] = await Promise.all([
+    listMenuItems(),
+    listBranchAvailability(branch),
+  ]);
+  const all = itemsSoldAtBranch(items, availability);
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];

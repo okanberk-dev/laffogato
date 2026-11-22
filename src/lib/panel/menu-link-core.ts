@@ -46,8 +46,11 @@ export const PANEL_MENU_ACTOR_MAX = 80;
  * that carried `expect: true` (lafmaliyet src/lib/site-menu/schema.ts), and
  * on a 400 whose field is "expect" or "body" it tries once without it.
  * A new optional field joins here in the same change that accepts it.
+ * `branch` (21 Kas 2026): the write may name the branch it acts for
+ * (src/lib/panel/branches.ts); without it the caller's own (the panel:
+ * Tuzla, LafPOS: its `LAFPOS_BRANCHES`).
  */
-export const PANEL_MENU_WRITES = { expect: true } as const;
+export const PANEL_MENU_WRITES = { expect: true, branch: true } as const;
 
 /** One item as the panel reads it: prices, state and what names it. */
 export interface PanelMenuItem {
@@ -59,9 +62,20 @@ export interface PanelMenuItem {
   priceMinor: number;
   /** Kuruş, KDV included: L, or 0 for a single-size item. */
   priceMinorL: number;
-  /** On the menu ("Satışta"); false is "Tükendi". */
+  /**
+   * Sold at the branch the read is for ("Satışta"); false is "Tükendi"
+   * there, or off the menu (`onMenu`). Since 21 Kas 2026 per branch
+   * (menu-availability-core.ts).
+   */
   isActive: boolean;
+  /**
+   * On the site's menu at all (`menu_items."isActive"`, every branch; added
+   * 21 Kas 2026). False: the site took it off and only the panel puts it
+   * back; LafPOS's "Satışa aç" gets 409 `site_closed`.
+   */
+  onMenu: boolean;
   sortOrder: number;
+  /** The later of the item's stamp and the branch's own (`itemAtBranch`). */
   updatedAt: string;
 }
 
@@ -73,6 +87,8 @@ export interface MenuItemForPanel {
   priceMinor: number;
   priceMinorL: number;
   isActive: boolean;
+  /** The site's own flag; absent (an item read without a branch) is `isActive`. */
+  onMenu?: boolean;
   sortOrder: number;
   updatedAt: string;
 }
@@ -94,6 +110,7 @@ export function toPanelMenuItem(
     priceMinor: item.priceMinor,
     priceMinorL: item.priceMinorL > 0 ? item.priceMinorL : 0,
     isActive: item.isActive,
+    onMenu: item.onMenu ?? item.isActive,
     sortOrder: item.sortOrder,
     updatedAt: item.updatedAt,
   };

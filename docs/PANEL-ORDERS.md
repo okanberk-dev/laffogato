@@ -48,6 +48,32 @@ geriye bakar. Bu kural sorgunun kendisindedir
 yüzlerce eski sipariş okumanın sınırını doldurup bugünün kartlarını
 gizleyemez.
 
+## Şube (21 Kas 2026)
+
+Site 21 Kasım 2026'ya kadar şube bilmiyordu: iki imzalı çağıran (köşkün
+paneli ve LafPOS) bütün açık siparişleri ve çağrıları alıyordu. İlk LafPOS
+kasası Marina'ya gidince Marina'nın bar ekranı Tuzla'da masadan verilip
+sitede ödenmiş siparişi çalıyor, "Hazırlanıyor" / "Gördüm" Tuzla'nın
+kaydını sitede ilerletip kapatıyordu.
+
+- Her kafe siparişinin ve masa çağrısının şubesi vardır (`orders.branch`,
+  `table_calls.branch`): masa siparişi ve çağrısı **masanın** şubesi
+  (`cafe_tables.branch`, anlık görüntü), gel-al ve kurye siparişi Tuzla
+  (uygulama ve web Tuzla köşküne hizmet eder). Bu değişiklikten önce yazılan
+  her şey Tuzla'nındır.
+- `GET /api/panel/orders` bir şubenin listesidir: `?branch=` (imzalı
+  sorgunun parçası) ya da çağıranın şubesi; panelin anahtarı Tuzla (her şube
+  adına konuşabilir), LafPOS'unki `LAFPOS_BRANCHES` (varsayılan Marina).
+  `orders`, `awaitingPayment` ve `calls` yalnız o şubenin; yanıt hangi şube
+  olduğunu söyler (`branch`). Anahtarın konuşamadığı şube 403 `{"error":
+  "forbidden","field":"branch"}`, bozuk ya da bilinmeyen 400 `invalid`,
+  hiçbir şey okunmadan.
+- Aşama ve "Gördüm" gövdesi isteğe bağlı `branch` alabilir (aynı varsayılan);
+  başka şubenin siparişi ya da çağrısı 409 `{"error":"wrong_branch"}`,
+  hiçbir şey yazılmaz, kaydın içeriği söylenmez.
+- Kural `src/lib/panel/branches.ts`; testleri `tests/sube/`
+  (`npm run test:sube`).
+
 ## Uçlar
 
 Karaoke bağlantısının imzası (`x-laf-timestamp`,
@@ -79,12 +105,14 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
 
    ```
    GET https://laffogato.net/api/panel/orders
+   GET https://laffogato.net/api/panel/orders?branch=marina
    ```
 
    ```json
    {
      "version": 1,
      "now": "2026-10-22T12:00:00.000Z",
+     "branch": "tuzla",
      "complete": true,
      "orders": [
        {
@@ -181,11 +209,15 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
      `version` 1 kalır): masadan açık garson çağrıları, en eskisi önce.
      Alan her yanıtta vardır, çağrı yoksa `[]`. Ayrıntı aşağıda "Masa
      çağrıları".
+   - `branch` (21 Kas 2026, sonradan eklendi; eski okuyucu yok sayar):
+     listenin şubesi (yukarıda "Şube").
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |
    | ----- | ---------------------------- | --------------------------------------- |
+   | 400   | `{"error":"invalid","field":"branch"}` | `branch` bozuk ya da bilinmeyen |
    | 401   | `{"error":"unauthorized"}`   | İmza yok, yanlış ya da 5 dakikadan eski |
+   | 403   | `{"error":"forbidden","field":"branch"}` | Anahtar o şube adına konuşamaz |
    | 503   | `{"error":"not_configured"}` | Anahtar yok                             |
    | 503   | `{"error":"unavailable"}`    | Veritabanı okunamadı (boş liste değil)  |
 
@@ -262,7 +294,9 @@ gövde en çok 1 KB, katı JSON:
 | 200 `{"order": …}`                 | Hareket yapıldı; `order` ekranın biçiminde (`toPanelOrder`), ekrandan kalktıysa `null` |
 | 409 `{"error":"stale","order": …}` | Sipariş bu arada değişti ya da dokunuş aşamasına uymuyor; `order` şimdiki hâli         |
 | 404 `{"error":"not_found"}`        | Böyle sipariş yok, ya da bar ekranının siparişi değil (mağaza, elle girilen)           |
-| 400 `{"error":"invalid","field"}`  | Gövde okunamadı ya da bir alan geçersiz                                                |
+| 409 `{"error":"wrong_branch"}`     | Başka şubenin siparişi (21 Kas 2026); hiçbir şey yapılmadı                             |
+| 400 `{"error":"invalid","field"}`  | Gövde okunamadı ya da bir alan geçersiz (`branch` dahil)                               |
+| 403 `{"error":"forbidden","field":"branch"}` | Anahtar o şube adına konuşamaz                                               |
 | 401 · 413 · 503                    | Diğer panel uçlarıyla aynı                                                             |
 
 Panele bu uçtan yeni kişisel veri gitmez: yanıt, okuma ucunun beyaz
@@ -298,7 +332,8 @@ LafPOS'un `/api/pos/orders/version`'ı ilerler, sitenin sipariş zili çalar.
 
 **Yanıtlama.** Bar ekranındaki "Gördüm": imza, anahtar ve başlıklar
 `POST /api/panel/orders/stage`'inkiyle aynı (panel ya da LafPOS kendi
-anahtarıyla); gövde en çok 1 KB, katı JSON, tam olarak iki alan:
+anahtarıyla); gövde en çok 1 KB, katı JSON, iki alan (21 Kas 2026'dan beri
+isteğe bağlı üçüncüsü `branch`, yukarıda "Şube"):
 
 ```json
 { "id": "tcl-3f9a0c4b7d2e1a68", "actor": "Selin" }
@@ -308,6 +343,7 @@ anahtarıyla); gövde en çok 1 KB, katı JSON, tam olarak iki alan:
 | -------------------------------------------------- | -------------------------------------------------------------------------- |
 | 200 `{"ok":true,"call":{"id":"tcl-…","status":"acked"}}` | Yanıtlandı; ya da zaten yanıtlanmıştı (burada, sitede ya da tekrar gönderilen istekle): aynı yanıt, ikinci yazım yok |
 | 404 `{"error":"not_found"}`                        | Böyle çağrı yok                                                            |
+| 409 `{"error":"wrong_branch"}`                     | Başka şubenin çağrısı (21 Kas 2026); yanıtlanmadı                          |
 | 400 `{"error":"invalid","field"}`                  | Gövde okunamadı, bir alan geçersiz ya da fazladan alan var                 |
 | 401 · 413 · 503                                    | Aşama ucuyla aynı                                                          |
 

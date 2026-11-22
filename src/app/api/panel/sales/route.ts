@@ -12,6 +12,7 @@ import {
   TIMESTAMP_HEADER,
   verifySignature,
 } from "@/lib/panel/karaoke-sync-core";
+import { chooseBranch } from "@/lib/panel/branches";
 import {
   buildPanelSales,
   PANEL_SALES_MAX_ORDERS,
@@ -31,6 +32,12 @@ import {
  * like the karaoke route (CLAUDE.md rule 7). Unset secret: 503. Bad,
  * missing or stale signature: 401, nothing more said. A malformed or too
  * wide period: 400. Totals and lines only: no customer, no order number.
+ *
+ * Per branch (21 Kas 2026): `&branch=tuzla|marina` narrows the answer to
+ * that branch's orders (the shop and the room are Tuzla's); without it the
+ * totals are every branch's, as before, and `byBranch` splits the café,
+ * till-settled and manual orders (sales-export-core.ts). A malformed or
+ * unknown branch: 400 `{error:"invalid", field:"branch"}`.
  *
  * A period with more orders than the export reads at once is refused (422)
  * rather than answered short: a P&L that silently lost orders is worse
@@ -60,6 +67,20 @@ export async function GET(request: Request) {
   if (!signed) return deny(401, "unauthorized");
   const range = parsePanelSalesRange(url.searchParams);
   if (!range) return deny(400, "invalid_range");
+  // One branch's figures (`?branch=`, src/lib/panel/branches.ts); without
+  // it every branch's, as before, with `byBranch` beside them.
+  const rawBranch = url.searchParams.get("branch");
+  let branch: string | null = null;
+  if (rawBranch !== null) {
+    const choice = chooseBranch(process.env, "panel", rawBranch);
+    if (!choice.ok) {
+      return NextResponse.json(
+        { error: choice.error, field: choice.field },
+        { status: choice.status, headers: NO_STORE },
+      );
+    }
+    branch = choice.branch;
+  }
 
   const now = new Date();
   const { since, until } = panelSalesReadBounds(range);
@@ -93,6 +114,7 @@ export async function GET(request: Request) {
           bookings,
           couponSourceOf: (orderNo) => coupons.get(orderNo) ?? null,
           paymentsOf: (order) => payments.get(order.id) ?? [],
+          branch,
         }),
       },
       { headers: NO_STORE },

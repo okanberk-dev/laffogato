@@ -32,6 +32,7 @@ import {
 } from "@/lib/admin/cafe-tables-panel";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
 import { listSearchView } from "@/lib/admin/list-search";
+import { branchLabel } from "@/lib/panel/branches";
 
 import { CafeTableRowMenu } from "./table-actions";
 
@@ -191,6 +192,12 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
                 cell: (t) => <StatusBadge table={t} />,
               },
               {
+                key: "sube",
+                header: "Şube",
+                hideBelow: "md",
+                cell: (t) => branchLabel(t.branch),
+              },
+              {
                 key: "kod",
                 header: "Kod",
                 cell: (t) => <Code table={t} />,
@@ -231,6 +238,9 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
                 <span className="flex flex-wrap items-center gap-2">
                   <StatusBadge table={t} />
                   <Code table={t} />
+                  <span className="text-xs text-[var(--admin-text-soft)]">
+                    {branchLabel(t.branch)}
+                  </span>
                 </span>
               </div>
             )}

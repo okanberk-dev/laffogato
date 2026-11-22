@@ -85,6 +85,11 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   products: CATALOG,
   categories: CATALOG,
   menu_items: MENU,
+  // "Satışta / Tükendi" per branch (20261121150719): the site's menu, the
+  // app's /menu and the table's QR menu show the Tuzla row, and a write
+  // pings the panel (`menu.changed`) and moves LafPOS's menu marker like an
+  // item's own.
+  menu_item_availability: MENU,
 
   settings: SITE,
   site_content: SITE,

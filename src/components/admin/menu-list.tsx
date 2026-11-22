@@ -137,11 +137,26 @@ function Price({ it, row = false }: { it: MenuListRow; row?: boolean }) {
   );
 }
 
-function StatusBadge({ it }: { it: Pick<MenuListRow, "isActive"> }) {
+function StatusBadge({
+  it,
+}: {
+  it: Pick<MenuListRow, "isActive" | "soldOutAt">;
+}) {
   return (
-    <Badge tone={it.isActive ? "success" : "neutral"} dot>
-      {it.isActive ? "Satışta" : "Tükendi"}
-    </Badge>
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <Badge tone={it.isActive ? "success" : "neutral"} dot>
+        {it.isActive ? "Satışta" : "Tükendi"}
+      </Badge>
+      {/* A branch's own "Tükendi" (its bar or till): the item is still on
+          the menu, not sold there. */}
+      {it.isActive
+        ? (it.soldOutAt ?? []).map((branch) => (
+            <Badge key={branch} tone="warning">
+              {branch}: tükendi
+            </Badge>
+          ))
+        : null}
+    </span>
   );
 }
 
