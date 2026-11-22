@@ -815,7 +815,6 @@ button.kw-progress-cell:hover .kw-progress-label {
   margin: 24px 0 0;
 }
 
-
 /* ── The stage: the room's photograph on the charcoal band ─────────
    (22 Kas 2026). The photo is Görseller › Karaoke › Oda; the figures are
    the panel's. White on charcoal only (CLAUDE.md "Gri kömür zemine
@@ -924,4 +923,84 @@ button.kw-progress-cell:hover .kw-progress-label {
   .karaoke-stage-facts li + li {
     padding-left: 10px;
   }
+}
+
+/* ── Reference pass: option tiles ─────────────────────────────
+   Days and hours as the reference's "Select size" tiles: white, a 1px
+   black edge, the label in the headline face 12/16 tracked and centred;
+   the chosen one keeps its white and takes a 2px charcoal edge. The
+   hour's word ("uygun", "dolu") sits on the tile's foot strip, the
+   reference's "10% off" band (greyLight), charcoal under the chosen
+   hour. A booked hour is the band, struck through. The field labels
+   ("Gün", "Saat", "Süre", "Kişi") are black, as "Select size". */
+.kw-step .eyebrow.muted,
+.kw-step legend.eyebrow {
+  color: var(--ink);
+}
+.karaoke-day,
+.karaoke-hour {
+  border-color: var(--ink);
+  text-align: center;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.karaoke-day {
+  align-content: center;
+  min-width: 104px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.karaoke-day:hover,
+.karaoke-hour:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.karaoke-day.on,
+.karaoke-hour.on {
+  background: var(--surface);
+  border-color: var(--charcoal);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--charcoal);
+}
+.karaoke-hour {
+  gap: 8px;
+  min-height: 64px;
+  padding: 10px 0 0;
+  overflow: hidden;
+}
+.karaoke-hour-t {
+  letter-spacing: 1.2px;
+}
+.karaoke-hour-n {
+  padding: 4px 8px;
+  background: var(--line);
+  color: var(--ink);
+  font-family: var(--sans);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 16px;
+}
+.karaoke-hour.on .karaoke-hour-n {
+  background: var(--charcoal);
+  color: var(--on-dark);
+}
+.karaoke-hour.taken,
+.karaoke-hour:disabled {
+  border-color: var(--line);
+  background: var(--band);
+  color: var(--muted);
+}
+.karaoke-hour.taken .karaoke-hour-n,
+.karaoke-hour:disabled .karaoke-hour-n {
+  background: var(--band);
+  color: var(--muted);
+}
+.karaoke-stepper {
+  border-color: var(--ink);
+}
+/* The reference's boxed "- 1 +": as wide as its contents, not the
+   column. */
+.karaoke-stepper {
+  justify-self: start;
 }

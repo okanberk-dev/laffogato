@@ -78,7 +78,7 @@ export function ProfileForm({
       <button
         type="submit"
         disabled={pending}
-        className="btn btn-primary btn-sm"
+        className="btn btn-primary btn-wide"
         style={{ justifySelf: "start" }}
         aria-busy={pending}
       >

@@ -15,14 +15,6 @@ export function AccountShell({
   active: AccountSection;
   children: ReactNode;
 }) {
-  const initials = (customer.name || customer.email)
-    .split(/\s+/)
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <div className="account-shell">
       <div className="account-shell-wrap">
@@ -35,9 +27,6 @@ export function AccountShell({
             ← Anasayfa
           </Link>
           <div className="account-shell-greeting">
-            <div className="account-shell-avatar" aria-hidden="true">
-              {initials || "L"}
-            </div>
             <div>
               <h1 className="account-shell-title">Hesabım</h1>
               <p
@@ -171,9 +160,7 @@ export function AccountCard({
           <div>
             {title && <h2 className="h3">{title}</h2>}
             {hint && (
-              <p
-                style={{ marginTop: 4, fontSize: 14, color: "var(--muted)" }}
-              >
+              <p style={{ marginTop: 4, fontSize: 14, color: "var(--muted)" }}>
                 {hint}
               </p>
             )}

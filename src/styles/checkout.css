@@ -1511,7 +1511,7 @@ button.co-steps-link {
     display: none;
   }
 }
-@media (max-width: 350px) {
+@media (max-width: 379.98px) {
   .co-chrome-inner {
     gap: 8px;
   }
@@ -1602,5 +1602,143 @@ button.co-steps-link {
 @media (max-width: 479px) {
   .co-chrome-secure {
     letter-spacing: 1px;
+  }
+}
+
+/* ── Reference pass: the cart drawer ─────────────────────────
+   The order summary is the reference's cart: ricePaper, no edge, its
+   "Your cart" title at 24/32, the lines ruled with a solid hairline, the
+   quantity a boxed "- 1 +" with a charcoal edge, the discount line in
+   green, the total line in the headline face. The documents open as its
+   slide-over: from the right, full height, 621px, on the band. */
+.co-summary {
+  border: 0;
+  background: var(--band);
+}
+.co-lines {
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+.co-lines li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.co-line-name {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 14px;
+  line-height: 20px;
+}
+.co-qty {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+.co-totals-discount,
+.co-totals-discount dd {
+  color: var(--success);
+}
+.co-totals-total dt,
+.co-totals-total dd {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ink);
+}
+.co-totals-total dt span {
+  font-family: var(--sans);
+  letter-spacing: normal;
+  text-transform: none;
+}
+.checkout-promo input {
+  border-color: var(--line-strong);
+  border-radius: 0;
+}
+.checkout-promo button {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.checkout-promo button:hover {
+  background: var(--ink);
+}
+@media (min-width: 960px) {
+  .co-summary-title {
+    padding: 28px 28px 0;
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .co-summary-body,
+  .co-summary-body[data-open="true"] {
+    padding: 20px 28px 28px;
+  }
+}
+
+.co-docpanel {
+  width: min(621px, 100%);
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 0 0 auto;
+  background: var(--band);
+}
+.co-docpanel-head,
+.co-docpanel-actions {
+  background: var(--band);
+}
+.co-docpanel-head {
+  padding: 20px 28px 16px 44px;
+}
+/* Doubled: account.css (loaded after this file) sets the card titles
+   at 16/22. */
+.co-docpanel .co-docpanel-title {
+  font-size: 24px;
+  line-height: 32px;
+}
+.co-docpanel .co-docpanel-meta {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.co-docpanel-close {
+  color: var(--ink);
+}
+.co-docpanel-close:hover {
+  background: var(--surface);
+}
+.co-docpanel-body {
+  padding: 24px 44px;
+}
+.co-docpanel .legal-article {
+  background: var(--surface);
+}
+.co-docpanel-actions {
+  padding: 16px 44px calc(16px + env(safe-area-inset-bottom));
+}
+.co-docpanel-done {
+  min-width: min(350px, 100%);
+}
+@media (max-width: 639.98px) {
+  .co-docpanel-head {
+    padding: 16px 12px 14px 20px;
+  }
+  .co-docpanel .co-docpanel-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  .co-docpanel-body {
+    padding: 16px;
+  }
+  .co-docpanel-actions {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   }
 }
