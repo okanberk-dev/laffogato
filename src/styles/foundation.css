@@ -465,6 +465,12 @@
   width: 14px;
   height: 14px;
 }
+/* The small button is 44px tall wherever it is tapped. */
+@media (max-width: 1023px), (pointer: coarse) {
+  .btn-sm {
+    min-height: 44px;
+  }
+}
 /* The boxed button keeps its 32px look and takes a 44px tap. */
 @media (max-width: 1023px), (pointer: coarse) {
   .icon-btn--boxed {
