@@ -693,12 +693,12 @@
 .auth-page--full {
   min-height: 100svh;
 }
+/* One width on every auth page (sign-in, sign-up, forgotten password,
+   account deletion): the column, its fields and its buttons share both
+   edges. */
 .auth-card {
   position: relative;
   width: 100%;
-  max-width: 397px;
-}
-.auth-card--wide {
   max-width: 440px;
 }
 .auth-card--center {
@@ -830,15 +830,18 @@
   line-height: 20px;
   color: var(--charcoal);
 }
-/* The reference's "Continue": 350px, charcoal; the whole row on a
-   phone. */
+/* The button is as wide as the fields over it: one left edge, one right
+   edge down the column. (The one-question pages centre theirs, below.) */
 .auth-submit {
-  justify-self: start;
-  min-width: min(350px, 100%);
+  justify-self: stretch;
+  width: 100%;
   margin-top: 8px;
 }
 .auth-card .btn {
-  min-width: min(350px, 100%);
+  width: 100%;
+}
+.auth-card--center .auth-actions .btn {
+  width: auto;
 }
 .auth-card--center .auth-actions .btn {
   min-width: min(350px, 100%);

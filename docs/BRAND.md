@@ -32,7 +32,7 @@
 ## 0. 21 Kas 2026 - güncel değerler
 
 Dil tek cümlede: beyaz sayfa ve kırık beyaz bant, siyah mürekkep ve tek gri,
-her dolu kontrol ile footer için tek kömür; kare köşe, kılçizgi, gölge yok;
+her dolu kontrol için tek kömür, footer markanın yeşili ve pirinci (§10); kare köşe, kılçizgi, gölge yok;
 başlık, menü, fiyat ve etiket geniş bir groteskle aralıklı büyük harf, cümle
 ve kontrol yansız bir groteskle.
 
@@ -45,7 +45,7 @@ ve kontrol yansız bir groteskle.
 | `--surface`       | `#ffffff`                   | Kart, açılır panel, pencere, alan.                                                                                                                                 |
 | `--ink`           | `#000000`                   | Metin, başlık, ikon, odak çizgisi.                                                                                                                                 |
 | `--muted`         | `#6c6864`                   | **Tek gri**: ikincil satır, ipucu, meta, üstü çizili fiyat.                                                                                                        |
-| `--charcoal`      | `#333333`                   | **Kömür**: her dolu kontrol (düğme, seçili çip, sepet sayacı, onay kutusu), seçim vurgusu, footer ve koyu bloklar.                                                 |
+| `--charcoal`      | `#333333`                   | **Kömür**: her dolu kontrol (düğme, seçili çip, sepet sayacı, onay kutusu), seçim vurgusu ve koyu bloklar (footer 22 Kas 2026'dan beri markanın yeşilinde, §10).                                                 |
 | `--charcoal-deep` | `#1f1f1f`                   | Dolu düğmenin üzerine gelme hâli.                                                                                                                                  |
 | `--on-dark`       | `#ffffff`                   | Koyu zeminde metin, kenar ve odak çizgisi.                                                                                                                         |
 | `--on-dark-muted` | `rgba(255, 255, 255, 0.72)` | Koyu zeminde ikincil satır (kömürün üstünde `#c6c6c6` okunur).                                                                                                     |
@@ -192,7 +192,7 @@ Archivo 600, 14px (başlık sesinin 400 olmayan tek yeri).
   düğmenin üstü 48px (`.section-foot`).
 - Kart sırası dört sütun, 24px aralık; mağaza ızgarası üç sütun (menü dört),
   48px satır ve 16px sütun aralığı; 1024px altında ikisi de iki sütun.
-- Footer üstten 72px, alttan 32px (768px altında 48px ve 28px); sıraları arasında 56px ve bir kılçizgi.
+- Footer üç blok, her biri kenardan kenara ve çubuğun yan boşluğuyla: bülten bandı 56px, orta blok 64px, taban 40px üst ve 32px alt iç boşluk (768px altında 40, 44 ve 32/28px).
 - **Kırılımlar.** 1280px: geniş gezinme ve açılır panel; altında hamburger ve
   tam boy sayfa. 1024px: çubuk 84px'ten 56px'e iner; altında hızlı bağlantı
   çipleri, kartın altındaki düğme, iki sütunlu ızgara, footer'ın ikişer
@@ -261,7 +261,7 @@ da metin çekilmez.
 - **Tek mürekkep, tek gri.** Metin siyahtır, ikincil satır `--muted`. Başka
   gri metin yazılmaz; `--line` metin değildir.
 - **Tek kömür.** Dolu olan her şey kömürdür: düğme, seçili çip, sepet sayacı,
-  onay kutusu, `::selection`, footer ve koyu bloklar. Kömür bir eylemi ya da
+  onay kutusu, `::selection` ve koyu bloklar (footer markanın yeşilindedir, §10). Kömür bir eylemi ya da
   bir bloğu taşır, süs olmaz.
 - **Koyu zeminde** metin yalnız `--on-dark` ve `--on-dark-muted`'tır. Koyu blok
   `data-ground="dark"` taşır; odak çizgisi orada beyaza döner.
@@ -370,7 +370,7 @@ bir karar ve lafmobil'de ayrı bir iştir.
 | Üst çubuk (`.site-header`, `.nav`) | `chrome.tsx`, `chrome.css`                    | Bant zemininde, yapışkan; 84px (1024px altında 56px). Solda dört büyük harf bağlantı (Menü, Mağaza, Karaoke, Ziyaret & keşfet), ortada L'Af, sağda "Franchise" bağlantısı (1280px ve üstünde) ve arama, hesap ve sepet (44px; sayaç kömür hap). Bağlantının altı çizilir: üzerine gelince, paneli açıkken ve geçerli sayfada.                                                                                                                                                                                    |
 | Açılır panel (`.nav-panel`)        | `chrome.tsx`                                  | Yalnız 1280px ve üstünde, Menü, Mağaza ve Ziyaret & keşfet'in üzerine gelince: tam genişlik, beyaz, üstte ve altta kılçizgi; solda "Tüm …" bağlantısı ve üç sütun bağlantı, sağda 4:3 bir fotoğraf ve kapısı. Klavye, bağlantının yanındaki odakta görünen okla açar.                                                                                                                                                                                              |
 | Telefonun gezinmesi                | `chrome.tsx`                                  | 1280px altında hamburger ve çubuğun altından tam boy beyaz sayfa (60px satırlar, kılçizgi, açılır alt listeler); 1024px altında çubuğun altında yana kayan çipler (Menü, Karaoke, Mağaza, Kampanyalar).                                                                                                                                                                                                                                                            |
-| Footer (`.site-footer`)            | `chrome.tsx`                                  | Kömür zemin, beyaz yazı, kılçizgilerle (beyazın %18'i) dört sıra. (1) Bülten bandı: solda büyük başlık (24-32px) ve gri cümle, sağda alt çizgili alan ve ok, işaretsiz onay kutusu. (2) Marka (işaret 36px, "L'Affogato", "Drink it. Eat the cup.", sosyal hesaplar) ve dört sütun (Keşfet, Ziyaret, Üyelik, Kurumsal) tek ızgarada; sütun adı 12px gri etiket, bağlantılar 16/22. (3) İnce yazı: solda kategori kapıları (Menüde, Mağazada; etiket kenarda asılı, satır noktayla biter), sağda şirket bilgileri (ETHS m.5/1, 6563 m.3/1). (4) Alt satır 12px. 1280px altında marka sütunların üstünde bir satır; 1024px altında sütunlar ikişer, bant ve ince yazı tek sütun. Kampanyalar ana menüde değildir: duyuru satırında, ziyaret panelinde, telefonun çiplerinde ve footer'da durur. |
+| Footer (`.site-footer`)            | `chrome.tsx`                                  | Markanın renklerinde, kenardan kenara üç blok (22 Kas 2026, operatör: _"footer daha renkli canlı estetik yap"_). (1) Bülten bandı pirinç `--brass` zeminde: solda büyük başlık (24-32px) ve cümle, sağda alt çizgili alan ve ok, işaretsiz onay kutusu; üstündeki her şey derin yeşil. (2) Orman yeşili `--forest` blok: marka (işaret 36px, "L'Affogato", "Drink it. Eat the cup.", sosyal hesaplar) ve dört sütun (Keşfet, Ziyaret, Üyelik, Kurumsal) tek ızgarada; sütun adı 12px pirinç etiket, bağlantılar beyaz 16/22, üzerine gelince pirinç çizgi. (3) Bir ton koyu `--forest-deep` taban: solda kategori kapıları (Menüde, Mağazada; etiket kenarda asılı, satır noktayla biter), sağda şirket bilgileri (ETHS m.5/1, 6563 m.3/1), pirinçten kılçizginin altında 12px alt satır. 1280px altında marka sütunların üstünde bir satır; 1024px altında sütunlar ikişer, bant ve ince yazı tek sütun. Kampanyalar ana menüde değildir: duyuru satırında, ziyaret panelinde, telefonun çiplerinde ve footer'da durur. |
 | `<PageHero>`                       | `page-hero.tsx`                               | Anasayfa dışındaki her sayfanın açılışı: geniş fotoğraf (3.2:1, en çok 560px; telefonda 4:3), altında beyazda üst etiket, büyük harf başlık ve bir paragraf. Fotoğrafsız sayfa (hukuk) yalnız başlıkla açılır. Props: `eyebrow`, `title`, `lede`, `image`, `children`.                                                                                                                                                                                             |
 | Anasayfa filmi (`<HomeHero>`)      | `home-hero.tsx`, `home.css`                   | Çubuğun altında tam ekran film, sırayla üç klip; solda altta başlık, sağda altta bağlantı, 01/02/03 sayfalayıcı ve durdur düğmesi (§6, §7).                                                                                                                                                                                                                                                                                                                        |
 | Ürün kartı (`<ProductCard>`)       | `ui.tsx`, `sections.css`                      | 5:4 fotoğraf bant zemininde, rozet; başlık ve fiyat aynı satırda (768px altında fiyat başlığın üstünde; menü kartının M / L fiyatları her genişlikte başlığın altında), altında küçük gri satır. İndirimde üstü çizili eski fiyat ve indirimin günleri (Ticari Reklam Yön. m.14/1). Üzerine gelince fotoğraf 1.03 büyür. Geniş ekranda kart hızlı bakışı açar; kartın altındaki kömür düğme ("Sepete ekle" ya da "Seçenekleri gör") yalnız 1024px altında görünür. |
@@ -413,7 +413,7 @@ footer'da beyaz harf ve pirinç çekirdek.
 | `duo`   | siyah (`--ink`)     | `#b8893a` | Üst çubuk (44px, 1024px altında 32px), giriş ve ödeme kartları, bülten, doğrulama ve hesap silme sayfaları, `/odeme/app-hata` |
 | `green` | siyah               | `#b8893a` | `duo` ile aynı; adı çağrı noktası için kaldı (aramanın sonuçsuz durumu)                                                       |
 | `ink`   | siyah               | siyah     | Arama çubuğu: tek renk, sessiz                                                                                                |
-| `cream` | beyaz (`--on-dark`) | `#cba258` | Kömür footer (28px, yanında "L'Affogato" yazısı)                                                                              |
+| `cream` | beyaz (`--on-dark`) | `#cba258` | Yeşil footer (36px, yanında "L'Affogato" yazısı)                                                                               |
 
 İki pirinç olmasının nedeni: markanın pirinci `#cba258` kömürde 5.32:1
 okunur, ama beyazda 2.37:1'e, bantta 2.19:1'e düşer ve sararıp kaybolur.
@@ -780,7 +780,12 @@ sayfanın kökünde sitenin kendi token'larını yeşile bağlar (`--charcoal`,
 `--muted`): düğmeler, alan ve düğme kenarları, onay kutusunun noktası ve
 bant yeşillenir, bileşenlerin kuralı değişmez. Başlık ve etiketler
 `--forest`, süreç bandı derin yeşil (`.franchise-process`, beyaz başlık,
-pirinç rakam). Footer sayfanın dışındadır, kömürde kalır.
+pirinç rakam).
+
+**Sitenin footer'ı** (22 Kas 2026, operatör: _"footer daha renkli canlı estetik
+yap"_) aynı ailededir: pirinç bülten bandı, orman yeşili orta blok, bir ton koyu
+taban; ayrıntı §4'teki bileşen tablosunda. Sitenin geri kalanında dolu kontroller
+kömürde kalır.
 
 **E-postalar** (`src/lib/email/templates/`, `docs/email/`, sözleşme eki
 `durable-copy.ts`; ayrıntı `src/lib/email/templates/README.md` "Palet"):
@@ -804,14 +809,18 @@ yeşil yazı).
 | `#5b6a63`               | beyaz · `#f2f5f1`     | 5.69 · 5.18 |
 | beyaz                   | `#173f35` · `#10302a` | 11.67 · 14.20 |
 | `#c3d3cb` (e-posta)     | `#173f35` · `#10302a` | 7.50 · 9.13 |
-| `--on-dark-muted` (site) | `#173f35`            | 7.30 |
+| `--on-dark-muted` (site) | `#173f35` · `#10302a` | 6.88 · 8.06 |
+| `#173f35` · `#10302a`    | pirinç `#cba258`      | 4.91 · 5.98 |
 | `#cba258`               | `#173f35` · `#10302a` | 4.91 · 5.98 |
 | `#1f6b4a`               | `#e9f0ed`             | 5.56 |
 | `#eef4f0` (koyu mod)    | `#111c18` · `#1a2a24` | 15.65 · 13.44 |
 | `#a3b4ab` (koyu mod)    | `#111c18` · `#1a2a24` | 8.04 · 6.90 |
 | `#173f35` (koyu mod düğme) | `#eef4f0`          | 10.47 |
 
-Pirinç açık zeminde 2.4:1'de kalır: yalnız yeşil zeminde, yalnız etiket.
+Pirinç açık zeminde 2.4:1'de kalır: metin olarak yalnız yeşil zeminde, yalnız etiket;
+footer'ın bülten bandında ise zemindir ve üstüne yalnız iki yeşil yazılır. Bantta hiçbir
+kırmızı 4.5:1'e ulaşmaz: bülten hatası sözle ve yanındaki çizgiyle söylenir. Footer'daki
+"açık" noktası `#6ad3a0`'tır (yeşilde 6.35:1; süs, anlamı sözcük taşır).
 Görseller `scripts/gen-email-assets.mjs` ile üretilir (Lucide ikonları,
 `public/brand` işareti); eski görseller gönderilmiş e-postalar için diskte
 kalır.
