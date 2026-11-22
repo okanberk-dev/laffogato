@@ -449,7 +449,7 @@ export async function sendTestEmail(to: string): Promise<SendResult> {
       { label: "Alıcı", value: to },
     ],
     button: {
-      label: "AYARLARA DÖN",
+      label: "Ayarlara dön",
       url: `${SITE.url}/admin/ayarlar?sekme=email`,
     },
     footnote:
@@ -718,6 +718,46 @@ export async function sendDeletionRequestReceivedEmail(
         TALEP_TARIHI: d.requestedOn,
         SON_GUN: d.deadline,
         TALEP_URL: d.requestUrl,
+      },
+    },
+    d.idempotencyKey,
+  );
+}
+
+/**
+ * "Başvurunu aldık": the receipt a franchise applicant gets after the
+ * /franchise form (src/lib/franchise/notify.ts). Transactional - the answer
+ * to a request the person just made - so no unsubscribe line (rule 19).
+ * Carries only what they typed in, never the team's notes or status.
+ */
+export async function sendFranchiseReceivedEmail(
+  to: string,
+  d: {
+    name: string;
+    applicationId: string;
+    /** "Tuzla / İstanbul" style: city, then district when given. */
+    place: string;
+    locationLabel: string;
+    budgetLabel: string;
+    timelineLabel: string;
+    retentionMonths: number;
+    /** `franchise-<id>-applicant`: a repeated send mails once. */
+    idempotencyKey: string;
+  },
+): Promise<SendResult> {
+  return sendTemplateResult(
+    "franchise-basvuru",
+    to,
+    {
+      vars: {
+        AD: d.name.trim().split(/\s+/)[0] ?? "",
+        BASVURU_NO: d.applicationId,
+        SEHIR: d.place,
+        YER_DURUMU: d.locationLabel,
+        BUTCE: d.budgetLabel,
+        BASLANGIC: d.timelineLabel,
+        FRANCHISE_URL: `${SITE.url}/franchise`,
+        SAKLAMA_AY: String(d.retentionMonths),
       },
     },
     d.idempotencyKey,
@@ -1041,7 +1081,7 @@ export async function sendInvoiceEmail(d: InvoiceMail): Promise<SendResult> {
         FATURA_NO: d.invoiceNo.trim() || "-",
         FATURA_TARIHI: d.invoiceDay,
         FATURA_TUTAR: amount,
-        BUTON_METIN: order ? "SİPARİŞİMİ GÖRÜNTÜLE" : "KARAOKE ODASI",
+        BUTON_METIN: order ? "Siparişimi görüntüle" : "Karaoke odası",
         BUTON_URL: order ? orderUrl(d.orderNo as number) : `${SITE.url}/karaoke`,
       },
     },
@@ -1602,7 +1642,7 @@ export async function sendKaraokeOperatorEmail(
       ? { note: { label: "ÜYENİN NOTU", text: k.note.trim() } }
       : {}),
     button: {
-      label: "PANELDE ONAYLA",
+      label: "Panelde onayla",
       url: `${SITE.url}/admin/mobil/karaoke`,
     },
     footnote:
@@ -1674,7 +1714,7 @@ export async function sendKaraokePaidOperatorEmail(
     ...(k.note.trim()
       ? { note: { label: "ÜYENİN NOTU", text: k.note.trim() } }
       : {}),
-    button: { label: "PANELDE GÖR", url: `${SITE.url}/admin/mobil/karaoke` },
+    button: { label: "Panelde gör", url: `${SITE.url}/admin/mobil/karaoke` },
     footnote:
       "Ödeme PayNkolay'dan doğrulandı; ayrıca onaylaman gerekmez. İptal edilirse tutarın tamamı karta iade edilir. Bu e-postayı yanıtlarsan doğrudan üyeye yazarsın.",
     replyTo: k.customerEmail,
@@ -1722,7 +1762,7 @@ export async function sendKaraokeMoneyAlertEmail(
     title: a.title,
     subtitle: a.summary,
     rows: [{ label: "Rezervasyon", value: a.id }, ...a.rows],
-    button: { label: "PANELDE AÇ", url: `${SITE.url}/admin/mobil/karaoke` },
+    button: { label: "Panelde aç", url: `${SITE.url}/admin/mobil/karaoke` },
     footnote: a.footnote,
     idempotencyKey: `karaoke-${a.id}-${a.key}`,
   });

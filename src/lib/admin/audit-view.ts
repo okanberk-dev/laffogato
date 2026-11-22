@@ -88,6 +88,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
   iys: "İYS",
   invoice: "e-Arşiv fatura",
   site_image: "Site görseli",
+  franchise_application: "Franchise başvurusu",
   audit_log: "Olay kaydı",
   retention: "Periyodik imha",
 };
@@ -114,6 +115,7 @@ export const RETENTION_RULE_LABELS: Record<string, string> = {
   "table-calls": "Masa çağrıları",
   "karaoke-guest-data": "Karaoke misafir ve iletişim bilgisi",
   "karaoke-reservations": "Karaoke rezervasyonları",
+  "franchise-applications": "Franchise başvuruları",
 };
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
@@ -278,6 +280,8 @@ export function auditRecordHref(
       return "/admin/icerik";
     case "site_image":
       return "/admin/gorseller";
+    case "franchise_application":
+      return id ? `/admin/franchise/${seg}` : "/admin/franchise";
     default:
       return null;
   }

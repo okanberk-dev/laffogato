@@ -1129,3 +1129,291 @@
 .table-banner-links {
   margin-top: 8px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Franchise (/franchise, 22 Kas 2026; franchise-page.tsx and
+   franchise-form.tsx). The site's own parts: a split on the band, the
+   heading-left / accordion-right "duo" (the reference's FAQ and PDP
+   accordions: hairlines, Archivo capitals, a drawn plus), the steps as
+   ruled rows, the form on a white panel on the band. Square, no shadow.
+   ───────────────────────────────────────────────────────────── */
+.franchise-split {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px 64px;
+  align-items: center;
+}
+.franchise-split-copy {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  max-width: 560px;
+}
+.franchise-split-media {
+  aspect-ratio: 4 / 3;
+}
+.franchise-points {
+  width: 100%;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.franchise-points > li {
+  display: grid;
+  gap: 4px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+.franchise-points > li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 1023px) {
+  .franchise-split {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .franchise-split-media {
+    order: -1;
+    aspect-ratio: 6 / 5;
+  }
+  .franchise-split-copy {
+    max-width: none;
+  }
+}
+
+/* Heading on the left (it stays in sight while the right side scrolls),
+   the content on the right; one column below 1024px. */
+.franchise-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: 32px 80px;
+  align-items: start;
+}
+.franchise-duo-head {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  position: sticky;
+  top: calc(var(--sticky-h) + 32px);
+}
+@media (max-width: 1023px) {
+  .franchise-duo {
+    grid-template-columns: 1fr;
+  }
+  .franchise-duo-head {
+    position: static;
+  }
+}
+
+/* The accordion: <details>, keyboard and screen reader for free. */
+.franchise-acc {
+  border-top: 1px solid var(--line);
+}
+.franchise-acc-item {
+  border-bottom: 1px solid var(--line);
+}
+.franchise-acc-item > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 64px;
+  padding: 18px 0;
+  list-style: none;
+}
+.franchise-acc-item > summary::-webkit-details-marker {
+  display: none;
+}
+.franchise-acc-item > summary:hover .t-title {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 1px;
+}
+.franchise-acc-item > summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+/* A plus drawn in two 1px strokes; open, the upright one lies down. */
+.franchise-acc-mark {
+  position: relative;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+.franchise-acc-mark::before,
+.franchise-acc-mark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 14px;
+  height: 1px;
+  background: currentColor;
+  transition: transform var(--dur) var(--ease);
+}
+.franchise-acc-mark::after {
+  transform: rotate(90deg);
+}
+.franchise-acc-item[open] .franchise-acc-mark::after {
+  transform: rotate(0deg);
+}
+.franchise-acc-body {
+  display: grid;
+  gap: 12px;
+  max-width: 72ch;
+  padding: 0 40px 24px 0;
+}
+@media (max-width: 767px) {
+  .franchise-acc-body {
+    padding-right: 0;
+  }
+}
+
+/* The steps: ruled rows, the number large in the headline face. */
+.franchise-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.franchise-step {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px 24px;
+  align-items: baseline;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+.franchise-step-n {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: 1px;
+}
+.franchise-step-body {
+  margin: 0;
+}
+@media (max-width: 767px) {
+  .franchise-step {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .franchise-step-n {
+    grid-row: span 2;
+    font-size: 24px;
+  }
+}
+
+/* The application: a white panel on the band. */
+.franchise-apply {
+  scroll-margin-top: var(--sticky-h);
+}
+.franchise-form-panel {
+  padding: 40px;
+  background: var(--surface);
+}
+@media (max-width: 767px) {
+  .franchise-form-panel {
+    margin-inline: calc(-1 * var(--gutter));
+    padding: 32px var(--gutter);
+  }
+}
+.franchise-form {
+  display: grid;
+  gap: 32px;
+}
+.franchise-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.franchise-fieldset > legend {
+  margin-bottom: 16px;
+  padding: 0;
+}
+.franchise-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+/* A field with an error below it makes its row taller; its neighbour
+   keeps its label and box at the top instead of spreading them out. */
+.franchise-form-grid > .field {
+  align-content: start;
+}
+.franchise-field--full {
+  grid-column: 1 / -1;
+}
+/* "Seç" (nothing chosen yet) in the grey of a placeholder. */
+.franchise-form .select:invalid {
+  color: var(--muted);
+}
+.franchise-form .select option {
+  color: var(--ink);
+}
+@media (max-width: 599px) {
+  .franchise-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.franchise-form-alert {
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 2px solid var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--surface));
+  color: var(--error);
+  font-size: 14px;
+  line-height: 20px;
+}
+.franchise-form-alert:focus {
+  outline: none;
+}
+.franchise-form-foot {
+  display: grid;
+  gap: 20px;
+  justify-items: start;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.franchise-notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 20px;
+}
+.franchise-notice a {
+  color: var(--ink);
+}
+.franchise-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 22px;
+}
+.franchise-consent input {
+  margin-top: 3px;
+}
+.franchise-consent input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+/* The honeypot: off-screen, never in the tab order. */
+.franchise-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.franchise-done {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.franchise-done > h3:focus {
+  outline: none;
+}
+.franchise-done .btn {
+  margin-top: 8px;
+}

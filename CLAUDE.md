@@ -200,12 +200,22 @@ Unutulmaması gerekenler:
   `docs/JOURNEY.md`, `docs/journey/`.
 - **Değişmeyenler:** arka yüz (`src/lib`, `src/app/api`, action'lar,
   route'lar, `src/proxy.ts`, `db`, `scripts`); panel (`/admin`); logo L'Af
-  (`public/brand/`, `<LafMark>`; uygulama ikonu da odur). E-posta, bağlantı
+  (`public/brand/`, `<LafMark>`; uygulama ikonu da odur). Bağlantı
   önizlemesi (OG kartları), ikonlar ve PayNkolay köprüsü eski (porselen, logo
-  yeşili) palette kaldı; e-postalar 15 Eki 2026'dan beri açık ve koyu modda
-  okunur (`src/lib/email/templates/README.md` "Palet"; Supabase'in dört giriş
-  e-postası `docs/email/`'da, panele elle yapıştırılır). Tasarım kaydı
-  `docs/BRAND.md`.
+  yeşili) palette kaldı. Tasarım kaydı `docs/BRAND.md`.
+- **E-postalar 22 Kas 2026'dan beri sitenin dilinde** (operatör: _"mail
+  tasarımlarını da siteyle aynı yap ... estetik yap mailleri de öyle"_):
+  bant dış zemin, çerçevesiz beyaz kart, kömür logo karosu
+  (`laf-mark-charcoal.png`, opak: Gmail görseli çevirmez), Archivo yığınıyla
+  büyük harf aralıklı başlık ve etiket, Geist yığınıyla cümle, kare kömür
+  düğme (cümle düzeninde etiket, tek çağrı 350px), kömür footer, uygulama
+  şeridi bantta. Web fontu yüklenmez. Açık ve koyu modda okunur (koyu modda
+  kart `#1a1a1a`, düğme beyaz). Değerler, sınıflar ve görseller
+  `src/lib/email/templates/README.md` "Palet" ve `docs/BRAND.md` §10;
+  görseller `scripts/gen-email-assets.mjs`. Supabase'in dört giriş e-postası
+  `docs/email/`'da aynı tasarımla durur ve **panele elle yapıştırılır**
+  (site deploy edildikten sonra: görseller oradan gelir). Panelden ya da
+  koddan gelen düğme yazısı cümle düzeninde yazılır ("Panelde aç").
 
 Aşağıdaki üç paragraf tarihçedir:
 
@@ -292,9 +302,10 @@ tutan test artık koşmuyor (en üstteki not): token değişince elle ölçülü
 
 Operatör: _"sitedeki görselleri panelden de yönetebiliyor olalım ... karaoke
 fotoğrafı admin panelden değiştirilebilir olsun"_. **Site metinleri ›
-Görseller** (`/admin/gorseller`, `content` bölümü): 17 alan (sayfa
+Görseller** (`/admin/gorseller`, `content` bölümü): 19 alan (sayfa
 açılışları, karaoke açılışı ve odası, anasayfa bölümleri, ziyaret ve hikâye
-kartları; `src/lib/admin/site-images-core.ts`). Yüklenen fotoğraf
+kartları, franchise sayfasının iki fotoğrafı;
+`src/lib/admin/site-images-core.ts`). Yüklenen fotoğraf
 `site_images`'ta durur, `/gorsel/site/<key>?v=<damga>` ile sunulur; sayfalar
 haritayı `getSiteImages()` ile önbellekten okur (`pub:site`; `loadAppProps`
 → `images`, karaoke ve kampanya rotaları doğrudan). Yüklenen görsel
@@ -304,6 +315,50 @@ edilir. Yeni bir alan: önce sayfada okunan yere bağla, sonra listeye ekle
 (okunmayan alan panelde boşuna durur). Karaoke sayfasında sihirbazla SSS
 arasında kömür "sahne" bandı odanın fotoğrafını (`karaoke.room`) ve panelin
 üç rakamını gösterir.
+
+## Franchise başvurusu (22 Kas 2026)
+
+Operatör: _"franchise bölümü ekle form doldurulan ve açılır sectionlar
+dahil tasarım metriklerine uyumlu olsun estetik yap"_. **`/franchise`**
+(`src/app/franchise/page.tsx`, gövdesi `franchise-page.tsx`, formu
+`franchise-form.tsx`, stili `src/styles/pages.css` "Franchise"): sayfa
+açılışı, bantta konsept bölmesi, solda başlık sağda akordeon ("Neler
+sunuyoruz", "Sık sorulan sorular"; `<details>`, Archivo büyük harf, çizilmiş
+artı), çizgili satırlarla beş adım, bantta beyaz panelde başvuru formu.
+Bağlantılar: footer'ın Kurumsal sütunu, Ziyaret & keşfet panelinin Keşfet
+sütunu (telefon paneli de), site haritası. Görüntüleme veritabanını
+uyandırmaz (`getSiteSettings`, `getSiteImages`; fotoğraflar `hero.franchise`
+ve `franchise.concept`).
+
+- **Metin söz vermez:** franchise bedeli, royalti, yatırım tutarı, getiri ya
+  da şube sayısı yazılmaz; "görüşmede yazılı olarak paylaşırız" denir.
+  Başvuru ücretsizdir ve SSS bunu söyler (hukuk metinleri, "Kurumsal Satış
+  ve Basın İletişimi": şirket adına başvuru ücreti isteyen şirkete ait
+  değildir). Uygulama, damga ve masadan sipariş bugün yalnız Tuzla köşkü
+  içindir; sayfa yeni şubeye açılmayı söz olarak yazmaz.
+- **Form** (`submitFranchiseApplicationAction`, alanlar
+  `docs/FRONTEND-SINIR.md` §2): Zod (`src/lib/franchise/franchise-core.ts`,
+  istemciyle ortak etiketler), tuzak alan `website` (doluysa "teşekkürler",
+  kayıt ve e-posta yok), bağlantı başına günde 5 başvuru
+  (`franchise-apply-ip`), satır `franchise_applications`'a (`frn-0001`;
+  aydınlatma kutusu işaretsiz başlar, onay `{at, ip, userAgent, version}`
+  olarak saklanır). Ekibe `operasyon-bildirim` e-postası `after()` ile
+  gider (`src/lib/franchise/notify.ts`, alıcı Ayarlar › Bildirimler'in
+  operasyon adresi, yoksa Ayarlar e-postası; yanıtla başvurana yazar),
+  başvurana `franchise-basvuru` ("Başvurunu aldık": gönderdiği yanıtlar,
+  başvurunun ücretsiz olduğu, saklama süresi; işlemsel, çıkış satırı yok;
+  yalnız ilk adı yazar). İkisi birbirinden bağımsızdır ve başvuruyu
+  bozamaz. Form elle gönderilir (yanlış alanda yazılanlar
+  kalır); JavaScript'siz de aynı action çalışır.
+- **Panel:** Pazarlama › **Franchise** (`/admin/franchise`, bölüm `leads`:
+  sahip + yönetici): Yeni / Görüşüldü / Arşiv sekmeleri, başvuru sayfası
+  (iletişim, yanıtlar, aydınlatma onayı), durum düğmeleri ve onaylı "Sil";
+  her yazım olay kaydına (`franchise_application`) düşer.
+- **Saklama:** başvurudan 12 ay sonra günlük imha işi siler
+  (`src/lib/retention.ts`, kural `franchise-applications`; yayımlanmış
+  dayanak "İş birliği ve tedarik teklifleri" satırının iki yıllık tavanı).
+  Politika franchise başvurusunu henüz adıyla anmaz: anılması bir hukuk
+  revizyonudur (`LEGAL_UPDATED`), operatörün kararı.
 
 ## Ön yüz ↔ Arka yüz Sınırı
 

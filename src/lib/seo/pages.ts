@@ -412,6 +412,12 @@ export function allSeoRoutes(): Array<{
   const campaigns = [
     { url: "/kampanyalar", priority: 0.7, changefreq: "daily" as const },
   ];
+  // /franchise (22 Kas 2026): the application page, a standalone route
+  // with no `Route` key and no keyword claim (CLAUDE.md rule 15). Rarely
+  // changes.
+  const franchise = [
+    { url: "/franchise", priority: 0.5, changefreq: "monthly" as const },
+  ];
   const menuCats = MENU_CATEGORY_ROUTES.map((c) => ({
     url: `/menu/${c.slug}`,
     priority: 0.8,
@@ -422,5 +428,12 @@ export function allSeoRoutes(): Array<{
     priority: 0.8,
     changefreq: "weekly" as const,
   }));
-  return [...top, ...karaoke, ...campaigns, ...menuCats, ...shopCats];
+  return [
+    ...top,
+    ...karaoke,
+    ...campaigns,
+    ...franchise,
+    ...menuCats,
+    ...shopCats,
+  ];
 }

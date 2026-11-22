@@ -117,6 +117,7 @@ ve action'ın `formData.get(...)` çağrılarıyla karşılaştırır.
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
 | `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
 | `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
+| `submitFranchiseApplicationAction` (22 Kas 2026) | `src/components/laffogato/franchise-form.tsx`         | `name`, `email`, `phone`, `city`, `district` (isteğe bağlı), `locationStatus` (`ready`/`searching`/`none`), `budget` (`under-3m`/`3m-6m`/`over-6m`/`undecided`), `experience` (`none`/`food`/`retail`/`franchise`), `timeline` (`0-3`/`3-6`/`6-12`/`12+`), `message` (isteğe bağlı, 2000 karakter), `consent` (işaretsiz başlar), `website` (tuzak alan: ekran dışında, boş kalmalı). Seçenek anahtarları `src/lib/franchise/franchise-core.ts`'te ve tablonun kısıtlarında; etiket değişebilir, anahtar değişmez |
 
 **Bülten sayfalarında bağlantıyı "tek tık"a geri çevirme.** E-posta güvenlik
 tarayıcıları (Outlook Safe Links, Gmail ön-getirme) iletideki her bağlantıyı

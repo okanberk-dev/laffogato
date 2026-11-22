@@ -108,6 +108,7 @@ const VISIT_LEARN: PanelLink[] = [
   { href: "/hikayemiz", label: "Hikayemiz" },
   { href: "/kampanyalar", label: "Kampanyalar" },
   { href: "/rehber", label: "Rehber" },
+  { href: "/franchise", label: "Franchise" },
 ];
 
 const PANEL_GROUPS: Record<DropdownKey, PanelGroup[]> = {
@@ -1155,6 +1156,9 @@ export function Footer({ navigate, settings }: FooterProps) {
               src/lib/legal/nav.ts. The rest are one click away, in the
               bottom line. */}
           <FooterColumn title="Kurumsal">
+            <li>
+              <Link href="/franchise">Franchise</Link>
+            </li>
             {FOOTER_LEGAL_DOCS.map((d) => (
               <li key={d.slug}>
                 <Link href={`/hukuk/${d.slug}`}>{d.label}</Link>

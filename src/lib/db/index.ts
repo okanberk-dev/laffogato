@@ -364,4 +364,5 @@ export const TABLES = {
   tableCalls: "table_calls",
   cardVaultPurges: "card_vault_purges",
   menuItemAvailability: "menu_item_availability",
+  franchiseApplications: "franchise_applications",
 } as const;

@@ -334,6 +334,26 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "is a legal revision (LEGAL_UPDATED), the operator's call.",
   },
   {
+    id: "franchise-applications",
+    table: TABLES.franchiseApplications,
+    column: "createdAt",
+    idColumn: "id",
+    days: 365,
+    basis:
+      "Teklifin olumsuz sonuçlanmasından itibaren en fazla iki yıl; olumlu sonuçlanırsa sözleşmesel ilişkinin saklama süresine tabi olur.",
+    note:
+      "The /franchise form's applications (20261122135425): name, e-mail, " +
+      "phone, il / ilçe, the answers and the KVKK notice's consent record. " +
+      "A business proposal, so the published period is the 'İş birliği ve " +
+      "tedarik teklifleri' row's two years, a CEILING; the form's own " +
+      "notice promises twelve months from the application (KVKK m.4/2-d), " +
+      "counted from the row's creation whatever its status. A franchise " +
+      "that goes ahead is carried by its written contract and its own " +
+      "file, not by this row. The policy does not name franchise " +
+      "applications yet: naming them is a legal revision (LEGAL_UPDATED), " +
+      "the operator's call.",
+  },
+  {
     id: "karaoke-guest-data",
     table: TABLES.karaokeReservations,
     column: "date",

@@ -114,7 +114,7 @@ export function istanbulInstantLabel(iso: string): string {
 const STYLE = `
 :root{color-scheme:light}
 *{box-sizing:border-box}
-body{margin:0;padding:24px 16px 40px;background:#ffffff;color:#211c18;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
+body{margin:0;padding:24px 16px 40px;background:#ffffff;color:#000000;font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;-webkit-text-size-adjust:100%}
 main{max-width:760px;margin:0 auto}
 h1{font-size:26px;line-height:1.25;margin:0 0 6px}
 h2{font-size:20px;line-height:1.3;margin:28px 0 8px}
@@ -123,14 +123,14 @@ p{margin:0 0 12px}
 ul,ol{margin:0 0 12px;padding-left:24px}
 li{margin:0 0 6px}
 table{width:100%;border-collapse:collapse;margin:12px 0 20px}
-th,td{border:1px solid #e3dbcf;padding:8px 10px;text-align:left;vertical-align:top;font-size:16px}
-th{width:36%;font-weight:600;background:#faf6ee}
-.lead{color:#564d46;margin-bottom:16px}
+th,td{border:1px solid #dcdcd6;padding:8px 10px;text-align:left;vertical-align:top;font-size:16px}
+th{width:36%;font-weight:600;background:#f6f6f3}
+.lead{color:#6c6864;margin-bottom:16px}
 .facts-title{font-size:20px;margin:24px 0 4px}
 .multiline{white-space:pre-line}
-.doc{margin-top:40px;padding-top:24px;border-top:2px solid #1d6d56}
-.doc-meta{color:#564d46}
-.refs{color:#564d46}
+.doc{margin-top:40px;padding-top:24px;border-top:2px solid #333333}
+.doc-meta{color:#6c6864}
+.refs{color:#6c6864}
 .code{font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
 @media print{
   body{padding:0;font-size:12pt}

@@ -532,9 +532,11 @@ resmi 4:3. Referans sitelerin görselleri kullanılmaz (§0.6).
    palette olanlar: `src/app/layout.tsx` (`themeColor` `#f6f6f3`, bant) ve
    `src/app/global-error.tsx` (bant zemin, siyah ve gri yazı, kömür düğme,
    `#b8893a` çekirdek). `src/app/manifest.ts` 22 Kas 2026'da hâlâ Roast'ın
-   kremi `#faf7f2`'yi yazıyor: yeni palete taşınacak. Eski porselen
-   paletinde (logo yeşili) kalan ve ayrı taşınacak olanlar: işlemsel e-posta
-   (`src/lib/email/templates/*.html`), bağlantı önizlemeleri
+   kremi `#faf7f2`'yi yazıyor: yeni palete taşınacak. E-postalar
+   (`src/lib/email/templates/*.html`, Supabase'in dört şablonu
+   `docs/email/`, sözleşme eki `src/lib/legal/durable-copy.ts`) 22 Kas
+   2026'da yeni palete geçti (§10). Eski porselen paletinde (logo yeşili)
+   kalan ve ayrı taşınacak olanlar: bağlantı önizlemeleri
    (`src/lib/seo/og-card.tsx`), ödeme köprüsü
    (`src/lib/payment/paynkolay-page.ts`), `public/browserconfig.xml`
    (`#1d6d56` karo), JSON-LD ikonları (`public/icon-*.png`). Uygulama ikonu
@@ -659,6 +661,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 17 Kas 2026 | **Yolculuk** (operatör: _"sitede aşağıdaki promptu uygula ve kahveciye uygun hale getir sonra maine gönder"_, "alpha project" build promptu): anasayfanın girişi kaydırmanın oynattığı film oldu; Roast girişi kalktı.                                                                                     |
 | 21 Kas 2026 | **Admin paneli StorageBox** (operatör: _"laffogato admin panelini madamecoco reposundaki admin panel ile aynı tarz tasarımda yap"_): açık gri çerçevede ince çizgili beyaz kartlar (köşe 24), hap kontroller, koyu etkin menü hapı, tek mavi `#122aff`, DM Sans başlık ve rakam; köşk çipi kalktı, arama sade kutu (`docs/ADMIN-STORAGEBOX.md`); müşteri sitesi değişmedi. |
 | 21 Kas 2026 | **Blue Bottle dili ve film** (operatör, §0.6): önceki görünüm bütünüyle silindi; beyaz ve bant, siyah, tek gri, kömür, kare köşe, Archivo + Geist, anasayfada lisanslı stok film. Güncel değerler §0.                                                                                                      |
+| 22 Kas 2026 | **E-postalar sitenin dilinde** (operatör: _"mail tasarımlarını da siteyle aynı yap"_): bant dış zemin, beyaz kart, kömür logo karosu, büyük harf aralıklı başlık, kare kömür düğme, kömür footer; koyu modda kart `#1a1a1a`, düğme beyaz (§10). |
 
 **11-21 Kas 2026: Roast ve yolculuk (tarihçe; 21 Kas 2026'ya kadar bu
 belgenin §0'ıydı).** Krem zemin `#faf7f2` (beyaza yakın bant `#fdfcf9`, taş
@@ -728,9 +731,9 @@ Gabarito.
 `og-card.tsx`), JSON-LD ikonları (`scripts/gen-icons.mjs` →
 `public/icon-*.png`) ve PayNkolay köprüsü porselen döneminde uygulama paletine
 taşındı; e-posta şablonları 15 Eki 2026'da (zemini gömülü bantlar HTML
-çubuğa, logo çifti ile glint GIF'i tek opak karoya döndü; şablonlar açık ve
-koyu modda okunur, `src/lib/email/templates/README.md` "Palet"). Sonraki
-görünüm değişikliklerinin hiçbiri onları taşımadı (§8).
+çubuğa, logo çifti ile glint GIF'i tek opak karoya döndü). E-postalar 22 Kas
+2026'da sitenin diline geçti (§10); bağlantı önizlemesi, JSON-LD ikonları ve
+PayNkolay köprüsü porselende kaldı (§8).
 
 **21 Kas 2026'da kalkanlar.** Dosyalar: `journey/` (film, çiziciler, kare
 paketleri), `roast-stage.tsx`, `roast-scene.ts`, `reveal-text.tsx`,
@@ -747,3 +750,43 @@ düğmesi, telefonun alt sekme çubuğu, "karamel ile espresso" kuralı. Palet v
 kontrast testleri (`tests/brand-theme.test.ts`, `tests/contrast.test.ts`)
 zaten 16 Kas 2026'da `tests/` ile kalkmıştı; eski hâlleri
 `git show 5d777bb:tests/<dosya>` ile okunur.
+
+---
+
+## 10. E-posta (22 Kas 2026)
+
+Operatör: _"mail tasarımlarını da siteyle aynı yap ... estetik yap mailleri de
+öyle"_. Yirmi dokuz şablon (`src/lib/email/templates/`), Supabase'in dört
+giriş e-postası (`docs/email/`) ve sözleşme eki (`durable-copy.ts`) sitenin
+değerlerini satır içi yazar; kurallar ve sınıflar
+`src/lib/email/templates/README.md` "Palet".
+
+- **Değerler sitenin token'larıdır:** dış zemin bant `#f6f6f3`, kart beyaz ve
+  çerçevesiz, metin siyah, ikincil satır `#6c6864`, çizgi `#dcdcd6`, dolu
+  düğme ve koyu bloklar kömür `#333333` (iç kutu `#1f1f1f`), koyu zeminde
+  beyaz ve `#c6c6c6` (`--on-dark-muted` kömürde). Durum rengi yalnız
+  "onaylandı" vurgusunda (`--success` kendi %10 yıkamasında) ve ödeme
+  rozetinde. Kare köşe; gölge ve degrade yok.
+- **Yazı:** başlık, etiket, fiyat ve kod dışı küçük başlıklar `'Archivo',
+  'Helvetica Neue', Helvetica, Arial` yığınıyla 400, büyük harf, 1.6px
+  aralık (24/32, açılış başlığı 28/36, telefonda 24/32); cümle ve düğme
+  `'Geist', -apple-system, 'Segoe UI', Helvetica, Arial`. Web fontu
+  yüklenmez (Gmail ve Outlook yüklemez, istek alıcının adresini üçüncü
+  tarafa taşır): yazı yüzü yüklü değilse sistemin groteski çizer. Kupon ve
+  takip kodu eş genişlikli.
+- **Düğme:** 48px, iç boşluk 13px 36px, kömür dolu, beyaz Geist 16px,
+  cümle düzeni; tek çağrı 350px ve telefonda tam satır. Kömür bloğun
+  üstünde beyaz dolu ya da beyaz çerçeveli. Koyu modda dolu düğme beyaza
+  döner (`em-btn`).
+- **Logo:** `laf-mark-charcoal.png`, kömür karo üstünde beyaz harf ve
+  `#cba258` çekirdek (footer'daki `cream` tonu). Opaktır: Gmail koyu modda
+  renkleri çevirir, görselleri çevirmez; saydam siyah bir işaret koyu kartta
+  kaybolurdu. Kömür footer'da karo bloğa karışır, yalnız işaret görünür.
+- **Kontrast** (bu değerlerden, §0.2'deki yöntemle): siyah beyazda 21:1,
+  bantta 19.39:1; `#6c6864` beyazda 5.52:1, bantta 5.10:1; beyaz kömürde
+  12.63:1, `#1f1f1f`'te 16.48:1; `#c6c6c6` kömürde 7.39:1; `--success`
+  yıkamasında 5.56:1. Koyu modda `#f2f2f2` `#1a1a1a`'da 15.54:1 (panelde `#262626` 13.51:1), `#a6a6a6`
+  `#1a1a1a`'da 7.14:1 (panelde 6.21:1); "onaylandı" `#9fd8bd` `#173a2b`'de 7.77:1.
+- **Görseller** `scripts/gen-email-assets.mjs` ile üretilir (Lucide ikonları,
+  `public/brand` işareti); eski görseller gönderilmiş e-postalar için
+  diskte kalır.

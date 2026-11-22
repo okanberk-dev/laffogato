@@ -84,6 +84,15 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
     alt: "",
     ratio: "16:5 (telefonda 4:3)",
   },
+  {
+    key: "hero.franchise",
+    group: "Sayfa açılışları",
+    label: "Franchise",
+    where: "/franchise sayfasının üstü",
+    fallback: "/rehber/espresso-cesitleri.webp",
+    alt: "",
+    ratio: "16:5 (telefonda 4:3)",
+  },
   // ── Karaoke ──
   {
     key: "karaoke.hero",
@@ -194,6 +203,15 @@ export const SITE_IMAGE_SLOTS: readonly SiteImageSlot[] = [
     fallback: "/photos/interior-chest.webp",
     alt: "Köşkün salonu",
     ratio: "4:3",
+  },
+  {
+    key: "franchise.concept",
+    group: "Ziyaret ve hikâye",
+    label: "Franchise: konsept",
+    where: "/franchise sayfasındaki Konsept bölümünün fotoğrafı",
+    fallback: "/photos/facade-day.webp",
+    alt: "Tuzla'daki restore ahşap köşk",
+    ratio: "Yatay, geniş (telefonda 6:5)",
   },
 ];
 
