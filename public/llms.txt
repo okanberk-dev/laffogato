@@ -10,7 +10,7 @@
 - **Koordinatlar**: 40.8165716, 29.3032493
 - **Ulaşım**: Marmaray Tuzla 6 dk, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen Havalimanı 15 dk, ücretsiz vale park hizmeti
 - **Sosyal medya**: Instagram / TikTok / YouTube / X — hepsi @laffogatto
-- **Marina şubesi**: L'Affogato Marina, Kasım 2026'da açıldı; adresi ve saatleri laffogato.net/ziyaret sayfasında yayımlanacak. Uygulamadan sipariş, masadan QR ile sipariş ve karaoke odası yalnız Tuzla köşkü içindir.
+- **Marina şubesi**: L'Affogato Marina, Kasım 2026'da Tuzla Marina'da (Viaport Marina Tuzla) açıldı; açık saatler 10:00 - 23:00. Menü köşkle aynıdır. Marina içindeki tam birim ve şubenin telefonu henüz yayımlanmadı; girildiğinde laffogato.net/ziyaret sayfasında görünür. Uygulamadan gel-al siparişi ve karaoke odası yalnız Tuzla köşkü içindir. Ayrıntı: [Tuzla Marina'da kahve](/rehber/tuzla-marina-kafe)
 
 ## Rehber
 
@@ -28,6 +28,8 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 - [Chai tea latte nedir?](/rehber/chai-tea-latte): Baharatlarla demlenmiş siyah çayın köpürtülmüş sütle buluştuğu içecek: chai tea latte. İçindekiler, baharatların tadı, kafein, masala chai ile farkı ve bütün baharatla evde tarifi.
 - [Magnolia tarifi](/rehber/magnolia-tarifi): Kremayla hafifletilmiş muhallebi, bisküvi kırığı ve meyvenin kupada kat kat dizildiği soğuk tatlı. 6 kupa için ölçülü tarif, kremanın kıvamı, dinlenme süresi, çilekli, muzlu ve lotus seçenekleri, sık yapılan hatalar.
 - [Brownie tarifi](/rehber/brownie-tarifi): Bitter çikolata, tereyağı ve az unla yapılan yoğun, ıslak dokulu Amerikan tatlısı. 20x20 cm kap için gram gram tarif, fırın derecesi ve süresi, parlak kabuğun sırrı, sık yapılan hatalar ve saklama.
+- [Tuzla'da karaoke](/rehber/tuzla-karaoke): Tuzla'da, 200 yıllık bir Rum köşkünün üst katında yalnız sizin grubunuza ayrılan karaoke odası. Saatler, kapasite, fiyat, online rezervasyonun adımları, iptal kuralı ve köşke ulaşım.
+- [Tuzla Marina'da kahve: L'Affogato Marina](/rehber/tuzla-marina-kafe): L'Affogato'nun ikinci şubesi Tuzla Marina'da açıldı. Saatleri, menüsü, Tuzla köşküyle farkları ve hangi hizmetlerin yalnız köşkte olduğu.
 
 ## Yasal Kimlik
 
@@ -38,18 +40,19 @@ Derinlemesine Türkçe rehberler — <https://laffogato.net/rehber>
 ## Çalışma Saatleri
 
 - Her gün: 09:00 — 02:00 (kapanış ertesi sabaha sarkar)
-- Karaoke odası: rezervasyonla, üst katta · saati 1.000₺ · en fazla 8 kişi · gece 24:00'e kadar
+- Karaoke odası: rezervasyonla, üst katta · 12:00 - 24:00 · saati 1.000₺ · en fazla 8 kişi · bir rezervasyon 1-4 saat
+- L'Affogato Marina (Tuzla Marina): 10:00 - 23:00
 
 ## Ana Sayfalar
 
-- [Ana Sayfa](/): Genel tanıtım, Strawberry Aşkı matcha üçlüsü, hikayemizin özeti
+- [Ana Sayfa](/): Tam ekran kahve filmi, şimdi barda (canlı menüden), imza affogato, kategoriler, Evde L'Affogato, karaoke odası ve bugünün boş saatleri, uygulama, rehberler, ziyaret bilgileri ve SSS
 - [Menü](/menu): Matcha Bar, Espresso, Soğuk Kahve, Soğuk İçecekler, Sıcak İçecekler, Frappe, Smoothie, Frozen, Soğuk Çay, Tatlılar, Atıştırmalıklar, Ekstralar kategorileri
 - [Mağaza](/magaza): Çekirdek kahve, edible cup, hediye seti, ekipman, giyim
 - [Hikaye](/hikayemiz): 1897 Bologna'dan 2026 İstanbul'a markanın hikayesi
-- [Ziyaret](/ziyaret): Tuzla lokasyonu, ulaşım, gömülü harita
+- [Ziyaret](/ziyaret): Tuzla köşkünün adresi, saatleri, ulaşımı ve haritası; L'Affogato Marina kartı
 - [Kampanyalar](/kampanyalar): Sezon kampanyaları, iş birlikleri ve etkinlikler; damga kartı (uygulamadan verilen 140 TL ve üzeri kafe siparişinde başlayan her 320 TL bir damga) ve arkadaş davet ödülü
-- [Karaoke](/karaoke): Köşkün üst katındaki özel karaoke odası; saati 1.000₺, sekiz kişiye kadar, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir, kartla ödeme alınınca kesinleşir
-- [Rehber](/rehber): Affogato, yenilebilir bardakta kahve, tiramisu, espresso çeşitleri, matcha, cold brew, frappe, San Sebastian cheesecake, spanish latte ve chai tea latte üzerine rehberler ve tarifler
+- [Karaoke](/karaoke): Tuzla köşkünün üst katındaki özel karaoke odası; saati 1.000₺, sekiz kişiye kadar, 12:00-24:00, gün ve saat seçilerek web'den ya da uygulamadan rezerve edilir, kartla ödeme alınınca kesinleşir; üye olmadan da rezervasyon yapılır. İptal: rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edilirse tutarın tamamı iade edilir; 2 saat geçtikten sonraki iptallerde ve gelinmediğinde iade yapılmaz
+- [Rehber](/rehber): Affogato, yenilebilir bardakta kahve, tiramisu, espresso çeşitleri, matcha, cold brew, frappe, San Sebastian cheesecake, spanish latte, chai tea latte, magnolia ve brownie üzerine rehberler ve tarifler; Tuzla'da karaoke ve L'Affogato Marina yazıları
 
 ## Uygulama ve Üyelik
 
@@ -122,11 +125,12 @@ Ana sayfada tek `<script type="application/ld+json">` içinde aşağıdaki schem
 - WebSite (yayıncı, telif; site içi arama ve rezervasyon aksiyonu yok)
 - Menu + MenuSection + MenuItem (canlı; 12 kategori, 82 kalem)
 - Product × 11 (mağaza SKU'ları + Offer + shipping + return policy)
-- FAQPage × 12 soru
+- FAQPage (ana sayfa SSS, 11 soru)
 - AboutPage + Event timeline (1897/1994/2008/2026)
 - HowTo (L'Affogato hazırlama, 4 adım)
 - SpeakableSpecification (sesli asistanlar için)
 - BreadcrumbList (her sayfada; menü, mağaza, ürün, rehber, karaoke, kampanyalar ve hukuki belgeler)
+- Karaoke sayfasında (/karaoke): Service + Offer (saatlik ücret, KDV dahil) ve FAQPage; her rehberde Article + FAQPage (tariflerde Recipe)
 
 ## Kaynaklar
 

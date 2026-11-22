@@ -82,6 +82,8 @@ const GUIDE_PICTURES: Record<string, () => Promise<Uint8Array>> = {
     readFile(join(process.cwd(), "public/rehber/cold-brew-nedir.webp")),
   "frappe-nedir": () =>
     readFile(join(process.cwd(), "public/rehber/frappe-nedir.webp")),
+  "tuzla-karaoke": () =>
+    readFile(join(process.cwd(), "public/rehber/tuzla-karaoke.webp")),
   "spanish-latte-nedir": () =>
     readFile(join(process.cwd(), "public/rehber/spanish-latte-nedir.webp")),
   "chai-tea-latte": () =>

@@ -108,7 +108,7 @@ export function PageHome({
   }, [liveMenu]);
 
   const takeHome = useMemo(() => pickTakeHomeProduct(products), [products]);
-  const karaokeToday = useKaraokeToday(!!karaoke);
+  const karaokeToday = useKaraokeToday(!!karaoke, karaoke?.today);
 
   // The panel's "Ana sayfa giriş etiketi" / "giriş metni" (/admin/icerik):
   // the band under the film, first sentence as its title. An empty text

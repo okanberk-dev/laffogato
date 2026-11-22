@@ -17,23 +17,23 @@ export interface FaqEntry {
 
 export const FAQ: FaqEntry[] = [
   {
-    q: "L'Affogato nerede, nasıl ulaşırım?",
+    q: "L’Affogato nerede, nasıl ulaşırım?",
     a: "L'Affogato, Tuzla'da 200 yıllık, restore edilmiş bir Rum köşkünde bulunuyor: Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, 34940 Tuzla, İstanbul. Marmaray Tuzla istasyonu 6 dakika, E-5 / TEM Tuzla çıkışı 4 dakika, Sabiha Gökçen Havalimanı 15 dakika mesafededir. Ücretsiz vale park hizmeti sunulur.",
   },
   {
     q: "Çalışma saatleri nedir?",
-    a: "Her gün 09:00 - 02:00 saatleri arasında açığız. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Üst katta karaoke odamız var.",
+    a: "Tuzla köşkü her gün 09:00 - 02:00 saatleri arasında açık. Tüm yıl hizmet veriyoruz - yalnız 1 Ocak günü kapalıyız; köşkün avlusu yaz aylarında, yüksek tavanlı iç salonları kış aylarında kullanılır. Tuzla Marina'daki L'Affogato Marina 10:00 - 23:00 arası açık.",
   },
   {
-    q: "L'Affogato nedir, menüde nasıl servis ediliyor?",
+    q: "L’Affogato nedir, menüde nasıl servis ediliyor?",
     a: "L'Affogato, bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiğidir; evin imza içeceğidir ve 280₺'dir. Matcha sevenler için Matcha Affogato da menüdedir: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺. Her ikisi de siparişten hemen sonra hazırlanır; sıcak-soğuk kontrastı için birkaç dakika içinde tüketilmesi önerilir.",
   },
   {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",
-    a: "Sütlü içeceklerin tamamı 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanabilir. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındık içeren kalemler menüde ayrıca işaretlidir; tüm alerjen bilgisi mekanda mevcuttur.",
+    a: "Sütlü içecekler 25₺ fark ile laktozsuz ya da badem sütüyle hazırlanabilir. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındık içeren kalemler menüde ayrıca işaretlidir; tüm alerjen bilgisi mekanda mevcuttur.",
   },
   {
-    q: "Matcha bar'da hangi çay kullanılıyor?",
+    q: "Matcha bar’da hangi çay kullanılıyor?",
     a: "Ceremonial grade matcha kullanıyoruz ve her bardağı siparişten sonra çırpıyoruz; premix yok. Matcha bar'da üç kalem var: Matcha Latte 215₺, Çilekli Matcha 245₺ ve Matcha Affogato 245₺. Çilekli Matcha, taze çilek katmanı üzerine matcha ve soğuk sütle hazırlanır.",
   },
   {
@@ -45,12 +45,16 @@ export const FAQ: FaqEntry[] = [
     a: "Sirena espresso harmanımız Brezilya doğal + Etiyopya yıkanmış çekirdeklerden oluşur. Notturna filtre lotu Kenya AA Nyeri'dir. Kahveyi Bologna'daki ana lokasyonda Mancuso ailesi her hafta taze kavurur ve uçakla İstanbul'a getirir. Tuzla'ya haftalık ulaşır, kavurma tarihi her paketin üzerinde yazılıdır.",
   },
   {
-    q: "L'Affogato hangi yıldan beri var, geçmişi nedir?",
-    a: "L'Affogato 1897'de Giancarlo Mancuso tarafından Bologna Via Galliera 21'de açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da dördüncü kuşaktan Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı. Bugün İtalya dışındaki tek L'Affogato budur.",
+    q: "L’Affogato hangi yıldan beri var, geçmişi nedir?",
+    a: "L'Affogato 1897'de Giancarlo Mancuso tarafından Bologna Via Galliera 21'de açıldı. 1994'te yenilebilir kup patentlendi, 2008'de Sicilya Bronte pistacchio çiftlikleriyle doğrudan tedarik anlaşması yapıldı. 2026'da dördüncü kuşaktan Eda Mancuso ilk yurt dışı şubeyi İstanbul Tuzla'da açtı; Kasım 2026'da ikinci şube L'Affogato Marina, Tuzla Marina'da açıldı.",
   },
   {
     q: "Çocuk ve evcil hayvan dostu mu?",
     a: "Evet. Köşkün avlusu, bebek arabası erişimine uygundur. Çocuk için kafeinsiz sıcak çikolata, salep ve vitrindeki tatlılar tercih edilebilir. Köpekler köşkün bahçesinde karşılanır; su kabı ve ev yapımı dog biscuit ikram edilir.",
+  },
+  {
+    q: "Tuzla’da karaoke odası var mı?",
+    a: "Evet. Tuzla köşkünün üst katında en fazla 8 kişilik, yalnız sizin grubunuza ayrılan bir karaoke odası var; 12:00 - 24:00 arası saatlik rezervasyonla kullanılır. Gün ve saat laffogato.net/karaoke sayfasından ya da uygulamadan seçilir, kartla ödeme alınınca rezervasyon kesinleşir. L'Affogato Marina şubesinde karaoke yoktur.",
   },
   {
     q: "Ödeme yöntemleri nelerdir?",

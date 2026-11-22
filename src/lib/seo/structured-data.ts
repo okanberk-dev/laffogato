@@ -288,10 +288,10 @@ export function localBusinessLd(settings?: LdSettings): Json {
     servesCuisine: [...SITE.cuisine],
     paymentAccepted: SITE.paymentAccepted.join(", "),
     currenciesAccepted: SITE.currencies.join(", "),
-    // The site takes no reservations - there is no form, no store and no
-    // admin screen for them, and the Kullanım Şartları say so explicitly.
-    // Publishing `true` put a "Reserve" affordance in Google's business card
-    // that led to a dead button.
+    // No table reservations: the only booking is the karaoke room, which
+    // /karaoke publishes as a Service of its own (karaoke-faq.ts). `true`
+    // here would put a table "Reserve" affordance in Google's business card
+    // that leads nowhere.
     acceptsReservations: false,
     smokingAllowed: false,
     publicAccess: true,

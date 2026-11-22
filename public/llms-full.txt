@@ -10,7 +10,7 @@ Bu dosya, L'Affogato web sitesinin (https://laffogato.net) içeriğinin LLM ve g
 
 L'Affogato, 1897 yılında İtalya Bologna şehrinin Via Galliera 21 adresinde Giancarlo Mancuso tarafından kurulan İtalyan kahve ve gelato barıdır. 1994'te aileye ait yenilebilir waffle kup glaze kaplama patentlendi. 2008'de Sicilya'nın Bronte bölgesindeki üç aile çiftliğiyle pistacchio için doğrudan tedarik anlaşması imzalandı.
 
-2026 yılında dördüncü kuşak Eda Mancuso (Bolonyalı baba, İstanbullu anne), ailesinin markasının ilk yurt dışı şubesini İstanbul Tuzla'da açtı. Kasım 2026'da ikinci şube L'Affogato Marina açıldı; adresi ve saatleri laffogato.net/ziyaret sayfasında yayımlanacak. Uygulamadan sipariş, masadan QR ile sipariş ve karaoke odası yalnız Tuzla köşkü içindir.
+2026 yılında dördüncü kuşak Eda Mancuso (Bolonyalı baba, İstanbullu anne), ailesinin markasının ilk yurt dışı şubesini İstanbul Tuzla'da açtı. Kasım 2026'da ikinci şube L'Affogato Marina, Tuzla Marina'da (Viaport Marina Tuzla) açıldı; 10:00 - 23:00 arası açıktır ve köşkle aynı menüden servis eder. Marina içindeki tam birim ve şubenin telefonu henüz yayımlanmadı; girildiğinde laffogato.net/ziyaret sayfasında görünür. Uygulamadan gel-al siparişi ve karaoke odası yalnız Tuzla köşkü içindir.
 
 İmza ritüelimiz: yenilebilir waffle kup (edible cup) içinde tek scoop fior di latte gelato üzerine çift shot Sirena espresso. Espresso eridikçe gelato karışır, sonunda kupayı yiyebilirsiniz. Kaşığa gerek yoktur. Slogan: "Drink it. Eat the cup."
 
@@ -43,14 +43,28 @@ Mekan özellikleri:
 
 ## ÇALIŞMA SAATLERİ
 
-- Her gün: 09:00 — 02:00
+- Tuzla köşkü, her gün: 09:00 — 02:00
+- L'Affogato Marina (Tuzla Marina): 10:00 - 23:00
+- Karaoke odası (yalnız Tuzla köşkü, üst kat): 12:00 - 24:00
 
 Kapanış saati ertesi sabaha sarkar: gece 02:00, bir sonraki günün ilk saatidir.
-Üst katta rezervasyonla kullanılabilen bir karaoke odası vardır: saati 1.000₺,
-en fazla 8 kişi, gece 24:00'e kadar. Rezervasyon web'den (/karaoke) ya da
-uygulamadan yapılır; kartla ödeme alınınca kesinleşir.
 
 Tüm yıl açığız; tek istisna 1 Ocak günüdür. 31 Aralık gecesi servis 1 Ocak saat 02:00'de biter, 1 Ocak günü kapalıyız.
+
+---
+
+## KARAOKE ODASI · TUZLA
+
+Tuzla'da karaoke: L'Affogato'nun Tuzla köşkünde (Postane Mah. Atatürk Cad. No: 28, Tuzla / İstanbul), 200 yıllık Rum köşkünün üst katında yalnız rezervasyonu yapan gruba ayrılan özel bir karaoke odası vardır. Oda bir sahne değildir; şarkıyı yalnız birlikte gelinen kişiler dinler. L'Affogato Marina şubesinde karaoke yoktur.
+
+- Saatler: 12:00 - 24:00 (son başlangıç 23:00); bir rezervasyon 1 ile 4 saat sürer
+- Kapasite: en fazla 8 kişi; daha kalabalık gruplar önce köşkü arar (+90 536 429 09 19)
+- Ücret: saati 1.000₺, yüzde 20 KDV dahil; RUBY seviyesindeki üyelere yüzde 15 indirim
+- Rezervasyon: https://laffogato.net/karaoke ya da L'Affogato uygulaması; gün, saat, süre ve kişi sayısı seçilir, ad, soyad, telefon ve e-posta yazılır (üyelik gerekmez), ön bilgilendirme ve sözleşme onaylanır, kartla online ödenir (3D Secure). Ödeme alınınca rezervasyon kesinleşir ve onay e-postası gelir.
+- İptal: Rezervasyonu yaptığın andan itibaren 2 saat içinde, rezervasyon saati gelmeden iptal edersen ödediğin tutarın tamamı kartına iade edilir. Rezervasyonu yaptığın andan 2 saat geçtikten sonra yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Köşk bir rezervasyonu kendisi iptal ederse tutarın tamamı iade edilir.
+- Ulaşım: Marmaray Tuzla 6 dk yürüme, E-5 / TEM Tuzla çıkışı 4 dk, Sabiha Gökçen 15 dk; ücretsiz vale
+
+Fiyat ve kurallar panelden değişebilir; güncel değerler https://laffogato.net/karaoke sayfasındadır. Ayrıntılı rehber: https://laffogato.net/rehber/tuzla-karaoke
 
 ---
 
@@ -355,6 +369,14 @@ Kremayla hafifletilmiş muhallebi, bisküvi kırığı ve meyvenin kupada kat ka
 https://laffogato.net/rehber/brownie-tarifi
 Bitter çikolata, tereyağı ve az unla yapılan yoğun, ıslak dokulu Amerikan tatlısı. 20x20 cm kap için gram gram tarif, fırın derecesi ve süresi, parlak kabuğun sırrı, sık yapılan hatalar ve saklama.
 
+### Tuzla'da karaoke
+https://laffogato.net/rehber/tuzla-karaoke
+Tuzla'da, 200 yıllık bir Rum köşkünün üst katında yalnız sizin grubunuza ayrılan karaoke odası. Saatler, kapasite, fiyat, online rezervasyonun adımları, iptal kuralı ve köşke ulaşım.
+
+### Tuzla Marina'da kahve: L'Affogato Marina
+https://laffogato.net/rehber/tuzla-marina-kafe
+L'Affogato'nun ikinci şubesi Tuzla Marina'da açıldı. Saatleri, menüsü, Tuzla köşküyle farkları ve hangi hizmetlerin yalnız köşkte olduğu.
+
 ---
 
 ## YASAL KİMLİK VE SÖZLEŞMELER
@@ -382,4 +404,4 @@ Yayındaki hukuki belgeler (https://laffogato.net/hukuk):
 
 ## SORUMLULUK
 
-Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.net adresini kontrol ediniz. Son güncelleme: 2026-08-26.
+Bu metin, generative AI motorlarının (ChatGPT, Claude, Perplexity, Gemini, Copilot vb.) L'Affogato hakkında doğru bilgi sunabilmesi için hazırlanmıştır. Fiyat ve menü değişikliği olabilir; canlı bilgi için https://laffogato.net adresini kontrol ediniz. Son güncelleme: 2026-11-22.

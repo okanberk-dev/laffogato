@@ -9,7 +9,12 @@ import { accountClosureNotice } from "@/lib/customer/account-closure";
 import { TIER_LABELS } from "@/lib/mobile/loyalty-core";
 import { loadAppProps } from "@/lib/seo/app-props";
 import { JsonLd } from "@/lib/seo/json-ld";
-import { getSiteSettings } from "@/lib/seo/site-data";
+import { getSiteKaraokeDay, getSiteSettings } from "@/lib/seo/site-data";
+import { istanbulClock } from "@/lib/mobile/venue";
+import {
+  istanbulMinutes,
+  readKaraokeDay,
+} from "@/components/laffogato/karaoke-today";
 
 export const dynamic = "force-dynamic";
 
@@ -60,10 +65,19 @@ interface PageProps {
 export default async function HomePage({ searchParams }: PageProps) {
   // No `withHomeHero`: the panel's home slides are not on the page (the
   // home page opens on its films, home-hero.tsx), so they are not read.
+  // Today's free karaoke hours come from the site's cache in this render,
+  // not from a request the browser makes after it: a home page view no
+  // longer wakes the database or runs a second function for them.
+  const now = new Date();
   const [
     { cart, item, available, hesap },
     { settings, menu, products, appProps, contact },
-  ] = await Promise.all([searchParams, loadAppProps()]);
+    karaokeDay,
+  ] = await Promise.all([
+    searchParams,
+    loadAppProps(),
+    getSiteKaraokeDay(istanbulClock(now).date),
+  ]);
 
   // The site's old self-service deletion landed here, and its `/?hesap=`
   // links are still out there (the page now sends a request instead).
@@ -110,6 +124,10 @@ export default async function HomePage({ searchParams }: PageProps) {
           rubyDiscountPct: settings.mobileApp.karaoke.oroDiscountPct,
           rubyLabel: TIER_LABELS.oro,
           prepay: settings.karaokePrepay,
+          // The database away: no hours, and no second try from the browser.
+          today: karaokeDay
+            ? readKaraokeDay(karaokeDay, istanbulMinutes(now))
+            : { kind: "error" },
         }}
       />
     </>

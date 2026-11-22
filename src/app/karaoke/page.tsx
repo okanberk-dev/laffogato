@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 
+import Link from "@/components/link";
 import { JsonLd } from "@/lib/seo/json-ld";
+import { karaokeFaq, karaokeLd } from "@/lib/seo/karaoke-faq";
+import {
+  effectiveKaraokeCancelPolicy,
+  karaokeCancellationRules,
+} from "@/lib/mobile/karaoke-time";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
@@ -22,9 +28,10 @@ import { footerSettings } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
-const TITLE = "Karaoke Odası Rezervasyonu - Tuzla | L'Affogato";
+// Keyword-first (Tuzla + karaoke), under 60 characters.
+const TITLE = "Tuzla Karaoke Odası: Online Rezervasyon | L'Affogato";
 const DESCRIPTION =
-  "Köşkün üst katında özel karaoke odası. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.";
+  "Tuzla'da 200 yıllık köşkün üst katında özel karaoke odası. Günü ve saati seç, kartınla öde; rezervasyonun hemen kesinleşir. Saatler, fiyat ve iptal kuralı.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -105,6 +112,24 @@ export default async function KaraokePage({ searchParams }: PageProps) {
     unavailable = true;
   }
 
+  // The questions under the form and in the JSON-LD, from the same panel
+  // values the form uses (src/lib/seo/karaoke-faq.ts).
+  const rules = settings.mobileApp.karaoke;
+  const faqFacts = {
+    capacity: settings.karaokeCapacity,
+    hourlyMinor: settings.karaokeHourlyMinor,
+    firstHour: rules.firstHour,
+    closeHour: rules.closeHour,
+    maxHours: rules.maxHours,
+    prepay: availability?.paymentRequired ?? settings.karaokePrepay,
+    topTierDiscountPct: rules.oroDiscountPct,
+    topTierLabel: TIER_LABELS.oro,
+    cancellationRules:
+      availability?.cancellationRules ??
+      karaokeCancellationRules(effectiveKaraokeCancelPolicy(settings)).rules,
+  };
+  const faq = karaokeFaq(faqFacts);
+
   return (
     <>
       <JsonLd
@@ -113,6 +138,7 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           { name: "Karaoke", url: "/karaoke" },
         ])}
       />
+      <JsonLd data={karaokeLd(faqFacts, faq)} />
       <SiteChrome settings={footerSettings(settings)}>
         <KaraokeBooking
           days={days}
@@ -159,6 +185,29 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           // `getSettings()` and decides there.
           prepay={availability?.paymentRequired ?? settings.karaokePrepay}
         />
+        <section
+          className="section section--band karaoke-faq"
+          aria-labelledby="karaoke-faq-title"
+        >
+          <div className="wrap">
+            <h2 id="karaoke-faq-title" className="t-display">
+              Karaoke odası hakkında
+            </h2>
+            <div className="seo-faq">
+              {faq.map((e) => (
+                <details key={e.q}>
+                  <summary>{e.q}</summary>
+                  <p>{e.a}</p>
+                </details>
+              ))}
+            </div>
+            <p className="karaoke-faq-more">
+              <Link className="link-u" href="/rehber/tuzla-karaoke">
+                Tuzla&rsquo;da karaoke rehberi
+              </Link>
+            </p>
+          </div>
+        </section>
       </SiteChrome>
     </>
   );

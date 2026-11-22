@@ -31,7 +31,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     key: "home.hero.eyebrow",
     group: "Ana sayfa",
     label: "Ana sayfa giriş etiketi",
-    hint: "Slaytların altındaki tanıtım bandının üstündeki kısa satır. Boş bırakırsan çıkmaz.",
+    hint: "Anasayfa filminin altındaki tanıtım bandının üstündeki kısa satır. Boş bırakırsan çıkmaz.",
     kind: "text",
     default: "Bologna · 1897 → İstanbul · 2026",
     allowEmpty: true,
@@ -40,7 +40,7 @@ export const CONTENT_FIELDS: ContentField[] = [
     key: "home.hero.lede",
     group: "Ana sayfa",
     label: "Ana sayfa giriş metni",
-    hint: "Slaytların altındaki tanıtım bandı; ilk cümlesi kalın yazılır. Boş bırakırsan bant gizlenir.",
+    hint: "Anasayfa filminin altındaki tanıtım bandı; ilk cümlesi başlık olur. Boş bırakırsan bant gizlenir.",
     kind: "textarea",
     default:
       "İtalya’dan ithal kahve barı konsepti. Tek-origin Sirena espresso’yu fior di latte gelato üzerine, 1994 patentli yenilebilir waffle kup içinde döküyoruz. Bittiğinde kaşığa gerek yok - kupu yiyorsunuz.",

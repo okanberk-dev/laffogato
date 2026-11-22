@@ -169,12 +169,30 @@ yüksek hacimli ve **düşük zorlukta** olmasıydı. `/rehber` bu boşluğu kap
 | `chai-tea-latte`            | chai tea latte (8.100) · chai latte (1.600) · tarifi (1.300) · içindekiler         | ~13.000      | 12-21 |
 | `magnolia-tarifi`           | magnolia tarifi · magnolia tatlısı · çilekli / muzlu / lotus magnolia              | doğrulanmadı | -     |
 | `brownie-tarifi`            | brownie tarifi · brownie · ıslak brownie · browni · kaç derecede pişer             | doğrulanmadı | -     |
+| `tuzla-karaoke`             | tuzla karaoke · karaoke tuzla · özel karaoke odası · karaoke odası kiralama        | doğrulanmadı | -     |
+| `tuzla-marina-kafe`         | tuzla marina kafe · tuzla marina · viaport marina kafe · l'affogato marina         | doğrulanmadı | -     |
 
 Semrush, TR veritabanı; ilk beşi Eylül 2026, sonraki beşi 25 Ekim 2026'da
 ölçüldü. **Magnolia ve brownie** (5 Kas 2026, operatörün isteğiyle) Semrush'a
 erişim olmayan bir oturumda açıldı: ikisi de menüde satılan tatlılar ve genel
 olarak çok aranan tarifler, ama hacim ve zorluk henüz ölçülmedi. Ölçülünce
-bu tabloya ve `guides.ts` başındaki listeye yazılmalı.
+bu tabloya ve `guides.ts` başındaki listeye yazılmalı. **Tuzla'da karaoke ve
+L'Affogato Marina** (22 Kas 2026, operatörün isteğiyle: _"karaokeyi de tuzla
+için seo geo ve ne gerekiyorsa yap blog yazısı da yaz; ... marina şubesi için
+de blog yazısı yaz"_) da Semrush'sız bir oturumda açıldı ve aynı biçimde
+"doğrulanmadı" duruyor. İkisi tarif değil, köşkün kendi yerleri: yerel arama
+(Tuzla + karaoke, Tuzla Marina + kafe) için. Karaoke yazısının fotoğrafı
+köşkün kendi gece fotoğrafı (oda üst katta); Marina'nın henüz fotoğrafı yok,
+yazı fotoğrafsız (başkasının fotoğrafı konmaz). Rakamlar 22 Kas 2026'da
+panelde olanlardır; metin, güncel değerin rezervasyon sayfasında olduğunu
+söyler.
+
+**`/karaoke` sayfası** (22 Kas 2026): başlık "Tuzla Karaoke Odası: Online
+Rezervasyon", formun altında görünür bir SSS ve JSON-LD'de `Service`
+(sağlayıcı ana sayfanın `#localbusiness`'ı, saatlik `UnitPriceSpecification`,
+KDV dahil) + `FAQPage` (`src/lib/seo/karaoke-faq.ts`). Sorulardaki her rakam
+ve iptal cümlesi panelin ayarlarından, sayfanın zaten okuduğu değerlerden
+gelir; elle yazılmış rakam yok.
 
 **Neden bunlar:** hepsi menüde gerçekten olan bir ürüne bağlanıyor. Satmadığımız
 bir şey için içerik üretmiyoruz - arama trafiği ile ticari niyet arasında bağ

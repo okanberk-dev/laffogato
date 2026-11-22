@@ -19,6 +19,8 @@
  *   chai-tea-latte            ~13.000/ay  (chai tea latte 8.1k · chai latte 1.6k)
  *   magnolia-tarifi           doğrulanmadı (5 Kas 2026; Semrush erişimi yoktu)
  *   brownie-tarifi            doğrulanmadı (5 Kas 2026; Semrush erişimi yoktu)
+ *   tuzla-karaoke             doğrulanmadı (22 Kas 2026; Semrush erişimi yoktu)
+ *   tuzla-marina-kafe         doğrulanmadı (22 Kas 2026; Semrush erişimi yoktu)
  *
  * Content lives in `guide-content.ts` as plain data so it can move to the
  * database later without touching the route.
@@ -85,6 +87,10 @@ const ORDER = [
   "chai-tea-latte",
   "magnolia-tarifi",
   "brownie-tarifi",
+  // The köşk's own places: Tuzla's karaoke room and the Marina branch
+  // (operator, 22 Kas 2026).
+  "tuzla-karaoke",
+  "tuzla-marina-kafe",
 ];
 
 function rank(slug: string): number {

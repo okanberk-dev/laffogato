@@ -18,11 +18,17 @@ import { loadKaraokeToday, type KaraokeToday } from "./karaoke-today";
  * both the band's chips and the karaoke door's "Bugün N boş saat". `enabled`
  * is false where the page has no karaoke facts (no band, so no request).
  */
-export function useKaraokeToday(enabled = true): KaraokeToday {
-  const [today, setToday] = useState<KaraokeToday>({ kind: "loading" });
+export function useKaraokeToday(
+  enabled = true,
+  /** What the page's render already read (KaraokeFacts.today): no request. */
+  initial?: KaraokeToday,
+): KaraokeToday {
+  const [today, setToday] = useState<KaraokeToday>(
+    initial ?? { kind: "loading" },
+  );
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || initial) return;
     const ctrl = new AbortController();
     loadKaraokeToday(fetch, () => new Date(), ctrl.signal).then(
       setToday,
@@ -30,7 +36,7 @@ export function useKaraokeToday(enabled = true): KaraokeToday {
       () => {},
     );
     return () => ctrl.abort();
-  }, [enabled]);
+  }, [enabled, initial]);
 
   return today;
 }
