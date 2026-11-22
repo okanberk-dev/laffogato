@@ -133,125 +133,158 @@ aynı fonksiyonu çağırsın. Örnekler: `src/lib/mobile/karaoke-core.ts` ↔
 `karaoke.ts` (web `/karaoke` sayfası ile mobil uç aynı `createReservation`'a
 iner), `loyalty-core.ts` ↔ `loyalty.ts`.
 
-**Site görünümü 11 Kas 2026'dan beri Roast (operatör: _"siteyi tamamen
+**Site görünümü 21 Kas 2026'dan beri Blue Bottle'ın dilinde; anasayfa bir
+filmle açılır.** Operatör önce eski görünümü sildirdi (_"sitedeki tüm ölü
+cssleri sil ... tüm tasarım dosyalarını vs. temizle sna yeni tasarım örneği
+atacağım site ordan tek tek çekeceksin"_; seçtiği yol "Sıfırla, iskelet
+kalsın"), sonra iki referans verdi: _"burdaki herodaki videoyu birebir çek
+kullan https://goodboybob.com/ ve bu site tasarımını da birebir al bize uygun
+olan görselleri de çek marka belirtilmeyen premiuum olsun her şeyi birebir
+uyarla ve bizde olan özellikleri de bu tasarımlara göre yap
+https://bluebottlecoffee.com/us/eng ... karaoke sayfasının wizardını falan ona
+göre ayarla ve mobil versiyonlarına da aşırı dikkat et."_ Ardından: _"sen
+benim yaptığımı sil sana verdiğim sitelerdeki ile birebir git 1:1 lütfen
+bendeki her tasarımı sil elementi verdiklerimden al ve onlarla uyumlu git
+olmayanlrı da sana attığım bluebotter sitesi ile uyumlu oluştur."_
+Unutulmaması gerekenler:
+
+- **Alınan dildir.** bluebottlecoffee.com'dan düzen, yazı ölçeği ve işlenişi,
+  boşluklar, bileşenler ve etkileşimler (fareyle açılan menü paneli, sağdan
+  sepet ve filtre çekmecesi, üstten arama paneli); goodboybob.com'dan
+  anasayfanın tam ekran filmi (sol altta küçük başlık, sağ altta alt çizgili
+  bağlantı). Onlarda olmayan özelliklerimiz (kafe menüsü, karaoke sihirbazı,
+  kampanyalar, rehberler, masa sayfası, ödeme, üye alanı) aynı dille yazıldı.
+- **Varlıkları alınmadı, onlarındır:** Good Boy Bob'un filmleri; Blue
+  Bottle'ın fotoğrafları, logosu ve şişe işareti, lisanslı yazı tipleri
+  (Dinamo'nun ABC Marfa ve ABC Diatype'ı, ticari lisans). Yerlerinde aynı
+  yapıda açık yüzler (Archivo, Geist), sitede zaten olan fotoğraflar (köşk,
+  menü, rehber) ve lisanslı stok film ve kareler (Mixkit); kaynaklar ve
+  lisanslar `docs/MEDIA-LICENSES.md`. Operatör hero'daki videoyu da birebir
+  istedi: film Good Boy Bob'un eseri olduğu için hero'nun biçimi ve davranışı
+  alındı, filmin yerine stok klipler kondu. Roast (referanstan yalnız
+  oranlar) ve yolculuk (promptun son karesi başka bir firmanın logosu olan
+  sahnesi alınmadı) da bu ilkeyle yapılmıştı.
+- **Değerler** (`src/styles/foundation.css :root`, kurallar aşağıda "Tasarım
+  Sistemi"): beyaz sayfa, `#f6f6f3` bant (`--band`), siyah mürekkep, gri
+  `#6c6864` (`--muted`), her dolu kontrol ve footer için **tek kömür**
+  `#333333` (`--charcoal`), çizgi `#dcdcd6`. Başlık, gezinme, fiyat ve etiket
+  Archivo'yla: geniş (`"wdth" 118`), 400, büyük harf, 1.6px aralıklı; cümle
+  ve kontroller Geist. Kare köşe; gölge, bulanıklık ve degrade yok (filmin
+  alt gölgesi dışında). Düğme 48px, 1px kömür kenar; çağrı düğmesi 350px,
+  telefonda tam satır.
+- **Krom** (`chrome.tsx`): bantta duyuru satırı ("Her siparişte damga topla |
+  Kampanyalar") ve yapışkan çubuk: solda dört büyük harf bağlantı (Menü,
+  Mağaza, Karaoke, Ziyaret & keşfet; üçü fareyle tam genişlik panel açar),
+  ortada L'Af, sağda arama, hesap, sepet. 1280px altında menü düğmesi ve tam
+  boy panel, 1024px altında hızlı bağlantı çipleri. Kampanyalar ana menüden
+  çıktı (duyuru satırında, ziyaret panelinde, çiplerde ve footer'da). Footer
+  kömür blok: dört sütun (Keşfet, Ziyaret, Üyelik, Kurumsal), bülten
+  (`email`, `consent`; kutu işaretsiz), şirket satırları. Buzlu ya da saydam
+  çubuk, yüzen sipariş düğmesi (`.frap`) ve telefon sekme çubuğu yok.
+- **CSS `src/styles/`'ta.** `globals.css` yalnız içe aktarır (Tailwind, sonra
+  sayfa sırasıyla `foundation`, `chrome`, `sections`, `home`, `catalog`,
+  `pages`, `karaoke`, `checkout`, `account`) ve panelin geri alma ve baskı
+  kurallarını taşır. Ödeme ve üye alanının kuralları eski dosyadan düzeniyle
+  taşındı, görünüşü yeniden yazıldı; karaoke sihirbazında yalnız CSS değişti
+  (alan adları aynı); gerisi sıfırdan yazıldı. Hukuki asgariler
+  `foundation.css`'te durur: sözleşme ve ön bilgilendirme metinleri 16px (MSY
+  m.6/1, 12 pt), iOS için 16px alanlar, karar vermiş ziyaretçide çerez
+  kartının hidrasyondan önce gizlenmesi.
+- **Kaldırılanlar:** yolculuk (aşağıda); three.js bantları (`roast-stage.tsx`,
+  `roast-scene.ts`; `three` `package.json`'da kullanılmadan duruyor, kilit
+  dosyası yeniden üretilmesin diye: `vitest` gibi ayrı iş); `reveal-text`,
+  `scramble-text`, `reveal-motion`; çizimler (`illustration.tsx`,
+  `menu-visuals.tsx`, `payments-art.tsx`, `public/illustrations/`'tan 30 SVG;
+  `karaoke-room.webp` ve `karaoke-mic-cut.webp` kaldı, `home-hero-core.ts` ve
+  `og-pages.tsx` okur); `footer-night.tsx`; `docs/REDESIGN-ROAST.md`,
+  `docs/JOURNEY.md`, `docs/journey/`.
+- **Değişmeyenler:** arka yüz (`src/lib`, `src/app/api`, action'lar,
+  route'lar, `src/proxy.ts`, `db`, `scripts`); panel (`/admin`); logo L'Af
+  (`public/brand/`, `<LafMark>`; uygulama ikonu da odur). E-posta, bağlantı
+  önizlemesi (OG kartları), ikonlar ve PayNkolay köprüsü eski (porselen, logo
+  yeşili) palette kaldı; e-postalar 15 Eki 2026'dan beri açık ve koyu modda
+  okunur (`src/lib/email/templates/README.md` "Palet"; Supabase'in dört giriş
+  e-postası `docs/email/`'da, panele elle yapıştırılır). Tasarım kaydı
+  `docs/BRAND.md`.
+
+Aşağıdaki üç paragraf tarihçedir:
+
+**Tarihçe: Roast (11-21 Kas 2026; operatör: _"siteyi tamamen
 https://coffee-beans-swart.vercel.app/ bu sitedeki gibi ... yap, three js vs.
-ne varsa kullan ... bize uyarlayarak yap"_).** Krem zemin `#faf7f2`; mürekkep,
-her dolu düğme, koyu bantlar ve footer için **tek bir espresso** `#23120b`
-(token adları değişmedi: `--green-*` ailesi, `--brand`, `--bg-espresso` ve
-`--night` artık o espressodur); amber `#de853a` (`--amber` =
-`--accent-on-dark`) tek sıcak düğmenin dolgusu ve koyu zeminde vurgu; krem
-üstünde vurgu metni karamel `--accent` `#a35019` (amber orada 2.61:1 kalır);
-pirinç `#cba258` yalnız ödül anında; sitede kalan tek yeşil `--matcha`
-`#1d6d56`, yalnız olumlu durum. İki ses: başlık Abril Fatface (tek kesim
-400, büyük harf CSS'le), gerisi Plus Jakarta Sans; Poppins emekli. 16px
-kart, espresso tonlu gölge (`rgba(35, 18, 11, …)`, siyah değil), tam hap
-düğme ve basınca 0.95, başta saydam olup kaydırınca buzlu kreme dönen üst
-çubuk, sağ altta yüzen sipariş düğmesi (`.frap`). Anasayfa 17 Kas 2026'dan
-beri **yolculukla** açılır (hemen aşağıda; 11-17 Kas arası girişi
-kaydırmayla ilerleyen bir three.js çekirdeğiydi, `home-roast.tsx`, kaldırıldı)
-ve iki three.js bandı taşır (`roast-stage.tsx`, `roast-scene.ts`; `three`
-yalnız `import()` ile). Başka markanın yeşili ve emekli renkler kullanılmaz
-(`tests/brand-theme.test.ts`). Tasarım kaydı `docs/REDESIGN-ROAST.md`,
-değerler `docs/BRAND.md` §0. Panel (`/admin`) değişmedi. E-posta, bağlantı
-önizlemesi, ikonlar ve PayNkolay köprüsü eski (logo yeşili) palette.
-Aşağıdaki iki paragraf tarihçedir:
+ne varsa kullan ... bize uyarlayarak yap"_).** Krem zemin `#faf7f2`, tek
+espresso `#23120b`, amber ve karamel vurgu, Abril Fatface ile Plus Jakarta
+Sans, hap düğme, buzlu üst çubuk, iki three.js bandı; 17 Kas 2026'dan sonra
+anasayfa yolculukla açıldı. Kaydı `git show 4962da2:docs/REDESIGN-ROAST.md`,
+değerleri `git show 4962da2:docs/BRAND.md` (§0).
 
-**Tarihçe: site görünümü 5 Kas - 11 Kas 2026 arasında kafe-perakende
-düzenindeydi (operatör:
-_"starbucks tarzı istiyorum ... ama panel değil"_).** Krem zemin `#f2f0eb`,
-logo yeşilinden türetilmiş dört yeşil (brand `#1d6d56` başlık/metin, cta
-`#1f7a5c` dolu düğme, house `#173f35` bant, uplift `#2a5a4d`; footer 6 Kas
-2026'dan beri gece espressosu `--night` `#181412`, üstünde resimli gece bandı),
-pirinç `#cba258` yalnız ödül anında, tek ses Poppins (Gabarito emekli;
-ödül başlığında sistem serifi), 12px kart, katmanlı siyah-alfa gölge, cam /
-bulanıklık / degrade dolgu yok, düğme 50px hap ve basınca 0.95, sağ altta
-yüzen sipariş düğmesi (`.frap`). Başka markanın yeşili kullanılmaz
-(`tests/brand-theme.test.ts`). Bu, aşağıdaki uygulama paritesinden
-**bilinçli ayrışmaydı**; değerleri `docs/BRAND.md` §9'da. Panel (`/admin`)
-değişmedi. E-posta, bağlantı önizlemesi ve ikonlar eski (porselen) palette.
-Aşağıdaki paragraf da tarihçedir:
+**Tarihçe: kafe-perakende düzeni (5-11 Kas 2026; operatör: _"starbucks tarzı
+istiyorum ... ama panel değil"_).** Krem zemin `#f2f0eb`, logo yeşilinden
+dört yeşil (brand `#1d6d56`, cta `#1f7a5c`, house `#173f35`, uplift
+`#2a5a4d`), 6 Kas 2026'dan sonra gece espressosu footer (`--night`
+`#181412`), pirinç `#cba258` yalnız ödülde, tek ses Poppins, 12px kart, 50px
+hap düğme, yüzen sipariş düğmesi (`.frap`). Aşağıdaki uygulama paritesinden
+bilinçli ayrışmaydı; değerleri `git show 4962da2:docs/BRAND.md` (§9).
 
-**Tasarım paritesi (25 Eyl - 5 Kas 2026) - kaynak uygulamaydı.**
-Operatör talimatı (25 Eyl 2026): _"lafmobil ... tasarımı apple'a uygun, sen de
-site tasarımını buna uygun olarak güncelle"_. Bu, lafmobil karar 31'i (c)
-seçeneğiyle kapattı: site uygulamanın bütün paletini (`lafmobil/src/theme/tokens.ts`,
-`porcelain`, DESIGN-GLASS §13), iki yazı sesini (Poppins gösterim, Inter
-okuma) ve cam malzeme dilini (kapsül düğme, cam kart, yüzen cam krom, sekme
-çubuğu) aldı. **Yazıda tek ayrışma (operatör, 11 ve 14 Eki 2026):** site
-başlıkları ve gösterim rakamlarını **Gabarito**'yla (`--headline`; operatörün
-istediği Biennale'nin lisanssız olduğu için yerine duran serbest akrabası),
-gövdeyi, kontrolleri, ürün adlarını ve liste fiyatlarını **Poppins**'le
-(`--display`, 300-800) yazar; Inter yok. Uygulama hâlâ Poppins + Inter; onun
-izlemesi lafmobil'de ayrı bir karardır (`docs/BRAND.md` §2). Değerler: porselen zemin `#f7f3ed`, yapı yeşili `#1d6d56`,
-bordo `#9d2543` / `#520f1f` / `#f9e6ea`, pirinç `#e8c877`, altın metin
-`#765923`, gölgeler `rgba(59, 42, 30, …)`. **Logo L'Af** (`public/brand/`,
-`<LafMark>`); uygulama ikonu da odur. Uygulamanın paleti değişirse site aynı
-PR serisinde izler (değer tablosu lafmobil `docs/SITE-PALETTE-SYNC.md`);
-ayrışma operatör kararı ister. **E-postalar da 15 Eki 2026'dan beri bu
-palette** ve açık/koyu modda okunur: zemini gömülü bantlar HTML çubuğa,
-logo çifti ve glint GIF'i tek opak karoya (`public/email/logo-laf-tile.png`)
-döndü; koyu mod sınıf kancalarıyla (`em-card`, `em-t1`… ;
-`prefers-color-scheme` + Outlook `[data-ogsc]`/`[data-ogsb]`), ayrıntı
-`src/lib/email/templates/README.md` "Palet". Supabase'in dört giriş
-e-postası (`docs/email/`) aynı iskelette; panele elle yapıştırılır.
-`tests/brand-theme.test.ts` ve `tests/email-templates.test.ts` tutar. Tam
-kılavuz ve geçmiş: `docs/BRAND.md`.
+**Tarihçe: tasarım paritesi (25 Eyl - 5 Kas 2026), kaynak uygulamaydı.**
+Operatör (25 Eyl 2026): _"lafmobil ... tasarımı apple'a uygun, sen de site
+tasarımını buna uygun olarak güncelle"_ (lafmobil karar 31, seçenek c). Site
+uygulamanın porselen paletini (`lafmobil/src/theme/tokens.ts`, DESIGN-GLASS
+§13), cam malzeme dilini (kapsül düğme, cam kart, yüzen cam krom) ve
+Poppins'i aldı; başlık ve gösterim rakamları operatörün isteğiyle (11 ve 14
+Eki 2026) Gabarito'ydu (istediği Biennale lisanssızdı). Değerler: porselen
+zemin `#f7f3ed`, yapı yeşili `#1d6d56`, bordo `#9d2543`, pirinç `#e8c877`,
+altın metin `#765923`. E-postalar 15 Eki 2026'da bu palete geçti ve orada
+kaldı (yukarıda "Değişmeyenler"). Uygulamanın paletini izleme kuralı
+(lafmobil `docs/SITE-PALETTE-SYNC.md`) 5 Kas 2026'daki ayrışmayla bitti.
 
-**Anasayfanın girişi: yolculuk (17 Kas 2026; operatör: _"sitede aşağıdaki
-promptu uygula ve kahveciye uygun hale getir sonra maine gönder"_, ardından
-"alpha project" build promptu).** Anasayfa tek bir sabitlenmiş ekranla
-açılır (380vh kaydırma): kaydırmanın oynattığı bir film (120 adımlık zaman
-çizgisi, her iki adımda bir kare: kesim başına 61 kare), kavrulmuş çekirdek
-yığınının içinden çıkıp bardaki bisküvi kupalı affogatoya gider; her
-karenin derinlik haritası olduğu için görüntü imleçle paralaks yapar
-(WebGL 1). Kaydırma sürerken iki komşu kare birbirine karışır, durunca tek
-kareye oturur. Üstünde krem bir ön yükleyici sayar
-(0-100) ve ortadan dışa **yanarak** açılır; sonra üst çubuk yükselir,
-başlık kelime kelime bulanıklıktan çıkar; kaydırdıkça ikinci blok, iki cam
-kart ve üçüncü blok gelir; resmin üstünde halka imleç dolaşır. Kod
-`src/components/laffogato/journey/`, kayıt `docs/JOURNEY.md` (promptun
-neyi aynen alındı, neyi kahveciye çevrildi, sitenin kuralları neyi
-değiştirdi). Unutulmaması gerekenler:
+**Anasayfanın girişi: film (21 Kas 2026; operatör: _"burdaki herodaki
+videoyu birebir çek kullan https://goodboybob.com/"_).** 17 Kas 2026'dan beri
+anasayfayı açan yolculuk 21 Kas 2026'da kaldırıldı. Anasayfa, çubuğun altında
+ekranın kalanını dolduran tam genişlik bir filmle açılır (`home-hero.tsx`,
+stili `src/styles/home.css`): üç klip sırayla oynar; sol altta klibin
+başlığı, sağ altta bağlantısı, 01/02/03 sayfalayıcı ve durdur düğmesi
+(telefonda alt alta). Filmin altında `home-page.tsx`'in bölümleri gelir:
+Şimdi barda (canlı menüden dört kalem, fotoğraflılar önce), imza içeceği,
+Kategoriler, Evde L'Affogato, karaoke (ayarlardan ve bugünün boş
+saatlerinden), uygulama, Rehberler, Bizi ziyaret edin (`home-app-intro`,
+`home-take-home` ve `home-karaoke` buraya katıldı). Unutulmaması gerekenler:
 
-- **Film bizim.** Kareler Blender'da (Cycles) `docs/journey/scene.py` ile
-  çizildi, `grade.py` derecelendirdi, `pack.py` paketledi. Promptun buz
-  mağarası kullanılmadı (son karesi başka bir firmanın logosu). İki kesim:
-  `wide` (16:9) ve `tall` (9:16, telefon).
-- **Kareler tek tek dosya değildir.** Her kesim beş pakettir
-  (`journey/frames/*.bin`, karelerin WebP baytları uç uca;
-  `frames/index.json` nerede başladıklarını söyler) ve `new URL(…,
-  import.meta.url)` ile bağlanır: paketleyici onları içerik damgasıyla
-  `_next/static/media` altına yazar (bir yıl önbellek, proxy dışında). Bir
-  ziyaret film için 5 istek atar, 240 değil; kareleri `public/` altına tek
-  tek koymak Vercel'in istek sayacını doldurur (aşağıda "Vercel kullanım
-  sınırı"). Eksik adımlar (tek numaralı kareler) sonradan çizilip aynı
-  paketlere eklenebilir, kod değişmez: paket hangi kareleri taşıdığını
-  kendisi söyler. Film baştan çizilirse `FRAME_COUNT`, paketler ve
-  `index.json` birlikte değişir.
-- **Yazı tipi istisnası.** Yolculuk, sitede Instrument Sans (%91 genişlik)
-  ve Instrument Serif italikle yazılan tek yerdir; yüz çifti promptundur.
-  `src/app/page.tsx`'te yüklenir (yalnız anasayfa önceden yükler) ve resim
-  altındayken üst çubuğa da ulaşır. Sitenin geri kalanı iki sesinde kalır.
-- **Üst çubuk sitenin kendisidir.** Resim altındayken
-  (`html[data-journey="over"]`, globals.css "Journey") buzsuz, beyaz
-  mürekkepli, bağlantıları cam hapın içinde, sepeti beyaz düğme olarak
-  çizilir; ön yükleyicinin altında gizlidir (`data-journey-phase`, script
-  çalışmadan önce `:has()`), girişle birlikte yükselir
-  (`data-journey-intro`). Telefonun sekme çubuğu koyu cama döner, yüzen
-  sepet düğmesi resim boyunca gizlenir. Ayrı bir gezinme yazılmadı.
-- Ön yükleyici sayfa yükü başına bir kez gösterilir; anasayfaya istemci
-  tarafında dönüşte ve sayfa yolculuğun altında açıldığında gösterilmez.
-  Çerez kartı açıkken metin kartın üstünde durur (`--j-lift`). Azaltılmış
-  harekette yanma, giriş animasyonu ve paralaks yok; WebGL yoksa kareler
-  düz çizilir; script yoksa ön yükleyici hiç çizilmez.
+- **Film lisanslı stok, bizim çekimimiz değil.** Üç Mixkit klibi, sessiz
+  H.264, `faststart`: `public/video/hero-{1,2,3}-{wide,tall}.mp4` ve her
+  kesimin ilk karesinden `.webp` afiş. Geniş kesim 1920px; dik kesim
+  720×1280, telefon (`max-width: 767px`) onu alır. Klipler, kesim noktaları
+  ve lisans `docs/MEDIA-LICENSES.md`. Başlıklar ve bağlantılar koddadır
+  (`HERO_SLIDES`); panelin anasayfa slaytları (`/admin/anasayfa-hero`)
+  yolculuk döneminde olduğu gibi sayfada değil (`page.tsx` okumaz).
+- **Ne zaman oynar.** Sunucu afişleri çizer: ilk afiş (`fetchpriority="high"`)
+  sayfanın en büyük boyamasıdır, ekran hiç boş kalmaz. Film hidrasyondan
+  sonra, yalnız azaltılmış hareket ve Save-Data yokken başlar; hero en az %15
+  ekrandayken ve sekme görünürken oynar, değilse durur. Azaltılmış harekette
+  ve Save-Data'da `<video>` hiç çizilmez: klip inmez, afiş kalır, durdur
+  düğmesi de olmaz. Durdur düğmesi filmi ve slaytların dönüşünü birlikte
+  durdurur (WCAG 2.2.2); tarayıcı otomatik oynatmayı reddederse (düşük güç
+  modu) afiş kalır.
+- **Ne zaman iner.** Üç afiş ilk boyamada iner (pasif slayt yalnız
+  saydamdır, `loading="lazy"` onu bekletmez). İlk klibin kaynağı
+  hidrasyondan sonra verilir (`preload="auto"`); sıradaki, çalan klibin
+  yarısı geçince (geçişte boşluk olmasın diye), sayfalayıcıdan seçilen hemen.
+  Rakamlar aşağıda "Vercel kullanım sınırı".
+- **Yolculuktan bir şey kalmadı:** kare paketleri (`journey/frames/*.bin`),
+  WebGL derinlik ve yanma çizicileri, ön yükleyici, halka imleç, cam kartlar,
+  Instrument Sans / Serif istisnası ve üst çubuğun `data-journey*` hâlleri
+  silindi. Kaydı ve Blender betikleri git'te:
+  `git show 4962da2:docs/JOURNEY.md`,
+  `git show 4962da2:docs/journey/scene.py` (yanında `grade.py`, `pack.py`).
 
-**Karamel ile espresso asla üst üste yazılmaz** (11 Kas 2026'ya kadar:
-"bordo ile yeşil"). `--accent` `#a35019` krem üstünde metindir (5.28:1);
-espresso zeminlerde 3.20:1'de kalır. Koyu zeminde `--accent-on-dark` (amber,
-6.47:1) kullanılır; `.script` bunu `--script-ink` değişkeniyle
-kendiliğinden yapar, koyu bir blok yazarken `data-ground="dark"` eklemek
-yeterlidir. Tersi de kuraldır: amber krem üstünde metin olmaz (2.61:1).
-`tests/contrast.test.ts` bu kuralları tutar.
+**Gri kömür zemine yazılmaz** (21 Kas 2026; 21 Kas'a kadar "karamel ile
+espresso", 11 Kas'a kadar "bordo ile yeşil"). `--muted` `#6c6864` beyazda
+5.5:1, bantta 5.1:1 tutar, kömürde 2.3:1'de kalır. Koyu zeminde (kömür blok,
+footer, film) yazı `--on-dark` (beyaz, kömürde 12.6:1) ya da
+`--on-dark-muted` (%72 beyaz, kömürde 7.4:1) olur; `data-ground="dark"` ya
+da `.on-dark` klavye odağını da beyaza çevirir. Filmin üstündeki beyaz yazıyı
+alt gölge (`.hero-film-shade`) tutar; oran kareye göre değişir. Bu oranları
+tutan test artık koşmuyor (en üstteki not): token değişince elle ölçülür
+(aşağıda "Tasarım Sistemi").
 
 ## Ön yüz ↔ Arka yüz Sınırı
 
@@ -260,8 +293,9 @@ yeterlidir. Tersi de kuraldır: amber krem üstünde metin olmaz (2.61:1).
 > Ön yüz işine başlarken skill: **`frontend-redesign`**.
 
 - **Ön yüz (serbest):** `src/components/laffogato/**`, `src/components/uye/**`,
-  `src/components/customer/**`, `src/app/globals.css`, müşteri `page.tsx` /
-  `*-form.tsx` dosyalarının **işaretlemesi**, `public/**`.
+  `src/components/customer/**`, `src/app/globals.css`, `src/styles/**`,
+  müşteri `page.tsx` / `*-form.tsx` dosyalarının **işaretlemesi**,
+  `public/**`.
 - **Arka yüz (ön yüz PR'ında değişmez):** `src/lib/**`,
   `src/app/**/actions.ts`, `src/app/**/route.ts`, `src/app/api/**`
   (özellikle `api/mobile/v1` — sahadaki uygulama), `src/proxy.ts`, `db/**`,
@@ -301,13 +335,12 @@ yeterlidir. Tersi de kuraldır: amber krem üstünde metin olmaz (2.61:1).
 src/
   app/
     page.tsx                 → Müşteri SPA entrysi (hash router: #home, #menu, ...)
-                               + yolculuğun iki yüzü (Instrument Sans /
-                               Serif), yalnız bu rota için
-    layout.tsx               → next/font ile iki ses (Abril Fatface başlık,
-                               tek kesim 400; Plus Jakarta Sans metin,
-                               değişken 200-800) + Consent
+    layout.tsx               → next/font ile iki ses (Archivo başlık, değişken
+                               genişlik ve kalınlık; Geist metin) + Consent
                                Mode bootstrap (GTM'den önce) + GTM
-    globals.css              → Tüm design tokens + müşteri SPA stilleri
+    globals.css              → Tailwind + src/styles/*.css (sayfa sırasıyla)
+                               + panelin geri alma ve baskı kuralları; site
+                               stili ve token'lar src/styles/'ta
     menu/ magaza/ hikayemiz/ → Müşteri rotaları (SPA içeriğinin SEO'lu karşılıkları)
     ziyaret/ hukuk/
     odeme/                   → Tek sayfa checkout (checkout.tsx + kartın yerli
@@ -361,46 +394,44 @@ src/
   components/
     laffogato/               → Müşteri SPA
       app.tsx                → Shell (cart, route, notice, settings)
-      chrome.tsx             → Nav + Footer
+      chrome.tsx             → Duyuru satırı + Nav (paneller, telefon paneli,
+                               hızlı bağlantı çipleri) + Footer
       home-page.tsx · menu-page.tsx · shop-page.tsx ·
       story-page.tsx · visit-page.tsx
                              → Sayfa gövdeleri; app.tsx her birini
                                next/dynamic ile ayrı chunk olarak yükler
                                (statik import etme - spa-page-chunks testi)
+      home-hero.tsx          → Anasayfanın filmi: üç klip, afişler,
+                               sayfalayıcı, durdur (public/video)
+      page-hero.tsx          → <PageHero>: anasayfa dışındaki sayfaların
+                               açılışı (geniş fotoğraf, başlık, paragraf)
       page-shared.ts         → PageProps + MENU_TAG_LABELS
       ui.tsx                 → ProductCard, CartDrawer, ProductModal, ...
-      visuals.tsx            → SVG illüstrasyonlar + HUES yüzey paleti
+      visuals.tsx            → ProductSurface + MenuPlate: fotoğraf ya da
+                               bandın düz zemini (çizim yok)
+      scenes.ts              → Sahne pigmentleri: sitede çizilmez, yalnız
+                               panelin anasayfa slaytları okur
       product-detail.tsx     → Ürün detay (PDP)
       shop-hero-slider.tsx   → Mağaza hero karuseli
-      journey/               → Anasayfanın girişi: yolculuk (docs/JOURNEY.md)
-        home-journey.tsx     → Sahne: ön yükleyici, yanma, giriş, kaydırma
-                               döngüsü (tek mount effect'i)
-        journey-copy.tsx     → Bir metin bloğu (iki satır başlık + paragraf)
-        journey-cursor.tsx   → Halka imleç (yalnız sahne üstünde)
-        sequence.ts          → Kare paketlerini yükler, en yakın kareyi verir
-        depth-renderer.ts    → WebGL 1: kareyi derinlik paralaksıyla çizer
-                               (WebGL yoksa düz 2D)
-        burn-renderer.ts     → WebGL 1: ön yükleyicinin yanan krem kâğıdı
-        glass-blur.ts        → Cam kartların arkasındaki bulanık kopya
-        config.ts · motion.ts→ Hareket sayıları · clamp/lerp/damp, blok durumu
-        frames.ts + frames/  → Paketlerin adresleri · *.bin + index.json
-        journey.module.css   → Sahnenin tüm stilleri (tasarım pikseli `--u`)
-      roast-stage.tsx        → <RoastStage kind="pour|affogato"> canlı
-                               çizimin sahnesi (altında düz SVG çizim) +
-                               <RoastPause> durdur düğmesi; roast-scene'i
-                               yalnız `import()` ile, yükten ve boş andan
-                               sonra yükler ("bean" türü 17 Kas 2026'dan
-                               beri kullanılmıyor)
-      roast-scene.ts         → three.js'i import eden TEK modül (üç sahne)
-      reveal-text.tsx        → <RevealText>: maskeden yükselen başlık /
-                               paragraf (sunucuda çizilir)
-      scramble-text.tsx      → <ScrambleText>: soldan sağa çözülen üst etiket
-      reveal-motion.tsx      → Scroll reveal gözlemcisi + bölünmüş başlığın
-                               harf aralığı düzeltmesi
       data.ts                → Statik seed (MENU, PRODUCTS, LOCATION, ...)
     admin/                   → Admin form primitives + liste/form bileşenleri
       forms.tsx              → Field, TextInput, Select, Button, Card, ...
       product-wizard.tsx     → 5 adımlı ürün sihirbazı (yeni + düzenle)
+  styles/                    → Müşteri sitesinin stili (21 Kas 2026)
+    foundation.css           → Token'lar (:root), taban, yazı, kontroller,
+                               düzen, medya, hukuki asgari (16px), eski adlar
+    chrome.css               → İşaret, duyuru satırı, çubuk ve paneli,
+                               telefon paneli, footer, çerez şeridi
+    sections.css             → Ortak bölümler: sayfa açılışı, bölme, kart
+                               satırları, döşemeler, çizgili liste, galeri
+    home.css                 → Anasayfa filmi + yalnız anasayfanın bölümleri
+    catalog.css              → Mağaza ve menü koleksiyonu, filtre çekmecesi,
+                               sepet, hızlı bakış, ürün sayfası, arama
+    pages.css                → Hikaye, ziyaret, kampanyalar, rehberler, hukuk,
+                               404 ve hata, küçük sayfalar (bülten, masa)
+    karaoke.css              → Karaoke sihirbazı ve rezervasyon görünümü
+    checkout.css             → /odeme, başarılı ve uygulama hatası sayfaları
+    account.css              → Üye alanı (/uye/*)
   lib/
     admin/                   → auth · store (veri katmanı) · audit · roles ·
                                product-schema (Zod)
@@ -447,8 +478,9 @@ db/
   migrations/                → SQL migration'lar (`npm run db:migrate`)
   schema.sql                 → Üretilen tek dosyalık şema (`npm run db:bundle`)
 scripts/                     → db-migrate.mjs · db-bundle.mjs
-docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
-                               SEO.md · PROMPT.md · AUDIT.md ·
+docs/                        → BRAND.md (marka kimliği, tasarım kaydı) ·
+                               MEDIA-LICENSES.md (film ve fotoğraf kaynakları)
+                               · DATABASE.md · SEO.md · PROMPT.md · AUDIT.md ·
                                API-MOBILE.md (mobil sözleşme) · AUTH-BRIDGE.md ·
                                SUPABASE-GECIS.md · PAYNKOLAY.md · GELIVER.md ·
                                EMAIL-RESEND.md · FRONTEND-SINIR.md (ön yüz ↔
@@ -830,11 +862,19 @@ Usage sayfası ve dağıtım adresinin `x-vercel-error` başlığı.
   istek. Panelin kenar çubuğu da aynısını kendi sayfalarıyla yapıyordu.
   `useLinkStatus` yine `next/link`'ten gelir. `tests/link-prefetch.test.ts`
   tutar.
-- **Yolculuğun filmi 5 istektir** (17 Kas 2026): kareler tek tek değil,
-  kesim başına beş pakette ve `_next/static/media` altında (değişmez
-  önbellek, proxy'siz) gelir; tam yolculuk geniş ekranda yaklaşık 1.44 MB,
-  telefonda 1.17 MB indirir (`docs/JOURNEY.md` §6). Kare sayısını ya da
-  çözünürlüğü artırmadan önce bu rakama bak.
+- **Anasayfanın filmi en çok 6 dosyadır** (21 Kas 2026; yerini aldığı
+  yolculuğun filmi 5 paketti): ilk boyamada üç afiş (geniş ekranda toplam
+  172 KB, telefonda 75 KB), hidrasyondan sonra ilk klip (1.29 MB, telefonda
+  0.98 MB), çalan klibin yarısında sıradaki; üç klip birden geniş ekranda
+  3.54 MB, telefonda 1.87 MB. Azaltılmış harekette ve Save-Data'da yalnız
+  afişler iner. İlk klip yolculuğun bütün filminden küçük, üçü birden ondan
+  büyüktür (geniş ekranda iki katından fazla). Dosyalar `public/video`'dan
+  gelir: proxy çalışmaz (matcher `.mp4` ve `.webp`'yi dışarıda bırakır), ama
+  adları içerik damgalı değildir ve `next.config.ts`'in günlük önbellek
+  kuralı (`brand|photos|menu|illustrations`) onları kapsamaz: `max-age=0`,
+  her ziyarette yeniden doğrulanır. Bir klip tarayıcıya göre birden fazla
+  aralık (`Range`) isteğiyle gelebilir. Klip eklemeden, süresini ya da
+  çözünürlüğünü artırmadan önce bu rakamlara bak.
 - Sayfa yüküne yeni bir istek ya da yeni bir yoklama (polling) eklerken
   Vercel çağrısını say: panelin yoklamaları kapalı saatte seyrelir
   (`ORDER_ALERT_IDLE_POLL_MS`), yenisi de öyle yazılır.
@@ -924,55 +964,74 @@ durum bozulmaya uygundur.
 
 ## Tasarım Sistemi
 
-> Tam marka kılavuzu: **`docs/BRAND.md`** — her token, ölçülmüş kontrast
-> oranları, tipografi ölçeği, bileşen dili ve değiştirme kuralları.
+> Tam kılavuz ve tasarım kaydı: **`docs/BRAND.md`** (token'lar, ölçülmüş
+> kontrast, yazı ölçeği, bileşen dili, referanslardan alınan ve alınmayan).
 
-- **Renk:** `globals.css :root` tek kaynak; görünümün kaydı
-  `docs/REDESIGN-ROAST.md` (11 Kas 2026), site uygulamanın paletini izlemez.
-  Krem zeminler (`--bg`, `--bg-warm`, `--bg-stone`, `--bg-cream`), beyaz
-  yüzey (`--surface`), espresso mürekkep ailesi; **tek espresso** `#23120b`
-  birincil eylem, bant ve footer'dır (`--green-cta`, `--green-house`,
-  `--night`; `--green-*` adları miras, değerleri espresso); **amber**
-  `--amber` / `--accent-on-dark` dolgu ve koyu zeminde vurgu, **karamel**
-  `--accent` krem üstünde vurgu metni; pirinç `--gold-soft` (dolgu) ve
-  `--gold` (metin) yalnız ödülde; durum renkleri `--matcha` (olumlu, sitedeki
-  tek yeşil), `--rose` (uyarı — marka değil) ve `--info` (kobalt). Bir tonun
-  saydam hâli `color-mix()` ile token'dan türetilir, `rgba()` ile yeniden
-  yazılmaz.
-- **Yazı:** iki ses (tek istisna anasayfanın yolculuğu: Instrument Sans ve
-  Instrument Serif italik, yukarıda). Başlık ve gösterim rakamı Abril Fatface (`--headline`):
-  **tek kesim 400, asla kalın** (`html` `font-synthesis-weight: none`
-  taşır), 20px ve üstü, asla cümle; büyük harf CSS'le
-  (`text-transform: uppercase`, Türkçe büyük harf `lang="tr"`'den), çok
-  satırlı başlıkta satır aralığı 0.96-1.0 (İ Ö Ü Ğ Ç Ş işaretleri). Gerisi
-  Plus Jakarta Sans (`--display`; `--sans` ve tarihsel token'lar ona
-  çözülür; 400-500 gövde, 700 düğme ve üst etiket). Etiketin ardındaki ok
-  `.arrow` ile çizilir. Üst etiket, düğme ve menü bağlantısı 11-12px kalın
-  büyük harf (`--caps-kicker`, `--caps-button`, `--caps-nav`); markup cümle
-  düzeninde kalır.
-- **Malzeme:** tam hap düğme (`--r-btn: 999px`, 44px, basınca 0.95), 16px
-  beyaz kart, espresso tonlu gölge. `--glass-*` adları opaktır; bulanıklık
-  yalnız buzlu kremde (`--frost*`): kaydırılmış üst çubuk ve buzlu kart
-  (`.frost-card`).
-- **Sahneler** (`scenes.ts`): ürünün arkasındaki ışık uygulamanın 14 sahne
-  pigmentinden gelir; eski 12 **HUES** adı (`visuals.tsx`) birer sahneye
-  çözülür. Her birinin `ink`'i kendi zeminine karşı AA'yı geçer.
-- **Kontrast teste bağlı** (`tests/contrast.test.ts`): token'ları
-  değiştirdiğinde bu test da geçmelidir. Peş peşe üç "sadeleştirme" geçişi bu
-  değerleri sessizce AA altına düşürdüğü için eklendi.
-- **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
-  `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
-  altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez. Başlık
-  maskesinin içinden harf harf yükselir (`<RevealText>`, yalnız `transform`:
-  en büyük yazı opaklıkla solmaz), üst etiket soldan sağa çözülür
-  (`<ScrambleText>`; sunucu bitmiş satırı basar). Anasayfanın iki canlı
-  çizimi (11 Kas 2026, three.js: dökülen espresso, affogato; girişteki
-  çekirdeğin yerini 17 Kas 2026'da yolculuk aldı, o kendi kendine oynamaz,
-  kaydırmayı izler) sitenin sürekli hareketidir: her birinin yanında durdur
-  düğmesi
-  (`<RoastPause>`, tek anahtar hepsini durdurur), ekran dışında ve gizli
-  sekmede çizim yok, azaltılmış harekette tek kare, WebGL yoksa aynı yerde
-  düz SVG çizim. `three` statik import edilmez.
+- **Renk:** `src/styles/foundation.css :root` tek kaynak (`globals.css` token
+  taşımaz); site uygulamanın paletini izlemez. Zemin beyaz (`--bg`,
+  `--surface`) ve dönüşümlü bant `--band` `#f6f6f3` (bölüm bandı, üst çubuk,
+  ürün fotoğrafının zemini, sepet çekmecesi). Mürekkep `--ink` siyah, ikincil
+  satır `--muted` `#6c6864`. **Tek kömür** `--charcoal` `#333333` her dolu
+  kontrolün, koyu bandın (`.section--dark`) ve footer'ın zeminidir (üstüne
+  gelince `--charcoal-deep` `#1f1f1f`); üstünde `--on-dark` ve
+  `--on-dark-muted`. Çizgi `--line` `#dcdcd6`, kontrol kenarı `--line-strong`.
+  Vurgu rengi yok: renk yalnız durum söyler (`--error` `#b42318`, `--success`
+  `#1f6b4a`; karaoke uyarısı, açık noktası) ya da logonun pirinç
+  çekirdeğidir; ödeme sayfasının kart şeması işaretleri kendi renklerindedir
+  (`--scheme-*`). Emekli adlar (`--green-*`, `--accent*`, `--amber`,
+  `--matcha`, `--rose`, `--gold*`, `--bg-*`, `--frost*`, `--glass-*`)
+  tanımsızdır; satır içi stil de yalnız bu token'ları kullanır.
+- **Yazı:** iki ses, istisna yok. Başlık, gezinme, fiyat ve etiket Archivo
+  (`--headline`): geniş (`"wdth" 118`, `--headline-wdth`), başlık ve
+  etiketlerde **hep 400**, **hep büyük harf** (`text-transform: uppercase`;
+  Türkçe büyük harf `lang="tr"`'den), aralık 1.6px (`--track`). Cümle,
+  kontrol ve rakam Geist (`--sans`; `--display` ve `--serif` ona çözülür,
+  `--mono` sistemin eş genişliklisi). Ölçek: bölüm başlığı `.t-display` 24/32
+  (telefonda 20/28), kart başlığı `.t-title` ve gezinme `.t-nav` 16/22,
+  etiket `.t-label` / `.t-kicker` 12/24, fiyat `.t-price` 14/20; gövde
+  `.t-body` 16/22, küçük satır `.t-small` 14/20 (gri `.t-muted`), mikro
+  `.t-micro` 12/16. Eski sınıflar (`.h1`, `.h2`, `.section-title`, `.h3`,
+  `.eyebrow`, `.lede`) aynı seslere çözülür. `next/font` değişken adları
+  değişmedi (`--font-display` Geist, `--font-headline` Archivo): panelin site
+  önizlemesi onları okur, panel kendi kökünde yazı token'larını Inter'e
+  çevirir. Düğme etiketinde ok yok (`.btn .arrow` gizli).
+- **Malzeme:** kare köşe (yarıçap 0); gölge, bulanıklık ve degrade yok (tek
+  istisna filmin alt gölgesi). Hap yalnız çiplerde (`.chip`: telefonun hızlı
+  bağlantıları, kategori çipleri) ve küçük sayaçlarda, noktalar yuvarlak;
+  satır arası 1px `--line`. Düğme `.btn`: en az 48px, iç boşluk 12px 36px,
+  1px kömür kenar, etiket Geist 16px ve cümle düzeninde; dolu `.btn-dark`
+  karar verilmiş eylemdir (eski `.btn-primary`, `.btn-ink`, `.btn-amber` ona
+  çözülür), kenarlı düğme üstüne gelince dolar, basınca küçülmez; çağrı
+  `.btn-wide` 350px, telefonda tam satır; ayrıca `.btn-block`, koyu zeminde
+  `.btn-light`, `.btn-sm`. Kare filtre etiketi `.tag`, ikon düğmesi
+  `.icon-btn` 44px (`.icon-btn--boxed` 32px), alt çizgili küçük bağlantı
+  `.link-u`, alanlar `.input` / `.select` / `.textarea` 48px ve 16px (iOS
+  yakınlaşmasın). Ürün fotoğrafı `.media` kutusunda, bant zemininde durur.
+  Düzen: `--gutter` `clamp(20px, 4.2vw, 60px)`, `--section-y`
+  `clamp(56px, 6.7vw, 96px)`, `--content` 1320px; çubuk 84px (1024px altında
+  56px), üstünde 32px duyuru satırı.
+- **Sahneler** (`scenes.ts`) sitede artık çizilmez: ürün ve menü görseli
+  fotoğraftır ya da bandın düz zemini (`visuals.tsx`: `ProductSurface`,
+  `MenuPlate`, `.media-empty`); HUES adları ve çizimler kalktı. Dosya yalnız
+  panelin anasayfa slaytları için durur: slayt düzenleyicisi
+  (`/admin/anasayfa-hero`) önizleme ışığını `SCENES`'ten,
+  `src/lib/admin/home-hero-core.ts` ve `data.ts` (`HOME_SLIDES`) `SceneKey`'i
+  okur.
+- **Kontrast** (WCAG, ölçülmüş): siyah beyazda 21:1, bantta 19.4:1;
+  `--muted` beyazda 5.5:1, bantta 5.1:1, kömürde 2.3:1 (orada kullanılmaz);
+  beyaz kömürde 12.6:1, `--charcoal-deep`'te 16.5:1; `--on-dark-muted`
+  kömürde 7.4:1; `--error` beyazda 6.6:1, `--success` 6.4:1. Klavye odağı 2px
+  siyah çizgi, koyu zeminde beyaz. Kontrast testi (`tests/contrast.test.ts`)
+  artık koşmuyor: token değiştiren bu oranları yeniden ölçer, buraya ve
+  `docs/BRAND.md`'ye yazar (peş peşe üç "sadeleştirme" geçişi oranları bir
+  kez sessizce AA altına düşürmüştü).
+- **Hareket:** sitenin tek sürekli hareketi anasayfa filmidir (yukarıda:
+  ekran dışında ve gizli sekmede durur, azaltılmış harekette ve Save-Data'da
+  hiç başlamaz, durdur düğmesi var). Kaydırmayla açılan bölüm, harf harf
+  yükselen başlık, çözülen etiket ve three.js yok. Geçişler kısa (`--dur`
+  0.2s, renk ve kenar), film slaytları 0.9s'de yer değiştirir, ürün
+  fotoğrafı üstüne gelince %3 büyür; `prefers-reduced-motion` altında
+  `foundation.css` bütün geçiş ve animasyonları sıfırlar.
 - **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
   Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
   `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart
@@ -1204,5 +1263,11 @@ durum bozulmaya uygundur.
   `PageHome`'u render eder; hash'i `useEffect`'te okur. Bunu bozma
 - **Server action'dan client state'e dönüş yok:** Sepet temizleme
   `/odeme/basarili`'deki `ClearCart` component'iyle yapılır
-- **Tam sayfa ekran görüntüsü boş bölümler gösterir:** scroll reveal yalnız
-  görünür alana girince çözülür; önce sayfayı gezdir, sonra çek
+- **Tam sayfa ekran görüntüsü iki yerde yanıltır:** ekrana sabitlenen öğeler
+  (çerez şeridi, 960px altında karaoke sihirbazının ve ödemenin alt çubuğu,
+  sayfa kaydırılmışken yapışkan üst çubuk) çekim anındaki ekranın yerinde
+  basılır ve uzun görüntünün ortasında içeriğin üstünde görünür. Bu çekimin
+  yan etkisidir, çakışma değil: şüpheli yeri pencere boyunda, sayfayı oraya
+  kaydırarak çekilen görüntüyle doğrula. Tembel yüklenen görseller
+  (`loading="lazy"`, `next/image`) de yaklaşılmadan inmez: çekmeden önce
+  sayfayı baştan sona gezdir
