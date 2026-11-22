@@ -1,0 +1,982 @@
+/* ─────────────────────────────────────────────────────────────
+   Chrome: the mark, the announcement line, the bar and its panel, the
+   phone's sheet, the footer. Tokens in src/app/globals.css.
+   ───────────────────────────────────────────────────────────── */
+
+/* The L'Af mark. Masks, so it takes any ink (brand-mark.tsx): black
+   letters, the bean in the brand's brass. */
+.laf-mark {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  height: var(--laf-h, 34px);
+  aspect-ratio: 1035.2 / 846;
+  color: var(--laf-ink, var(--ink));
+}
+.laf-mark > span {
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  -webkit-mask: url(/brand/laf-letters.svg) center / contain no-repeat;
+  mask: url(/brand/laf-letters.svg) center / contain no-repeat;
+}
+.laf-mark > .laf-mark-bean {
+  -webkit-mask-image: url(/brand/laf-bean.svg);
+  mask-image: url(/brand/laf-bean.svg);
+  background: var(--laf-bean, currentColor);
+}
+.laf-mark--ink {
+  --laf-ink: var(--ink);
+}
+.laf-mark--duo,
+.laf-mark--green {
+  --laf-ink: var(--ink);
+  --laf-bean: #b8893a;
+}
+.laf-mark--cream {
+  --laf-ink: var(--on-dark);
+  --laf-bean: #cba258;
+}
+/* The single-mask utility the admin panel's sidebar and login use. */
+.brand-mark {
+  display: inline-block;
+  background-color: currentColor;
+  -webkit-mask: url(/brand/laf-mark.svg) center / contain no-repeat;
+  mask: url(/brand/laf-mark.svg) center / contain no-repeat;
+  aspect-ratio: 1035.2 / 846;
+}
+
+body.is-no-scroll {
+  overflow: hidden;
+}
+
+/* ── The announcement line ─────────────────────────────────── */
+.announce {
+  background: var(--band);
+  min-height: var(--announce-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px var(--gutter);
+  text-align: center;
+}
+.announce-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── The bar ───────────────────────────────────────────────── */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--band);
+}
+.nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: var(--header-h);
+  padding-inline: var(--gutter);
+  max-width: calc(var(--content) + 2 * var(--gutter));
+  margin-inline: auto;
+}
+.nav-burger {
+  justify-self: start;
+  margin-left: -10px;
+}
+.nav-links {
+  display: none;
+  justify-self: start;
+}
+.nav-links > ul {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+}
+.nav-link-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.nav-link {
+  display: inline-block;
+  padding: 8px 0;
+  white-space: nowrap;
+  text-decoration: none;
+  text-underline-offset: 8px;
+  text-decoration-thickness: 1px;
+}
+.nav-link:hover,
+.nav-link.is-open,
+.nav-link[aria-current="page"] {
+  text-decoration-line: underline;
+}
+/* While another item is hovered or open, the current page's mark steps
+   back, so one underline means one thing. */
+.nav-links:has(.nav-link.is-open, .nav-link:hover)
+  .nav-link[aria-current="page"]:not(.is-open):not(:hover) {
+  text-decoration-line: none;
+}
+/* The caret is the keyboard's way into a panel: out of sight until it has
+   focus (hover opens the panel for the mouse). */
+.nav-caret {
+  position: absolute;
+  right: -16px;
+  width: 12px;
+  height: 16px;
+  outline-offset: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  background: none;
+  border: 0;
+}
+.nav-caret svg {
+  width: 10px;
+  height: 7px;
+}
+.nav-caret:focus-visible {
+  opacity: 1;
+}
+.nav-brand {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.nav-brand .laf-mark {
+  --laf-h: 44px;
+}
+.nav-tools {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: -10px;
+}
+.nav-cart {
+  position: relative;
+}
+.nav-cart-count {
+  position: absolute;
+  top: 3px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--charcoal);
+  color: var(--on-dark);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* The account menu: a white card under the person button. */
+.nav-account {
+  position: relative;
+}
+.nav-account-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 20px);
+  z-index: 60;
+  width: 240px;
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+/* Under 1024px the card is a full-width panel under the whole header
+   (bar and quick-link row), not a card hanging over the chips. */
+@media (max-width: 1023px) {
+  .nav-account {
+    position: static;
+  }
+  .nav-account-menu {
+    left: 0;
+    right: 0;
+    top: 100%;
+    width: auto;
+    padding: 16px var(--gutter) 24px;
+    border-inline: 0;
+  }
+}
+.nav-account-item {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-size: 14px;
+  line-height: 20px;
+}
+.nav-account-item:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* The phone's quick links under the bar. */
+.nav-quick {
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 0 8px;
+}
+.nav-quick::-webkit-scrollbar {
+  display: none;
+}
+.nav-quick ul {
+  display: flex;
+  gap: 8px;
+  width: max-content;
+  margin: 0;
+  padding: 0 var(--gutter);
+}
+/* A 44px target around the 36px pill. */
+.nav-quick .chip {
+  position: relative;
+}
+.nav-quick .chip::after {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+@media (max-width: 400px) {
+  .nav-quick .chip {
+    padding-inline: 12px;
+  }
+}
+/* While the sheet is open, the sheet is the navigation. */
+.site-header.is-sheet-open .nav-quick {
+  display: none;
+}
+
+/* The panel under the bar (wide screens only). */
+.nav-panel {
+  display: none;
+}
+.nav-panel.open {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.nav-panel-inner {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 48px;
+  padding-block: 40px 48px;
+}
+.nav-panel-all {
+  display: inline-block;
+  margin-bottom: 20px;
+  text-decoration: underline;
+  text-underline-offset: 8px;
+}
+.nav-panel-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 32px;
+  margin: 0;
+  padding: 0;
+}
+.nav-panel-list a {
+  display: grid;
+  gap: 2px;
+}
+.nav-panel-label {
+  font-size: 16px;
+  line-height: 22px;
+}
+.nav-panel-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 24px 0 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 20px;
+}
+.nav-panel-more a:hover,
+.nav-panel-list a:hover .nav-panel-label {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.nav-panel-feature {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.nav-panel-feature img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--band);
+}
+
+/* The phone's sheet: full height, right under the bar. */
+.mobile-sheet {
+  display: none;
+}
+.mobile-sheet.open {
+  display: block;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--sheet-top, var(--header-h));
+  bottom: 0;
+  z-index: 45;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.sheet-list {
+  margin: 0;
+  padding: 0;
+}
+.sheet-list > li {
+  border-bottom: 1px solid var(--line);
+}
+.sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 60px;
+  padding: 0 var(--gutter);
+  background: none;
+  border: 0;
+  text-align: left;
+  color: inherit;
+}
+.sheet-chev {
+  width: 12px;
+  height: 8px;
+  transition: transform var(--dur) var(--ease);
+}
+.sheet-chev.open {
+  transform: rotate(180deg);
+}
+.sheet-sub {
+  margin: 0;
+  padding: 0 var(--gutter) 16px;
+}
+.sheet-sub[hidden] {
+  display: none;
+}
+.sheet-sub a {
+  display: block;
+  padding: 11px 0;
+  font-size: 16px;
+  line-height: 22px;
+}
+.sheet-account {
+  margin: 0;
+  padding: 24px var(--gutter) calc(40px + env(safe-area-inset-bottom));
+  display: grid;
+}
+.sheet-account a {
+  display: block;
+  padding: 12px 0;
+  font-size: 14px;
+  line-height: 20px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+@media (min-width: 768px) {
+  .mobile-sheet.open > nav {
+    max-width: 480px;
+    min-height: 100%;
+    border-right: 1px solid var(--line);
+  }
+}
+/* The cookie strip gives way while the sheet is open, so the sheet's last
+   links are never under it. */
+html:has(.mobile-sheet.open) .cookie-banner {
+  visibility: hidden;
+}
+
+@media (min-width: 1280px) {
+  .nav-burger {
+    display: none;
+  }
+  .nav-links {
+    display: block;
+  }
+  .nav-panel {
+    display: block;
+  }
+  .mobile-sheet,
+  .mobile-sheet.open {
+    display: none;
+  }
+}
+@media (min-width: 1280px) and (max-width: 1359px) {
+  .nav-links > ul {
+    gap: 20px;
+  }
+  .nav-links .t-nav {
+    font-size: 14px;
+    letter-spacing: 1.2px;
+  }
+}
+@media (min-width: 1024px) {
+  .nav-quick {
+    display: none;
+  }
+}
+@media (max-width: 1023px) {
+  .nav-brand .laf-mark {
+    --laf-h: 32px;
+  }
+}
+
+/* ── The footer ────────────────────────────────────────────── */
+.site-footer {
+  background: var(--charcoal);
+  color: var(--on-dark);
+  padding: 96px 0 36px;
+}
+.site-footer a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.footer-brand .laf-mark {
+  --laf-h: 28px;
+}
+.footer-wordmark {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.footer-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 410px);
+  gap: 64px;
+  margin-top: 48px;
+}
+.footer-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
+}
+.footer-col-title {
+  margin: 0;
+  padding-bottom: 12px;
+}
+.footer-col-list {
+  margin: 0;
+  padding: 0;
+}
+.footer-col-list li {
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+.footer-col-list a[href^="tel:"] {
+  white-space: nowrap;
+}
+.footer-note {
+  color: var(--on-dark-muted);
+}
+.footer-linkish {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.footer-linkish:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.footer-letter-text {
+  margin: 12px 0 20px;
+  font-size: 16px;
+  line-height: 22px;
+}
+.newsletter-form {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--on-dark);
+}
+.newsletter-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  color: var(--on-dark);
+}
+.newsletter-form input::placeholder {
+  color: var(--on-dark-muted);
+}
+.newsletter-form input:focus {
+  outline: none;
+}
+.newsletter-form:focus-within {
+  border-bottom-width: 2px;
+}
+.newsletter-submit {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -8px;
+  background: none;
+  border: 0;
+  color: var(--on-dark);
+}
+.newsletter-submit svg {
+  width: 28px;
+  height: 12px;
+}
+.newsletter-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--on-dark-muted);
+}
+.newsletter-consent input {
+  flex-shrink: 0;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--on-dark);
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.newsletter-consent input::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  margin-top: -2px;
+  border-left: 2px solid var(--charcoal);
+  border-bottom: 2px solid var(--charcoal);
+  transform: rotate(-45deg);
+  opacity: 0;
+}
+.newsletter-consent input:checked {
+  background: var(--on-dark);
+}
+.newsletter-consent input:checked::before {
+  opacity: 1;
+}
+.newsletter-consent input:focus-visible {
+  outline: 2px solid var(--on-dark);
+  outline-offset: 2px;
+}
+.newsletter-status {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.newsletter-status.is-error {
+  color: #ffb4a8;
+}
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 24px;
+}
+.footer-social svg {
+  width: 20px;
+  height: 20px;
+}
+.footer-handle {
+  color: var(--on-dark-muted);
+}
+.footer-cats {
+  display: grid;
+  gap: 8px;
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.24);
+  color: var(--on-dark-muted);
+}
+.footer-cats .t-label {
+  color: var(--on-dark);
+  margin-right: 8px;
+}
+.footer-company {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  justify-content: start;
+  gap: 8px 40px;
+  margin: 32px 0 0;
+}
+.footer-company dt {
+  color: var(--on-dark-muted);
+}
+.footer-company dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+}
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 0;
+  padding: 0;
+}
+
+/* The live line: a dot and the words, never colour alone. */
+.open-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0;
+}
+.open-line::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.open-line.is-open::before {
+  background: #2f9e6a;
+}
+
+@media (max-width: 1279px) {
+  .footer-main {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+@media (max-width: 1023px) {
+  .footer-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .footer-company {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 599px) {
+  .site-footer {
+    padding-top: 56px;
+  }
+  .footer-cols {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .footer-company {
+    grid-template-columns: 1fr;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ── The cookie card: a white strip along the bottom ───────── */
+.cookie-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 16px 32px;
+  padding: 20px var(--gutter) calc(20px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.cookie-banner-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cookie-banner-title {
+  margin: 0 0 4px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 14px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.cookie-banner-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.cookie-banner-text a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cookie-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.cookie-banner-actions .btn {
+  padding-inline: 24px;
+}
+@media (max-width: 767px) {
+  .cookie-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  .cookie-banner-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .cookie-banner-actions .btn:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.cookie-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.4);
+}
+.cookie-modal {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 32px;
+  background: var(--surface);
+}
+.cookie-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cookie-modal-head h2 {
+  margin: 0;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 20px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.cookie-modal-close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -6px -6px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+}
+.cookie-modal-close svg {
+  width: 16px;
+  height: 16px;
+}
+.cookie-cat {
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+.cookie-cat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cookie-cat-title {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 24px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.cookie-cat-always {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cookie-cat-body {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+}
+.cookie-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.cookie-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.cookie-switch-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  transition: background-color var(--dur) var(--ease);
+}
+.cookie-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--charcoal);
+  transition: transform var(--dur) var(--ease);
+}
+.cookie-switch input:checked + .cookie-switch-track {
+  background: var(--charcoal);
+}
+.cookie-switch input:checked + .cookie-switch-track .cookie-switch-thumb {
+  transform: translateX(18px);
+  background: var(--on-dark);
+}
+.cookie-switch input:focus-visible + .cookie-switch-track {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.cookie-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+.cookie-modal-actions .btn {
+  flex: 1 1 auto;
+  padding-inline: 24px;
+}
+@media (max-width: 599px) {
+  .cookie-modal {
+    padding: 24px 20px;
+  }
+  .cookie-modal-scrim {
+    padding: 12px;
+  }
+}
+
+/* ── Touch: every chrome control is a 44px target ──────────── */
+@media (max-width: 1023px), (pointer: coarse) {
+  .nav-account-item {
+    padding-block: 12px;
+  }
+  .footer-col-list li:has(> a, > button) {
+    padding: 0;
+  }
+  .footer-col-list li > a,
+  .footer-col-list li > .footer-linkish {
+    display: inline-block;
+    padding-block: 12px;
+  }
+  .footer-social {
+    gap: 4px;
+    margin-left: -12px;
+  }
+  .footer-social a {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+  }
+  .footer-legal a {
+    display: inline-block;
+    padding-block: 12px;
+    margin-block: -12px;
+  }
+  .announce-link {
+    display: inline-block;
+    padding-block: 8px;
+    margin-block: -8px;
+  }
+}
+
+/* ── The shell's notice (/?cart=…, /?hesap=silindi) and the degraded
+   strip: square charcoal, under the sticky chrome. ─────────── */
+.site-notice {
+  position: fixed;
+  top: calc(var(--sticky-h) + 12px);
+  left: 50%;
+  z-index: 80;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 2 * var(--gutter)));
+  padding: 8px 8px 8px 20px;
+  background: var(--charcoal);
+  color: var(--on-dark);
+  font-size: 14px;
+  line-height: 20px;
+}
+.site-notice-text {
+  flex: 1;
+  min-width: 0;
+}
+.site-notice-close {
+  flex-shrink: 0;
+  color: var(--on-dark);
+}
+.site-notice-close svg {
+  width: 14px;
+  height: 14px;
+}
+.site-notice :focus-visible {
+  outline-color: var(--on-dark);
+}
+.degraded-notice {
+  padding: 10px var(--gutter);
+  background: var(--charcoal);
+  color: var(--on-dark);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}

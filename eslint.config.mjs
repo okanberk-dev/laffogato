@@ -73,6 +73,11 @@ const eslintConfig = defineConfig([
     // kept as their source wrote them. A design lab copies the overlay into
     // its route under src/app/admin, where the panel's rules lint it.
     ".claude/skills/design-lab/templates/**",
+    // Handoff QA tooling (Playwright screenshot and overlap scripts, CommonJS
+    // .cjs run by hand against a local dev server): not app code, and
+    // eslint-config-next registers its React plugin for no .cjs file, so the
+    // react rule above has no plugin to run under there.
+    "docs/handoff/**",
   ]),
 ]);
 

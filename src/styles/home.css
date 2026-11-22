@@ -1,0 +1,330 @@
+/* ─────────────────────────────────────────────────────────────
+   Home: the film under the bar (home-hero.tsx) and the sections that
+   only the home page has.
+   ───────────────────────────────────────────────────────────── */
+
+/* The film fills the first screen under the chrome (announcement line,
+   bar and, under 1024px, the quick-link row), down to a floor that still
+   holds the caption on a phone held sideways. */
+.hero-film {
+  position: relative;
+  height: max(
+    240px,
+    calc(100svh - var(--announce-h) - var(--header-h) - var(--quick-h))
+  );
+  max-height: 980px;
+  overflow: hidden;
+  background: var(--charcoal);
+  color: var(--on-dark);
+}
+.hero-film-stage,
+.hero-film-slide {
+  position: absolute;
+  inset: 0;
+}
+.hero-film-slide {
+  opacity: 0;
+  transition: opacity 0.9s var(--ease);
+}
+.hero-film-slide[data-active] {
+  opacity: 1;
+}
+.hero-film-poster,
+.hero-film-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* A soft floor under the caption, so white type holds on any frame. */
+.hero-film-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 50%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62),
+    rgba(0, 0, 0, 0.28) 45%,
+    rgba(0, 0, 0, 0)
+  );
+  pointer-events: none;
+}
+.hero-film-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  max-width: calc(var(--content) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding: 0 var(--gutter) 32px;
+}
+.hero-film-title {
+  margin: 0;
+  max-width: 640px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.hero-film-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.hero-film-link {
+  font-size: 16px;
+  line-height: 22px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+.hero-film-pager {
+  display: flex;
+  gap: 2px;
+}
+/* The digits are white on every frame; the current one is underlined. */
+.hero-film-dot {
+  padding: 4px 6px;
+  background: none;
+  border: 0;
+  color: var(--on-dark);
+  font-size: 14px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.hero-film-dot[aria-current="true"] {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.hero-film :focus-visible {
+  outline-color: var(--on-dark);
+}
+@media (max-width: 767px) {
+  .hero-film-caption {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+  .hero-film-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+  /* The link on the left, the pager on the right; every control is a
+     44px target on a touch screen. */
+  .hero-film-controls {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .hero-film-pager {
+    margin-left: auto;
+    gap: 0;
+  }
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .hero-film-link {
+    padding-block: 11px;
+  }
+  .hero-film-dot {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  }
+
+/* ── The app block: text and points beside a photograph ────── */
+.app-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 58%);
+  gap: 48px;
+  align-items: start;
+}
+.app-block-copy {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.app-block-store {
+  justify-self: stretch;
+  margin-top: 8px;
+}
+.app-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  min-width: min(350px, 100%);
+  padding: 8px 24px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.store-btn:hover {
+  background: var(--charcoal);
+  color: var(--on-dark);
+}
+.store-btn-glyph {
+  flex-shrink: 0;
+}
+.store-btn-text {
+  display: grid;
+  line-height: 1.15;
+}
+.store-btn-small {
+  font-size: 12px;
+}
+.store-btn-big {
+  font-size: 16px;
+}
+.app-links.on-dark .store-btn {
+  background: transparent;
+  border-color: var(--on-dark);
+  color: var(--on-dark);
+}
+.app-links-soon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+.app-links-soon-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+/* Side by side only where the photo is as tall as the text beside it;
+   under 1200px the photo goes on top. */
+@media (max-width: 1199px) {
+  .app-block {
+    grid-template-columns: 1fr;
+  }
+  .app-block-media {
+    order: -1;
+  }
+}
+@media (max-width: 767px) {
+  .store-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── The karaoke block (the reference's cafés carousel) ────── */
+.wrap-wide {
+  width: 100%;
+  max-width: calc(1216px + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.karaoke-block-copy {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding-top: 20px;
+}
+.karaoke-block-copy .btn {
+  justify-self: center;
+  margin-top: 24px;
+}
+.karaoke-facts {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.3em;
+}
+.karaoke-facts > span {
+  white-space: nowrap;
+}
+.karaoke-live {
+  min-height: 24px;
+}
+.feature-copy .t-title {
+  text-wrap: balance;
+}
+.karaoke-live-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── The visit block ──────────────────────────────────────── */
+.visit-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.visit-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px 32px;
+  margin-top: 24px;
+}
+.visit-card .btn {
+  min-width: 350px;
+}
+.visit-card-address {
+  display: inline-block;
+  margin-top: 8px;
+}
+.visit-card-hours {
+  display: grid;
+  gap: 4px;
+}
+@media (max-width: 1023px) {
+  .visit-card {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .visit-card .btn {
+    justify-self: start;
+  }
+}
+@media (max-width: 767px) {
+  .visit-card .btn {
+    min-width: 0;
+    justify-self: stretch;
+  }
+}
+
+/* ── The statement under the film (the panel's intro text) ── */
+.home-intro-section {
+  padding-bottom: 0;
+}
+.home-intro {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.home-intro > * {
+  max-width: 760px;
+}
+.home-intro .t-display {
+  margin: 0;
+}
+@media (max-width: 767px) {
+  .visit-row {
+    grid-template-columns: 1fr;
+  }
+  .visit-row > :not(:first-child) {
+    display: none;
+  }
+}

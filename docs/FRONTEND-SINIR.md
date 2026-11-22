@@ -7,6 +7,19 @@
 >
 > **Tek cümle:** Ön yüz işi *nasıl göründüğünü* değiştirir; *ne gönderdiğini,
 > neyi okuduğunu ve nereye gittiğini* değiştirmez.
+>
+> **21 Kas 2026.** Son yeniden tasarım bu sınırla yapıldı: eski görünüm
+> silindi, site Blue Bottle'ın dilinde, anasayfa bir filmle açılır
+> (`CLAUDE.md` "Site görünümü", değerler ve kurallar `docs/BRAND.md` §0).
+> §1'in arka yüz listesindeki hiçbir dosya değişmedi; §2'deki alan adları,
+> §3'teki sepet biçimi ve §5'teki yönlendirmeler aynı kaldı.
+>
+> **Testler (16 Kas 2026).** `tests/` klasörü kaldırıldı; bu belgenin
+> sözleşmesini tutan testler (`frontend-form-contract`, `checkout-consent`,
+> `site-data-cache`, `public-pages-cached-reads`) ve token'ları tutan
+> `contrast` ile `brand-theme` artık koşmuyor. Sözleşme bu belgeyle, elle ve
+> kod incelemesiyle korunur; eski testler `git show 5d777bb:tests/<dosya>`
+> ile okunur. Aşağıda kalan test adları tarihçedir.
 
 ---
 
@@ -16,11 +29,31 @@
 
 | Yol                                              | Not                                                                                     |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `src/components/laffogato/**`                    | Müşteri SPA'sı. Form içeren dosyalar için §2'ye bak (`ui.tsx`, `karaoke-booking.tsx`, `newsletter-form.tsx`) |
+| `src/components/laffogato/**`                    | Müşteri SPA'sı. Form içeren dosyalar için §2'ye bak (`ui.tsx`, `karaoke-booking.tsx`, `newsletter-form.tsx`; footer'daki bülten formu `chrome.tsx`'in çizdiği `newsletter-form.tsx`'tir) |
 | `src/components/uye/**`, `src/components/customer/**` | Üye hesabı parçaları                                                               |
-| `src/app/globals.css`                            | Token'lar `tests/contrast.test.ts` ve `tests/brand-theme.test.ts`'e bağlı               |
+| `src/styles/**`                                  | Sitenin bütün kuralları, alan alan (21 Kas 2026): `foundation.css` (`:root` token'ları, temel, `.t-*` yazı sınıfları, `.btn` ve diğer kontroller, yerleşim, medya, hukuki asgari ölçüler), `chrome.css`, `sections.css`, `home.css`, `catalog.css`, `pages.css`, `karaoke.css`, `checkout.css`, `account.css`. Değerler ve kurallar `docs/BRAND.md` §0 ve §8; aşağıdaki "Hukuki asgariler" tasarımla değişmez |
+| `src/app/globals.css`                            | Yalnız içe aktarım (Tailwind, sonra `src/styles/*.css` sayfa sırasıyla), panelin geri alma kuralları (`[data-admin-root]`) ve baskı kuralları. Site kuralı ve token buraya yazılmaz; panel ve baskı kuralları olduğu gibi kalır |
 | Müşteri `page.tsx` / `layout.tsx` / `*-form.tsx` | **İşaretleme** serbest; veri çağrıları ve form alanları değil (§2, §4)                  |
 | `public/**`                                      | Görseller, ikonlar                                                                      |
+
+#### Hukuki asgariler - görünümle değişmez
+
+Yeni bir görünüm bunları olduğu gibi taşır. CSS'tekiler
+`src/styles/foundation.css`'te durur:
+
+- Ön bilgilendirme ve sözleşme metinleri en az 16px (MSY m.6/1, 12 punto):
+  `.checkout-consent label`, `.checkout-consent-note`, `.legal-section p`,
+  `.legal-bullets li`, `.legal-ordered li`, `.karaoke-preinfo`.
+- Her form alanı 16px ya da büyük (iOS Safari küçük alana odaklanınca
+  yakınlaşır).
+- Karar vermiş ziyaretçide çerez kartı hidrasyondan önce gizlenir:
+  `html[data-consent="set"] .cookie-banner[data-pending]` (özniteliği
+  `src/lib/consent/script.ts`'in `CONSENT_SEEN` betiği yazar).
+
+İşaretlemedekiler: üstü çizili fiyat yalnız indirimin günlerini yazan
+satırla birlikte çizilir (Ticari Reklam Yön. m.14/1); menünün fiyat notu
+(Fiyat Etiketi Yön. m.5/2) ve footer'daki şirket satırları (ETHS Yön. m.5/1,
+6563 m.3/1) kalır.
 
 ### Arka yüz - ön yüz PR'ında değişmez
 
@@ -32,13 +65,13 @@
 | `src/app/api/mobile/v1/**`            | **Mobil uygulamanın sözleşmesi** - sahadaki sürümler buna bağlı (`docs/API-MOBILE.md`)       |
 | `src/proxy.ts`                        | Admin koruması + Supabase oturum yenileme                                                   |
 | `db/**`, `scripts/**`                 | Migration'lar, şema paketi                                                                  |
-| `next.config.ts`, `vercel.json`       | Güvenlik başlıkları (`tests/security-headers.test.ts`), cron'lar (`tests/vercel-crons.test.ts`) |
+| `next.config.ts`, `vercel.json`       | Güvenlik başlıkları, cron'lar (16 Kas 2026'ya kadar `tests/security-headers.test.ts` ve `tests/vercel-crons.test.ts` tutuyordu) |
 | `.github/workflows/**`                | CI ve saatlik kampanya tetikleyicisi                                                        |
 | `docs/API-MOBILE.md`                  | İki depoda bayt bayt aynı; `lafmobil` tarafında SHA-256 ile kilitli                          |
 | `src/app/admin/**`                    | Yönetim paneli ayrı bir yüzey; müşteri yeniden tasarımının kapsamı dışında                  |
 
 Ön yüz işi sırasında bu listedeki bir dosyaya dokunmak **gerekiyorsa**, o
-değişiklik ayrı bir PR'dır ve kendi testiyle gelir. "Tasarımı oturtmak için
+değişiklik ayrı bir PR'dır ve kendi doğrulamasıyla gelir. "Tasarımı oturtmak için
 action'daki alan adını değiştirdim" kabul edilen bir gerekçe değildir - formu
 action'a uydur, tersini değil.
 
@@ -56,8 +89,11 @@ sorunsuz derlenir ve:
 - kayıt formunda `acceptedTerms` gelmez → kimse üye olamaz;
 - `items` gizli alanı düşer → sepet boş sayılır (`/?cart=empty`).
 
-Bu yüzden bağ bir testte yazılı: **`tests/frontend-form-contract.test.ts`**.
-Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" der.
+Bu yüzden bağ aşağıdaki tabloda yazılı. Her satır "bu action şu alanları
+okur, şu dosyadaki form onları gönderir" der. 16 Kas 2026'ya kadar
+`tests/frontend-form-contract.test.ts` tutuyordu; test koşmadığı için tablo
+elle korunur: formu yeniden yazan iş, her `name`'i ve gizli alanı bu tabloyla
+ve action'ın `formData.get(...)` çağrılarıyla karşılaştırır.
 
 | Action                                          | Form dosyası                                          | Alanlar                                                                          |
 | ----------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -77,7 +113,7 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `updateNotificationsAction`                     | `src/app/uye/hesap/bildirimler/notifications-form.tsx` | `orderUpdates`, `marketing`, `newsletter`                                       |
 | `requestAccountDeletionAction` (18 Eki 2026'dan beri; site artık hesabı kendisi silmez, ekibe talep gider) | `src/app/uye/hesap/sil/deletion-request-form.tsx` | `reason` (isteğe bağlı, 500 karakter), `confirm` (işaretsiz başlar) |
 | `withdrawAccountDeletionAction`                 | `src/components/uye/deletion-request-notice.tsx`      | alan yok (oturumdaki üyenin açık talebi)                                         |
-| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`, `contactName`, `contactEmail`, `contactPhone`, `guestFirstName`, `guestLastName`, `consentPreInfo`, `consentContract`, `consentKvkk` (üç kutu ayrı ve işaretsiz; tests/frontend-form-contract.test.ts), `expectedFreeCancelHours`, `expectedLateRefundPercent` (kutunun yazdığı kural, sunucudan). Adımlı sihirbaz (18 Eki 2026) hydrate sonrası çizilir: sunucunun çizdiği sayfa bu alanların hepsiyle tek formdur; adres yalnız `?adim=` taşır, yazılanlar yalnız bu sekmede `sessionStorage["laffogato_karaoke_draft_v1"]`'de durur (kutular hiç), gönderince silinir |
+| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`, `contactName`, `contactEmail`, `contactPhone`, `guestFirstName`, `guestLastName`, `consentPreInfo`, `consentContract`, `consentKvkk` (üç kutu ayrı ve işaretsiz), `expectedFreeCancelHours`, `expectedLateRefundPercent` (kutunun yazdığı kural, sunucudan). Adımlı sihirbaz (18 Eki 2026) hydrate sonrası çizilir: sunucunun çizdiği sayfa bu alanların hepsiyle tek formdur; adres yalnız `?adim=` taşır, yazılanlar yalnız bu sekmede `sessionStorage["laffogato_karaoke_draft_v1"]`'de durur (kutular hiç), gönderince silinir |
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
 | `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
 | `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
@@ -89,9 +125,9 @@ açar: GET'te abone eden bir onay sayfası tarayıcının ziyaretini "rıza"ya, 
 §8). Sayfa yalnız düğmeyi gösterir; posta istemcisinin kendi tek tık düğmesi
 (RFC 8058, `/api/bulten/cikis`) sayfasız çalışmaya devam eder.
 
-**Formu başka bir dosyaya taşıdıysan** testteki `forms` yolunu güncelle - alan
-listesine dokunmadan. Alan listesi yalnız action değiştiğinde değişir; o da
-ayrı bir arka yüz PR'ıdır.
+**Formu başka bir dosyaya taşıdıysan** tablodaki "Form dosyası" sütununu
+güncelle - alan listesine dokunmadan. Alan listesi yalnız action değiştiğinde
+değişir; o da ayrı bir arka yüz PR'ıdır.
 
 ### `items` - sepetin sunucuya gidiş biçimi
 
@@ -111,10 +147,14 @@ satış, kural 12), `acceptedTerms`, `marketing`, `newsletter`, bülten
 `consent`'i (6563, kural 19) ve Google ile gelen yeni üyenin onay sayfasındaki
 kutular **işaretsiz başlar**. `legalConsent` artık kutu değil, gizli bir
 alandır: yalnız iki belge kutusu da işaretlenince çizilir
-(`checkout-consent.tsx`, `tests/checkout-consent.test.ts`). Aynı test kutuları
-da tutar: `defaultChecked`, `defaultChecked={true}` ve `checked` reddedilir;
+(`checkout-consent.tsx`). Kutu sabit olarak işaretli yazılmaz:
+`defaultChecked`, `defaultChecked={true}` ya da çıplak `checked` yoktur.
+İşaretsiz başlayan bir durumdan okunan `checked={ticks.x}` (ödemenin iki
+kutusu `NO_CHECKOUT_CONSENT`'ten başlar; karaokenin üç kutusu da öyle) ve
 başarısız bir gönderimden sonra ziyaretçinin kendi seçimini geri yazan
-`defaultChecked={values.x}` serbesttir.
+`defaultChecked={values.x}` serbesttir. 16 Kas 2026'ya kadar
+`tests/checkout-consent.test.ts` ve `tests/frontend-form-contract.test.ts`
+tutuyordu; artık kod incelemesi tutar.
 
 ---
 
@@ -129,6 +169,11 @@ başarısız bir gönderimden sonra ziyaretçinin kendi seçimini geri yazan
 Anahtarın adını değiştirmek sahadaki her ziyaretçinin sepetini sessizce
 boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş yaz.
 
+Görünüm için saklanan biçime alan eklenmez: 21 Kas 2026'dan beri sepet
+çekmecesi her satırın fotoğrafını o an elindeki ürün listesinden `productId`
+ile bulur (`ui.tsx` `CartDrawer`, `app.tsx` `products`); saklanan sepet ve
+sunucuya giden `items` değişmedi.
+
 ---
 
 ## 4. Veri okuma - sayfalar arka yüzden ne alır
@@ -141,18 +186,18 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
   sorgu yazmaz; var olan okuyucuyu çağırır. Ürün listesini kendisi okuyan
   bir sayfa, bütün okumaları bittikten sonra onu `shopForRequest()`'ten
   geçirir: kesintiyi gören istek (giriş yapmış üye) boş mağaza gösterir.
-  Önbellekli okuyucuyu kullanan sayfa listesi
-  `tests/site-data-cache.test.ts`'te tutulur; ödeme, karaoke ve
-  rezervasyon sayfaları oraya girmez.
+  Ödeme, karaoke ve rezervasyon sayfaları önbellekli okuyucuyu kullanmaz
+  (listeyi 16 Kas 2026'ya kadar `tests/site-data-cache.test.ts` tutuyordu).
 - **Sunumda `getSettings()` değil `getSiteSettings()`.** Birincisi veritabanı
   yoksa fırlatır (ticari yollar için doğru davranış), ikincisi önbellekten ya
   da paketteki içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde
   Davranış"). `getPublicSettings()` ve `store.ts`'in `list*` okuyucuları da
   aynı yedeğe düşer ama her seferinde veritabanını okur: ödeme, karaoke ve
   uygulama API'si gibi canlı okuması gereken yollar içindir. Genel bir
-  sayfa, kabuk ya da müşteri bileşeni onları import ederse
-  `tests/public-pages-cached-reads.test.ts` kırılır (üyenin kendi
-  sayfaları, `/uye/hesap/**`, kapsam dışı).
+  sayfa, kabuk ya da müşteri bileşeni onları import etmez (üyenin kendi
+  sayfaları, `/uye/hesap/**`, kapsam dışı; 16 Kas 2026'ya kadar
+  `tests/public-pages-cached-reads.test.ts` reddediyordu, artık kod
+  incelemesi).
 - Bileşenler ve sayfalar **`@/lib/db`'yi doğrudan import etmez.**
 - İstemci bileşeni (`"use client"`) `import "server-only"` taşıyan bir modülü
   import edemez - build kırılır. Saf mantık gerekiyorsa `*-core.ts` /
@@ -183,8 +228,9 @@ okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 | `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |
 
 `?cart=` gerekçelerinin, her `/odeme?error=` nedeninin, `?hesap=` değerlerinin
-ve girişteki `?next=` taşımasının karşılandığını
-`tests/frontend-form-contract.test.ts` doğrular.
+ve girişteki `?next=` taşımasının karşılandığını yeniden tasarlanan sayfada
+elle dene (16 Kas 2026'ya kadar `tests/frontend-form-contract.test.ts`
+doğruluyordu).
 
 ---
 
@@ -207,7 +253,7 @@ uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 | `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri    |
 | `/gorsel/**`                                            | Uygulamanın ürün/menü görselleri (`image` alanı)           |
 | `/magaza/urun/[slug]`, `/menu`, `/magaza`, `/rehber/**` | Arama motoru, sitemap, paylaşılan bağlantılar              |
-| `/masa/[code]`                                          | Masalardaki basılı QR kartları (laminasyon - geri çağrılamaz), uygulamanın masa ekranıyla birlikte evrensel bağlantı olacak (`/masa/*`, henüz talep edilmiyor). `noindex`, sitemap'te yok |
+| `/masa/[code]`                                          | Masalardaki basılı QR kartları (laminasyon - geri çağrılamaz); 5 Kas 2026'dan beri iOS evrensel bağlantısı (AASA `/masa/*`, `src/lib/mobile/app-links.ts`): uygulaması kurulu iPhone'da uygulama o masayla açılır. `noindex`, sitemap'te yok |
 
 ---
 
@@ -215,8 +261,7 @@ uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 
 ```bash
 npm run typecheck
-npm test                          # form sözleşmesi, kontrast, rota testleri dahil
-npm run lint
+npm run lint -- --max-warnings=0
 NODE_ENV=production npm run build # ortamda NODE_ENV=development varsa build düşer
 git diff --stat origin/main -- src/lib src/app/api db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'
 ```
@@ -224,7 +269,15 @@ git diff --stat origin/main -- src/lib src/app/api db scripts src/proxy.ts 'src/
 Son komut **boş** dönmeli. Dönmüyorsa o değişiklik ön yüz PR'ının parçası
 değildir: geri al ya da ayrı PR yap.
 
+`npm test` yok: `tests/` 16 Kas 2026'da kaldırıldı, CI yalnız typecheck,
+lint ve build koşar. Tek istisna kayıtlı kart: `/odeme`'nin kart alanına
+(`card-payment.tsx`) ya da `/uye/hesap/kartlarim`'e dokunan iş
+`npm run test:saved-cards`'ı yerel Postgres'e karşı koşar
+(`tests/saved-cards/README.md`; CI'da değil). §2'nin tablosu, kutuların
+işaretsiz başlaması ve §5'in yönlendirmeleri elle karşılaştırılır.
+
 Ardından değişen sayfaları gerçekten render edip bak (CLAUDE.md → "Görsel
-değişiklik yaptıysan"), en az bir kez uçtan uca: ürün → sepet → ödeme adımı
+değişiklik yaptıysan"; 360, 768, 1024 ve 1280px ile geniş ekran,
+`docs/BRAND.md` §8), en az bir kez uçtan uca: ürün → sepet → ödeme adımı
 (onay kutusu işaretsiz başlıyor mu, işaretlenince sipariş geçiyor mu) → üye
 girişi → favori ekle/çıkar.

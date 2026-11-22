@@ -1,10 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 
-import {
-  Illustration,
-  type IllustrationName,
-} from "@/components/laffogato/illustration";
 import { PageHero } from "@/components/laffogato/page-hero";
 import Link from "@/components/link";
 import { guideHubLd } from "@/lib/seo/guide-structured-data";
@@ -36,15 +32,6 @@ export const metadata: Metadata = {
   },
 };
 
-/** Each guide's card leads with a small drawing of its subject. */
-const GUIDE_ART: Record<string, IllustrationName> = {
-  "affogato-nedir": "rehber-affogato",
-  "matcha-nedir": "rehber-matcha",
-  "espresso-cesitleri": "rehber-espresso",
-  "san-sebastian-cheesecake": "rehber-cheesecake",
-  "yenilebilir-kahve-fincani": "rehber-kupa",
-};
-
 export default function GuideHubPage() {
   return (
     <div className="guide-page guide-page-hub">
@@ -53,25 +40,28 @@ export default function GuideHubPage() {
       {/* The opener spans the page; the breadcrumb and the cards under it
           share the site's content width. */}
       <PageHero
-        scene="matcha"
-        eyebrow="Il quaderno"
-        title={["Barın arkasında", "öğrendiklerimiz"]}
-        lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir - hepsi tek tek, uygulanabilir biçimde."
+        image={{ src: "/rehber/espresso-cesitleri.webp" }}
+        title="Rehber"
+        lede="Bir affogato neden hemen içilir, matcha neden kaynar suyla acılaşır, tiramisu kaç saat dinlenir, cold brew neden saatlerce demlenir: hepsi tek tek, uygulanabilir biçimde."
       />
 
-      <div className="wrap">
+      <div className="wrap guide-hub">
         <nav className="guide-breadcrumb" aria-label="breadcrumb">
           <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
           <span>Rehber</span>
         </nav>
 
-        <ul className="guide-hub-grid">
+        <h2 className="t-display guide-hub-title">
+          Barın arkasında öğrendiklerimiz
+        </h2>
+        <ul className="guide-hub-grid" role="list">
           {GUIDES.map((g) => (
             <li key={g.slug}>
-              <Link href={`/rehber/${g.slug}`} className="guide-card">
+              <Link href={`/rehber/${g.slug}`} className="guide-hub-card">
+                <span className="t-display guide-hub-name">{g.title}</span>
                 {g.image ? (
-                  <span className="guide-card-photo">
+                  <span className="media ratio-6-5">
                     <Image
                       src={g.image.src}
                       alt=""
@@ -79,17 +69,11 @@ export default function GuideHubPage() {
                       sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 360px"
                     />
                   </span>
-                ) : GUIDE_ART[g.slug] ? (
-                  <Illustration
-                    name={GUIDE_ART[g.slug]}
-                    className="guide-card-art"
-                  />
-                ) : null}
-                <span className="guide-card-title">{g.title}</span>
-                <span className="guide-card-excerpt">{g.excerpt}</span>
-                <span className="guide-card-meta eyebrow">
-                  {g.readingMinutes} dk okuma →
-                </span>
+                ) : (
+                  <span />
+                )}
+                <span className="t-small">{g.excerpt}</span>
+                <span className="t-label">{g.readingMinutes} dk okuma</span>
               </Link>
             </li>
           ))}

@@ -60,7 +60,7 @@ export function ProfileForm({
         <div className="account-field">
           <label>E-posta</label>
           <div className="account-readonly">{email}</div>
-          <p style={{ marginTop: 4, fontSize: 11, color: "var(--ink-mute)" }}>
+          <p style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
             E-posta değiştirilemez (siparişler bu adrese bağlı).
           </p>
         </div>

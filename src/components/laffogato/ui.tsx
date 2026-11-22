@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
 
 import { toggleWishlistAction } from "@/app/uye/actions";
 import { checkoutFromCart, trackCartAdd } from "./pixel-events";
@@ -22,6 +22,7 @@ import {
   shortProductName,
 } from "@/lib/utils/format";
 import { cx } from "./cx";
+import { keepUnits } from "./keep-units";
 
 export interface CartItem {
   /** Stable product id - preferred match key for merge + server resolution. */
@@ -150,22 +151,7 @@ const SHOP_CAT_LABELS: Record<string, string> = {
   pantry: "Kiler",
 };
 
-/**
- * The word a drawn pack carries: the first word of the product's short
- * name, or the first two when the first is too short to stand alone
- * ("Cold Brew", "Uji Matcha"): a pack that reads "Cold" names nothing.
- */
-function packLabel(name: string): string {
-  const [first = "", second] = name.split(" ");
-  return second && first.length <= 4 ? `${first} ${second}` : first;
-}
-
-export function ProductCard({
-  product,
-  idx = 0,
-  addToCart,
-  onOpen,
-}: ProductCardProps) {
+export function ProductCard({ product, addToCart, onOpen }: ProductCardProps) {
   const p = product;
   const outOfStock = p.stock !== undefined && p.stock <= 0;
   const lowStock =
@@ -173,11 +159,10 @@ export function ProductCard({
     p.stock !== undefined &&
     p.lowStockThreshold !== undefined &&
     p.stock <= p.lowStockThreshold;
-  const name = shortProductName(p.name);
-  const label = packLabel(name);
+  const name = keepUnits(shortProductName(p.name));
   const href = p.slug ? productPath(p.slug) : undefined;
-  // A product sold in variants cannot go in from the card: the "+" opens it
-  // so the variant is chosen first (toCartItem refuses a line without one).
+  // A product sold in variants cannot go in from the card: its button opens
+  // it so the variant is chosen first (toCartItem refuses a line without one).
   const needsChoice = activeVariants(p).length > 0;
   const discount = productDiscount(p);
 
@@ -191,8 +176,7 @@ export function ProductCard({
   };
 
   // The card opens the quick look where the page has one (the shop); where
-  // it does not (the related row on a product page) it is a plain link to
-  // the product - it used to be a dead surface there, with two dead buttons.
+  // it does not (the related row on a product page) it is a plain link.
   const onCardClick = (e: React.MouseEvent) => {
     if (!onOpen) return;
     e.preventDefault();
@@ -200,46 +184,47 @@ export function ProductCard({
   };
 
   const flag = outOfStock
-    ? { text: "Tükendi", cls: "out" }
+    ? "Tükendi"
     : p.isNew
-      ? { text: "Yeni", cls: "new" }
+      ? "Yeni"
       : p.featured
-        ? { text: "Öne çıkan", cls: "gold" }
+        ? "Öne çıkan"
         : lowStock
-          ? { text: `Son ${p.stock}`, cls: "low" }
-          : { text: SHOP_CAT_LABELS[p.cat] ?? p.tag, cls: "" };
+          ? `Son ${p.stock}`
+          : "";
 
   const body = (
     <>
-      <div className="product-card-img">
-        <ProductSurface
-          cat={p.cat}
-          tone={p.img}
-          label={label}
-          sub={p.tag}
-          images={p.images}
-        />
-        <div className={`product-card-flag ${flag.cls}`}>{flag.text}</div>
+      <div className="media ratio-5-4 p-card-media">
+        <ProductSurface label={name} images={p.images} />
+        {flag ? <span className="badge">{flag}</span> : null}
       </div>
-      <div className="product-card-meta">
-        <div className="product-card-cat">{p.tag}</div>
-        <h3 className="product-card-name">{name}</h3>
+      <div className="p-card-head">
+        <h3 className="t-title">{name}</h3>
+        <span className="t-price tabular">
+          {discount ? <span className="price-was">{discount.was}</span> : null}
+          {p.price}
+        </span>
       </div>
+      {p.tag ? <p className="t-small p-card-sub">{p.tag}</p> : null}
+      {/* The discount's days, wherever the struck price is (m.14/1). */}
+      {discount ? (
+        <p className="t-small t-muted">{discount.short}</p>
+      ) : (
+        <p className="t-small t-muted">{SHOP_CAT_LABELS[p.cat] ?? ""}</p>
+      )}
     </>
   );
 
   return (
-    <article
-      className="product-card reveal"
-      style={{ transitionDelay: `${(idx % 8) * 60}ms` }}
-    >
+    <article className="p-card product-card">
       {href ? (
-        <a className="product-card-link" href={href} onClick={onCardClick}>
+        <a className="p-card-link" href={href} onClick={onCardClick}>
           {body}
         </a>
       ) : (
         <div
-          className="product-card-link"
+          className="p-card-link"
           role={onOpen ? "button" : undefined}
           tabIndex={onOpen ? 0 : undefined}
           onClick={onCardClick}
@@ -253,184 +238,39 @@ export function ProductCard({
           {body}
         </div>
       )}
-      <div className="product-card-foot">
-        <div className="product-card-pricing">
-          <div className="product-card-price">
-            <span>{p.price}</span>
-            {discount && <span className="was">{discount.was}</span>}
-          </div>
-          {/* The discount's days, wherever the struck price is (m.14/1). */}
-          {discount && (
-            <span className="product-card-discount">{discount.short}</span>
-          )}
-        </div>
-        {addToCart && !outOfStock && needsChoice ? (
-          onOpen ? (
-            <button
-              type="button"
-              className="product-card-add"
-              data-kind="options"
-              onClick={() => onOpen(p)}
-              aria-label={`${name} - seçenekleri gör`}
-              title="Seçenekleri gör"
-            >
-              <OptionsGlyph />
-            </button>
-          ) : href ? (
-            <a
-              className="product-card-add"
-              data-kind="options"
-              href={href}
-              aria-label={`${name} - seçenekleri gör`}
-              title="Seçenekleri gör"
-            >
-              <OptionsGlyph />
-            </a>
-          ) : null
-        ) : addToCart ? (
+      {addToCart && !outOfStock && needsChoice ? (
+        onOpen ? (
           <button
             type="button"
-            className="product-card-add"
-            onClick={onAdd}
-            disabled={outOfStock}
-            aria-label={
-              outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`
-            }
+            className="btn btn-dark btn-block p-card-add"
+            onClick={() => onOpen(p)}
+            aria-label={`${name} - seçenekleri gör`}
           >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M8 3v10M3 8h10"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
+            Seçenekleri gör
           </button>
-        ) : null}
-      </div>
-    </article>
-  );
-}
-
-/** The card's "choose an option" disc: a chevron, not the "+" that adds. */
-function OptionsGlyph() {
-  return (
-    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M6 3.5 10.5 8 6 12.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function SectionHead({
-  eyebrow,
-  title,
-  action,
-  alignment = "split",
-}: {
-  eyebrow?: ReactNode;
-  title: ReactNode;
-  action?: ReactNode;
-  alignment?: "split" | "center";
-}) {
-  if (alignment === "center") {
-    return (
-      <div className="reveal" style={{ textAlign: "center", marginBottom: 50 }}>
-        {eyebrow && (
-          <div className="eyebrow" style={{ marginBottom: 16 }}>
-            {eyebrow}
-          </div>
-        )}
-        <h2 className="h1">{title}</h2>
-      </div>
-    );
-  }
-  return (
-    <div className="reveal section-head">
-      <div>
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h2 className="h1" style={{ marginTop: 16 }}>
-          {title}
-        </h2>
-      </div>
-      {action && <div>{action}</div>}
-    </div>
-  );
-}
-
-export function Stat({
-  n,
-  l,
-  d,
-}: {
-  n: ReactNode;
-  l: ReactNode;
-  d?: ReactNode;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          fontFamily: "var(--headline)",
-          fontStyle: "normal",
-          fontWeight: 400,
-          fontSize: "clamp(36px, 4vw, 56px)",
-          lineHeight: 1,
-          letterSpacing: "-0.02em",
-        }}
-      >
-        {n}
-      </div>
-      <div className="eyebrow" style={{ marginTop: 10 }}>
-        {l}
-      </div>
-      {d && (
-        <div
-          style={{
-            fontSize: 13,
-            color: "var(--ink-soft)",
-            marginTop: 8,
-            lineHeight: 1.5,
-          }}
+        ) : href ? (
+          <a
+            className="btn btn-dark btn-block p-card-add"
+            href={href}
+            aria-label={`${name} - seçenekleri gör`}
+          >
+            Seçenekleri gör
+          </a>
+        ) : null
+      ) : addToCart ? (
+        <button
+          type="button"
+          className="btn btn-dark btn-block p-card-add"
+          onClick={onAdd}
+          disabled={outOfStock}
+          aria-label={
+            outOfStock ? `${name} - tükendi` : `${name} - sepete ekle`
+          }
         >
-          {d}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function DetailRow({ k, v }: { k: string; v: ReactNode }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "110px 1fr",
-        gap: 18,
-        padding: "10px 0",
-        borderTop: "1px solid var(--ink-line)",
-        // A label row runs to several lines (ingredients, nutrition): the
-        // name sits on its first line, not in the middle of the block.
-        alignItems: "baseline",
-      }}
-    >
-      <div className="eyebrow">{k}</div>
-      <div
-        style={{
-          fontSize: 14,
-          color: "var(--ink-soft)",
-          whiteSpace: "pre-line",
-          overflowWrap: "anywhere",
-        }}
-      >
-        {v}
-      </div>
-    </div>
+          {outOfStock ? "Tükendi" : "Sepete ekle"}
+        </button>
+      ) : null}
+    </article>
   );
 }
 
@@ -446,6 +286,9 @@ interface CartDrawerProps {
   setQty?: (idx: number, qty: number) => void;
   /** Free-shipping threshold in major units (₺); 0/undefined hides the bar. */
   freeShippingThreshold?: number;
+  /** The shop's products, to show each line's photo (looked up by id; the
+   *  stored cart carries no image). */
+  products?: readonly Product[];
 }
 
 export function CartDrawer({
@@ -455,12 +298,24 @@ export function CartDrawer({
   removeItem,
   setQty,
   freeShippingThreshold = 0,
+  products,
 }: CartDrawerProps) {
+  const imagesFor = (it: CartItem) =>
+    products?.find((p) => p.id && p.id === it.productId)?.images;
   const panelRef = useRef<HTMLElement | null>(null);
   useDialog(open, onClose, panelRef);
 
   const total = items.reduce((s, it) => s + (it.price || 0) * (it.qty || 1), 0);
   const itemCount = items.reduce((s, it) => s + (it.qty || 1), 0);
+  // An empty bag shows a few things from the shelf, the panel's featured
+  // ones first, as the reference's empty cart does.
+  const suggestions =
+    items.length === 0
+      ? (products ?? [])
+          .filter((p) => p.slug && (p.stock === undefined || p.stock > 0))
+          .sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
+          .slice(0, 3)
+      : [];
 
   return (
     <>
@@ -483,24 +338,26 @@ export function CartDrawer({
         inert={!open}
         tabIndex={-1}
       >
-        <div className="cart-grip" aria-hidden="true" />
         <header className="cart-drawer-header">
-          <div>
-            <p className="cart-drawer-kicker">Sepetin</p>
-            <p className="cart-drawer-title">{itemCount} ürün</p>
-          </div>
+          <p className="t-display">
+            {items.length === 0 ? "Sepetin boş" : "Sepetin"}
+            {items.length > 0 ? (
+              <span className="t-small t-muted cart-drawer-count">
+                {itemCount} ürün
+              </span>
+            ) : null}
+          </p>
           <button
             type="button"
             onClick={onClose}
-            className="nav-icon-btn"
+            className="icon-btn icon-btn--boxed"
             aria-label="Kapat"
           >
-            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
               <path
-                d="M3 3 L13 13 M13 3 L3 13"
+                d="M3 3l10 10M13 3 3 13"
                 stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
+                strokeWidth="1.2"
               />
             </svg>
           </button>
@@ -511,30 +368,40 @@ export function CartDrawer({
         <div className="cart-drawer-body">
           {items.length === 0 ? (
             <div className="cart-empty">
-              <div className="cart-empty-disc" aria-hidden="true">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5.25 8.25h13.5l-.9 11.1a1 1 0 0 1-1 .9H7.15a1 1 0 0 1-1-.9l-.9-11.1Z"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M9 10.5V7.5a3 3 0 0 1 6 0v3"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
-              <p className="cart-empty-title">Sepetin boş</p>
-              <Link
-                href="/magaza"
-                className="btn btn-primary"
-                onClick={onClose}
-              >
-                Mağazaya göz at
-              </Link>
+              <p className="t-body">
+                Kahve, ekipman ya da hediye: mağazada köşkün raflarındaki her
+                şey var.
+              </p>
+              {suggestions.length > 0 ? (
+                <div className="cart-suggest">
+                  <p className="t-label">Beğenebileceklerin</p>
+                  <ul className="cart-suggest-list" role="list">
+                    {suggestions.map((p) => (
+                      <li key={p.id ?? p.slug}>
+                        <Link
+                          href={productPath(p.slug!)}
+                          className="cart-suggest-item"
+                          onClick={onClose}
+                        >
+                          <span className="cart-item-thumb media ratio-1">
+                            <ProductSurface label={p.name} images={p.images} />
+                          </span>
+                          <span className="cart-suggest-copy">
+                            <span className="t-title">
+                              {shortProductName(p.name)}
+                            </span>
+                            <span className="t-price tabular">
+                              {typeof p.priceMinor === "number"
+                                ? priceLabel(p.priceMinor)
+                                : p.price}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           ) : (
             <ul className="cart-lines">
@@ -544,12 +411,8 @@ export function CartDrawer({
                 const atMax = it.maxStock !== undefined && qty >= it.maxStock;
                 return (
                   <li key={cartItemKey(it) + i} className="cart-item-grid">
-                    <div className="cart-item-thumb">
-                      <ProductSurface
-                        cat={it.cat ?? "gift"}
-                        tone={it.img ?? "cream"}
-                        label={it.name}
-                      />
+                    <div className="cart-item-thumb media ratio-1">
+                      <ProductSurface label={it.name} images={imagesFor(it)} />
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div className="cart-item-name">
@@ -610,7 +473,19 @@ export function CartDrawer({
             </ul>
           )}
         </div>
-        {items.length > 0 && <CartFooter total={total} items={items} />}
+        {items.length > 0 ? (
+          <CartFooter total={total} items={items} />
+        ) : (
+          <div className="cart-drawer-foot">
+            <Link
+              href="/magaza"
+              className="btn btn-dark btn-block"
+              onClick={onClose}
+            >
+              Mağazaya dön
+            </Link>
+          </div>
+        )}
       </aside>
     </>
   );
@@ -669,7 +544,7 @@ function CartFooter({
       </div>
       <a
         href="/odeme"
-        className="btn btn-ink btn-lg cart-checkout"
+        className="btn btn-dark btn-block cart-checkout"
         onClick={(e) => {
           // A plain click only: a new tab or window keeps the link's own way.
           if (
@@ -688,7 +563,6 @@ function CartFooter({
         }}
       >
         Ödemeye geç
-        <span className="arrow">→</span>
       </a>
     </footer>
   );
@@ -719,21 +593,7 @@ export function ProductModal({
 
   if (!product) return null;
   return (
-    <div
-      onClick={onClose}
-      className="product-modal-overlay"
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 90,
-        background: "var(--glass-dim)",
-        backdropFilter: "blur(8px)",
-        display: "grid",
-        placeItems: "center",
-        padding: "clamp(16px, 4vw, 40px)",
-        animation: "pageIn 0.3s cubic-bezier(0.2, 0.7, 0.2, 1)",
-      }}
-    >
+    <div onClick={onClose} className="product-modal-overlay">
       <div
         ref={panelRef}
         role="dialog"
@@ -741,44 +601,19 @@ export function ProductModal({
         aria-label={product.name}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "min(1080px, 100%)",
-          maxHeight: "92vh",
-          background: "var(--bg)",
-          borderRadius: "var(--r-card)",
-          boxShadow: "var(--shadow-lg)",
-          overflow: "hidden",
-          display: "grid",
-          // minmax(0, 1fr): with a bare 1fr the photo's 4/5 box widened
-          // with the row, so a longer detail list squeezed the text column.
-          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-          position: "relative",
-        }}
         className="product-modal"
       >
         <button
+          type="button"
           onClick={onClose}
           aria-label="Kapat"
-          style={{
-            position: "absolute",
-            top: 18,
-            right: 18,
-            zIndex: 5,
-            width: 38,
-            height: 38,
-            borderRadius: "50%",
-            background: "var(--frost-chrome)",
-            backdropFilter: "blur(10px)",
-            display: "grid",
-            placeItems: "center",
-          }}
+          className="icon-btn icon-btn--boxed product-modal-close"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
             <path
-              d="M3 3 L13 13 M13 3 L3 13"
+              d="M3 3l10 10M13 3 3 13"
               stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
+              strokeWidth="1.2"
             />
           </svg>
         </button>
@@ -812,7 +647,6 @@ function ProductModalBody({
   isAuthenticated?: boolean;
   contact?: ShopContact;
 }) {
-  const label = packLabel(shortProductName(p.name));
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
   const variants = activeVariants(p);
   const facts = productFacts(p);
@@ -832,26 +666,10 @@ function ProductModalBody({
 
   return (
     <>
-      {/* At least the row's height: a long detail list makes the row
-          taller than the 4/5 photo, which left a bare strip under it. The
-          width stays the column's, or the ratio would widen it again. */}
-      <div
-        style={{
-          aspectRatio: "4/5",
-          width: "100%",
-          minHeight: "100%",
-          position: "relative",
-        }}
-      >
-        <ProductSurface
-          cat={p.cat}
-          tone={p.img}
-          label={label}
-          sub={p.tag}
-          images={p.images}
-        />
+      <div className="product-modal-media media">
+        <ProductSurface label={p.name} images={p.images} />
         {p.id && (
-          <div style={{ position: "absolute", top: 14, left: 14, zIndex: 4 }}>
+          <div className="product-modal-heart">
             <WishlistHeart
               productId={p.id}
               isFavorite={isFavorite}
@@ -860,76 +678,27 @@ function ProductModalBody({
           </div>
         )}
       </div>
-      <div
-        style={{
-          padding: "clamp(28px, 4vw, 50px)",
-          // The panel's own height, so the column scrolls instead of the
-          // "Sepete ekle" row being cut off at the panel's edge.
-          maxHeight: "92vh",
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div className="eyebrow" style={{ marginBottom: 14 }}>
-          {p.tag}
-        </div>
-        <h2 className="pdp-title" style={{ marginTop: 0 }}>
-          {p.name}
-        </h2>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 12,
-            marginTop: 16,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--display)",
-              fontStyle: "normal",
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-              fontVariantNumeric: "tabular-nums",
-              fontSize: 28,
-            }}
-          >
-            {priceLabel(Math.round(unitPrice * 100))}
-          </span>
-          {discount && (
-            <span
-              style={{
-                textDecoration: "line-through",
-                color: "var(--ink-mute)",
-                fontSize: 18,
-              }}
-            >
-              {discount.was}
-            </span>
-          )}
-        </div>
-        {discount && <p className="pdp-discount-note">{discount.notice}</p>}
-        <p
-          style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}
-        >
-          {p.desc}
+      <div className="product-modal-info">
+        <h2 className="t-display">{p.name}</h2>
+        {p.tag ? <p className="t-body">{p.tag}</p> : null}
+        <p className="t-price tabular product-modal-price">
+          {discount ? <span className="price-was">{discount.was}</span> : null}
+          {priceLabel(Math.round(unitPrice * 100))}
         </p>
+        {discount && <p className="t-small t-muted">{discount.notice}</p>}
 
         {variants.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <div className="eyebrow" style={{ marginBottom: 10 }}>
-              Seçenek
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="buy-variants">
+            <p className="t-label">Seçenek</p>
+            <div className="chip-row">
               {variants.map((v) => {
                 const vOut = v.stock !== undefined && v.stock <= 0;
                 return (
                   <button
                     key={v.id}
                     type="button"
-                    className="variant-chip"
-                    data-active={v.id === variantId ? "true" : undefined}
+                    className="tag variant-chip"
+                    aria-pressed={v.id === variantId}
                     disabled={vOut}
                     onClick={() => {
                       setVariantId(v.id);
@@ -947,43 +716,8 @@ function ProductModalBody({
           </div>
         )}
 
-        {/* The product's own details (product-facts.ts): the fixed rows
-            per shelf this replaced gave the chasen a Bialetti warranty. */}
-        {facts.length > 0 && (
-          <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
-            {facts.map((f) => (
-              <DetailRow
-                key={f.k}
-                k={f.k}
-                v={<ProductFactValue fact={f} contact={contact} />}
-              />
-            ))}
-          </div>
-        )}
-
-        {stock !== undefined && (
-          <div style={{ marginTop: 18, fontSize: 13 }}>
-            {outOfStock ? (
-              <span style={{ color: "var(--ink-mute)" }}>● Şu an tükendi</span>
-            ) : p.lowStockThreshold !== undefined &&
-              stock <= p.lowStockThreshold ? (
-              <span style={{ color: "var(--rose)" }}>● Son {stock} adet</span>
-            ) : (
-              <span style={{ color: "var(--matcha)" }}>● Stokta</span>
-            )}
-          </div>
-        )}
-
-        <div
-          style={{
-            marginTop: 24,
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <div className="qty-stepper-pill">
+        <div className="buy-row">
+          <div className="qty-stepper">
             <button
               type="button"
               aria-label="Azalt"
@@ -992,7 +726,7 @@ function ProductModalBody({
             >
               −
             </button>
-            <span className="qty-stepper-val tabular">{qty}</span>
+            <span className="tabular">{qty}</span>
             <button
               type="button"
               aria-label="Arttır"
@@ -1003,8 +737,8 @@ function ProductModalBody({
             </button>
           </div>
           <button
-            className="btn btn-primary btn-lg"
-            style={{ flex: 1, justifyContent: "center" }}
+            type="button"
+            className="btn btn-dark buy-add"
             disabled={outOfStock}
             onClick={() => {
               if (outOfStock) return;
@@ -1019,42 +753,49 @@ function ProductModalBody({
               "Tükendi"
             ) : (
               <>
-                Sepete ekle · {priceLabel(Math.round(unitPrice * qty * 100))}{" "}
-                <span className="arrow">→</span>
+                Sepete ekle <span aria-hidden="true">|</span>{" "}
+                <span className="tabular">
+                  {priceLabel(Math.round(unitPrice * qty * 100))}
+                </span>
               </>
             )}
           </button>
         </div>
 
-        {p.slug && (
-          <a
-            href={productPath(p.slug)}
-            className="modal-pdp-link"
-            style={{ marginTop: 16 }}
-          >
-            Tüm detayları gör →
-          </a>
+        {stock !== undefined &&
+        !outOfStock &&
+        p.lowStockThreshold !== undefined &&
+        stock <= p.lowStockThreshold ? (
+          <p className="t-small field-error">Son {stock} adet</p>
+        ) : null}
+
+        <p className="t-body product-modal-desc">{p.desc}</p>
+
+        {/* The product's own details (product-facts.ts). */}
+        {facts.length > 0 && (
+          <dl className="ruled-rows">
+            {facts.map((f) => (
+              <div key={f.k}>
+                <dt className="t-label">{f.k}</dt>
+                <dd className="t-small">
+                  <ProductFactValue fact={f} contact={contact} />
+                </dd>
+              </div>
+            ))}
+          </dl>
         )}
 
-        <div
-          style={{
-            marginTop: 20,
-            padding: 18,
-            background: "var(--bg-warm)",
-            borderRadius: "var(--r-sm)",
-          }}
-        >
-          <div className="eyebrow" style={{ marginBottom: 8 }}>
-            Teslimat · İade
-          </div>
-          <div
-            style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}
-          >
-            İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün iade hakkı
-            (çabuk bozulan gıda, açılmış hijyen ürünü ve sana özel hazırlanan
-            ürün hariç).
-          </div>
-        </div>
+        <p className="t-small t-muted">
+          İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün iade hakkı
+          (çabuk bozulan gıda, açılmış hijyen ürünü ve sana özel hazırlanan ürün
+          hariç).
+        </p>
+
+        {p.slug && (
+          <a href={productPath(p.slug)} className="link-u">
+            Tüm detayları gör
+          </a>
+        )}
       </div>
     </>
   );
@@ -1079,7 +820,6 @@ function WishlistHeart({
         aria-label="Favorilere eklemek için giriş yap"
         title="Favorilere eklemek için giriş yap"
         className="wishlist-heart"
-        style={{ position: "relative", top: 0, left: 0 }}
         onClick={(e) => e.stopPropagation()}
       >
         <svg
@@ -1104,7 +844,6 @@ function WishlistHeart({
         title={isFavorite ? "Favoriden çıkar" : "Favorilere ekle"}
         className="wishlist-heart"
         data-active={isFavorite ? "true" : undefined}
-        style={{ position: "relative", top: 0, left: 0 }}
       >
         <svg
           viewBox="0 0 24 24"

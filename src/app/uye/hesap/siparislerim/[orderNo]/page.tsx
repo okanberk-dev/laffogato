@@ -177,7 +177,7 @@ export default async function OrderDetailPage({
                 display: "flex",
                 justifyContent: "space-between",
                 padding: "10px 0",
-                borderBottom: "1px solid var(--ink-line)",
+                borderBottom: "1px solid var(--line)",
                 gap: 12,
               }}
             >
@@ -188,15 +188,15 @@ export default async function OrderDetailPage({
                 <div
                   style={{
                     fontFamily: "var(--mono)",
-                    fontSize: 11,
-                    color: "var(--ink-mute)",
+                    fontSize: 12,
+                    color: "var(--muted)",
                     marginTop: 2,
                   }}
                 >
                   {it.qty} × {formatTRY(it.unitPriceMinor)}
                 </div>
               </div>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 13 }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 14 }}>
                 {formatTRY(it.qty * it.unitPriceMinor)}
               </div>
             </li>
@@ -267,7 +267,7 @@ export default async function OrderDetailPage({
           <p
             style={{
               margin: "16px 0 10px",
-              color: "var(--ink-soft)",
+              color: "var(--muted)",
               fontSize: 14,
               lineHeight: 1.6,
             }}
@@ -295,7 +295,7 @@ export default async function OrderDetailPage({
             <p
               style={{
                 margin: "0 0 10px",
-                color: "var(--ink-soft)",
+                color: "var(--muted)",
                 fontSize: 14,
                 lineHeight: 1.6,
               }}
@@ -311,7 +311,7 @@ export default async function OrderDetailPage({
           <p
             style={{
               margin: "16px 0 0",
-              color: "var(--ink-soft)",
+              color: "var(--muted)",
               fontSize: 14,
               lineHeight: 1.6,
             }}
@@ -322,7 +322,7 @@ export default async function OrderDetailPage({
         <p
           style={{
             margin: consent ? "16px 0 12px" : "0 0 12px",
-            color: "var(--ink-soft)",
+            color: "var(--muted)",
             fontSize: 14,
             lineHeight: 1.6,
           }}
@@ -339,7 +339,7 @@ export default async function OrderDetailPage({
               <Link
                 href={`/hukuk/${d.slug}`}
                 style={{
-                  color: "var(--gold-deep)",
+                  color: "var(--ink)",
                   textDecoration: "underline",
                   textUnderlineOffset: 3,
                 }}
@@ -355,7 +355,7 @@ export default async function OrderDetailPage({
         <p
           style={{
             margin: 0,
-            color: "var(--ink-soft)",
+            color: "var(--muted)",
             fontSize: 14,
             lineHeight: 1.6,
           }}
@@ -364,7 +364,7 @@ export default async function OrderDetailPage({
           <a
             href="mailto:info@nextgenlab.com.tr"
             style={{
-              color: "var(--gold-deep)",
+              color: "var(--ink)",
               textDecoration: "underline",
               textUnderlineOffset: 3,
             }}
@@ -393,7 +393,7 @@ function Row({
         display: "flex",
         justifyContent: "space-between",
         padding: "4px 0",
-        borderTop: strong ? "1px solid var(--ink-line)" : undefined,
+        borderTop: strong ? "1px solid var(--line)" : undefined,
         paddingTop: strong ? 12 : undefined,
         marginTop: strong ? 6 : undefined,
         fontFamily: "var(--mono)",
@@ -401,7 +401,7 @@ function Row({
         fontWeight: strong ? 600 : 400,
       }}
     >
-      <span style={{ color: strong ? "var(--ink)" : "var(--ink-soft)" }}>
+      <span style={{ color: strong ? "var(--ink)" : "var(--muted)" }}>
         {label}
       </span>
       <span>{value}</span>
@@ -429,9 +429,9 @@ function DetailRow({
     >
       <span
         style={{
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 600,
-          color: "var(--ink-mute)",
+          color: "var(--muted)",
         }}
       >
         {k}

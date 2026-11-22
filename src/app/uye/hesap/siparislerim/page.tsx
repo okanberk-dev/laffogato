@@ -24,7 +24,6 @@ export default async function SiparislerimPage() {
       >
         {orders.length === 0 ? (
           <EmptyState
-            art={customer.emailVerified ? "spot-siparis" : "bulten-zarf"}
             title={
               customer.emailVerified
                 ? "Henüz siparişin yok"
@@ -37,7 +36,7 @@ export default async function SiparislerimPage() {
             }
             cta={
               <Link href="/magaza" className="btn btn-primary btn-sm">
-                Mağazaya git →
+                Mağazaya git
               </Link>
             }
           />
@@ -56,7 +55,7 @@ export default async function SiparislerimPage() {
                       {STATUS_LABEL[o.status] ?? o.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                  <div style={{ fontSize: 14, color: "var(--muted)" }}>
                     {o.items
                       .map((it) => `${it.qty}× ${it.productName}`)
                       .join(", ")}

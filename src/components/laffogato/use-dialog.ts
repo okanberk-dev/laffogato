@@ -32,20 +32,45 @@ export function useDialog(
   panelRef: RefObject<HTMLElement | null>,
 ) {
   const openerRef = useRef<HTMLElement | null>(null);
+  // The latest onClose, read when Escape is pressed. Callers pass an inline
+  // function; depending on it re-ran the open effect on every render (each
+  // cart change), which recorded the opener again and threw focus back to
+  // the first control.
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
-    openerRef.current = document.activeElement as HTMLElement | null;
-
     const panel = panelRef.current;
-    // Prefer the first real control; fall back to the panel itself, which the
-    // caller gives tabIndex={-1} so it can hold focus.
-    const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? panel)?.focus?.({ preventScroll: true });
+    const active = document.activeElement as HTMLElement | null;
+    openerRef.current = active && !panel?.contains(active) ? active : null;
+
+    // Focus moves in on the next frame: a drawer that is still turning
+    // visible (its visibility switch, reduced motion's tiny transition)
+    // cannot take focus in the same tick. By then a dialog that closed in
+    // the same turn (quick look → cart) has put focus back on its own
+    // opener, which is the better place to return to later.
+    const raf = requestAnimationFrame(() => {
+      const now = document.activeElement as HTMLElement | null;
+      if (
+        now &&
+        now !== document.body &&
+        !panel?.contains(now) &&
+        !now.closest('[aria-modal="true"]')
+      ) {
+        openerRef.current = now;
+      }
+      // Prefer the first real control; fall back to the panel itself, which
+      // the caller gives tabIndex={-1} so it can hold focus.
+      const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
+      (first ?? panel)?.focus?.({ preventScroll: true });
+    });
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        closeRef.current();
         return;
       }
       if (e.key !== "Tab" || !panel) return;
@@ -68,23 +93,32 @@ export function useDialog(
       } else if (!e.shiftKey && active === lastItem) {
         e.preventDefault();
         firstItem.focus();
+      } else if (!panel.contains(active)) {
+        // Focus had slipped out (a click on the page behind): bring it in.
+        e.preventDefault();
+        (e.shiftKey ? lastItem : firstItem).focus();
       }
     };
 
     document.addEventListener("keydown", onKey);
     document.body.classList.add("is-no-scroll");
     return () => {
+      cancelAnimationFrame(raf);
       document.removeEventListener("keydown", onKey);
       document.body.classList.remove("is-no-scroll");
     };
-  }, [open, onClose, panelRef]);
+  }, [open, panelRef]);
 
   // Separate effect so focus is restored after the panel has gone, not while
-  // it is still holding focus.
+  // it is still holding focus. When another dialog has already taken focus
+  // (the cart opened as the quick look closed), it keeps it.
   useEffect(() => {
     if (open) return;
     const opener = openerRef.current;
     openerRef.current = null;
-    opener?.focus?.({ preventScroll: true });
-  }, [open]);
+    if (!opener?.isConnected) return;
+    const host = document.activeElement?.closest('[aria-modal="true"]');
+    if (host && host !== panelRef.current) return;
+    opener.focus({ preventScroll: true });
+  }, [open, panelRef]);
 }

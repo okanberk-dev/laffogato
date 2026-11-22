@@ -15,7 +15,6 @@ import {
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
 import { BusyDots } from "./busy-dots";
-import { Illustration } from "./illustration";
 import { kdvIncludedParts, type KdvIncludedParts } from "./kdv-note";
 import { karaokeBookingTerms } from "./karaoke-terms";
 import { hourToLabel } from "./karaoke-today";
@@ -399,9 +398,14 @@ export function KaraokeBooking({
     heading?.focus({ preventScroll: true });
     // Out of sight, or far down the screen behind the bar on a phone: the
     // new step is brought up to just under the header.
+    // "Out of sight" starts under the sticky bar, not at the window's top
+    // edge: a step whose progress row sat behind the bar was left there.
     const top = flowRef.current;
     const at = top?.getBoundingClientRect().top ?? 0;
-    if (top && (at < 0 || at > window.innerHeight * 0.3)) {
+    const covered =
+      document.querySelector(".site-header")?.getBoundingClientRect().bottom ??
+      0;
+    if (top && (at < covered || at > window.innerHeight * 0.3)) {
       const still = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
@@ -595,11 +599,6 @@ export function KaraokeBooking({
     return (
       <div className="wrap karaoke-page">
         <div className="karaoke-done">
-          <Illustration
-            name="karaoke-room"
-            width={220}
-            className="karaoke-done-art illo-framed"
-          />
           <div className="eyebrow">Karaoke · rezervasyon alındı</div>
           <h1 className="h1" style={{ marginTop: 14 }}>
             Görüşmek üzere
@@ -724,18 +723,9 @@ export function KaraokeBooking({
       data-wizard-step={s.enhanced ? current : undefined}
     >
       <PageHero
-        scene="berry"
+        image={{ src: "/photos/hero-karaoke.webp" }}
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", `gece ${hourToLabel(closeHour)} kadar`]}
-        art={
-          <Illustration
-            name="karaoke-room"
-            width={220}
-            className="illo-framed"
-            sizes="(max-width: 760px) 116px, 220px"
-            priority
-          />
-        }
         lede={
           prepay
             ? `${capacity} kişilik oda. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.`

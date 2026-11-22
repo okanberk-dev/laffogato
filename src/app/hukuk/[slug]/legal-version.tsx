@@ -46,7 +46,7 @@ export async function LegalVersionView({
           </Link>
           <div
             className="eyebrow"
-            style={{ color: "var(--gold-deep)", marginBottom: 12 }}
+            style={{ color: "var(--ink)", marginBottom: 12 }}
           >
             {doc.category}
           </div>
@@ -84,7 +84,7 @@ export async function LegalVersionView({
             style={{
               marginTop: 28,
               fontSize: 14,
-              color: "var(--ink-mute)",
+              color: "var(--muted)",
               lineHeight: 1.6,
               overflowWrap: "anywhere",
             }}

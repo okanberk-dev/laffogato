@@ -56,17 +56,15 @@ export default async function KaraokeMinePage() {
       >
         {!customer.emailVerified ? (
           <EmptyState
-            art="bulten-zarf"
             title="Rezervasyonların e-posta doğrulamasından sonra görünür"
             hint="Hesabım sayfasından doğrulama bağlantısını yeniden gönderebilirsin."
           />
         ) : shown.length === 0 ? (
           <EmptyState
-            art="karaoke-room"
             title="Henüz karaoke rezervasyonun yok"
             cta={
               <Link href="/karaoke" className="btn btn-primary btn-sm">
-                Saat seç →
+                Saat seç
               </Link>
             }
           />
@@ -118,7 +116,7 @@ function ReservationList({
                     {state.label}
                   </span>
                 </div>
-                <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                <div style={{ fontSize: 14, color: "var(--muted)" }}>
                   {formatReservationTime(r.startHour, r.hours)} · {r.hours} saat
                   · {r.guests} kişi
                 </div>

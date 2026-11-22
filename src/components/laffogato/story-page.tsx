@@ -2,377 +2,180 @@
 
 import Image from "next/image";
 
-import { Illustration, type IllustrationName } from "./illustration";
+import Link from "@/components/link";
+
 import { PageHero } from "./page-hero";
 import { PRESS as SEED_PRESS, STORY } from "./data";
-import { SectionHead, Stat } from "./ui";
-import {
-  BeanIllo,
-  EdibleCupHero,
-  EspressoCup,
-  FounderPortrait,
-  PhotoSurface,
-} from "./visuals";
 import type { PageProps } from "./page-shared";
 
 /**
- * A drawing for each milestone the timeline knows by its year: the Bologna
- * portico with the bar's sign, the cup and its spoon, a Bronte pistachio
- * branch, the Tuzla köşk. A year the panel adds later simply has none.
+ * /hikayemiz, in the reference's story layout: the wide photograph and the
+ * title, then sections that alternate photograph and text on the white
+ * page and the band, the timeline as ruled rows, the principles and the
+ * pour as small grids. The copy is the panel's where the panel has a key
+ * (story.hero.lede, story.founder.bio) and the timeline is /admin/hikaye.
  */
-const TIMELINE_ART: Record<string, IllustrationName> = {
-  "1897": "story-1897",
-  "1994": "story-1994",
-  "2008": "story-2008",
-  "2026": "story-2026",
-};
-
 export function PageStory({ press, storyTimeline, content }: PageProps) {
   const PRESS = press ?? SEED_PRESS;
   const heritage = storyTimeline ?? STORY.heritage;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
 
-  // Each card has its line icon: the köşk's door (the one bar), a cup with a
-  // leaf (the recipe and the milk), a laptop asleep (no work after 18:00),
-  // the refill tin, a slow clock, and a barista's apron with a heart.
-  const values: Array<{
-    n: string;
-    icon: IllustrationName;
-    t: string;
-    d: string;
-  }> = [
+  const values = [
     {
-      n: "01",
-      icon: "ilke-kapi",
       t: "Tek bir bar, tek bir ritüel",
       d: "Menü kısa kalır. Sezonluk değişir ama liste hiçbir zaman altı affogato’dan fazla olmaz.",
     },
     {
-      n: "02",
-      icon: "ilke-fincan",
       t: "İtalyan reçete, yerel süt",
       d: "Haftalık taze kavurma. Trakya küçük mandıradan günlük süt. Her ürün izlenebilir.",
     },
     {
-      n: "03",
-      icon: "ilke-laptop",
       t: "Laptop yok, ses az",
       d: "Akşam 18:00’den sonra çalışma yok. Müzik 65dB üzerine çıkmaz. Bar, sohbet için.",
     },
     {
-      n: "04",
-      icon: "ilke-teneke",
       t: "Zero waste",
       d: "Yenilebilir kup, kompost gelato bardağı, yeniden doldurulan teneke. 2025'ten beri tek kullanımlık plastik yok.",
     },
     {
-      n: "05",
-      icon: "ilke-saat",
       t: "Yavaş büyüme",
       d: "Acele açılış yok. Her yeni fikir önce Tuzla köşkünde denenir; ana mekân her zaman ana mekân kalır.",
     },
     {
-      n: "06",
-      icon: "ilke-onluk",
       t: "Personel mutluluğu",
       d: "İlk yıl çalışan turnover’ı %0. Yıllık 6 hafta tatil, sigorta artı, Bologna ziyareti.",
     },
   ];
 
   const pourSteps = [
-    { step: "01", t: "Tartı", d: "18g Sirena, taze öğüt." },
-    { step: "02", t: "Tamper", d: "15kg, eşit basınç." },
-    { step: "03", t: "27s", d: "36g out, 93°C." },
-    { step: "04", t: "Pour", d: "Tableside, gelato üzerine." },
+    { t: "Tartı", d: "18g Sirena, taze öğüt." },
+    { t: "Tamper", d: "15kg, eşit basınç." },
+    { t: "27 saniye", d: "36g out, 93°C." },
+    { t: "Döküş", d: "Masada, gelato üzerine." },
+  ];
+
+  const facts = [
+    { n: "1897", l: "Kuruluş", d: "Bologna" },
+    { n: "1994", l: "Yenilebilir kup", d: "Mancuso ailesi patenti" },
+    { n: "2026", l: "İstanbul açılışı", d: "Tuzla, ilk yurt dışı şube" },
+    { n: "III", l: "Kuşak", d: "Eda Mancuso" },
   ];
 
   return (
     <div className="page" data-screen-label="04 Story">
       <PageHero
-        scene="velvet"
-        eyebrow="Hikaye · 1897 → 2026"
-        title={["Bologna 1897’den", "Tuzla’ya"]}
+        title="Bologna 1897’den Tuzla’ya"
         lede={c(
           "story.hero.lede",
           "İlk yurt dışı şubemiz - 200 yıllık, Rum’lardan kalma restore bir köşkte. İtalyan baba, İstanbullu anne: Eda Mancuso, büyük dedesinin 1897’de açtığı L’Affogato barını dördüncü kuşak olarak devraldı ve 2026’da markayı doğduğu şehre getirdi.",
         )}
+        image={{ src: "/photos/hero-story.webp" }}
       />
-      <section className="story-hero">
-        <div className="wrap">
-          {/* The köşk itself. These are the venue photographs from the design
-              handoff - the page used to carry only drawn illustrations. */}
-          <div className="story-mosaic">
-            <div className="story-mosaic-lead">
+
+      {/* The köşk ──────────────────────────────────────────── */}
+      <section className="section section--band" aria-labelledby="story-kosk">
+        <div className="wrap story-split">
+          <div className="story-split-copy">
+            <h2 id="story-kosk" className="t-display">
+              Köşk
+            </h2>
+            <p className="t-body">
+              Tuzla Postane Mahallesi&apos;nde, Rum&apos;lardan kalma 200 yıllık
+              ahşap bir köşk. Altta bar ve bahçe terası, üst katta karaoke
+              odası. Restorasyonda köşkün kapısı, aynası ve sandığı yerinde
+              kaldı; bar onların arasına kuruldu.
+            </p>
+          </div>
+          <div className="story-split-media story-mosaic">
+            <div className="media story-mosaic-lead">
               <Image
                 src="/photos/facade-day.webp"
                 alt="Tuzla'daki restore ahşap köşk"
-                width={765}
-                height={1020}
-                loading="eager"
-                fetchPriority="high"
-                sizes="(max-width: 560px) 100vw, 640px"
+                fill
+                sizes="(max-width: 767px) 100vw, 30vw"
                 style={{ objectPosition: "50% 58%" }}
               />
             </div>
-            <div>
+            <div className="media">
               <Image
                 src="/photos/interior-mirror.webp"
-                alt="Köşkün içi - terracotta duvar ve altın ayna"
-                width={765}
-                height={1020}
-                sizes="(max-width: 560px) 50vw, 320px"
+                alt="Köşkün içi: terracotta duvar ve altın ayna"
+                fill
+                sizes="(max-width: 767px) 50vw, 15vw"
               />
             </div>
-            <div>
-              <Image
-                src="/photos/interior-chest.webp"
-                alt="Köşkün içi - ahşap sandık ve vitrin"
-                width={765}
-                height={1020}
-                sizes="(max-width: 560px) 50vw, 320px"
-              />
-            </div>
-            <div>
+            <div className="media">
               <Image
                 src="/photos/terrace-canopy.webp"
                 alt="Hasır gölgelikli teras"
-                width={765}
-                height={1020}
-                sizes="(max-width: 560px) 50vw, 320px"
-              />
-            </div>
-            <div>
-              <Image
-                src="/photos/drinks-tray.webp"
-                alt="Terasta soğuk içecekler"
-                width={765}
-                height={1020}
-                sizes="(max-width: 560px) 50vw, 320px"
+                fill
+                sizes="(max-width: 767px) 50vw, 15vw"
               />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="section-tight" style={{ background: "var(--bg)" }}>
+      {/* Facts ─────────────────────────────────────────────── */}
+      <section className="section" aria-label="Rakamlarla">
         <div className="wrap">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 40,
-              padding: "40px 0",
-              borderTop: "1px solid var(--ink-line)",
-              borderBottom: "1px solid var(--ink-line)",
-            }}
-            data-row="story-stats"
-          >
-            <Stat n="1897" l="Kuruluş" d="Bologna · 1897" />
-            <Stat
-              n="1994"
-              l="Yenilebilir kup patenti"
-              d="Mancuso ailesi patenti"
-            />
-            <Stat
-              n="2026"
-              l="İstanbul açılışı"
-              d="Tuzla · ilk yurt dışı şube"
-            />
-            <Stat n="III" l="Kuşak" d="Eda Mancuso · 3. kuşak" />
-          </div>
+          <ul className="fact-row" role="list">
+            {facts.map((f) => (
+              <li key={f.n}>
+                <p className="fact-n">{f.n}</p>
+                <p className="t-label">{f.l}</p>
+                <p className="t-small t-muted">{f.d}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      <section className="section">
-        <div
-          className="wrap"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 80,
-            alignItems: "center",
-          }}
-          data-row="founder-row"
-        >
-          <div
-            className="reveal"
-            style={{
-              aspectRatio: "4/5",
-              borderRadius: "var(--r-lg)",
-              overflow: "hidden",
-            }}
-          >
-            <PhotoSurface
-              hue="warm"
-              dotLabel="Eda Mancuso · Founder"
-              dotPos="bl"
-            >
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                <FounderPortrait />
-              </div>
-            </PhotoSurface>
+      {/* The founder ───────────────────────────────────────── */}
+      <section className="section section--band" aria-labelledby="story-founder">
+        <div className="wrap story-split story-split--flip">
+          <div className="story-split-media media ratio-6-5">
+            <Image
+              src="/photos/interior-chest.webp"
+              alt="Köşkün içi: ahşap sandık ve vitrin"
+              fill
+              sizes="(max-width: 767px) 100vw, 50vw"
+            />
           </div>
-          <div className="reveal r1">
-            <div className="eyebrow">Founder · Roaster · Üçüncü kuşak</div>
-            <h2 className="h1" style={{ marginTop: 16 }}>
-              Eda <span className="script">Mancuso</span>
+          <div className="story-split-copy">
+            <p className="t-label">Kurucu · Üçüncü kuşak</p>
+            <h2 id="story-founder" className="t-display">
+              Eda Mancuso
             </h2>
-            <p className="lede" style={{ marginTop: 22 }}>
-              {c("story.founder.bio", STORY.founder.bio)}
-            </p>
-            <blockquote
-              style={{
-                margin: "32px 0",
-                padding: "24px 28px",
-                borderLeft: "2px solid var(--amber)",
-                fontFamily: "var(--serif)",
-                fontStyle: "normal",
-                fontSize: 20,
-                lineHeight: 1.5,
-                color: "var(--ink)",
-              }}
-            >
-              “Affogato benim için bir kahve değil, bir ritüel. Floransa’da
-              Ditta’da çalışırken her servisin sonunda baristalar küçük bir
-              gelato üzerine espresso döker, ayakta içerdik. L’Affogato o anı
-              bir mekana dönüştürme denemesi.”
+            <p className="t-body">{c("story.founder.bio", STORY.founder.bio)}</p>
+            <blockquote className="story-quote">
+              <p className="t-body">
+                “Affogato benim için bir kahve değil, bir ritüel. Floransa’da
+                Ditta’da çalışırken her servisin sonunda baristalar küçük bir
+                gelato üzerine espresso döker, ayakta içerdik. L’Affogato o anı
+                bir mekana dönüştürme denemesi.”
+              </p>
+              <footer className="t-label">Eda</footer>
             </blockquote>
-            <div
-              style={{
-                fontFamily: "var(--headline)",
-                fontSize: 38,
-                lineHeight: 1,
-                color: "var(--accent)",
-              }}
-            >
-              - Eda
-            </div>
           </div>
         </div>
       </section>
 
-      <section
-        className="section"
-        data-ground="dark"
-        style={{ background: "var(--roast)", color: "var(--ink-on-dark)" }}
-      >
-        <div className="wrap-wide">
-          <div className="reveal" style={{ marginBottom: 70 }}>
-            <div className="eyebrow on-dark">Zaman çizelgesi</div>
-            <h2
-              className="h1"
-              style={{ marginTop: 16, color: "var(--ink-on-dark)" }}
-            >
-              Buraya nasıl <span className="script">geldik</span>
+      {/* The timeline ──────────────────────────────────────── */}
+      <section className="section" aria-labelledby="story-timeline">
+        <div className="wrap">
+          <div className="section-head">
+            <h2 id="story-timeline" className="t-display">
+              Buraya nasıl geldik
             </h2>
           </div>
-          <div className="timeline">
-            {heritage.map((ev, i) => (
-              <div
-                key={ev.y}
-                className="timeline-row reveal"
-                style={{ transitionDelay: `${i * 60}ms` }}
-              >
-                <div className="timeline-when">
-                  <div className="timeline-year">{ev.y}</div>
-                  {TIMELINE_ART[ev.y.trim()] ? (
-                    <Illustration
-                      name={TIMELINE_ART[ev.y.trim()]}
-                      className="timeline-art"
-                    />
-                  ) : null}
-                </div>
-                <div className="timeline-dot">
-                  <span></span>
-                </div>
-                <div className="timeline-content">
-                  <h3 className="h3" style={{ color: "var(--ink-on-dark)" }}>
-                    {ev.t}
-                  </h3>
-                  <p
-                    style={{
-                      marginTop: 10,
-                      color: "var(--night-ink-soft)",
-                      lineHeight: 1.6,
-                      maxWidth: 540,
-                    }}
-                  >
-                    {ev.d}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="wrap">
-          <SectionHead
-            alignment="center"
-            eyebrow="İlkeler"
-            title={
-              <>
-                Koruduğumuz <span className="script">altı ilke</span>
-              </>
-            }
-          />
-          <div className="values-grid" style={{ marginTop: 60 }}>
-            {values.map((v, i) => (
-              <div
-                key={v.n}
-                className="reveal value-card"
-                style={{ transitionDelay: `${(i % 3) * 60}ms` }}
-              >
-                <Illustration name={v.icon} className="value-icon" />
-                <div className="value-num">{v.n}</div>
-                <h3 className="h3">{v.t}</h3>
-                <p>{v.d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section" style={{ background: "var(--bg-warm)" }}>
-        <div className="wrap">
-          <SectionHead
-            alignment="center"
-            eyebrow="Ritüel · 27 saniye"
-            title={
-              <>
-                Dört adımda <span className="script">döküş</span>
-              </>
-            }
-          />
-          <ol className="pour-steps" data-row="pour-row">
-            {pourSteps.map((s, i) => (
-              <li
-                key={s.step}
-                className="pour-step reveal"
-                style={{ transitionDelay: `${i * 80}ms` }}
-              >
-                <PhotoSurface hue={["stone", "caramel", "espresso", "warm"][i]}>
-                  <div className="pour-step-art">
-                    {i === 0 && <BeanIllo />}
-                    {i === 1 && <EspressoCup />}
-                    {i === 2 && <EspressoCup />}
-                    {i === 3 && <EdibleCupHero scoop="cream" topping="wafer" />}
-                  </div>
-                </PhotoSurface>
-                <span className="pour-step-num" aria-hidden="true">
-                  {s.step}
-                </span>
-                <div className="pour-step-copy">
-                  <h3 className="pour-step-title">{s.t}</h3>
-                  <p className="pour-step-note">{s.d}</p>
+          <ol className="timeline" role="list">
+            {heritage.map((ev) => (
+              <li key={ev.y} className="timeline-row">
+                <p className="timeline-year">{ev.y}</p>
+                <div>
+                  <h3 className="t-title">{ev.t}</h3>
+                  <p className="t-body t-muted">{ev.d}</p>
                 </div>
               </li>
             ))}
@@ -380,72 +183,86 @@ export function PageStory({ press, storyTimeline, content }: PageProps) {
         </div>
       </section>
 
-      {/* Only quotes a publication actually gave (/admin/basin). None yet:
-          no heading drawn over an empty wall. */}
-      {PRESS.length > 0 ? (
-        <section className="section-tight">
-          <div className="wrap">
-            <SectionHead
-              alignment="center"
-              eyebrow="Basında"
-              title={
-                <>
-                  Hakkımızda <span className="script">yazılanlar</span>
-                </>
-              }
-            />
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 30,
-                marginTop: 50,
-              }}
-              data-row="press-wall"
+      {/* The principles ────────────────────────────────────── */}
+      <section className="section section--band" aria-labelledby="story-values">
+        <div className="wrap">
+          <div className="section-head section-head--center">
+            <h2
+              id="story-values"
+              className="t-display t-display--quiet t-center"
             >
-              {PRESS.map((p, i) => (
-                <div
-                  key={i}
-                  className="reveal"
-                  style={{
-                    transitionDelay: `${(i % 4) * 60}ms`,
-                    padding: 36,
-                    borderRadius: "var(--r-card)",
-                    background: "var(--surface)",
-                    boxShadow: "var(--shadow-card)",
-                  }}
-                >
-                  <div className="eyebrow" style={{ marginBottom: 20 }}>
-                    {p.name}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--serif)",
-                      fontStyle: "normal",
-                      fontSize: 22,
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    “{p.quote}”
-                  </div>
-                </div>
-              ))}
+              Koruduğumuz altı ilke
+            </h2>
+          </div>
+          <ul className="value-grid" role="list">
+            {values.map((v, i) => (
+              <li key={v.t} className="value-card">
+                <p className="t-label t-muted">
+                  {String(i + 1).padStart(2, "0")}
+                </p>
+                <h3 className="t-title">{v.t}</h3>
+                <p className="t-body">{v.d}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* The pour ──────────────────────────────────────────── */}
+      <section className="section" aria-labelledby="story-pour">
+        <div className="wrap">
+          <div className="section-head">
+            <h2 id="story-pour" className="t-display">
+              Dört adımda döküş
+            </h2>
+          </div>
+          <ol className="step-row" role="list">
+            {pourSteps.map((s, i) => (
+              <li key={s.t} className="step-card">
+                <p className="t-title">
+                  {i + 1}. {s.t}
+                </p>
+                <p className="t-body">{s.d}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* Only quotes a publication actually gave (/admin/basin). */}
+      {PRESS.length > 0 ? (
+        <section className="section section--band" aria-labelledby="story-press">
+          <div className="wrap">
+            <div className="section-head section-head--center">
+              <h2
+                id="story-press"
+                className="t-display t-display--quiet t-center"
+              >
+                Hakkımızda yazılanlar
+              </h2>
             </div>
+            <ul className="quote-row" role="list">
+              {PRESS.map((p) => (
+                <li key={p.name} className="quote-card">
+                  <p className="t-body">“{p.quote}”</p>
+                  <p className="t-label">{p.name}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       ) : null}
 
-      <section className="section" style={{ background: "var(--bg-cream)" }}>
-        <div className="wrap-narrow" style={{ textAlign: "center" }}>
-          {/* The whole brand in one picture: the cup, bitten. */}
-          <Illustration name="story-kupa" className="story-close-art reveal" />
-          {/* The registered slogan, in its own language (lang="en": the
-              page is Turkish, and its upper case would dot every i). The
-              "1897" signature and the "That’s the whole brand" line went on
-              12 Kas 2026: the timeline dates the edible cup to 1994. */}
-          <h2 className="h1 reveal r1" lang="en">
-            “Drink it. <span className="script">Eat the cup</span>”
+      {/* The registered slogan, in its own language (lang="en": the page is
+          Turkish, and its upper case would dot every i). */}
+      <section className="section story-close">
+        <div className="wrap t-center">
+          <h2 className="t-display t-display--xl" lang="en">
+            Drink it. Eat the cup.
           </h2>
+          <Link className="btn btn-wide" href="/menu">
+            Menüyü gör
+          </Link>
         </div>
       </section>
     </div>

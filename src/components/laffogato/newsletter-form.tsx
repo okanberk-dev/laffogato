@@ -24,27 +24,29 @@ export function NewsletterForm() {
           name="email"
           required
           aria-label="E-posta adresi"
-          placeholder="E-posta adresin"
+          placeholder="E-posta adresini yaz"
           autoComplete="email"
           disabled={pending}
         />
         <button
           type="submit"
-          /* The one warm button of the footer: the amber pill inside the
-             pill field (docs/REDESIGN-ROAST.md "Footer"). */
-          className="btn btn-amber btn-sm"
+          className="newsletter-submit"
           disabled={pending}
           aria-busy={pending}
         >
           {pending ? (
             <>
               <BusyDots />
-              Gönderiliyor…
+              <span className="sr-only">Gönderiliyor…</span>
             </>
           ) : (
-            "Abone ol"
+            <>
+              <span className="sr-only">Abone ol</span>
+              <svg viewBox="0 0 28 12" fill="none" aria-hidden="true">
+                <path d="M0 6h26M21 1l5 5-5 5" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            </>
           )}
-          {!pending && <span className="arrow">→</span>}
         </button>
       </div>
 

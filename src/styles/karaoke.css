@@ -1,0 +1,808 @@
+/* ─────────────────────────────────────────────────────────────
+   Karaoke: the booking wizard (karaoke-booking.tsx), the booking's own
+   page and the member's view of it (karaoke-reservation-view.tsx).
+   Without JavaScript every step shows at once as one form; the wizard
+   hides all but the current one (`.kw-step[hidden]`).
+   ───────────────────────────────────────────────────────────── */
+
+.karaoke-page {
+  padding-block: 8px var(--section-y);
+}
+.karaoke-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.karaoke-flow {
+  display: grid;
+  gap: 32px;
+  min-width: 0;
+}
+
+/* The step bars: one 2px rule per step, the current one black. */
+.kw-progress ol {
+  display: grid;
+  grid-template-columns: repeat(var(--kw-count, 5), minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kw-progress-cell {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--muted);
+}
+.kw-progress-bar {
+  display: block;
+  height: 2px;
+  background: var(--line);
+}
+.kw-progress-item[data-state="done"] .kw-progress-bar {
+  background: var(--charcoal);
+}
+.kw-progress-item[data-state="current"] .kw-progress-bar {
+  background: var(--ink);
+  height: 3px;
+}
+.kw-progress-item[data-state="current"] .kw-progress-cell,
+.kw-progress-item[data-state="done"] .kw-progress-cell {
+  color: var(--ink);
+}
+button.kw-progress-cell:hover .kw-progress-label {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.kw-progress-label {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.kw-progress-caption {
+  display: none;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* One step. */
+.kw-step {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.kw-step[hidden] {
+  display: none;
+}
+.kw-step-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 28px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.kw-step-n {
+  flex: none;
+}
+.kw-field {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.kw-step .eyebrow {
+  display: block;
+}
+.kw-size {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 24px;
+}
+.kw-error {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--error);
+  color: var(--error);
+  font-size: 14px;
+}
+.kw-nowrap {
+  white-space: nowrap;
+}
+
+/* Days: a row of boxes that scrolls on a phone. */
+.karaoke-days {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.karaoke-days::-webkit-scrollbar {
+  display: none;
+}
+.karaoke-day {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  min-width: 92px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  text-align: left;
+  font-size: 14px;
+  line-height: 18px;
+}
+.karaoke-day.on {
+  background: var(--charcoal);
+  border-color: var(--charcoal);
+  color: var(--on-dark);
+}
+
+/* Hours: a grid of boxes; a booked hour is out and says so. */
+.karaoke-hours {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.karaoke-hour {
+  display: grid;
+  gap: 2px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  text-align: left;
+}
+.karaoke-hour-t {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+.karaoke-hour-n {
+  font-size: 12px;
+  color: var(--muted);
+}
+.karaoke-hour:hover:not(:disabled) {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.karaoke-hour.on {
+  background: var(--charcoal);
+  border-color: var(--charcoal);
+  color: var(--on-dark);
+}
+.karaoke-hour.on .karaoke-hour-n {
+  color: var(--on-dark-muted);
+}
+.karaoke-hour.taken,
+.karaoke-hour:disabled {
+  border-color: var(--line);
+  background: var(--band);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.karaoke-hour.taken .karaoke-hour-t {
+  text-decoration: line-through;
+}
+
+/* The stepper: a boxed − value +. */
+.karaoke-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+.karaoke-step-down,
+.karaoke-step-up {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 18px;
+}
+.karaoke-step-down:disabled,
+.karaoke-step-up:disabled {
+  opacity: 0.35;
+}
+.karaoke-step-value {
+  min-width: 80px;
+  text-align: center;
+  font-size: 16px;
+}
+.karaoke-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.karaoke-hint-warn,
+.karaoke-warn {
+  margin: 0;
+  font-size: 14px;
+  color: var(--error);
+}
+
+/* Contact: who to reach about the booking. */
+.karaoke-contact {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.karaoke-contact-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--band);
+}
+.karaoke-contact-name {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 14px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.karaoke-contact-line {
+  grid-column: 1;
+  font-size: 14px;
+}
+.karaoke-contact-edit {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background: none;
+  border: 0;
+}
+.karaoke-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.karaoke-field > span,
+.karaoke-field > label {
+  font-size: 14px;
+}
+.karaoke-field input,
+.karaoke-field textarea,
+.karaoke-field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #b9b9b3;
+  background: var(--surface);
+  font-size: 16px;
+}
+.karaoke-field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+.karaoke-field input:focus,
+.karaoke-field textarea:focus,
+.karaoke-field select:focus {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  outline: none;
+}
+.karaoke-guest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+}
+
+/* The pre-contract information, the seller and the three boxes. MSY
+   m.6/1: 16px (foundation.css holds the size). */
+.karaoke-preinfo {
+  padding: 20px 24px;
+  background: var(--band);
+}
+.karaoke-preinfo h3 {
+  margin: 0 0 10px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-weight: 400;
+  font-size: 16px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.karaoke-preinfo ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+.kw-terms-line {
+  display: block;
+  margin-top: 4px;
+}
+.karaoke-preinfo-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.karaoke-preinfo-more summary::-webkit-details-marker {
+  display: none;
+}
+.karaoke-seller {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.karaoke-consents {
+  display: grid;
+  gap: 14px;
+}
+.karaoke-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.karaoke-consent input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+}
+.karaoke-consent a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.karaoke-fine {
+  font-size: 14px;
+  color: var(--muted);
+}
+.karaoke-pay {
+  width: 100%;
+  max-width: 420px;
+  min-height: 52px;
+}
+.kw-signin {
+  display: grid;
+  gap: 12px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+}
+
+/* The review: label rows, each with its "Değiştir". */
+.kw-review {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.kw-review > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.kw-review dt {
+  grid-column: 1;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kw-review dd {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.kw-review-line,
+.kw-review-sub {
+  display: block;
+}
+.kw-review-sub {
+  font-size: 14px;
+  color: var(--muted);
+}
+.kw-change {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.kw-paybox {
+  display: grid;
+  gap: 8px;
+  padding: 20px 24px;
+  background: var(--band);
+}
+.kw-paybox-what {
+  font-size: 14px;
+}
+.kw-paybox-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 20px;
+  letter-spacing: var(--track);
+}
+.kw-paybox-kdv,
+.kw-paybox-note,
+.kw-kdv,
+.karaoke-kdv,
+.kdv-part {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+/* "KDV dahil" and "(KDV 166,67₺)" break between them, never inside. */
+.kdv-part {
+  white-space: nowrap;
+}
+
+/* Geri and Devam under the step. */
+.kw-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.kw-nav-total {
+  display: none;
+}
+.kw-nav-actions {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.kw-next {
+  min-width: 200px;
+}
+.kw-back-icon {
+  width: 8px;
+  height: 8px;
+  border-left: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+
+/* The summary beside the steps. */
+.karaoke-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.karaoke-photo {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--band);
+}
+.karaoke-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.karaoke-summary {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  background: var(--band);
+}
+.karaoke-lines {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+.karaoke-lines > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.karaoke-unit {
+  color: var(--muted);
+}
+.karaoke-discount {
+  color: var(--success);
+}
+.karaoke-total {
+  align-items: baseline;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.karaoke-total-n {
+  font-size: 20px;
+}
+
+@media (min-width: 960px) {
+  .karaoke-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    gap: 32px 48px;
+  }
+  .karaoke-side {
+    position: sticky;
+    top: calc(var(--header-h) + 16px);
+  }
+}
+@media (max-width: 959.98px) {
+  /* On a phone the summary rides in the bottom bar. */
+  .karaoke-page[data-wizard="on"] .karaoke-side {
+    display: none;
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 58;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav-total {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+    font-family: var(--headline);
+    font-variation-settings: "wdth" var(--headline-wdth);
+    letter-spacing: 1px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav-actions {
+    flex: none;
+    gap: 8px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-next {
+    min-width: 0;
+    padding-inline: 28px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-back {
+    width: 48px;
+    padding: 0;
+  }
+  .karaoke-page[data-wizard="on"] .kw-back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  /* Room for the bar under the last line of the page and of the footer,
+     and a focused field scrolls clear of it (WCAG 2.4.11). */
+  .karaoke-page[data-wizard="on"] {
+    padding-bottom: 120px;
+  }
+  html:has(.karaoke-page[data-wizard="on"]) {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  body:has(.karaoke-page[data-wizard="on"]) .site-footer {
+    padding-bottom: calc(36px + 88px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 640px) {
+  .kw-progress-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .kw-progress {
+    display: grid;
+  }
+  .kw-progress-caption {
+    display: block;
+    order: -1;
+  }
+}
+
+/* Booked: the confirmation in place of the form. */
+.karaoke-done {
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+  padding-block: 48px;
+}
+
+/* The booking's own page (/rezervasyon) and the member's view. */
+.karaoke-link-page {
+  max-width: 760px;
+  padding-block: 32px var(--section-y);
+}
+.karaoke-link-head {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.karaoke-mine {
+  display: grid;
+  gap: 20px;
+}
+.karaoke-mine-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.karaoke-mine-code {
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.karaoke-mine-sub,
+.karaoke-mine-quiet {
+  font-size: 14px;
+  color: var(--muted);
+}
+.karaoke-mine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 24px;
+  margin: 0;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.karaoke-mine-grid dt {
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.karaoke-mine-grid dd {
+  margin: 2px 0 0;
+}
+.karaoke-mine-kdv {
+  display: block;
+  font-size: 14px;
+  color: var(--muted);
+}
+.karaoke-mine-rules {
+  display: grid;
+  gap: 6px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.karaoke-mine-pay,
+.karaoke-mine-confirm {
+  display: grid;
+  gap: 10px;
+}
+.karaoke-mine-confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.karaoke-mine-cancel {
+  display: inline-block;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.karaoke-mine-outcome {
+  padding: 16px 20px;
+  background: var(--band);
+}
+.karaoke-mine-notice {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+}
+.karaoke-mine-notice--ok {
+  border-color: var(--success);
+  color: var(--success);
+}
+.karaoke-mine-notice--warn {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.karaoke-mine-notice--error {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* An order's or booking's status as a small boxed label. */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 10px;
+  border: 1px solid var(--line-strong);
+  font-family: var(--headline);
+  font-variation-settings: "wdth" var(--headline-wdth);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+/* An order's own status (uye/hesap: data-tone={order.status}): waiting
+   for payment warns, done is green, refunded red, cancelled grey, the
+   steps in between keep the ink. */
+.status-chip[data-tone="pending_payment"] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.status-chip[data-tone="completed"] {
+  border-color: var(--success);
+  color: var(--success);
+}
+.status-chip[data-tone="refunded"] {
+  border-color: var(--error);
+  color: var(--error);
+}
+.status-chip[data-tone="cancelled"] {
+  border-color: var(--line);
+  color: var(--muted);
+}
+.status-chip[data-tone="ok"],
+.status-chip.tone-ok {
+  border-color: var(--success);
+  color: var(--success);
+}
+.status-chip[data-tone="warn"],
+.status-chip.tone-warn {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.status-chip[data-tone="bad"],
+.status-chip.tone-bad {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* A text link inside the wizard's hints ("Üyeysen giriş yap"). */
+.karaoke-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.karaoke-link:hover {
+  text-decoration-thickness: 2px;
+}

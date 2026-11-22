@@ -6,12 +6,7 @@
  * two of them use.
  */
 
-import type {
-  MenuCategory,
-  PRESS as SEED_PRESS,
-  Product,
-  STORY,
-} from "./data";
+import type { MenuCategory, PRESS as SEED_PRESS, Product, STORY } from "./data";
 import type { KaraokeFacts } from "./karaoke-today";
 import type { Route } from "./route-paths";
 import type { ShopHeroSlide } from "./shop-hero-slider";
@@ -21,8 +16,8 @@ import type { CartItem } from "./ui";
     the two the prototype shows as badges are labelled - anything else is not
     worth a badge. */
 export const MENU_TAG_LABELS: Record<string, string> = {
-  signature: "İMZA",
-  new: "YENİ",
+  signature: "İmza",
+  new: "Yeni",
 };
 
 /** Minutes a pickup takes when the page has no settings (the column default). */

@@ -189,7 +189,7 @@ export function ProductDetail({
 
   return (
     <div className="pdp">
-      <div className="wrap-wide">
+      <div className="wrap">
         <nav className="pdp-breadcrumb" aria-label="breadcrumb">
           <Link href="/">Ana Sayfa</Link>
           <span aria-hidden>/</span>
@@ -215,25 +215,18 @@ export function ProductDetail({
         <div className="pdp-grid">
           {/* Gallery */}
           <div className="pdp-gallery">
-            <div className="pdp-gallery-main">
+            <div className="pdp-gallery-main media">
               {gallery.length > 0 ? (
                 <ProductSurface
-                  cat={p.cat}
-                  tone={p.img}
                   label={p.name}
                   images={[gallery[activeImg]]}
                   priority
                 />
               ) : (
-                <ProductSurface
-                  cat={p.cat}
-                  tone={p.img}
-                  label={p.name}
-                  sub={p.tag}
-                />
+                <ProductSurface label={p.name} />
               )}
               {savingsPct > 0 && (
-                <span className="pdp-save-badge">%{savingsPct} indirim</span>
+                <span className="badge">%{savingsPct} indirim</span>
               )}
             </div>
             {gallery.length > 1 && (
@@ -242,17 +235,12 @@ export function ProductDetail({
                   <button
                     key={img + i}
                     type="button"
-                    className="pdp-thumb"
+                    className="pdp-thumb media"
                     data-active={i === activeImg ? "true" : undefined}
                     onClick={() => setActiveImg(i)}
                     aria-label={`Görsel ${i + 1}`}
                   >
-                    <ProductSurface
-                      cat={p.cat}
-                      tone={p.img}
-                      label={p.name}
-                      images={[img]}
-                    />
+                    <ProductSurface label={p.name} images={[img]} />
                   </button>
                 ))}
               </div>
@@ -261,26 +249,24 @@ export function ProductDetail({
 
           {/* Buy box */}
           <div className="pdp-info">
-            <p className="page-hero-kicker">{p.tag}</p>
-            <h1 className="pdp-title">{p.name}</h1>
+            <h1 className="t-display pdp-title">{p.name}</h1>
+            {p.tag ? <p className="t-body">{p.tag}</p> : null}
 
             <div className="pdp-price-row">
-              <span className="pdp-price">{priceLabel(unitMinor)}</span>
               {compareAt && compareAt > unitPrice && (
-                <span className="pdp-compare">
+                <span className="t-price price-was tabular">
                   {priceLabel(Math.round(compareAt * 100))}
                 </span>
               )}
+              <span className="t-price tabular">{priceLabel(unitMinor)}</span>
               {savingsPct > 0 && (
-                <span className="pdp-save-pill">−%{savingsPct}</span>
+                <span className="t-small pdp-save-pill">−%{savingsPct}</span>
               )}
             </div>
             {savingsPct > 0 && discount && (
-              <p className="pdp-discount-note">{discount.notice}</p>
+              <p className="t-small t-muted">{discount.notice}</p>
             )}
-            <div className="pdp-tax-note">KDV dahil fiyat</div>
-
-            <p className="pdp-desc">{p.desc}</p>
+            <p className="t-small t-muted">KDV dahil fiyat</p>
 
             {/* Stock state */}
             {stock !== undefined && (
@@ -298,18 +284,16 @@ export function ProductDetail({
             {/* Variants */}
             {variants.length > 0 && (
               <div className="pdp-variants">
-                <div className="eyebrow" style={{ marginBottom: 10 }}>
-                  Seçenek
-                </div>
-                <div className="pdp-variant-list">
+                <p className="t-label">Seçenek</p>
+                <div className="chip-row">
                   {variants.map((v) => {
                     const vOut = v.stock !== undefined && v.stock <= 0;
                     return (
                       <button
                         key={v.id}
                         type="button"
-                        className="variant-chip"
-                        data-active={v.id === variantId ? "true" : undefined}
+                        className="tag variant-chip"
+                        aria-pressed={v.id === variantId}
                         disabled={vOut}
                         onClick={() => {
                           setVariantId(v.id);
@@ -329,8 +313,8 @@ export function ProductDetail({
             )}
 
             {/* Qty + add */}
-            <div className="pdp-buy">
-              <div className="qty-stepper-pill">
+            <div className="buy-row">
+              <div className="qty-stepper">
                 <button
                   type="button"
                   aria-label="Azalt"
@@ -339,7 +323,7 @@ export function ProductDetail({
                 >
                   −
                 </button>
-                <span className="qty-stepper-val tabular">{qty}</span>
+                <span className="tabular">{qty}</span>
                 <button
                   type="button"
                   aria-label="Arttır"
@@ -351,8 +335,7 @@ export function ProductDetail({
               </div>
               <button
                 type="button"
-                className="btn btn-primary btn-lg"
-                style={{ flex: 1, justifyContent: "center" }}
+                className="btn btn-dark buy-add"
                 disabled={outOfStock}
                 onClick={() => addToCart(false)}
               >
@@ -361,19 +344,24 @@ export function ProductDetail({
                 ) : added ? (
                   "Sepete eklendi ✓"
                 ) : (
-                  <>Sepete ekle · {priceLabel(unitMinor * qty)}</>
+                  <>
+                    Sepete ekle <span aria-hidden="true">|</span>{" "}
+                    <span className="tabular">{priceLabel(unitMinor * qty)}</span>
+                  </>
                 )}
               </button>
             </div>
             {!outOfStock && (
               <button
                 type="button"
-                className="btn btn-ghost btn-lg pdp-buynow"
+                className="btn btn-block pdp-buynow"
                 onClick={() => addToCart(true)}
               >
-                Hemen satın al <span className="arrow">→</span>
+                Hemen satın al
               </button>
             )}
+
+            <p className="t-body pdp-desc">{p.desc}</p>
 
             {/* Trust badges */}
             <ul className="pdp-trust">
@@ -428,18 +416,13 @@ export function ProductDetail({
         {/* Related */}
         {related.length > 0 && (
           <section className="pdp-related">
-            <div className="section-head" style={{ marginBottom: 26 }}>
-              <div>
-                <div className="eyebrow">Birlikte iyi gider</div>
-                <h2 className="h2" style={{ marginTop: 10 }}>
-                  Bunları da sevebilirsin
-                </h2>
-              </div>
-              <Link href="/magaza" className="btn btn-ghost btn-sm">
+            <div className="section-head">
+              <h2 className="t-display">Bunları da sevebilirsin</h2>
+              <Link href="/magaza" className="link-u">
                 Tüm mağaza
               </Link>
             </div>
-            <div className="shop-grid-3">
+            <div className="product-grid">
               {related.map((rp, i) => (
                 <ProductCard
                   key={rp.id ?? rp.name}
@@ -477,7 +460,7 @@ function Accordion({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span>{title}</span>
+        <span className="t-label">{title}</span>
         <span className="pdp-acc-icon" aria-hidden>
           {open ? "−" : "+"}
         </span>

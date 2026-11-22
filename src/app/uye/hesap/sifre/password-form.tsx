@@ -35,7 +35,7 @@ export function PasswordForm() {
           minLength={8}
           autoComplete="new-password"
         />
-        <p style={{ fontSize: 11, color: "var(--ink-mute)", marginTop: 4 }}>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
           En az 8 karakter.
         </p>
       </div>

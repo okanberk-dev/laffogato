@@ -97,7 +97,7 @@ function Toggle({
         alignItems: "flex-start",
         cursor: "pointer",
         padding: "12px 14px",
-        border: "1px solid var(--ink-line)",
+        border: "1px solid var(--line)",
         borderRadius: 12,
         background: "var(--bg)",
       }}
@@ -127,8 +127,8 @@ function Toggle({
         <span
           style={{
             display: "block",
-            color: "var(--ink-soft)",
-            fontSize: 13,
+            color: "var(--muted)",
+            fontSize: 14,
             marginTop: 2,
             lineHeight: 1.5,
           }}

@@ -31,7 +31,6 @@ export default async function AdreslerimPage() {
       >
         {addresses.length === 0 ? (
           <EmptyState
-            art="spot-adres"
             title="Henüz adres eklemedin"
             hint="Hızlı teslimat için yeni bir adres ekle. İlk eklediğin adres varsayılan olur."
             cta={
@@ -62,7 +61,7 @@ export default async function AdreslerimPage() {
                 <div className="account-address-body">
                   {a.recipientName && <div>{a.recipientName}</div>}
                   {a.phone && (
-                    <div style={{ color: "var(--ink-mute)" }}>{a.phone}</div>
+                    <div style={{ color: "var(--muted)" }}>{a.phone}</div>
                   )}
                   <div>
                     {a.line1}
@@ -93,7 +92,7 @@ export default async function AdreslerimPage() {
                     <button
                       type="submit"
                       className="btn btn-ghost btn-sm"
-                      style={{ color: "var(--rose)" }}
+                      style={{ color: "var(--error)" }}
                     >
                       Sil
                     </button>

@@ -57,7 +57,7 @@ export default async function KartlarimPage() {
             hint="Bir sonraki ödemende kart bilgilerini yazdıktan sonra “Bu kartı sonraki ödemeler için kaydet”i işaretle; kartın burada görünür."
             cta={
               <Link href="/magaza" className="btn btn-primary btn-sm">
-                Mağazaya git →
+                Mağazaya git
               </Link>
             }
           />

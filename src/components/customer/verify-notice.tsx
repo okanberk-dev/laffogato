@@ -25,11 +25,10 @@ export function VerifyNotice({
   return (
     <div
       style={{
-        border: "1px solid var(--ink-line)",
-        background: "var(--bg-warm)",
-        borderRadius: "var(--r-md)",
+        border: "1px solid var(--line)",
+        background: "var(--band)",
         padding: compact ? "14px 16px" : "22px 24px",
-        color: "var(--ink-soft)",
+        color: "var(--muted)",
       }}
     >
       <div
@@ -73,12 +72,12 @@ export function VerifyNotice({
           )}
         </button>
         {state.message && (
-          <span style={{ color: "var(--matcha)", fontSize: 13 }}>
+          <span style={{ color: "var(--success)", fontSize: 14 }}>
             {state.message}
           </span>
         )}
         {state.error && (
-          <span style={{ color: "var(--rose)", fontSize: 13 }}>
+          <span style={{ color: "var(--error)", fontSize: 14 }}>
             {state.error}
           </span>
         )}

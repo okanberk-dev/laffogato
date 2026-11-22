@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 
 import { unsubscribeNewsletterAction } from "@/app/newsletter/actions";
 import { LafMark } from "@/components/laffogato/brand-mark";
-import { Illustration } from "@/components/laffogato/illustration";
 import Link from "@/components/link";
 import { NEWSLETTER_LINK_COOKIES } from "@/lib/newsletter/link-token";
 
@@ -62,8 +61,6 @@ export default async function BultenCikisPage({ searchParams }: PageProps) {
           </Link>
           <LafMark tone="duo" />
         </div>
-        {/* The letter itself, sealed with a coffee bean. */}
-        <Illustration name="bulten-zarf" className="auth-art" priority />
         {/* The OUTCOME, not the topic: it is the one line a screen reader
             announces on arrival and the one line most people read. */}
         <h1 className="auth-title">{heading}</h1>
