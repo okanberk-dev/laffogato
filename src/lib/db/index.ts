@@ -321,6 +321,7 @@ export const TABLES = {
   falReports: "fal_reports",
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
+  siteImages: "site_images",
   homeHeroSlides: "home_hero_slides",
   paymentTransactions: "payment_transactions",
   walletTransactions: "wallet_transactions",

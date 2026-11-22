@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/admin/forms";
 import { KaraokeWeekCalendar } from "@/components/admin/karaoke-calendar";
+import { KaraokeDeskAdd } from "@/components/admin/karaoke-desk-dialog";
 import { KaraokeTable } from "@/components/admin/karaoke-panel";
 import {
   BUTTON,
@@ -245,16 +246,29 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
           )
         }
         action={
-          <ViewSwitch
-            calendar={false}
-            list={sp}
-            // A list filtered to another week opens the calendar on it.
-            week={
-              filters.bas && weekStart(filters.bas) !== weekStart(today)
-                ? weekStart(filters.bas)
-                : undefined
-            }
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {/* A phone or counter booking, or closed hours (22 Kas 2026). */}
+            <KaraokeDeskAdd
+              today={today}
+              lastDay={deskLastDay(
+                today,
+                settings.mobileApp.karaoke.bookingWindowDays,
+              )}
+              firstHour={settings.mobileApp.karaoke.firstHour}
+              closeHour={settings.mobileApp.karaoke.closeHour}
+              capacity={settings.karaokeCapacity}
+            />
+            <ViewSwitch
+              calendar={false}
+              list={sp}
+              // A list filtered to another week opens the calendar on it.
+              week={
+                filters.bas && weekStart(filters.bas) !== weekStart(today)
+                  ? weekStart(filters.bas)
+                  : undefined
+              }
+            />
+          </div>
         }
         // One link per role: the owner's is the site's Karaoke tab (price,
         // prepay), the manager's the app's karaoke rules; staff get none.
@@ -450,4 +464,11 @@ async function KaraokeCalendarPage({
       />
     </PageShell>
   );
+}
+
+/** The last day a desk booking may take: the room's booking window. */
+function deskLastDay(today: string, windowDays: number): string {
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + Math.max(1, windowDays));
+  return d.toISOString().slice(0, 10);
 }

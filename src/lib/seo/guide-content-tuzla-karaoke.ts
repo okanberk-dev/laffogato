@@ -43,7 +43,7 @@ export const TUZLA_KARAOKE_GUIDE: GuideSource = {
       heading: "Tuzla'da karaoke nerede yapılır?",
       paragraphs: [
         "L'Affogato'nun Tuzla köşkünde: Postane Mahallesi, Atatürk Caddesi No: 28'deki 200 yıllık Rum köşkünün üst katında, yalnız sizin grubunuza ayrılan özel bir karaoke odası var. Oda bir sahne değil; kapıyı kapattığınızda şarkıyı yalnız birlikte geldiğiniz kişiler dinler.",
-        "Alt katta kafe devam eder: affogato, matcha ve espresso barı aynı binadadır. Oda yalnız Tuzla köşkündedir; Tuzla Marina'daki L'Affogato Marina şubesinde karaoke yoktur.",
+        "Alt katta kafe devam eder: affogato, matcha ve espresso barı aynı binadadır. Rezervasyonla kullanılan oda yalnız Tuzla köşkündedir; Viaport Marina Tuzla'daki L'Affogato Marina şubesinde karaoke henüz aktif değil ve başladığında rezervasyonla çalışmayacak.",
       ],
     },
     {
@@ -146,7 +146,7 @@ export const TUZLA_KARAOKE_GUIDE: GuideSource = {
     },
     {
       q: "L'Affogato Marina şubesinde karaoke var mı?",
-      a: "Hayır. Karaoke odası yalnız Tuzla köşkündedir.",
+      a: "Henüz değil. L'Affogato Marina'da karaoke henüz aktif değil; başladığında rezervasyonla çalışmayacak. Rezervasyonla kullanılan özel karaoke odası Tuzla köşkünün üst katındadır ve laffogato.net/karaoke sayfasından ayrılır.",
     },
   ],
   related: ["tuzla-marina-kafe", "affogato-nedir", "espresso-cesitleri"],

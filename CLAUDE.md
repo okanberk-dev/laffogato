@@ -542,11 +542,16 @@ lafmaliyet'in şube kütüğüyle aynı: `marina`); `/ziyaret`'te kart ve footer
 bir satır. Adres, telefon ve saat o gün hiçbir yerde yoktu: alanlar boş, boş
 alan basılmaz, adres girilene kadar harita bağlantısı ve JSON-LD yok
 (`tests/site-branches.test.ts`). Aynı gün operatör: _"Marina tuzla
-marinada"_: kart "Tuzla Marina, Tuzla / İstanbul" yazar ve haritayı
-"Tuzla Marina, Tuzla, İstanbul" aramasıyla açar; saat _"açılış 10 kapanış
-2300"_ ile "10:00 - 23:00" (gün söylenmedi, "Her gün" yazılmaz). Marinadaki
-birim, posta kodu ve telefon hâlâ boş; kart yalnız eksik olanı "çok
-yakında" diye söyler (`branchPending`). Şubeler için JSON-LD hiç basılmaz (`structured-data.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
+marinada"_; saat _"açılış 10 kapanış 2300"_ ile "10:00 - 23:00" (gün
+söylenmedi, "Her gün" yazılmaz). 22 Kas 2026: _"Marinadaki adrese tuzla
+viaport marina adresi yazabilirsin"_: kart "Viaport Marina Tuzla, Cami Mah.
+/ 34940 Tuzla / İstanbul" yazar, haritayı "Viaport Marina Tuzla, Tuzla,
+İstanbul" aramasıyla açar (marinanın sokak adresinde kaynaklar ayrışıyor,
+sokak yazılmaz). Marinadaki birim ve telefon hâlâ boş; kart yalnız eksik
+olanı "çok yakında" diye söyler (`branchPending`). Aynı gün: _"Marinadaki
+karaoke rezervasyonlu değil ... marinada aktif değil henüz"_: metinler
+Marina'da karaokenin henüz aktif olmadığını ve başladığında rezervasyonla
+çalışmayacağını söyler; rezervasyonlu oda yalnız Tuzla'nın. Şubeler için JSON-LD hiç basılmaz (`structured-data.ts`). Uygulama, sipariş, damga, masa QR'ı ve karaoke
 yalnız Tuzla köşküne hizmet eder; kart bunu yazar. (21 Kas 2026'dan beri tek
 istisna Marina'nın LafPOS'unun bastığı masa kartlarıdır: o masadan verilen
 sipariş ve çağrı Marina'nındır; aşağıda "Şubeler".) Hukuk metinlerinde 12 belge
@@ -631,6 +636,18 @@ yok) gider; e-posta, telefon, soyad, ödeme referansı asla
 `src/lib/panel/karaoke-sync-core.ts`'te ve panelde bayt bayt aynı; iki tarafın
 testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
 `docs/PANEL-KARAOKE.md`.
+
+**Elle rezervasyon ve kapalı saat (22 Kas 2026).** Operatör: _"laffogato
+admin panelinden veya ladmin panelinden de manuel rezervasyon alınsın,
+oradan dolu yapılabilsin ki insanlar siteden bakınca görsünler"_. Panelde
+Karaoke › **Elle ekle** (telefon / kasa rezervasyonu ya da "Saati kapat"),
+ladmin ve LafPOS için imzalı `POST /api/panel/karaoke` (`create` / `cancel`,
+`actor` zorunlu). Tek kural `src/lib/mobile/karaoke-desk.ts`: satır
+`channel: "desk"`, `confirmed`, `paymentStatus: "none"` (ödeme köşkte;
+online satışa ve e-Arşiv'e girmez), e-postasız satır
+`desk-<id>@laffogato.invalid` taşır ve ona e-posta gitmez
+(`isDeskPlaceholderEmail`). Panelin satırında `desk: true` (ekleme).
+Ayrıntı `docs/PANEL-KARAOKE.md` "Elle rezervasyon ve kapalı saat".
 
 ## Karaoke iptal ve iade penceresi (28-29 Eki 2026)
 
