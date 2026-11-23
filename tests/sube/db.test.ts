@@ -344,4 +344,125 @@ describe.skipIf(!local)("şube, gerçek Postgres", () => {
     );
     expect(index?.indexdef).toMatch(/\(branch, kind, "paidAt"\)/);
   });
+
+  it("şube fiyatı: satırlar, Marina masasının sipariş fiyatı ve QR menüsü (23 Kas 2026)", async () => {
+    const { insertBranchPrice, listBranchPrices, deleteFutureBranchPrice } =
+      await import("@/lib/admin/menu-branch-prices");
+    const { previewAppOrderLines, listMenuForCustomerLive } =
+      await import("@/lib/admin/store");
+    const { priceLabel } = await import("@/lib/utils/format");
+    const latteId = `${itemId}-bp`;
+    const name = `Latte ${tag}`;
+    await sql(
+      `insert into public.menu_items (id, "categoryKey", name, "priceMinor", "priceMinorL", "isActive", "sortOrder", "updatedAt")
+       values ($1, 'espresso', $2, 13000, 15000, true, 4, '2026-11-20T08:00:00.000Z')`,
+      [latteId, name],
+    );
+    const now = Date.now();
+    const inForce = new Date(now - 60_000).toISOString();
+    const later = new Date(now + 3_600_000).toISOString();
+    const row = (
+      effectiveFrom: string,
+      priceMinor: number | null,
+      priceMinorL: number,
+    ) => ({
+      menuItemId: latteId,
+      branch: "marina",
+      priceMinor,
+      priceMinorL,
+      effectiveFrom,
+      createdAt: new Date(now).toISOString(),
+      createdBy: "panel:Ayşe",
+    });
+    expect((await insertBranchPrice(row(inForce, 14500, 16500))).ok).toBe(true);
+    // Aynı an ikinci kez: panelin görüntüsü eski.
+    expect(await insertBranchPrice(row(inForce, 14000, 0))).toEqual({
+      ok: false,
+      reason: "stale",
+    });
+    expect((await insertBranchPrice(row(later, 15000, 17000))).ok).toBe(true);
+    expect(
+      await insertBranchPrice({
+        ...row(later, 15000, 0),
+        menuItemId: `${latteId}-yok`,
+      }),
+    ).toEqual({ ok: false, reason: "gone" });
+    // Tablonun kendi denetimleri: UTC dışı an, L'li tabana dönüş.
+    await expect(
+      sql(
+        `insert into public.menu_item_branch_prices ("menuItemId", branch, "priceMinor", "effectiveFrom")
+         values ($1, 'marina', 100, '2026-11-25T05:00:00+03:00')`,
+        [latteId],
+      ),
+    ).rejects.toThrow();
+    await expect(
+      sql(
+        `insert into public.menu_item_branch_prices ("menuItemId", branch, "priceMinor", "priceMinorL", "effectiveFrom")
+         values ($1, 'marina', null, 100, '2026-11-25T02:00:00.000Z')`,
+        [latteId],
+      ),
+    ).rejects.toThrow();
+    expect(
+      (await listBranchPrices("marina", [latteId])).map((r) => r.effectiveFrom),
+    ).toEqual([inForce, later]);
+    expect(await listBranchPrices("tuzla", [latteId])).toEqual([]);
+
+    // Sipariş fiyatı siparişin şubesinde: Marina masası Marina'nın fiyatı,
+    // Tuzla taban; yarınki satır bugün geçmez.
+    const rates = {
+      menu: 10,
+      karaoke: 20,
+      beans: 1,
+      pantry: 1,
+      gift: 20,
+      gear: 20,
+      merch: 20,
+      shipping: 20,
+    };
+    const line = (size: "M" | "L") => ({
+      menuItemId: latteId,
+      qty: 1,
+      size,
+      options: {
+        milk: "normal" as const,
+        roast: "intense" as const,
+        sugar: 0,
+        syrup: "none" as const,
+        extraShot: false,
+        note: "",
+      },
+    });
+    const unit = async (size: "M" | "L", branch: string) => {
+      const res = await previewAppOrderLines([line(size)], rates, branch);
+      return res.ok ? res.items[0]?.unitPriceMinor : null;
+    };
+    expect(await unit("M", "marina")).toBe(14500);
+    expect(await unit("L", "marina")).toBe(16500);
+    expect(await unit("M", "tuzla")).toBe(13000);
+    expect(await unit("L", "tuzla")).toBe(15000);
+
+    // Masanın QR menüsü (Marina) şubenin fiyatını yazar; sitenin sayfaları
+    // (Tuzla) tabanı.
+    const shown = async (branch: string) =>
+      (await listMenuForCustomerLive(branch)).espresso?.items.find(
+        (i) => i.name === name,
+      );
+    expect(await shown("marina")).toMatchObject({
+      price: priceLabel(14500),
+      priceL: priceLabel(16500),
+    });
+    expect(await shown("tuzla")).toMatchObject({
+      price: priceLabel(13000),
+      priceL: priceLabel(15000),
+    });
+
+    // Yalnız henüz başlamamış satır geri alınır.
+    expect(
+      await deleteFutureBranchPrice(latteId, "marina", inForce, new Date()),
+    ).toBe(false);
+    expect(
+      await deleteFutureBranchPrice(latteId, "marina", later, new Date()),
+    ).toBe(true);
+    expect(await listBranchPrices("marina", [latteId])).toHaveLength(1);
+  });
 });

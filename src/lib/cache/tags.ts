@@ -90,6 +90,12 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   // pings the panel (`menu.changed`) and moves LafPOS's menu marker like an
   // item's own.
   menu_item_availability: MENU,
+  // A branch's own selling price (20261123180000): the branch's menu (the
+  // table's QR menu, the app's menu with ?branch=) and its orders read it,
+  // and a write pings the panel and moves LafPOS's menu marker like an
+  // item's own. Its instant passing writes nothing: see branch-prices-core.ts
+  // `nextPriceAt`.
+  menu_item_branch_prices: MENU,
 
   settings: SITE,
   site_content: SITE,

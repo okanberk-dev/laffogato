@@ -8,9 +8,11 @@ import {
   readPosOrdersMarker,
 } from "@/lib/admin/change-marker";
 import { listBranchAvailability } from "@/lib/admin/menu-availability";
+import { listBranchPrices } from "@/lib/admin/menu-branch-prices";
 import { listMenuItemsForPanel } from "@/lib/admin/store";
 import { TAG_MENU, TAG_ORDERS } from "@/lib/cache/tags";
-import { chooseBranch } from "@/lib/panel/branches";
+import type { BranchPriceRow } from "@/lib/panel/branch-prices-core";
+import { chooseBranch, HOME_BRANCH } from "@/lib/panel/branches";
 import { digestOf, panelOrdersDigest } from "@/lib/panel/orders-feed";
 import {
   signedCaller,
@@ -62,6 +64,9 @@ import {
  * name, "Menüde") moves `menu` everywhere. While the global markers stand
  * nothing is read, as before. A digest that cannot be read gives the
  * global marker back (pulls on every branch's write, the old behaviour).
+ * The menu's digest has the branch's own price rows too (23 Kas 2026,
+ * `branchMenuDigest`); a price instant passing writes nothing and moves
+ * nothing here: LafPOS syncs then by the read's `nextPriceAt`.
  * `karaoke` stays global: the room is Tuzla's, and another branch's
  * karaoke read is answered without the database.
  *
@@ -79,16 +84,30 @@ import {
 /**
  * A digest of the menu as `branch`'s till reads it from `GET
  * /api/panel/menu`: every item's panel columns (its `updatedAt` moves on
- * every write of the item, photo and text included) and the branch's own
- * availability rows. Another branch's row is not in it.
+ * every write of the item, photo and text included), the branch's own
+ * availability rows and (23 Kas 2026) its own price rows, future ones too:
+ * a row the panel writes for tomorrow moves the till's marker now, and the
+ * read the till then makes tells it when to sync again (`nextPriceAt`).
+ * Another branch's row is not in it. A branch without price rows (the home
+ * branch has none) digests as before.
  */
 async function branchMenuDigest(branch: string): Promise<string> {
-  const [items, rows] = await Promise.all([
+  const [items, rows, prices] = await Promise.all([
     listMenuItemsForPanel(),
     listBranchAvailability(branch),
+    branch === HOME_BRANCH
+      ? Promise.resolve([] as BranchPriceRow[])
+      : listBranchPrices(branch),
   ]);
   const byId = (a: { id: string }, b: { id: string }) =>
     a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  const priceRows = prices
+    .map((p) => [p.menuItemId, p.effectiveFrom, p.priceMinor, p.priceMinorL])
+    .sort((a, b) => {
+      const ka = `${a[0]}|${a[1]}`;
+      const kb = `${b[0]}|${b[1]}`;
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
   return digestOf({
     items: [...items]
       .sort(byId)
@@ -105,6 +124,7 @@ async function branchMenuDigest(branch: string): Promise<string> {
     branch: [...rows.values()]
       .map((r) => ({ id: r.menuItemId, isActive: r.isActive, at: r.updatedAt }))
       .sort(byId),
+    ...(priceRows.length > 0 ? { prices: priceRows } : {}),
   });
 }
 

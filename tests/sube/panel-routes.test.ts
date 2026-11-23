@@ -28,6 +28,12 @@ const availability = vi.hoisted(() => ({
   listBranchAvailability: vi.fn(),
   writeBranchAvailability: vi.fn(),
 }));
+// Şube fiyatı (23 Kas 2026): satır yok, fiyat taban (tests/sube/branch-price-routes.test.ts).
+const branchPrices = vi.hoisted(() => ({
+  listBranchPrices: vi.fn(),
+  insertBranchPrice: vi.fn(),
+  deleteFutureBranchPrice: vi.fn(),
+}));
 const tables = vi.hoisted(() => ({ importCafeTables: vi.fn() }));
 const karaoke = vi.hoisted(() => ({ listReservationsForAdmin: vi.fn() }));
 const audit = vi.hoisted(() => ({ safeAudit: vi.fn() }));
@@ -35,6 +41,7 @@ const audit = vi.hoisted(() => ({ safeAudit: vi.fn() }));
 vi.mock("@/lib/admin/store", () => store);
 vi.mock("@/lib/admin/table-calls", () => calls);
 vi.mock("@/lib/admin/menu-availability", () => availability);
+vi.mock("@/lib/admin/menu-branch-prices", () => branchPrices);
 vi.mock("@/lib/admin/cafe-tables", () => tables);
 vi.mock("@/lib/mobile/karaoke", () => karaoke);
 vi.mock("@/lib/admin/audit", () => audit);
@@ -71,7 +78,15 @@ beforeEach(() => {
   process.env.LAFPOS_SYNC_SECRET = LAFPOS_KEY;
   delete process.env.LAFPOS_BRANCHES;
   delete process.env.SITE_BRANCHES;
-  for (const group of [store, calls, availability, tables, karaoke, audit]) {
+  for (const group of [
+    store,
+    calls,
+    availability,
+    branchPrices,
+    tables,
+    karaoke,
+    audit,
+  ]) {
     for (const fn of Object.values(group)) {
       if (typeof fn === "function" && "mockReset" in fn) fn.mockReset();
     }
@@ -83,6 +98,7 @@ beforeEach(() => {
   calls.listOpenTableCalls.mockResolvedValue([]);
   availability.listBranchAvailability.mockResolvedValue(new Map());
   availability.getBranchAvailability.mockResolvedValue(null);
+  branchPrices.listBranchPrices.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -420,7 +436,12 @@ describe("/api/panel/menu şubeye göre Satışta / Tükendi", () => {
       await GET(signed("lafpos", "GET", "/api/panel/menu"))
     ).json();
     expect(marina.branch).toBe("marina");
-    expect(marina.writes).toEqual({ expect: true, branch: true });
+    // `branchPrice` 23 Kas 2026'dan beri duyurulur (şube fiyatı).
+    expect(marina.writes).toEqual({
+      expect: true,
+      branch: true,
+      branchPrice: true,
+    });
     expect(marina.items[0]).toMatchObject({ isActive: true, onMenu: true });
     const tuzla = await (
       await GET(signed("panel", "GET", "/api/panel/menu"))

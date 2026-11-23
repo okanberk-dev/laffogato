@@ -25,6 +25,9 @@ const calls = vi.hoisted(() => ({ listOpenTableCalls: vi.fn() }));
 const availability = vi.hoisted(() => ({
   listBranchAvailability: vi.fn(),
 }));
+// Şube fiyatı (23 Kas 2026): Marina'nın menü özeti ve `?branch=marina` menüsü
+// şubenin satırlarını da okur; Tuzla'nın (ana şube) okuması okumaz.
+const branchPrices = vi.hoisted(() => ({ listBranchPrices: vi.fn() }));
 const venue = vi.hoisted(() => ({
   getVenueStatus: vi.fn(),
   isCafeOpenNow: () => true,
@@ -83,6 +86,7 @@ vi.mock("@/lib/cache/presentation", () => ({
 vi.mock("@/lib/admin/store", () => store);
 vi.mock("@/lib/admin/table-calls", () => calls);
 vi.mock("@/lib/admin/menu-availability", () => availability);
+vi.mock("@/lib/admin/menu-branch-prices", () => branchPrices);
 vi.mock("@/lib/mobile/venue", () => venue);
 vi.mock("@/lib/admin/auth", () => auth);
 vi.mock("next/headers", () => ({
@@ -146,6 +150,7 @@ const COUNTED = [
   store.getSettings,
   calls.listOpenTableCalls,
   availability.listBranchAvailability,
+  branchPrices.listBranchPrices,
   auth.getAdminSession,
   venue.getVenueStatus,
 ];
@@ -182,6 +187,7 @@ beforeEach(() => {
   store.listMenuItemsForPanel.mockResolvedValue([MENU_ITEM]);
   store.getSettings.mockResolvedValue({ taxRates: { cafe: 10 } });
   availability.listBranchAvailability.mockResolvedValue(new Map());
+  branchPrices.listBranchPrices.mockResolvedValue([]);
   store.listOrderAlertRows.mockResolvedValue([]);
   auth.getAdminSession.mockResolvedValue({
     email: "bar@example.com",
@@ -212,10 +218,10 @@ async function pull(who: "panel" | "lafpos" = "lafpos") {
   return { status: res.status, body: await res.json() };
 }
 
-async function menu(etag?: string) {
+async function menu(etag?: string, query = "") {
   const { GET } = await import("@/app/api/mobile/v1/menu/route");
   const res = await GET(
-    new Request(`${BASE}/api/mobile/v1/menu`, {
+    new Request(`${BASE}/api/mobile/v1/menu${query}`, {
       headers: etag ? { "if-none-match": etag } : {},
     }),
   );
@@ -284,9 +290,11 @@ describe("ölçüm: açık iş gününde kasanın veritabanını uyandırması",
     // İlk saat: işaret yeni yapılmışken gelen ilk çekim hiçbir şeye kefil
     // olmaz (5 sn kuralı), ikincisi hatırlanır; menüde ilk istek ETag'siz,
     // ikincisi işareti yapar, üçüncüsü hatırlanır. Sürüm sinyali şubenin
-    // özetini iki kez okur (siparişler 3, menü 2): işaretin ilk sorusu
-    // canlı, ikincisi saklanır.
-    expect(after[0]).toEqual({ requests: 7, reads: 27, signal: 2 });
+    // özetini iki kez okur (siparişler 3, menü 3: kalemler, Satışta ve 23
+    // Kas 2026'dan beri şubenin fiyat satırları): işaretin ilk sorusu
+    // canlı, ikincisi saklanır. Fiyat satırları aynı istekte okunur: uyanma
+    // sayısı aynı.
+    expect(after[0]).toEqual({ requests: 7, reads: 29, signal: 2 });
     // Sonra saatte bir canlı okuma (emniyet ağı), uç başına; sürüm
     // sinyalinin saatlik turu yok.
     expect(after[1]).toEqual({ requests: 2, reads: 7, signal: 0 });
@@ -383,10 +391,11 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     vi.setSystemTime(T0 + 21 * MIN);
     const moved = await version();
     // Sinyal Marina'nın özetini okur (liste, çağrılar, `closed`, kasa);
-    // menününkini de bir kez (işareti oturduktan sonraki ilk soru).
-    expect(dbReads()).toBe(10);
+    // menününkini de bir kez (işareti oturduktan sonraki ilk soru; kalemler,
+    // Satışta, şubenin fiyat satırları).
+    expect(dbReads()).toBe(11);
     const after = await pull();
-    expect(dbReads()).toBe(15);
+    expect(dbReads()).toBe(16);
     expect(after.body.orders).toHaveLength(1);
     expect(after.body.orders[0].orderNo).toBe(201);
     expect(moved.version).toBeTruthy();
@@ -634,6 +643,40 @@ describe("GET /api/pos/orders/version: şubenin işareti (23 Kas 2026)", () => {
     expect((await version()).menu).not.toBe(sold);
   });
 
+  it("şubenin yeni fiyat satırı (geleceği de) yalnız o şubenin menü işaretini oynatır", async () => {
+    const rows: Record<string, object[]> = { tuzla: [], marina: [] };
+    branchPrices.listBranchPrices.mockImplementation(
+      async (branch: string) => rows[branch] ?? [],
+    );
+    process.env.LAFPOS_BRANCHES = "marina,tuzla";
+    const marina = () => version("/api/pos/orders/version?branch=marina");
+    const tuzla = () => version("/api/pos/orders/version?branch=tuzla");
+    const first = await marina();
+    const tuzlaFirst = await tuzla();
+    vi.setSystemTime(Date.now() + MIN);
+    expect((await marina()).menu).toBe(first.menu);
+
+    // Köşkün paneli Marina'ya yarından geçerli fiyat yazdı (`pub:menu` düşer).
+    rows.marina = [
+      {
+        menuItemId: "mi-1",
+        branch: "marina",
+        priceMinor: 19500,
+        priceMinorL: 0,
+        effectiveFrom: new Date(Date.now() + 20 * 60 * MIN).toISOString(),
+        createdAt: new Date().toISOString(),
+        createdBy: "panel:Ayşe",
+      },
+    ];
+    cache.expire("pub:menu");
+    vi.setSystemTime(Date.now() + MIN);
+    const priced = await marina();
+    expect(priced.menu).not.toBe(first.menu);
+    // Tuzla (ana şube) şube fiyatı okumaz; özeti aynı kalır.
+    expect((await tuzla()).menu).toBe(tuzlaFirst.menu);
+    expect(branchPrices.listBranchPrices).not.toHaveBeenCalledWith("tuzla");
+  });
+
   it("özet okunamazsa genel işaret döner: her şubenin yazımında çeker, kaçırmaz", async () => {
     store.listPanelOpenOrderRows.mockRejectedValue(new Error("db down"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -730,6 +773,65 @@ describe("GET /api/mobile/v1/menu: 'değişmedi' veritabanına gitmez", () => {
     expect(stale.status).toBe(200);
     expect(stale.etag).toBe(first.etag);
     expect(dbReads()).toBe(reads + 3);
+  });
+});
+
+describe("GET /api/mobile/v1/menu?branch=marina: ETag şubenin sonraki fiyat anına kadar", () => {
+  // Saatlik emniyet turunun ortasında: o tur zaten canlı okurdu.
+  const AT = T0 + 30 * MIN;
+
+  beforeEach(() => {
+    branchPrices.listBranchPrices.mockImplementation(async (branch: string) =>
+      branch === "marina"
+        ? [
+            {
+              menuItemId: "mi-1",
+              branch: "marina",
+              priceMinor: 19500,
+              priceMinorL: 0,
+              effectiveFrom: new Date(AT).toISOString(),
+              createdAt: new Date(T0).toISOString(),
+              createdBy: "panel:Ayşe",
+            },
+          ]
+        : [],
+    );
+  });
+
+  it("an gelmeden 304 veritabanına gitmez; an geçince bir kez okunur, yeni fiyat yeni ETag, sonra yine hatırlanır", async () => {
+    await version();
+    vi.setSystemTime(T0 + MIN);
+    clearReads();
+    const marina = (etag?: string) => menu(etag, "?branch=marina");
+    const first = await marina();
+    expect(first.status).toBe(200);
+    // Menü, ayarlar, Marina'nın Satışta'sı ve fiyat satırları.
+    expect(dbReads()).toBe(4);
+    await marina(first.etag);
+    vi.setSystemTime(T0 + 2 * MIN);
+    expect((await marina(first.etag)).status).toBe(304);
+    const reads = dbReads();
+    vi.setSystemTime(AT - MIN);
+    expect((await marina(first.etag)).status).toBe(304);
+    expect(dbReads()).toBe(reads);
+
+    // Fiyatın anı geldi: hiçbir şey yazılmadı, işaret yerinde; yine de okunur.
+    vi.setSystemTime(AT + MIN);
+    const after = await marina(first.etag);
+    expect(after.status).toBe(200);
+    expect(after.etag).not.toBe(first.etag);
+    expect(dbReads()).toBe(reads + 4);
+    // Yeni ETag o andan sonraki dönemin anahtarında hatırlanır.
+    await marina(after.etag);
+    vi.setSystemTime(AT + 5 * MIN);
+    const settled = dbReads();
+    expect((await marina(after.etag)).status).toBe(304);
+    expect(dbReads()).toBe(settled);
+
+    // Tuzla'nın (şube söylemeyen) menüsü bundan etkilenmez: fiyat satırı okunmaz.
+    branchPrices.listBranchPrices.mockClear();
+    expect((await menu()).status).toBe(200);
+    expect(branchPrices.listBranchPrices).not.toHaveBeenCalled();
   });
 });
 

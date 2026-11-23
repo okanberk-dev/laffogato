@@ -3,8 +3,9 @@ import { rememberedRead } from "@/lib/admin/remembered-read";
 import { TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
 import { isDbUnreachable } from "@/lib/db/health";
 import { ifNoneMatchHits, strongEtag } from "@/lib/http/etag";
-import { listMenuForMobile } from "@/lib/mobile/menu";
+import { readMobileMenu } from "@/lib/mobile/menu";
 import { apiError } from "@/lib/mobile/respond";
+import { HOME_BRANCH, isBranchId, siteBranches } from "@/lib/panel/branches";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,16 +38,24 @@ export const maxDuration = 15;
  */
 const MENU_CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=60";
 
-/** The menu as it is sent, and its ETag. */
+/** The menu as it is sent, its ETag, and until when it holds without a write. */
 interface MenuRead {
   body: string;
   etag: string;
+  validUntil: string | null;
 }
 
-async function readMenu(): Promise<MenuRead> {
-  const body = JSON.stringify(await listMenuForMobile());
-  return { body, etag: strongEtag(body) };
+async function readMenu(branch: string): Promise<MenuRead> {
+  const { menu, validUntil } = await readMobileMenu(branch, new Date());
+  const body = JSON.stringify(menu);
+  return { body, etag: strongEtag(body), validUntil };
 }
+
+/**
+ * How many price instants one ask may step over (one `rememberedRead` each)
+ * before it reads the menu itself; more than a branch has in a poll window.
+ */
+const MAX_PRICE_STEPS = 4;
 
 /**
  * `GET /api/mobile/v1/menu` - the cafe menu with the customisation table
@@ -62,26 +71,60 @@ async function readMenu(): Promise<MenuRead> {
  * other ETag, or none, reads the database as before; nothing is decided
  * from the cache (an order's price and "Tükendi" are read live when it is
  * placed).
+ *
+ * `?branch=` (23 Kas 2026, optional; docs/API-MOBILE.md §1 "Şube"): the
+ * menu as that branch sells it, its "Satışta / Tükendi" and its own prices
+ * (a Marina table's order is charged Marina's). Absent, empty or the home
+ * branch: today's menu, unchanged. A branch the site does not know: 400
+ * `invalid_branch`. A branch's ETag is remembered under its own scope, and
+ * only until its next price instant (`validUntil`): nothing is written
+ * then, so the marker does not move; the first ask after it reads the menu
+ * once more, under a scope named by that instant, and that read is
+ * remembered in turn.
  */
 export async function GET(request: Request) {
   try {
+    const requested = new URL(request.url).searchParams.get("branch");
+    let branch = HOME_BRANCH;
+    if (requested !== null && requested !== "") {
+      if (
+        !isBranchId(requested) ||
+        !siteBranches(process.env).includes(requested)
+      ) {
+        return apiError(400, "invalid_branch", "Bu şubenin menüsü bulunamadı.");
+      }
+      branch = requested;
+    }
+    const home = branch === HOME_BRANCH;
     const ifNoneMatch = request.headers.get("if-none-match");
     let menu: MenuRead | null = null;
     if (ifNoneMatch) {
       // The marker before the read (remembered-read.ts).
       const marker = await readMobileMenuMarker();
-      const read = await rememberedRead({
-        name: "mobile-menu-etag",
-        scope: "",
-        marker,
-        tags: [TAG_MENU, TAG_SITE],
-        nowMs: Date.now(),
-        read: readMenu,
-        remember: (m) => ({ etag: m.etag }),
-      });
-      if (read.from === "database") {
-        menu = read.live;
-      } else {
+      const nowMs = Date.now();
+      let scope = home ? "" : branch;
+      for (let step = 0; step < MAX_PRICE_STEPS; step++) {
+        const read = await rememberedRead({
+          name: "mobile-menu-etag",
+          scope,
+          marker,
+          tags: [TAG_MENU, TAG_SITE],
+          nowMs,
+          read: () => readMenu(branch),
+          remember: (m): { etag: string; validUntil?: string } =>
+            m.validUntil
+              ? { etag: m.etag, validUntil: m.validUntil }
+              : { etag: m.etag },
+        });
+        if (read.from === "database") {
+          menu = read.live;
+          break;
+        }
+        const until = read.remembered?.validUntil;
+        if (typeof until === "string" && Date.parse(until) <= nowMs) {
+          scope = `${branch}@${until}`;
+          continue;
+        }
         const known = read.remembered?.etag;
         if (typeof known === "string" && ifNoneMatchHits(ifNoneMatch, known)) {
           return new Response(null, {
@@ -89,9 +132,10 @@ export async function GET(request: Request) {
             headers: { "Cache-Control": MENU_CACHE_CONTROL, ETag: known },
           });
         }
+        break;
       }
     }
-    const { body, etag } = menu ?? (await readMenu());
+    const { body, etag } = menu ?? (await readMenu(branch));
     const headers = {
       "Cache-Control": MENU_CACHE_CONTROL,
       ETag: etag,
