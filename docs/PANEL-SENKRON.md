@@ -20,7 +20,7 @@ bir bağlantıdır, kendi anahtarıyla: `docs/LAFPOS.md`.
 
 | Bilgi | Kaynak | Panele nasıl gider | Panel nasıl yazar | Uygulamaya | Ayrıntı |
 | --- | --- | --- | --- | --- | --- |
-| Menü fiyatı (M / L), Satışta / Tükendi | site (`menu_items`) | `pub:menu`'yu düşüren her yazımda ping (`/api/menu/ping`) → imzalı `GET /api/panel/menu` | Önce site: imzalı `POST /api/panel/menu`, `expect` ile (aşağıda); panel 2xx'ten sonra kendi kopyasını yazar | `GET /api/mobile/v1/menu` (CDN en çok 10 dk + uygulamanın önbelleği) | [PANEL-MENU.md](PANEL-MENU.md) |
+| Menü fiyatı (M / L), Satışta / Tükendi | site (`menu_items`) | `pub:menu`'yu düşüren her yazımda ping (`/api/menu/ping`) → imzalı `GET /api/panel/menu` | Önce site: imzalı `POST /api/panel/menu`, `expect` ile (aşağıda); panel 2xx'ten sonra kendi kopyasını yazar | `GET /api/mobile/v1/menu` (CDN en çok 2 dk + uygulamanın önbelleği) | [PANEL-MENU.md](PANEL-MENU.md) |
 | Karaoke rezervasyonları | site | Ping (`/api/karaoke/ping`) → `GET /api/panel/karaoke` | Yazmaz | Karaoke uçları | [PANEL-KARAOKE.md](PANEL-KARAOKE.md) |
 | Kafe siparişleri (bar ekranı) | site | Ping (`/api/orders/ping`) → `GET /api/panel/orders`; yanında ödeme bekleyen sayısı (`awaitingPayment`), kaçan ödeme pingi için | Aşama: `POST /api/panel/orders/stage` (karta koşullu; eski dokunuş 409) | Sipariş uçları | [PANEL-ORDERS.md](PANEL-ORDERS.md) |
 | Online satış (kâr-zarar, kasa raporu) | site | `GET /api/panel/sales` (panel çeker) | Yazmaz | - | [PANEL-SALES.md](PANEL-SALES.md) |
@@ -137,4 +137,4 @@ LafPOS. Kural: **yazan, gördüğünü taşır; site yalnız o hâlâ geçerliys
   fiyatı `mnu-0080` / `mnu-0081` / `mnu-0082`'nin fiyatını okur.
 - **Şube (21 Kas 2026):** yukarıda; panel ve LafPOS tarafları kendi
   depolarında (lafmaliyet `planlar/sube.md` Dalga 5, lafpos
-  `docs/03-ENTEGRASYON.md` §2.3).
+  `docs/03-ENTEGRASYON.md` §2 "Şube").

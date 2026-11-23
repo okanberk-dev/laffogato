@@ -105,15 +105,18 @@ kasasında ürünü kilitler, Marina'nın porsiyonu biten ürünü Tuzla'nın uy
   tükenmişken **ilk kez** eklenen bir kalem, Tuzla'da açılana dek LafPOS'ta oluşmaz.
 - **Satış ucu** (`GET /api/panel/sales`, yalnız panel): `&branch=` ve `byBranch` (`docs/PANEL-SALES.md`).
 - **Sürüm sinyali** (`GET /api/pos/orders/version`) şubenindir (23 Kas 2026): `?branch=` ya da LafPOS'un varsayılanı
-  (bugün Marina; LafPOS bir şey değiştirmez). `version` ve `menu` o şubenin okuyacağı listenin özetidir: Tuzla'nın
+  (bugün Marina). LafPOS 23 Kas 2026'dan beri (lafpos #163) kendi şubesini `?branch=` ile söyler; göndermeyen eski
+  kasa varsayılanı okur. `version` ve `menu` o şubenin okuyacağı listenin özetidir: Tuzla'nın
   siparişi, çağrısı ya da Tükendi'si Marina'nınkini oynatmaz. Önceden şubesizdi: Tuzla'daki her sipariş yazımı
   Marina'nın kasasına (gün açıkken 20 saniyede bir sorar) boş bir tam çekim yaptırıyordu. Bu çekimler 5 dakika
   kuralının içinde değildi: sinyalle gelen çekim o kuralın istisnasıdır (lafpos `docs/03-ENTEGRASYON.md`, "sinyal
   değişince"), bu yüzden sinyalin yalnız kendi şubesinde oynaması gerekir. Ayrıntı aşağıda "Sipariş sürüm sinyali".
 
-Kural `src/lib/panel/branches.ts`; testleri `tests/sube/` (`npm run test:sube`). LafPOS'un kendi tarafındaki
-şube bekçisi (sitenin şubesi değilse online siparişi ve karaokeyi hiç çekmemek) sitenin bu değişikliğinden
-bağımsız ikinci bir emniyettir: lafpos `docs/03-ENTEGRASYON.md` §2.3.
+Kural `src/lib/panel/branches.ts`; testleri `tests/sube/` (`npm run test:sube`). LafPOS'un kendi tarafı ikinci bir
+emniyettir: her imzalı istekte şubesini söyler (`?branch=`, gövdede `branch`) ve `GET /api/panel/orders` ile
+`GET /api/panel/menu` yanıtındaki `branch` kendi şubesi değilse listeyi okumaz (siparişlerde 502 `site_branch`, hiçbir
+sipariş yazılmaz ya da kapanmaz; menüde Satışta bilgisine dokunulmaz). Karaoke yanıtının şubesine bakmaz (site başka
+şube adına boş liste verir). Ayrıntı lafpos `docs/03-ENTEGRASYON.md` §2 "Şube".
 
 ## Anahtar
 
@@ -229,8 +232,9 @@ x-laf-signature: v1=<hex>
   (`readBranchMarker`, `src/lib/admin/remembered-read.ts`'in kuralları).
   Değer yalnız o şubenin LafPOS'un çekeceği yanıt değişince değişir;
   Tuzla'nın siparişi Marina'nın değerini oynatmaz. Şube `?branch=` ya da
-  LafPOS'un varsayılanı (`LAFPOS_BRANCHES`, bugün Marina); konuşamadığı şube
-  403, bozuk ya da bilinmeyen 400 (yukarıda "Şube").
+  LafPOS'un varsayılanı (`LAFPOS_BRANCHES`, bugün Marina; LafPOS #163'ten beri
+  şubesini söyler); konuşamadığı şube 403, bozuk ya da bilinmeyen 400
+  (yukarıda "Şube").
 - **Ne zaman okur.** Yalnız genel işaret değişmişken: işaretin ilk sorusu
   (işaret 5 saniyeden gençken) canlı okunur ve saklanmaz, sonraki saklanır,
   sonra işaret değişene kadar hiç. Saatlik canlı turu yoktur: işaret dururken
@@ -238,7 +242,12 @@ x-laf-signature: v1=<hex>
   ardındandır (gün içinde en çok 20 saniye, gece en çok 3 dakika sonra),
   veritabanı o yazımdan uyanıkken. Okunamazsa (veritabanı hatası) değer
   genel işarettir: LafPOS her şubenin yazımında çeker (önceki davranış),
-  kendi siparişini kaçırmaz.
+  kendi siparişini kaçırmaz. Başarısız okuma her soruda yeniden denenmez
+  (23 Kas 2026, #299): aynı genel işaret altında 2 dakika bu örnek
+  veritabanına gitmez, ama önbelleğe bakar: başka bir örneğin o işaretin
+  altına yazdığı özet döner (kasanın soruları iki örneğe düşünce iki değer
+  dönüşümlü gelip her soruda çekim yaptırmasın). Yeni bir yazım (yeni genel
+  işaret) beklemeden yeniden dener.
 - Değer veri taşımaz, biçimine güvenilmez (işaret, özet ya da yedekte
   işaret); yalnız bir öncekiyle karşılaştırılır: aynıysa yeni bir şey yok,
   farklıysa siparişler değişti. Saatle değişen (24 saati dolup ekrandan
@@ -392,8 +401,11 @@ Kişisel veri taşımaz: yalnız masa adı ve kod.
   içine alır. Daha geniş, geçmişe ya da ileriye uzanan ya da `from`'suz pencere
   (sorgusuz istek dün + 90 gün okurdu) hiçbir şey okunmadan 403
   `{"error":"forbidden"}` alır. Panelin penceresi değişmez: 400 güne kadar.
-- Menüyü herkese açık uçtan ETag ile, imzalı uçtan en çok 5 dakikada bir okur
-  (lafpos `docs/03-ENTEGRASYON.md` §2.1, §2.3, §5). Gün açıkken 15 dakikada
+- Menüyü herkese açık uçtan ETag ile okur; imzalı uçtan (`GET /api/panel/menu`)
+  menü eşitlemesinde okur: sürüm sinyalindeki `menu` işareti değişince gün
+  açıkken en sık 60 saniyede bir (art arda yazımlar sonda tek okumada
+  toplanır), kendi Satışta yazımından 5 saniye sonra bir kez, gece hiç
+  (lafpos `docs/03-ENTEGRASYON.md` §2.1, §5). Gün açıkken 15 dakikada
   bir yaptığı ETag'li soru, menü değişmemişken veritabanına gitmeden 304 alır
   (22 Kas 2026; `docs/API-MOBILE.md` "Tazelik penceresi").
 

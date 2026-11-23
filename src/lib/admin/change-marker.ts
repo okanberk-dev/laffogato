@@ -146,12 +146,21 @@ export async function readMobileMenuMarker(): Promise<string | null> {
  * no hourly round (`hourly: false`). A digest that cannot be read gives the
  * global marker back: the till pulls on every branch's write, as before,
  * never misses its own. A failed read is not retried on every poll: for
- * `BRANCH_MARKER_RETRY_MS` under the same global marker this instance answers
- * the global marker without reading (a failing database would otherwise be
- * asked every 20 s by every till).
+ * `BRANCH_MARKER_RETRY_MS` under the same global marker this instance does not
+ * read the database (a failing database would otherwise be asked every 20 s by
+ * every till). The Data Cache is still asked: a digest another instance kept
+ * under that marker is answered, so a till whose polls land on both instances
+ * does not see the two values alternate and pull on every poll.
  */
 const BRANCH_MARKER_RETRY_MS = 2 * 60_000;
 const failedBranchMarkers = new Map<string, number>();
+
+/** The read a resting branch marker hands the Data Cache: never stored. */
+class BranchMarkerResting extends Error {
+  constructor() {
+    super("branch marker resting after a failed read");
+  }
+}
 
 export async function readBranchMarker(opts: {
   /** Names the entry, with the branch. */
@@ -166,7 +175,7 @@ export async function readBranchMarker(opts: {
 }): Promise<string> {
   const failedKey = `${opts.name}|${opts.branch}|${opts.marker}`;
   const retryAt = failedBranchMarkers.get(failedKey);
-  if (retryAt !== undefined && opts.nowMs < retryAt) return opts.marker;
+  const resting = retryAt !== undefined && opts.nowMs < retryAt;
   try {
     const read = await rememberedRead<string, string>({
       name: opts.name,
@@ -174,15 +183,23 @@ export async function readBranchMarker(opts: {
       marker: opts.marker,
       tags: opts.tags,
       nowMs: opts.nowMs,
-      read: opts.digest,
+      // Resting: only a kept digest answers, the database is not read
+      read: resting
+        ? () => Promise.reject(new BranchMarkerResting())
+        : opts.digest,
       remember: (digest) => (digest ? digest : null),
       hourly: false,
     });
     const value = read.from === "database" ? read.live : read.remembered;
     return typeof value === "string" && value !== "" ? value : opts.marker;
   } catch (err) {
-    // Kept small: entries for older markers are dropped, the map holds a
-    // few branches' last failure at most
+    // Nothing kept and the database not read: the global marker, the two
+    // minutes run on from the first failure
+    if (resting) return opts.marker;
+    // Kept small: an entry is dropped once its two minutes are over (swept
+    // here, on the next failure). It holds one entry per name, branch and
+    // global marker that failed lately: two names, the branches
+    // `chooseBranch` accepts, markers that move only on writes
     for (const [key, at] of failedBranchMarkers) {
       if (at <= opts.nowMs) failedBranchMarkers.delete(key);
     }

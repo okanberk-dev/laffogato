@@ -857,8 +857,9 @@ sunucu, kasa ekranı Chrome'da açık. **Tek sistem, iki yüz:** ürün yalnız 
 eklenir ve değişir (ad, fiyat, boy, KDV, görsel); LafPOS menüyü herkese açık menü
 ucundan (ETag) çeker, kasaya özgü alanları (istasyon, kısa ad, porsiyon) ve yalnız
 kafede satılan hizmetleri (karaoke odası saatlik ücreti) kendisi tutar. Panelin imzalı
-uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/karaoke`,
-`/api/pos/orders/version`, `/api/panel/tables`) **kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
+uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/orders/stage`,
+`/api/panel/calls/ack`, `/api/panel/karaoke`, `/api/pos/orders/version`, `/api/panel/tables`)
+**kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
 (`src/lib/panel/signed-callers.ts`; `KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır;
 lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un imzalı her
 isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı); açılışta sitenin adımı
