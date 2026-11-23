@@ -86,11 +86,18 @@ kaydını sitede ilerletip kapatıyordu.
 Karaoke bağlantısının imzası (`x-laf-timestamp`,
 `x-laf-signature: v1=<hex>`, `src/lib/panel/karaoke-sync-core.ts`) ve ortak
 anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
-Okumanın, pingin, aşama dokunuşunun ve ayın satışının (`docs/PANEL-SALES.md`)
-imza vektörleri sitede `tests/panel-karaoke-sync-core.test.ts`'te sabit
-(aynı deneme anahtarı ve an); panel aynılarını P2'de kendi testlerinde
-sabitleyecek, o güne dek bu dördünü yalnız site tutar. Kural bir tarafta
-değişirse bu istekler 401 olur.
+İmzanın kanonik metni (zaman, yöntem, yol, sıralı sorgu, gövdenin
+SHA-256'sı) her uçta aynıdır; ortak imza vektörleri (aynı deneme anahtarı
+`test-secret-0123456789-abcdefghijklmnop` ve an `1760000000`: karaoke
+okuması `13a147…`, pingi `1d9935…`) LafPOS'ta `tests/signature.test.ts`'te
+ve panelde (lafmaliyet) `tests/karaoke.test.ts`'te sabittir. Sitedeki
+eşleri `tests/panel-karaoke-sync-core.test.ts` ile birlikte 16 Kas 2026'da
+test klasörüyle kaldırıldı (`git show 5d777bb:tests/panel-karaoke-sync-core.test.ts`;
+okumanın, pingin, aşama dokunuşunun ve ayın satışının vektörleri oradadır).
+Sitede artık hiçbir test bu metni tutmaz: `src/lib/panel/karaoke-sync-core.ts`'teki
+kanonik metni değiştirmek LafPOS'un her imzalı isteğini (ve panelinkileri)
+401'e düşürür. Oradaki bir değişiklik LafPOS ve panelle birlikte, aynı gün
+yayına çıkacak biçimde planlanır.
 
 Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, kendi şubesinin `GET /api/pos/orders/version` değeri değişince çeker: `docs/LAFPOS.md`.
 
@@ -422,7 +429,9 @@ aynı: `test-secret-0123456789-abcdefghijklmnop`, `1760000000`): `POST
 /api/panel/calls/ack`, gövde
 `{"id":"tcl-3f9a0c4b7d2e1a68","actor":"Selin"}` →
 `cdda6260245ebae291a8a93e3e691144b393b3fb970335a1133e2b439df6d19a`
-(`tests/panel-karaoke-sync-core.test.ts`).
+(sitede `tests/panel-karaoke-sync-core.test.ts`'teydi, 16 Kas 2026'da
+kaldırıldı; LafPOS ve panel kanonik metni ortak vektörlerle tutar, yukarıda
+"Uçlar").
 
 **Sitenin kendi paneli.** Açık çağrı sipariş zilinde yeni sipariş gibi
 çalar ("Masa 4 · Su istiyor", kartta "Gördüm") ve `/admin/siparisler`'in
