@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import {
   countPanelAwaitingPaymentOrders,
   listPanelClosedOrderRows,
@@ -32,8 +34,10 @@ import {
 } from "./orders-feed-core";
 
 /**
- * The bar screen's reads for one branch (`GET /api/panel/orders`, and the
- * stage route's answer). Pure shaping is in orders-feed-core.ts.
+ * The bar screen's reads for one branch (`GET /api/panel/orders`), shared
+ * with LafPOS's per-branch version signal (`GET /api/pos/orders/version`,
+ * `panelOrdersDigest`), so the signal moves exactly when the list LafPOS
+ * would pull changes. Pure shaping is in orders-feed-core.ts.
  */
 
 /** What one read of the bar screen brings back, before it is shaped. */
@@ -129,4 +133,34 @@ export function panelOrdersAnswer(
     calls: toPanelTableCalls(read.calls, now.getTime()),
     closed: toPanelClosed(read.closed, new Set(read.rows.map((r) => r.id))),
   };
+}
+
+/**
+ * A digest of what LafPOS acts on in `branch`'s answer: the orders, the
+ * calls, `closed` and whether the list is whole. Not `now`, not
+ * `awaitingPayment` (LafPOS ignores it). Equal answers give the same
+ * digest; it carries nothing that can be read back.
+ */
+export async function panelOrdersDigest(
+  branch: string,
+  now: Date,
+): Promise<string> {
+  const answer = panelOrdersAnswer(
+    await readPanelOrders(branch, now, { awaiting: false }),
+    now,
+  );
+  return digestOf({
+    complete: answer.complete,
+    orders: answer.orders,
+    calls: answer.calls,
+    closed: answer.closed,
+  });
+}
+
+/** A short, stable digest of a JSON value (the version signal's values). */
+export function digestOf(value: unknown): string {
+  return createHash("sha256")
+    .update(JSON.stringify(value))
+    .digest("hex")
+    .slice(0, 32);
 }

@@ -226,20 +226,27 @@ async function menu(etag?: string) {
  * Açık bir iş gününün `hours` saati, kasanın gözünden: sürüm sinyali 20
  * sn'de bir, sipariş güvenlik çekimi ve menü yoklaması 15 dakikada bir
  * (LafPOS `ORDERS_SAFETY_PULL_MS`, `MENU_SYNC_INTERVAL_MS`). Saat başına
- * veritabanına giden istek ve okuma sayısını döndürür.
+ * veritabanına giden istek ve okuma sayısını döndürür; `signal` sürüm
+ * sinyalinin veritabanına gittiği soru sayısıdır.
  */
 async function lafposHours(hours: number) {
-  const perHour: { requests: number; reads: number }[] = [];
+  const perHour: { requests: number; reads: number; signal: number }[] = [];
   let etag = "";
   for (let h = 0; h < hours; h++) {
     const before = dbReads();
     let requests = 0;
+    let signal = 0;
     for (let s = 0; s < 3600; s += 20) {
       vi.setSystemTime(T0 + h * 60 * MIN + s * 1000);
-      const at = dbReads();
+      const asked = dbReads();
       await version();
-      // Sürüm sinyali veritabanına hiç gitmez.
-      expect(dbReads()).toBe(at);
+      // Sürüm sinyali yalnız işaret yeni yapılmışken okur (şubenin
+      // özeti: işaretin ilk sorusu canlı, ikincisi saklanır), sonra hiç.
+      if (dbReads() > asked) {
+        signal++;
+        requests++;
+      }
+      const at = dbReads();
       if (s % 900 === 0) {
         const p = await pull();
         expect(p.status).toBe(200);
@@ -254,7 +261,7 @@ async function lafposHours(hours: number) {
         if (dbReads() > mid) requests++;
       }
     }
-    perHour.push({ requests, reads: dbReads() - before });
+    perHour.push({ requests, reads: dbReads() - before, signal });
   }
   return perHour;
 }
@@ -265,9 +272,9 @@ describe("ölçüm: açık iş gününde kasanın veritabanını uyandırması",
     const before = await lafposHours(3);
     // Çekim 4 okuma (sayı, liste, çağrılar, `closed`), menü 3.
     expect(before).toEqual([
-      { requests: 8, reads: 28 },
-      { requests: 8, reads: 28 },
-      { requests: 8, reads: 28 },
+      { requests: 8, reads: 28, signal: 0 },
+      { requests: 8, reads: 28, signal: 0 },
+      { requests: 8, reads: 28, signal: 0 },
     ]);
 
     cache.on = true;
@@ -276,11 +283,14 @@ describe("ölçüm: açık iş gününde kasanın veritabanını uyandırması",
     const after = await lafposHours(3);
     // İlk saat: işaret yeni yapılmışken gelen ilk çekim hiçbir şeye kefil
     // olmaz (5 sn kuralı), ikincisi hatırlanır; menüde ilk istek ETag'siz,
-    // ikincisi işareti yapar, üçüncüsü hatırlanır.
-    expect(after[0]).toEqual({ requests: 5, reads: 17 });
-    // Sonra saatte bir canlı okuma (emniyet ağı), uç başına.
-    expect(after[1]).toEqual({ requests: 2, reads: 7 });
-    expect(after[2]).toEqual({ requests: 2, reads: 7 });
+    // ikincisi işareti yapar, üçüncüsü hatırlanır. Sürüm sinyali şubenin
+    // özetini iki kez okur (siparişler 3, menü 2): işaretin ilk sorusu
+    // canlı, ikincisi saklanır.
+    expect(after[0]).toEqual({ requests: 7, reads: 27, signal: 2 });
+    // Sonra saatte bir canlı okuma (emniyet ağı), uç başına; sürüm
+    // sinyalinin saatlik turu yok.
+    expect(after[1]).toEqual({ requests: 2, reads: 7, signal: 0 });
+    expect(after[2]).toEqual({ requests: 2, reads: 7, signal: 0 });
   });
 });
 
@@ -372,9 +382,11 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     cache.expire("live:orders");
     vi.setSystemTime(T0 + 21 * MIN);
     const moved = await version();
+    // Sinyal Marina'nın özetini okur (liste, çağrılar, `closed`, kasa);
+    // menününkini de bir kez (işareti oturduktan sonraki ilk soru).
+    expect(dbReads()).toBe(10);
     const after = await pull();
-    // Sayı, liste, çağrılar, `closed` ve kasada ödenen.
-    expect(dbReads()).toBe(9);
+    expect(dbReads()).toBe(15);
     expect(after.body.orders).toHaveLength(1);
     expect(after.body.orders[0].orderNo).toBe(201);
     expect(moved.version).toBeTruthy();
@@ -483,6 +495,141 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     expect(ok.status).toBe(200);
     // Düşen okumadan sonra canlı okundu: 2 (sayım, liste) + 4.
     expect(dbReads()).toBe(6);
+  });
+});
+
+describe("GET /api/pos/orders/version: şubenin işareti (23 Kas 2026)", () => {
+  it("Tuzla'nın siparişi Marina'nın sürümünü oynatmaz; Marina'nın siparişi, çağrısı ve kapanışı oynatır", async () => {
+    let marina: unknown[] = [];
+    let marinaClosed: unknown[] = [];
+    store.listPanelOpenOrderRows.mockImplementation(
+      async (_paid: string, _limit: number, _live: object, branch: string) =>
+        branch === "marina" ? marina : [{ ...PAID_ORDER, id: "ord-tuzla" }],
+    );
+    store.listPanelClosedOrderRows.mockImplementation(
+      async (_paid: string, _left: string, _limit: number, branch: string) =>
+        branch === "marina" ? marinaClosed : [],
+    );
+    const first = await version();
+    vi.setSystemTime(Date.now() + MIN);
+    // İşaret oturdu: özet saklanır, aynı değer.
+    expect((await version()).version).toBe(first.version);
+    clearReads();
+    vi.setSystemTime(Date.now() + MIN);
+    expect((await version()).version).toBe(first.version);
+    // İşaret dururken hiçbir şey okunmaz.
+    expect(dbReads()).toBe(0);
+
+    // Tuzla'da sipariş ödendi: `live:orders` düşer, Marina'nın listesi aynı.
+    cache.expire("live:orders");
+    vi.setSystemTime(Date.now() + MIN);
+    const tuzla = await version();
+    expect(tuzla.version).toBe(first.version);
+    // Okuma yalnız Marina adına.
+    expect(store.listPanelOpenOrderRows.mock.calls.at(-1)?.[3]).toBe("marina");
+    expect(dbReads()).toBeGreaterThan(0);
+
+    // Marina'da sipariş ödendi.
+    marina = [PAID_ORDER];
+    cache.expire("live:orders");
+    vi.setSystemTime(Date.now() + MIN);
+    const paid = await version();
+    expect(paid.version).not.toBe(first.version);
+
+    // Marina'da masa çağrısı.
+    calls.listOpenTableCalls.mockImplementation(
+      async (now: Date, _limit: number | undefined, branch: string) =>
+        branch === "marina"
+          ? [
+              {
+                id: "call-1",
+                tableCode: "M4R1N4T4BL",
+                tableName: "M2",
+                branch: "marina",
+                reason: "water",
+                createdAt: new Date(now.getTime() - MIN).toISOString(),
+                ackedAt: "",
+                ackedBy: "",
+              },
+            ]
+          : [],
+    );
+    cache.expire("live:orders");
+    vi.setSystemTime(Date.now() + MIN);
+    const called = await version();
+    expect(called.version).not.toBe(paid.version);
+
+    // Sipariş masaya götürüldü: listeden çıkar, `closed`'a girer.
+    marina = [];
+    marinaClosed = [{ ...PAID_ORDER, status: "shipped" }];
+    cache.expire("live:orders");
+    vi.setSystemTime(Date.now() + MIN);
+    const closed = await version();
+    expect(closed.version).not.toBe(called.version);
+    // Karaoke işareti şubesiz kalır.
+    expect(closed.karaoke).toBe(first.karaoke);
+  });
+
+  it("Tuzla'nın Tükendi'si Marina'nın menü işaretini oynatmaz; Marina'nınki ve kalemin yazımı oynatır", async () => {
+    const rows: Record<string, Map<string, object>> = {
+      tuzla: new Map(),
+      marina: new Map(),
+    };
+    availability.listBranchAvailability.mockImplementation(
+      async (branch: string) => rows[branch] ?? new Map(),
+    );
+    const row = (branch: string) => ({
+      menuItemId: "mi-1",
+      branch,
+      isActive: false,
+      updatedAt: new Date().toISOString(),
+      updatedBy: "panel:Selin",
+    });
+    const first = await version();
+    expect(first.menu).toBeTruthy();
+    vi.setSystemTime(Date.now() + MIN);
+    expect((await version()).menu).toBe(first.menu);
+
+    rows.tuzla = new Map([["mi-1", row("tuzla")]]);
+    cache.expire("pub:menu");
+    vi.setSystemTime(Date.now() + MIN);
+    expect((await version()).menu).toBe(first.menu);
+
+    rows.marina = new Map([["mi-1", row("marina")]]);
+    cache.expire("pub:menu");
+    vi.setSystemTime(Date.now() + MIN);
+    const sold = (await version()).menu;
+    expect(sold).not.toBe(first.menu);
+
+    // Kalemin kendi yazımı (fiyat; her yazım `updatedAt`'ı damgalar).
+    store.listMenuItemsForPanel.mockResolvedValue([
+      { ...MENU_ITEM, priceMinor: 19000, updatedAt: new Date().toISOString() },
+    ]);
+    cache.expire("pub:menu");
+    vi.setSystemTime(Date.now() + MIN);
+    expect((await version()).menu).not.toBe(sold);
+  });
+
+  it("özet okunamazsa genel işaret döner: her şubenin yazımında çeker, kaçırmaz", async () => {
+    store.listPanelOpenOrderRows.mockRejectedValue(new Error("db down"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const first = await version();
+    vi.setSystemTime(Date.now() + MIN);
+    const again = await version();
+    warn.mockRestore();
+    expect(first.version).toMatch(/^[0-9a-z]+-[0-9a-z]+$/);
+    expect(again.version).toBe(first.version);
+    cache.expire("live:orders");
+    expect((await version()).version).not.toBe(first.version);
+  });
+
+  it("LAFPOS_BRANCHES=marina,tuzla: ?branch=tuzla Tuzla'nın özetidir", async () => {
+    process.env.LAFPOS_BRANCHES = "marina,tuzla";
+    await version("/api/pos/orders/version?branch=tuzla");
+    expect(store.listPanelOpenOrderRows.mock.calls.at(-1)?.[3]).toBe("tuzla");
+    expect(availability.listBranchAvailability).toHaveBeenLastCalledWith(
+      "tuzla",
+    );
   });
 });
 

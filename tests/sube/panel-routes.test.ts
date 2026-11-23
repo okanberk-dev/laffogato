@@ -278,6 +278,42 @@ describe("POST /api/panel/orders/stage ve /api/panel/calls/ack", () => {
   });
 });
 
+describe("GET /api/pos/orders/version şubeye göre (23 Kas 2026)", () => {
+  it("LafPOS'un anahtarı Marina adına sorar; Tuzla 403, bilinmeyen şube 400", async () => {
+    const { GET } = await import("@/app/api/pos/orders/version/route");
+    const ok = await GET(signed("lafpos", "GET", "/api/pos/orders/version"));
+    expect(ok.status).toBe(200);
+    // Yanıt biçimi aynı: yalnız işaretler, şube söylenmez.
+    const body = await ok.json();
+    expect(Object.keys(body).sort()).toEqual(
+      expect.arrayContaining(["karaoke", "version"]),
+    );
+    expect(body.branch).toBeUndefined();
+    expect(typeof body.version).toBe("string");
+
+    const marina = await GET(
+      signed("lafpos", "GET", "/api/pos/orders/version?branch=marina"),
+    );
+    expect(marina.status).toBe(200);
+    const tuzla = await GET(
+      signed("lafpos", "GET", "/api/pos/orders/version?branch=tuzla"),
+    );
+    expect(tuzla.status).toBe(403);
+    expect(await tuzla.json()).toEqual({ error: "forbidden", field: "branch" });
+    const bad = await GET(
+      signed("lafpos", "GET", "/api/pos/orders/version?branch=ankara"),
+    );
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: "invalid", field: "branch" });
+  });
+
+  it("panelin anahtarı hâlâ 401", async () => {
+    const { GET } = await import("@/app/api/pos/orders/version/route");
+    const res = await GET(signed("panel", "GET", "/api/pos/orders/version"));
+    expect(res.status).toBe(401);
+  });
+});
+
 describe("GET /api/panel/karaoke", () => {
   it("oda Tuzla'nın: Marina adına okuma boş döner, veritabanına gidilmez", async () => {
     const { GET } = await import("@/app/api/panel/karaoke/route");

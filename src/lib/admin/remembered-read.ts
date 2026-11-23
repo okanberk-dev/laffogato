@@ -36,7 +36,12 @@ import {
  *   making vouches for nothing (the marker may have been stored just after
  *   a write it did not see): it is answered live and nothing is kept.
  * - One live read at least every `ORDER_ALERT_FULL_REFRESH_MS` (the round
- *   in the key), the net under a write whose tag expiry was lost.
+ *   in the key), the net under a write whose tag expiry was lost. Unless
+ *   `hourly: false`: for an answer that is only a digest of the database
+ *   under the marker, standing in for the marker itself (LafPOS's
+ *   per-branch version signal, change-marker.ts `readBranchMarker`). A lost
+ *   expiry leaves the marker unmoved as well, so the net would add nothing
+ *   the marker had, and an hourly read would wake the database all night.
  * - No marker (the cache is off, failing, or under test): live, as before.
  *   So is every failure of the cache itself: more database time, never a
  *   wrong answer.
@@ -63,6 +68,8 @@ export async function rememberedRead<L, R>(opts: {
   nowMs: number;
   read: () => Promise<L>;
   remember: (live: L) => R | null;
+  /** One live read an hour at least (the default); see above. */
+  hourly?: boolean;
 }): Promise<RememberedRead<L, R>> {
   const { marker, nowMs } = opts;
   const made = marker ? markerMadeAt(marker) : null;
@@ -75,7 +82,10 @@ export async function rememberedRead<L, R>(opts: {
     return { from: "database", live: await opts.read() };
   }
 
-  const round = Math.floor((nowMs - made) / ORDER_ALERT_FULL_REFRESH_MS);
+  const round =
+    opts.hourly === false
+      ? "-"
+      : String(Math.floor((nowMs - made) / ORDER_ALERT_FULL_REFRESH_MS));
   const run: { started: boolean; live: { value: L } | null } = {
     started: false,
     live: null,
@@ -94,7 +104,7 @@ export async function rememberedRead<L, R>(opts: {
       ...presentationCacheKey(`laf-remembered-${opts.name}`),
       opts.scope,
       marker,
-      String(round),
+      round,
     ],
     { tags: [...opts.tags] },
   );

@@ -187,7 +187,11 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    bozuksa her okuma canlıdır. Ölçüm (`tests/sube/neon-uyanma.test.ts`,
    veri katmanı sayılarak): kasa için saatte veritabanına giden istek 8'den
    2'ye, okuma 28'den 7'ye (23 Kas 2026'dan beri bir çekim `closed` ile dört
-   okumadır); açık bir panel sekmesinin zili (madde 3) saatte
+   okumadır). Sürüm sinyali (`/api/pos/orders/version`) 23 Kas 2026'dan beri
+   şubenin özetini verir: genel işaret değişince şubenin listesi ve menüsü
+   bir kez okunur (işaretin ilk sorusu canlı, ikincisi saklanır), işaret
+   dururken hiç, saatlik turu yok; okuma bir yazımın hemen ardındandır,
+   veritabanı uyanıkken. Açık bir panel sekmesinin zili (madde 3) saatte
    360 istekten 1'e. Uyandırma başına ~5 dakika açık kalma ile kasanın payı
    14 saatlik günde yaklaşık 9,5 saatten 2,5 saate iner (0,25 CU'da günde
    ~2,4 yerine ~0,6 CU-saat). Canlı ölçüm aşağıdaki komutlarla yapılır

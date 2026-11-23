@@ -104,8 +104,12 @@ kasasında ürünü kilitler, Marina'nın porsiyonu biten ürünü Tuzla'nın uy
   listede olmayan ama panelde açık kalem kapanmaz), yani Marina'nın Satışta'sı doğru kalır. Tek eksik: Tuzla'da
   tükenmişken **ilk kez** eklenen bir kalem, Tuzla'da açılana dek LafPOS'ta oluşmaz.
 - **Satış ucu** (`GET /api/panel/sales`, yalnız panel): `&branch=` ve `byBranch` (`docs/PANEL-SALES.md`).
-- **Sürüm sinyali** (`GET /api/pos/orders/version`) şubesizdir: Tuzla'nın siparişi de onu oynatır, LafPOS çeker ve
-  boş liste alır. Veritabanına dokunmaz; fazladan çekme bütçe kuralının (5 dakika) içindedir.
+- **Sürüm sinyali** (`GET /api/pos/orders/version`) şubenindir (23 Kas 2026): `?branch=` ya da LafPOS'un varsayılanı
+  (bugün Marina; LafPOS bir şey değiştirmez). `version` ve `menu` o şubenin okuyacağı listenin özetidir: Tuzla'nın
+  siparişi, çağrısı ya da Tükendi'si Marina'nınkini oynatmaz. Önceden şubesizdi: Tuzla'daki her sipariş yazımı
+  Marina'nın kasasına (gün açıkken 20 saniyede bir sorar) boş bir tam çekim yaptırıyordu. Bu çekimler 5 dakika
+  kuralının içinde değildi: sinyalle gelen çekim o kuralın istisnasıdır (lafpos `docs/03-ENTEGRASYON.md`, "sinyal
+  değişince"), bu yüzden sinyalin yalnız kendi şubesinde oynaması gerekir. Ayrıntı aşağıda "Sipariş sürüm sinyali".
 
 Kural `src/lib/panel/branches.ts`; testleri `tests/sube/` (`npm run test:sube`). LafPOS'un kendi tarafındaki
 şube bekçisi (sitenin şubesi değilse online siparişi ve karaokeyi hiç çekmemek) sitenin bu değişikliğinden
@@ -150,7 +154,7 @@ bağımsız ikinci bir emniyettir: lafpos `docs/03-ENTEGRASYON.md` §2.3.
 | `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı (yalnız kendi şubesinin)                                                                                                                            |
 | `POST /api/panel/orders/stage` | açar             | açar               | Hazırlanıyor / Hazır / Teslim edildi                                                                                                                                                            |
 | `POST /api/panel/calls/ack`    | açar             | açar               | Masadan garson çağrısına "Gördüm" (6 Kas 2026; çağrılar `GET /api/panel/orders`'ın `calls` alanında, `docs/PANEL-ORDERS.md` "Masa çağrıları"); olay kaydında `lafpos:<ad>`                       |
-| `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş ve karaoke sürüm sinyali (aşağıda)                                                                                                                                                      |
+| `GET /api/pos/orders/version`  | açmaz (401)      | açar               | Sipariş, menü ve karaoke sürüm sinyali; sipariş ve menü kendi şubesinin (aşağıda)                                                                                                               |
 | `GET /api/panel/karaoke`       | açar             | açar               | Karaoke odası: sitedeki rezervasyonlar (saat, kişi, ad, not, ödeme durumu), `karaoke` değişince. LafPOS'un anahtarıyla yalnız dünden yarına (İstanbul); daha genişi 403 `forbidden`             |
 | `GET /api/panel/sales`         | açar             | açmaz              | LafPOS'un işi değil                                                                                                                                                                             |
 | `PUT /api/panel/tables`        | açmaz (401)      | açar               | Masa QR kodları: LafPOS'un bastığı kartların kodunu `cafe_tables`'a ekler ya da adını / etkinliğini günceller (aşağıda "Masa kodları")                                                          |
@@ -198,19 +202,48 @@ x-laf-signature: v1=<hex>
 ```
 
 ```json
-{ "version": "mh7x2k3a-1x9f0c2b7d4e5", "karaoke": "mh7x2k3a-3k8d1q0z9w2a" }
+{
+  "version": "3f9a0c4b7d2e1a6845c0b9e7d1f2a3c4",
+  "karaoke": "mh7x2k3a-3k8d1q0z9w2a",
+  "menu": "9c1e2b7a0d4f5e6a8b3c2d1e0f9a8b7c"
+}
 ```
 
 - Yalnız `LAFPOS_SYNC_SECRET` ile imzalı istek; panelin anahtarı 401 alır.
-  Sorgu ve gövde yok.
-- Değer bir **değişim işaretidir** (`src/lib/admin/change-marker.ts`,
-  `readPosOrdersMarker`): Next'in veri önbelleğinde `live:orders` etiketiyle
-  duran rastgele bir metin. Uç **veritabanına dokunmaz**: önbellekte yoksa yeni
-  bir metin üretir. `live:orders`'ı düşüren her yazım (sipariş açıldı, ödendi,
-  ilerledi, iade edildi; mağaza kolisi de; `src/lib/db/index.ts` yazım
-  kancası) kaydı siler, sonraki soru yeni değeri alır.
-- Değer veri taşımaz, biçimine güvenilmez; yalnız bir öncekiyle karşılaştırılır:
-  aynıysa yeni bir şey yok, farklıysa siparişler değişti.
+  Gövde yok; sorguda isteğe bağlı `branch` (imzanın içinde, aşağıda).
+- Değer bir **değişim işaretinin** üstünde durur
+  (`src/lib/admin/change-marker.ts`, `readPosOrdersMarker`): Next'in veri
+  önbelleğinde `live:orders` etiketiyle duran rastgele bir metin; önbellekte
+  yoksa yenisi üretilir. `live:orders`'ı düşüren her yazım (sipariş açıldı,
+  ödendi, ilerledi, iade edildi, masa çağrısı; mağaza kolisi de;
+  `src/lib/db/index.ts` yazım kancası) kaydı siler, sonraki soru yeni işareti
+  alır. İşaret dururken uç **veritabanına dokunmaz**.
+- **Şubenin değeri (23 Kas 2026).** Etiketler tablo başınadır, şube başına
+  değil: yazım kancası yazdığı tabloyu bilir, satırın şubesini bilmez (yazım
+  kimlikle gider). Bu yüzden `live:orders` her şubenin siparişiyle düşer.
+  `version` artık işaretin kendisi değil, o şubenin `GET /api/panel/orders`
+  yanıtının özetidir (siparişler, çağrılar, `closed`, `complete`; `now` ve
+  `awaitingPayment` hariç; `src/lib/panel/orders-feed.ts`
+  `panelOrdersDigest`): genel işaret değişince şubenin listesi bir kez
+  okunur, özeti işaretin altında önbellekte tutulur
+  (`readBranchMarker`, `src/lib/admin/remembered-read.ts`'in kuralları).
+  Değer yalnız o şubenin LafPOS'un çekeceği yanıt değişince değişir;
+  Tuzla'nın siparişi Marina'nın değerini oynatmaz. Şube `?branch=` ya da
+  LafPOS'un varsayılanı (`LAFPOS_BRANCHES`, bugün Marina); konuşamadığı şube
+  403, bozuk ya da bilinmeyen 400 (yukarıda "Şube").
+- **Ne zaman okur.** Yalnız genel işaret değişmişken: işaretin ilk sorusu
+  (işaret 5 saniyeden gençken) canlı okunur ve saklanmaz, sonraki saklanır,
+  sonra işaret değişene kadar hiç. Saatlik canlı turu yoktur: işaret dururken
+  özet de durur, gece veritabanını uyandırmaz. Okuma bir yazımın hemen
+  ardındandır (gün içinde en çok 20 saniye, gece en çok 3 dakika sonra),
+  veritabanı o yazımdan uyanıkken. Okunamazsa (veritabanı hatası) değer
+  genel işarettir: LafPOS her şubenin yazımında çeker (önceki davranış),
+  kendi siparişini kaçırmaz.
+- Değer veri taşımaz, biçimine güvenilmez (işaret, özet ya da yedekte
+  işaret); yalnız bir öncekiyle karşılaştırılır: aynıysa yeni bir şey yok,
+  farklıysa siparişler değişti. Saatle değişen (24 saati dolup ekrandan
+  kalkan sipariş, 15 dakikası dolan çağrı) değeri oynatmaz; onları LafPOS'un
+  15 dakikalık güvenlik çekimi ve kendi sayacı yakalar (önceden de öyleydi).
 - `karaoke` (26 Ekim 2026) aynı türden ikinci bir işarettir
   (`readPosKaraokeMarker`), yalnız `live:karaoke` etiketiyle: karaoke
   rezervasyonu açılınca, ödenince, onaylanınca, saati değişince ya da iptal
@@ -218,6 +251,17 @@ x-laf-signature: v1=<hex>
   de) değişir. Sipariş `karaoke`'yi, rezervasyon `version`'ı değiştirmez.
   LafPOS `karaoke` değişince `GET /api/panel/karaoke`'u çeker. Alan eklemedir:
   yalnız `version`'ı okuyan LafPOS etkilenmez. Bu da veritabanına dokunmaz.
+- `menu` aynı türden üçüncü değerdir (`readPosMenuMarker`, `pub:menu`):
+  menü kaleminin fiyatı ya da durumu yazılınca LafPOS menüsünü 15 dakikalık
+  yoklamayı beklemeden eşitler. 23 Kas 2026'dan beri o da şubenin özetidir:
+  panel menüsünün sütunları (her yazım kalemin `updatedAt`'ını damgalar,
+  fotoğraf ve metin dahil) ve şubenin kendi Satışta / Tükendi satırları.
+  Kalemin kendi yazımı her şubenin değerini oynatır, başka şubenin
+  Tükendi'si oynatmaz. Tek fark: Tuzla'da tükenmişken ilk kez eklenen kalem
+  (yukarıda "Şube") Tuzla'da açılınca Marina'nın kasasına artık hemen değil,
+  herkese açık menünün 15 dakikalık yoklamasıyla gelir. Önbellek yoksa alan
+  hiç gönderilmez (her soruda yeni bir değer menüyü 20 saniyede bir
+  eşitletirdi).
 - Panel hesaplarının yazımı (`live:access`) bu değerleri değiştirmez; panelin
   kendi işaretleri değişir, LafPOS'unkiler değil.
 - Önbellek kapalıysa (`LAF_DATA_CACHE=off`) ya da okunamıyorsa her yanıtta iki
@@ -227,8 +271,10 @@ x-laf-signature: v1=<hex>
 
 | Durum | Gövde                           | Ne zaman                                                      |
 | ----- | ------------------------------- | ------------------------------------------------------------- |
-| 200   | `{"version":"…","karaoke":"…"}` |                                                               |
+| 200   | `{"version":"…","karaoke":"…","menu":"…"}` | `menu` önbellek yokken yok                         |
+| 400   | `{"error":"invalid","field":"branch"}`   | `branch` bozuk ya da bilinmeyen (23 Kas 2026)        |
 | 401   | `{"error":"unauthorized"}`      | İmza yok, yanlış (panelin anahtarı da) ya da 5 dakikadan eski |
+| 403   | `{"error":"forbidden","field":"branch"}` | LafPOS'un anahtarı o şube adına konuşamaz (23 Kas 2026) |
 | 503   | `{"error":"not_configured"}`    | `LAFPOS_SYNC_SECRET` yok ya da 32 karakterden kısa            |
 
 ## Masa kodları: `PUT /api/panel/tables` (28 Ekim 2026)

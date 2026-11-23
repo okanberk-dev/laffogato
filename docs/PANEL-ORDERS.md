@@ -74,6 +74,10 @@ kaydını sitede ilerletip kapatıyordu.
 - Aşama ve "Gördüm" gövdesi isteğe bağlı `branch` alabilir (aynı varsayılan);
   başka şubenin siparişi ya da çağrısı 409 `{"error":"wrong_branch"}`,
   hiçbir şey yazılmaz, kaydın içeriği söylenmez.
+- LafPOS'un sürüm sinyali (`GET /api/pos/orders/version`, 23 Kas 2026) de
+  şubenindir: `version` şubenin bu yanıtının özetidir, başka şubenin
+  siparişi ya da çağrısı onu oynatmaz (`docs/LAFPOS.md` "Sipariş sürüm
+  sinyali").
 - Kural `src/lib/panel/branches.ts`; testleri `tests/sube/`
   (`npm run test:sube`).
 
@@ -88,7 +92,7 @@ imza vektörleri sitede `tests/panel-karaoke-sync-core.test.ts`'te sabit
 sabitleyecek, o güne dek bu dördünü yalnız site tutar. Kural bir tarafta
 değişirse bu istekler 401 olur.
 
-Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, `GET /api/pos/orders/version` değişince çeker: `docs/LAFPOS.md`.
+Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, kendi şubesinin `GET /api/pos/orders/version` değeri değişince çeker: `docs/LAFPOS.md`.
 
 1. **Ping (site → panel).** `live:orders` etiketini düşüren her yazım
    (sipariş açıldı, ödendi, ilerledi, iade edildi; mağaza kolisi de) yanıttan
@@ -389,7 +393,8 @@ Yalnız **açık** çağrılar: yanıtlanmamış ve 15 dakikadan genç; en eskis
 düşer (uygulama onu `expired` görür). Aynı masadan aynı sebeple açık çağrı
 varken yeni çağrı açılmaz; site o çağrıyı üyeye geri verir. Çağrının açılması
 ve yanıtlanması `live:orders`'ı düşürür: panele `orders.changed` pingi gider,
-LafPOS'un `/api/pos/orders/version`'ı ilerler, sitenin sipariş zili çalar.
+çağrının şubesindeki LafPOS'un `/api/pos/orders/version`'ı ilerler, sitenin
+sipariş zili çalar.
 
 **Yanıtlama.** Bar ekranındaki "Gördüm": imza, anahtar ve başlıklar
 `POST /api/panel/orders/stage`'inkiyle aynı (panel ya da LafPOS kendi
