@@ -101,6 +101,16 @@ const priceRow = (
 const IN_FORCE = priceRow(iso(NOW - 24 * HOUR), 14500, 16500);
 const TOMORROW = priceRow(iso(NOW + 20 * HOUR), 15000, 17000);
 
+/** Panelin gördüğü satır: yazanın adı (`createdBy`) siteden çıkmaz. */
+const panelRow = (row: ReturnType<typeof priceRow>) => ({
+  id: row.menuItemId,
+  branch: row.branch,
+  priceMinor: row.priceMinor,
+  priceMinorL: row.priceMinorL,
+  effectiveFrom: row.effectiveFrom,
+  createdAt: row.createdAt,
+});
+
 const env = { ...process.env };
 
 beforeEach(() => {
