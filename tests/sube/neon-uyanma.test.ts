@@ -732,3 +732,25 @@ describe("GET /api/mobile/v1/menu: 'değişmedi' veritabanına gitmez", () => {
     expect(dbReads()).toBe(reads + 3);
   });
 });
+
+describe("şubenin işareti okunamazsa", () => {
+  it("genel işaret döner; aynı işaret altında 2 dakika her soruda yeniden okunmaz, sonra yeniden denenir", async () => {
+    store.listPanelOpenOrderRows.mockRejectedValue(new Error("veritabanı yok"));
+    vi.setSystemTime(T0 + 10 * MIN);
+    clearReads();
+    const first = await version();
+    const tries = () => store.listPanelOpenOrderRows.mock.calls.length;
+    const afterFirst = tries();
+    expect(afterFirst).toBeGreaterThan(0);
+    // 20 sn sonraki soru: okumadan genel işaret
+    vi.setSystemTime(T0 + 10 * MIN + 20_000);
+    const second = await version();
+    expect(tries()).toBe(afterFirst);
+    expect(second.version).toBe(first.version);
+    // 2 dakika geçince yeniden denenir
+    vi.setSystemTime(T0 + 13 * MIN);
+    await version();
+    expect(tries()).toBeGreaterThan(afterFirst);
+    store.listPanelOpenOrderRows.mockResolvedValue([]);
+  });
+});
