@@ -2,26 +2,20 @@ import { NextResponse } from "next/server";
 
 import { readPosOrdersMarker } from "@/lib/admin/change-marker";
 import { rememberedRead } from "@/lib/admin/remembered-read";
-import {
-  countPanelAwaitingPaymentOrders,
-  listPanelOpenOrderRows,
-} from "@/lib/admin/store";
-import { listOpenTableCalls } from "@/lib/admin/table-calls";
-import { toPanelTableCalls } from "@/lib/admin/table-calls-core";
 import { TAG_ORDERS } from "@/lib/cache/tags";
-import {
-  PANEL_ORDERS_MAX,
-  PANEL_ORDERS_VERSION,
-  panelAwaitingPaymentCount,
-  panelAwaitingPaymentSince,
-  panelOrderRowsComplete,
-  panelOrdersLiveSince,
-  panelOrdersSince,
-  sortForPanelOrders,
-  toPanelOrder,
-  type PanelOrder,
-} from "@/lib/panel/orders-feed-core";
 import { chooseBranch } from "@/lib/panel/branches";
+import {
+  panelOrdersAnswer,
+  readPanelOrders,
+  type PanelOrdersAnswer,
+  type PanelOrdersRead,
+} from "@/lib/panel/orders-feed";
+import {
+  PANEL_ORDERS_VERSION,
+  parsePanelClosed,
+  toPanelClosed,
+  type PanelClosedOrder,
+} from "@/lib/panel/orders-feed-core";
 import {
   signedCaller,
   signedCallerKeys,
@@ -80,6 +74,22 @@ import {
  * the panel polls on it; LafPOS does not read it and hears of the payment
  * by its version signal.
  *
+ * Three additions of 23 Kas 2026 (lafpos docs/03-ENTEGRASYON.md
+ * "Sözleşme eklemeleri"; an older reader ignores them, `version` stays 1):
+ * `orders[].paidAtTill` (settled at the till: its money and fiş are the
+ * till's, LafPOS does not book it as paid online), `orders[].lines[].index`
+ * (the line's place in `items`, so LafPOS can void the one cancelled here)
+ * and `closed`: `[{id, outcome}]`, the branch's café orders that left the
+ * screen in the last 48 hours and why (`completed`, `cancelled`,
+ * `refunded`; orders-feed-core.ts `panelClosedOutcome`), the most recently
+ * paid first, at most 200; always present, `[]` when none. Only ids and
+ * outcomes: nothing about the guest, the lines or the money.
+ *
+ * A remembered quiet screen keeps its `closed` with it: the list changes
+ * with a write to `orders` (which moves the marker) and otherwise only
+ * shrinks with the clock, so a remembered one names at worst an order a
+ * little past its 48 hours, which is still true.
+ *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */
 
@@ -91,20 +101,28 @@ const NO_STORE = { "Cache-Control": "no-store" } as const;
 /** The panel, and LafPOS with its own key. */
 const CALLERS: readonly SignedCaller[] = ["panel", "lafpos"];
 
-/** What one ask reads: the three reads of the bar screen. */
-interface LiveRead {
-  awaiting: number;
-  rows: Awaited<ReturnType<typeof listPanelOpenOrderRows>>;
-  calls: Awaited<ReturnType<typeof listOpenTableCalls>>;
-}
-
 /** Nothing read at all: no row, none awaiting payment, no call. */
-const QUIET: LiveRead = { awaiting: 0, rows: [], calls: [] };
-
-function isQuiet(live: LiveRead): boolean {
+function isQuiet(live: PanelOrdersRead): boolean {
   return (
     live.awaiting === 0 && live.rows.length === 0 && live.calls.length === 0
   );
+}
+
+/** What a quiet screen keeps in memory: ids and outcomes, no guest. */
+interface QuietScreen {
+  quiet: true;
+  closed: PanelClosedOrder[];
+}
+
+/** A quiet screen's answer, read back from memory. */
+function quietAnswer(remembered: unknown): PanelOrdersAnswer {
+  return {
+    complete: true,
+    orders: [],
+    awaitingPayment: 0,
+    calls: [],
+    closed: parsePanelClosed((remembered as Partial<QuietScreen>)?.closed),
+  };
 }
 
 export async function GET(request: Request) {
@@ -137,29 +155,7 @@ export async function GET(request: Request) {
   const { branch } = choice;
 
   const now = new Date();
-  // One over the cap tells a full screen from a cut one.
-  const limit = PANEL_ORDERS_MAX + 1;
-  const readLive = async (): Promise<LiveRead> => {
-    // The count first, then the list, one after the other: an order only
-    // goes from waiting to paid, so one paid in between is in the list (at
-    // worst in both), never in neither. Read the other way round, a payment
-    // landing between the two reads left the order out of both and the
-    // panel saw "0 waiting" with no new order. The pool is one connection,
-    // so this costs no time.
-    const awaiting = await countPanelAwaitingPaymentOrders(
-      panelAwaitingPaymentSince(now),
-      branch,
-    );
-    const rows = await listPanelOpenOrderRows(
-      panelOrdersSince(now),
-      limit,
-      panelOrdersLiveSince(now),
-      branch,
-    );
-    const calls = await listOpenTableCalls(now, undefined, branch);
-    return { awaiting, rows, calls };
-  };
-  let live: LiveRead;
+  let answer: PanelOrdersAnswer;
   try {
     if (caller === "lafpos") {
       // The marker before the read (remembered-read.ts).
@@ -170,12 +166,16 @@ export async function GET(request: Request) {
         marker,
         tags: [TAG_ORDERS],
         nowMs: now.getTime(),
-        read: readLive,
-        remember: (l) => (isQuiet(l) ? { quiet: true } : null),
+        read: () => readPanelOrders(branch, now),
+        remember: (l): QuietScreen | null =>
+          isQuiet(l) ? { quiet: true, closed: toPanelClosed(l.closed) } : null,
       });
-      live = read.from === "database" ? read.live : QUIET;
+      answer =
+        read.from === "database"
+          ? panelOrdersAnswer(read.live, now)
+          : quietAnswer(read.remembered);
     } else {
-      live = await readLive();
+      answer = panelOrdersAnswer(await readPanelOrders(branch, now), now);
     }
   } catch (err) {
     console.error("[panel-orders] orders could not be read", err);
@@ -184,26 +184,16 @@ export async function GET(request: Request) {
       { status: 503, headers: NO_STORE },
     );
   }
-  const { awaiting, rows, calls } = live;
-
-  const orders = sortForPanelOrders(
-    rows
-      .map((row) => toPanelOrder(row, now))
-      .filter((o): o is PanelOrder => o !== null),
-  );
   return NextResponse.json(
     {
       version: PANEL_ORDERS_VERSION,
       now: now.toISOString(),
       branch,
-      // A read that came back full may have left rows out, however many
-      // of the rows it did bring stay on the screen.
-      complete:
-        panelOrderRowsComplete(rows, limit) &&
-        orders.length <= PANEL_ORDERS_MAX,
-      orders: orders.slice(0, PANEL_ORDERS_MAX),
-      awaitingPayment: panelAwaitingPaymentCount(awaiting),
-      calls: toPanelTableCalls(calls, now.getTime()),
+      complete: answer.complete,
+      orders: answer.orders,
+      awaitingPayment: answer.awaitingPayment,
+      calls: answer.calls,
+      closed: answer.closed,
     },
     { headers: NO_STORE },
   );

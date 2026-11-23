@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 import { safeAudit } from "@/lib/admin/audit";
 import { orderFulfillment } from "@/lib/admin/order-channel";
-import { getOrder, transitionOrder, type AdminOrder } from "@/lib/admin/store";
+import {
+  getOrder,
+  listPanelTillPaidOrderIds,
+  transitionOrder,
+  type AdminOrder,
+} from "@/lib/admin/store";
 import {
   toPanelOrder,
   type PanelOrderFulfillment,
@@ -63,8 +68,8 @@ function deny(status: number, error: string, extra: object = {}) {
   return NextResponse.json({ error, ...extra }, { status, headers: NO_STORE });
 }
 
-function shape(order: AdminOrder | null, now: Date) {
-  return order ? toPanelOrder(order, now) : null;
+function shape(order: AdminOrder | null, now: Date, paidAtTill: boolean) {
+  return order ? toPanelOrder(order, now, paidAtTill) : null;
 }
 
 export async function POST(request: Request) {
@@ -101,10 +106,13 @@ export async function POST(request: Request) {
     // Another branch's order is not this bar's to move (Marina's till on
     // a Tuzla order the köşk panel's screen shows).
     if (branchOf(order) !== choice.branch) return deny(409, "wrong_branch");
+    // `paidAtTill` of the answer, read before the move: a stage move writes
+    // no payment row, and nothing after the move may turn it into an error.
+    const atTill = (await listPanelTillPaidOrderIds([order.id])).has(order.id);
     const fulfillment = orderFulfillment(order) as PanelOrderFulfillment;
     const move = panelStageMove(change.action, change.from, fulfillment);
     if (!move || order.status !== move.expectStatus) {
-      return deny(409, "stale", { order: shape(order, now) });
+      return deny(409, "stale", { order: shape(order, now, atTill) });
     }
     const actor = panelStageActor(change.actor, caller);
     const moved = await transitionOrder(change.id, move.transition, {
@@ -112,7 +120,9 @@ export async function POST(request: Request) {
       expectStatus: move.expectStatus,
     });
     if (!moved.ok || !moved.order) {
-      return deny(409, "stale", { order: shape(await getOrder(change.id), now) });
+      return deny(409, "stale", {
+        order: shape(await getOrder(change.id), now, atTill),
+      });
     }
     // From here the move is done: nothing below may turn it into an error,
     // or the bar screen would show the old stage beside the site's new one.
@@ -129,7 +139,7 @@ export async function POST(request: Request) {
       },
     });
     return NextResponse.json(
-      { order: shape(moved.order, now) },
+      { order: shape(moved.order, now, atTill) },
       { headers: NO_STORE },
     );
   } catch (err) {

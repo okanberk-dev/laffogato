@@ -8,6 +8,8 @@ import { istanbulDayOf, signedHeaders } from "@/lib/panel/karaoke-sync-core";
 const store = vi.hoisted(() => ({
   countPanelAwaitingPaymentOrders: vi.fn(),
   listPanelOpenOrderRows: vi.fn(),
+  listPanelClosedOrderRows: vi.fn(),
+  listPanelTillPaidOrderIds: vi.fn(),
   getOrder: vi.fn(),
   transitionOrder: vi.fn(),
   getMenuItemForPanel: vi.fn(),
@@ -76,6 +78,8 @@ beforeEach(() => {
   }
   store.countPanelAwaitingPaymentOrders.mockResolvedValue(0);
   store.listPanelOpenOrderRows.mockResolvedValue([]);
+  store.listPanelClosedOrderRows.mockResolvedValue([]);
+  store.listPanelTillPaidOrderIds.mockResolvedValue(new Set());
   calls.listOpenTableCalls.mockResolvedValue([]);
   availability.listBranchAvailability.mockResolvedValue(new Map());
   availability.getBranchAvailability.mockResolvedValue(null);
@@ -107,6 +111,80 @@ describe("GET /api/panel/orders", () => {
       undefined,
       "marina",
     );
+    expect(store.listPanelClosedOrderRows).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      200,
+      "marina",
+    );
+    expect(body.closed).toEqual([]);
+  });
+
+  it("kasada ödenen, satırın konumu ve akıştan çıkanların sonucu (23 Kas 2026)", async () => {
+    const paidAt = new Date(Date.now() - 10 * 60_000).toISOString();
+    const order = {
+      id: "ord-0301",
+      orderNo: 301,
+      status: "paid",
+      kind: "cafe",
+      source: "app",
+      fulfillment: "table",
+      tableCode: "M4R1N4T4BL",
+      tableName: "M2",
+      customerName: "Ada Yılmaz",
+      scheduledFor: "",
+      paidAt,
+      shippedAt: "",
+      deliveryNote: "",
+      totalMinor: 30000,
+      items: [
+        { productName: "Latte", qty: 1, status: "cancelled" },
+        { productName: "Affogato", qty: 2 },
+      ],
+    };
+    store.listPanelOpenOrderRows.mockResolvedValue([order]);
+    store.listPanelTillPaidOrderIds.mockResolvedValue(new Set(["ord-0301"]));
+    const closed = (id: string, status: string, extra: object = {}) => ({
+      id,
+      status,
+      kind: "cafe",
+      source: "",
+      fulfillment: "table",
+      paidAt,
+      ...extra,
+    });
+    store.listPanelClosedOrderRows.mockResolvedValue([
+      closed("ord-0302", "completed"),
+      closed("ord-0303", "shipped"),
+      closed("ord-0304", "cancelled"),
+      closed("ord-0305", "refunded"),
+      // Gel-al "Hazır": hâlâ ekranda, sonucu yok.
+      closed("ord-0306", "shipped", { fulfillment: "pickup" }),
+      // Ödenmeden iptal: ekrana hiç düşmedi.
+      closed("ord-0307", "cancelled", { paidAt: "" }),
+      // Panelden elle girilen ve mağaza kolisi: ekranın değil.
+      closed("ord-0308", "completed", { source: "manual" }),
+      closed("ord-0309", "completed", { fulfillment: "shipping" }),
+      // İki okuma arasında kapandı: açık listede, `closed`'da değil.
+      closed("ord-0301", "completed"),
+    ]);
+    const { GET } = await import("@/app/api/panel/orders/route");
+    const res = await GET(signed("lafpos", "GET", "/api/panel/orders"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(store.listPanelTillPaidOrderIds).toHaveBeenCalledWith(["ord-0301"]);
+    expect(body.orders).toHaveLength(1);
+    expect(body.orders[0].paidAtTill).toBe(true);
+    // İptal edilen satır düşer, kalanın konumu `items`'taki yeridir.
+    expect(body.orders[0].lines).toEqual([
+      expect.objectContaining({ name: "Affogato", qty: 2, index: 1 }),
+    ]);
+    expect(body.closed).toEqual([
+      { id: "ord-0302", outcome: "completed" },
+      { id: "ord-0303", outcome: "completed" },
+      { id: "ord-0304", outcome: "cancelled" },
+      { id: "ord-0305", outcome: "refunded" },
+    ]);
   });
 
   it("köşkün paneli (şube söylemeden) Tuzla'nınkini okur: eski panel aynen", async () => {
@@ -157,7 +235,8 @@ describe("POST /api/panel/orders/stage ve /api/panel/calls/ack", () => {
     expect(store.transitionOrder).not.toHaveBeenCalled();
   });
 
-  it("Marina'nın kendi masa siparişi ilerler", async () => {
+  it("Marina'nın kendi masa siparişi ilerler; yanıt ekranın biçiminde", async () => {
+    store.listPanelTillPaidOrderIds.mockResolvedValue(new Set(["ord-0101"]));
     store.getOrder.mockResolvedValue({ ...tuzlaOrder, branch: "marina" });
     store.transitionOrder.mockResolvedValue({
       ok: true,
@@ -174,6 +253,7 @@ describe("POST /api/panel/orders/stage ve /api/panel/calls/ack", () => {
     );
     expect(res.status).toBe(200);
     expect(store.transitionOrder).toHaveBeenCalledTimes(1);
+    expect(store.listPanelTillPaidOrderIds).toHaveBeenCalledWith(["ord-0101"]);
   });
 
   it("Gördüm: çağrı Marina adına yanıtlanır; başka şubeninki 409", async () => {
@@ -195,6 +275,42 @@ describe("POST /api/panel/orders/stage ve /api/panel/calls/ack", () => {
       expect.any(Date),
       "marina",
     );
+  });
+});
+
+describe("GET /api/pos/orders/version şubeye göre (23 Kas 2026)", () => {
+  it("LafPOS'un anahtarı Marina adına sorar; Tuzla 403, bilinmeyen şube 400", async () => {
+    const { GET } = await import("@/app/api/pos/orders/version/route");
+    const ok = await GET(signed("lafpos", "GET", "/api/pos/orders/version"));
+    expect(ok.status).toBe(200);
+    // Yanıt biçimi aynı: yalnız işaretler, şube söylenmez.
+    const body = await ok.json();
+    expect(Object.keys(body).sort()).toEqual(
+      expect.arrayContaining(["karaoke", "version"]),
+    );
+    expect(body.branch).toBeUndefined();
+    expect(typeof body.version).toBe("string");
+
+    const marina = await GET(
+      signed("lafpos", "GET", "/api/pos/orders/version?branch=marina"),
+    );
+    expect(marina.status).toBe(200);
+    const tuzla = await GET(
+      signed("lafpos", "GET", "/api/pos/orders/version?branch=tuzla"),
+    );
+    expect(tuzla.status).toBe(403);
+    expect(await tuzla.json()).toEqual({ error: "forbidden", field: "branch" });
+    const bad = await GET(
+      signed("lafpos", "GET", "/api/pos/orders/version?branch=ankara"),
+    );
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: "invalid", field: "branch" });
+  });
+
+  it("panelin anahtarı hâlâ 401", async () => {
+    const { GET } = await import("@/app/api/pos/orders/version/route");
+    const res = await GET(signed("panel", "GET", "/api/pos/orders/version"));
+    expect(res.status).toBe(401);
   });
 });
 

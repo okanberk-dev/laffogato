@@ -71,11 +71,14 @@ kalemlerinin fiyatından gelir (S8, [PANEL-MENU.md](PANEL-MENU.md)).
   sitenin `main`'inden alınır, lafmobil'de `RECONCILED` güncellenir. Yerel
   parite testi `LAFMOBIL_DIR=<lafmobil worktree'si>` ile koşulur
   (`tests/api-contract-parity.test.ts`).
-- **İmza vektörleri.** İki taraf aynı vektörleri sabitler (aynı deneme
-  anahtarı ve an): sitede karaoke, menü, sipariş (okuma, ping, aşama) ve
-  ayın satışı `tests/panel-karaoke-sync-core.test.ts`, panelde menününkiler
-  `tests/site-menusu.test.ts` (sipariş ve satışınkileri panel P2'de
-  sabitler). Kural değişirse iki taraf aynı gün.
+- **İmza vektörleri.** Karşı taraflar aynı vektörleri sabitler (aynı
+  deneme anahtarı ve an): panelde karaokeninkiler `tests/karaoke.test.ts`,
+  menününkiler `tests/site-menusu.test.ts`; LafPOS'ta `tests/signature.test.ts`
+  (karaoke okuması `13a147…`, pingi `1d9935…`). Sitedeki eşleri
+  (`tests/panel-karaoke-sync-core.test.ts`) 16 Kas 2026'da test klasörüyle
+  kaldırıldı: sitede kanonik metni (`src/lib/panel/karaoke-sync-core.ts`)
+  tutan test yok, değişirse LafPOS'un ve panelin her imzalı isteği 401 olur.
+  Kural değişirse üç taraf aynı gün.
 - **Gecikme hedefi.** Site → panel 10 saniye içinde (ping). Site → uygulama:
   menü birkaç dakika içinde (6 Kas 2026'dan beri CDN en çok 2 dk +
   uygulamanın `staleTime`'ı 2 dk; eski sürümlerin `staleTime`'ı 1 saat). Sipariş anındaki

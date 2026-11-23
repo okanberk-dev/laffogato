@@ -37,7 +37,10 @@ Yalnız **kafe** siparişi (`kind: "cafe"`); mağaza kolisi, panelden elle
 girilen sipariş (`source: "manual"`: kasada zaten çalındı), ödenmemiş,
 iptal, iade ve tamamlanmış sipariş gelmez. Masaya götürülmüş ya da kuryeye
 verilmiş sipariş (`shipped`, masa / kurye) bar için bitmiştir, gelmez.
-İptal edilen satırlar (`items[].status = "cancelled"`) listeden düşer.
+İptal edilen satırlar (`items[].status = "cancelled"`) listeden düşer;
+kalanların konumu (`lines[].index`) değişmez. Ekrandan çıkan sipariş son 48
+saat boyunca yanıtın `closed` listesinde nedeniyle (tamamlandı, iptal, iade)
+adıyla geçer (aşağıda "Okuma").
 
 **Unutulmuş sipariş.** Vaktinden (planlı saati, yoksa ödeme anı) 24 saat
 geçmiş ve hâlâ ilerletilmemiş sipariş, ya da 12 saattir "teslime hazır"
@@ -71,6 +74,10 @@ kaydını sitede ilerletip kapatıyordu.
 - Aşama ve "Gördüm" gövdesi isteğe bağlı `branch` alabilir (aynı varsayılan);
   başka şubenin siparişi ya da çağrısı 409 `{"error":"wrong_branch"}`,
   hiçbir şey yazılmaz, kaydın içeriği söylenmez.
+- LafPOS'un sürüm sinyali (`GET /api/pos/orders/version`, 23 Kas 2026) de
+  şubenindir: `version` şubenin bu yanıtının özetidir, başka şubenin
+  siparişi ya da çağrısı onu oynatmaz (`docs/LAFPOS.md` "Sipariş sürüm
+  sinyali").
 - Kural `src/lib/panel/branches.ts`; testleri `tests/sube/`
   (`npm run test:sube`).
 
@@ -79,13 +86,20 @@ kaydını sitede ilerletip kapatıyordu.
 Karaoke bağlantısının imzası (`x-laf-timestamp`,
 `x-laf-signature: v1=<hex>`, `src/lib/panel/karaoke-sync-core.ts`) ve ortak
 anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
-Okumanın, pingin, aşama dokunuşunun ve ayın satışının (`docs/PANEL-SALES.md`)
-imza vektörleri sitede `tests/panel-karaoke-sync-core.test.ts`'te sabit
-(aynı deneme anahtarı ve an); panel aynılarını P2'de kendi testlerinde
-sabitleyecek, o güne dek bu dördünü yalnız site tutar. Kural bir tarafta
-değişirse bu istekler 401 olur.
+İmzanın kanonik metni (zaman, yöntem, yol, sıralı sorgu, gövdenin
+SHA-256'sı) her uçta aynıdır; ortak imza vektörleri (aynı deneme anahtarı
+`test-secret-0123456789-abcdefghijklmnop` ve an `1760000000`: karaoke
+okuması `13a147…`, pingi `1d9935…`) LafPOS'ta `tests/signature.test.ts`'te
+ve panelde (lafmaliyet) `tests/karaoke.test.ts`'te sabittir. Sitedeki
+eşleri `tests/panel-karaoke-sync-core.test.ts` ile birlikte 16 Kas 2026'da
+test klasörüyle kaldırıldı (`git show 5d777bb:tests/panel-karaoke-sync-core.test.ts`;
+okumanın, pingin, aşama dokunuşunun ve ayın satışının vektörleri oradadır).
+Sitede artık hiçbir test bu metni tutmaz: `src/lib/panel/karaoke-sync-core.ts`'teki
+kanonik metni değiştirmek LafPOS'un her imzalı isteğini (ve panelinkileri)
+401'e düşürür. Oradaki bir değişiklik LafPOS ve panelle birlikte, aynı gün
+yayına çıkacak biçimde planlanır.
 
-Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, `GET /api/pos/orders/version` değişince çeker: `docs/LAFPOS.md`.
+Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_SYNC_SECRET`) kullanır, kendi şubesinin `GET /api/pos/orders/version` değeri değişince çeker: `docs/LAFPOS.md`.
 
 1. **Ping (site → panel).** `live:orders` etiketini düşüren her yazım
    (sipariş açıldı, ödendi, ilerledi, iade edildi; mağaza kolisi de) yanıttan
@@ -133,10 +147,12 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
              "size": "M",
              "detail": "M · yulaf · +1 shot",
              "note": "şurupsuz lütfen",
-             "qty": 2
+             "qty": 2,
+             "index": 0
            }
          ],
          "totalMinor": 24000,
+         "paidAtTill": false,
          "path": "/admin/siparisler/ord-0042"
        }
      ],
@@ -149,6 +165,10 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
          "reason": "water",
          "createdAt": "2026-11-06T18:02:11.000Z"
        }
+     ],
+     "closed": [
+       { "id": "ord-0039", "outcome": "completed" },
+       { "id": "ord-0040", "outcome": "cancelled" }
      ]
    }
    ```
@@ -176,6 +196,23 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
    - `lines[].note` (23 Eki 2026, sonradan eklendi): satırın barista notu
      (`items[].options.note`), kırpılmış, en çok 200 karakter; `""` = yok.
      Adres taşımadığı için her teslimat türünde gider.
+   - `lines[].index` (23 Kas 2026, sonradan eklendi; eski okuyucu yok sayar,
+     `version` 1 kalır): satırın siparişin `items` dizisindeki yeri (0'dan).
+     Satırın durumu yerinde yazıldığı için (`set_order_item_status`)
+     sabittir: iptal edilen satır listeden düşer, kalanların konumu değişmez
+     (ilk satır iptal edilince ikincisi `1` kalır, `0` olmaz). LafPOS
+     kalemlerini bununla eşler, konumu listeden kalkan kalemi iptal eder
+     (lafpos `docs/03-ENTEGRASYON.md` "Kalem iptali").
+   - `paidAtTill` (23 Kas 2026, sonradan eklendi; eski okuyucu yok sayar):
+     siparişin ödeme satırlarında başarılı `manual:nakit` ya da
+     `manual:kart` varsa `true` (uygulamada kart düştü, müşteri kasada
+     ödedi, personel "Ödendi olarak işaretle"); havale ve "Diğer" `false`.
+     Kural satış ucununkidir (`paidAtTill`, `docs/PANEL-SALES.md`: böyle
+     sipariş `counter` altında sayılır): parası ve mali fişi kasanındır.
+     LafPOS onu "sitede ödendi" diye yazmaz, adisyon olarak çalınmasını
+     ister (lafpos "Kasada ödenen"). Ödeme yöntemi ve referansı gitmez,
+     yalnız bayrak. Aşama ucunun yanıtındaki `order` da taşır. Site:
+     `listPanelTillPaidOrderIds`.
    - `path`: siparişin bu paneldeki sayfası; panel önüne sitenin adresini
      koyar.
    - Sıra: vakti en yakın olan önce (planlı saat, yoksa ödeme), sonra
@@ -211,6 +248,40 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
      çağrıları".
    - `branch` (21 Kas 2026, sonradan eklendi; eski okuyucu yok sayar):
      listenin şubesi (yukarıda "Şube").
+   - `closed` (23 Kas 2026, sonradan eklendi; eski okuyucu yok sayar,
+     `version` 1 kalır): son 48 saatte ekrandan çıkan, şubenin kafe
+     siparişleri ve neden çıktıkları, `[{ "id", "outcome" }]`. LafPOS
+     listede artık olmayan siparişi kapatırken sonucunu buradan alır; iptal
+     ve iade edileni online toplamına saymaz (lafpos "Kapanış").
+
+     | Sitedeki durum                                            | `outcome`   |
+     | --------------------------------------------------------- | ----------- |
+     | `completed` (Teslim edildi)                               | `completed` |
+     | `shipped`, masa ya da kurye (Masaya götürüldü / Kuryeye verildi) | `completed` |
+     | `cancelled` (sonradan iade edilmiş olsa da)               | `cancelled` |
+     | `refunded` (tutarın tamamı iade)                          | `refunded`  |
+
+     Gelmeyenler: ekrandaki sipariş (teslime hazır gel-al dahil), unutulmuş
+     sipariş (24 saat, hazır gel-al'da 12 saat ilerlemeyen: parası sayılır,
+     sonucu bilinmez), bütün satırları iptal edilmiş ama kendisi açık sipariş
+     (tutar değişmez), kısmi iade (sipariş açık kalır), ödenmeden iptal
+     edilen (ekrana hiç düşmedi), elle girilen sipariş ve mağaza kolisi.
+     Pencere: siparişin ödendiği, masaya / kuryeye verildiği, tamamlandığı
+     ya da iptal edildiği (stoğun geri verildiği, `stockReleasedAt`) an son
+     48 saatte. İptalsiz tam iadenin kendi anı yoktur (iade defterindedir):
+     ödendiği, verildiği ya da tamamlandığı an penceredeyse gelir. Okuma
+     ekranınkiyle aynı 8 günlük ödeme sınırını taşır. En son ödenen önce, en
+     çok 200; yalnız kimlik ve sonuç gider. Alan her yanıtta vardır, yoksa
+     `[]`. Liste açık siparişlerden **sonra** okunur: arada kapanan sipariş
+     listede kalır, `closed`'da yazmaz (sonraki çekim söyler); hiçbirinde
+     olmayan sipariş olmaz. Tek sorgu, `orders_branch_kind_paid_idx`
+     dizininde (şube, tür, ödeme anı; göç
+     `20261123130144_orders_branch_kind_paid_idx.sql`). LafPOS'un sessiz
+     ekranı hatırlanırken `closed` da onunla hatırlanır: liste yalnız
+     sipariş yazımıyla büyür (işaret değişir), saatle yalnız kısalır;
+     hatırlanan liste en kötü 48 saatini biraz geçmiş bir siparişi de
+     söyler, ki o da doğrudur. Site: `listPanelClosedOrderRows`,
+     `panelClosedOutcome`, `toPanelClosed`.
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |
@@ -229,7 +300,8 @@ müşterinin **yalnız adı** (gel-al'da seslenmek için; sitenin personel
 e-postası ve karaoke bağlantısı da yalnız adı taşır) ve masa ya da gel-al
 siparişinde üyenin notu (alerji, "şurupsuz"; personel e-postası da yalnız
 bunu taşır). Soyad, e-posta, telefon, adres, kurye notu (kapı kodu: kurye
-siparişinin notu hiç gitmez), ödeme referansı **asla** gitmez: alanlar
+siparişinin notu hiç gitmez), ödeme yöntemi ve referansı **asla** gitmez
+(`paidAtTill` yalnız bir bayraktır; `closed` yalnız kimlik ve sonuç): alanlar
 beyaz listeyle tek tek kurulur (`toPanelOrder`), tabloya sonradan eklenen
 bir sütun kendiliğinden sızamaz. `awaitingPayment` yalnız bir sayıdır:
 ödeme bekleyen siparişin hiçbir alanı gitmez. `calls` yalnız masayı ve
@@ -328,7 +400,8 @@ Yalnız **açık** çağrılar: yanıtlanmamış ve 15 dakikadan genç; en eskis
 düşer (uygulama onu `expired` görür). Aynı masadan aynı sebeple açık çağrı
 varken yeni çağrı açılmaz; site o çağrıyı üyeye geri verir. Çağrının açılması
 ve yanıtlanması `live:orders`'ı düşürür: panele `orders.changed` pingi gider,
-LafPOS'un `/api/pos/orders/version`'ı ilerler, sitenin sipariş zili çalar.
+çağrının şubesindeki LafPOS'un `/api/pos/orders/version`'ı ilerler, sitenin
+sipariş zili çalar.
 
 **Yanıtlama.** Bar ekranındaki "Gördüm": imza, anahtar ve başlıklar
 `POST /api/panel/orders/stage`'inkiyle aynı (panel ya da LafPOS kendi
@@ -356,7 +429,9 @@ aynı: `test-secret-0123456789-abcdefghijklmnop`, `1760000000`): `POST
 /api/panel/calls/ack`, gövde
 `{"id":"tcl-3f9a0c4b7d2e1a68","actor":"Selin"}` →
 `cdda6260245ebae291a8a93e3e691144b393b3fb970335a1133e2b439df6d19a`
-(`tests/panel-karaoke-sync-core.test.ts`).
+(sitede `tests/panel-karaoke-sync-core.test.ts`'teydi, 16 Kas 2026'da
+kaldırıldı; LafPOS ve panel kanonik metni ortak vektörlerle tutar, yukarıda
+"Uçlar").
 
 **Sitenin kendi paneli.** Açık çağrı sipariş zilinde yeni sipariş gibi
 çalar ("Masa 4 · Su istiyor", kartta "Gördüm") ve `/admin/siparisler`'in

@@ -197,9 +197,12 @@ açılır.
   oynatılamaz. Karşılaştırma sabit sürelidir (`timingSafeEqual`).
 - İmzasız, yanlış, eski ya da bozuk başlıklı istek yalnızca
   `401 {"error":"unauthorized"}` alır; ayrıntı söylenmez.
-- Kurallar `src/lib/panel/karaoke-sync-core.ts`'te; panel deposu aynı
-  kuralların bayt bayt uyumlu bir kopyasını taşır. İki taraftaki testler aynı
-  iki imza vektörünü sabitler: kural bir tarafta değişirse her istek 401 olur.
+- Kurallar `src/lib/panel/karaoke-sync-core.ts`'te; panel deposu ve LafPOS
+  aynı kuralların bayt bayt uyumlu bir kopyasını taşır. İki imza vektörü
+  (`13a147…` okuma, `1d9935…` ping) LafPOS'ta `tests/signature.test.ts`'te ve
+  panelde `tests/karaoke.test.ts`'te sabittir; sitedeki eşi test klasörüyle
+  kaldırıldı (aşağıda "Testler"). Kural bir tarafta değişirse her istek 401
+  olur.
 
 ## Anahtarı değiştirmek
 
@@ -225,8 +228,15 @@ curl -s "https://laffogato.net/api/panel/karaoke?from=2026-10-20&to=2026-10-31" 
 Sorgu parametreleri imzada **sıralı** yazılır (`from` sonra `to`); adres
 satırındaki sıra fark etmez.
 
-Testler: `tests/panel-karaoke-sync-core.test.ts` (imza, pencere, LafPOS'un
-penceresi, beyaz liste), `tests/api-panel-karaoke-route.test.ts` (uç),
-`tests/panel-karaoke-ping.test.ts` (ping ve yazım kancası),
-`tests/panel-lafpos-key.test.ts` (LafPOS'un anahtarı ve dünden yarına sınırı),
-`tests/api-pos-orders-version-route.test.ts` (LafPOS'un `karaoke` işareti).
+Testler: sitenin bu bağlantı testleri (`tests/panel-karaoke-sync-core.test.ts`
+imza, pencere, LafPOS'un penceresi ve beyaz liste; `tests/api-panel-karaoke-route.test.ts`,
+`tests/panel-karaoke-ping.test.ts`, `tests/panel-lafpos-key.test.ts`,
+`tests/api-pos-orders-version-route.test.ts`) 16 Kas 2026'da test klasörüyle
+kaldırıldı (`git show 5d777bb:tests/<dosya>`). Ortak imza vektörleri
+(sır `test-secret-0123456789-abcdefghijklmnop`, an `1760000000`: `GET
+/api/panel/karaoke?from=2026-10-20&to=2026-12-31` → `13a147…`, pingin `POST`'u
+→ `1d9935…`) bugün LafPOS'un `tests/signature.test.ts`'inde ve panelin
+(lafmaliyet) `tests/karaoke.test.ts`'inde sabittir; sitede onları tutan test
+yok. `src/lib/panel/karaoke-sync-core.ts`'teki kanonik metni değiştirmek
+LafPOS'un her imzalı isteğini (ve panelinkileri) 401'e düşürür: oradaki bir
+değişiklik iki depoyla birlikte, aynı gün yayına çıkacak biçimde yapılır.

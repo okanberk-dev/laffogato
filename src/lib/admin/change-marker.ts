@@ -19,6 +19,7 @@ import {
   TAG_ORDERS,
   TAG_SITE,
   TAG_VENUE,
+  type CacheTag,
 } from "@/lib/cache/tags";
 import {
   getVenueStatus,
@@ -30,6 +31,7 @@ import {
   ORDER_ALERT_BUSY_OFFSETS_MIN,
   isChangeMarker,
 } from "./order-alerts-core";
+import { rememberedRead } from "./remembered-read";
 
 /**
  * "Has anything changed since you last asked?", answered without the
@@ -123,6 +125,58 @@ export async function readPosMenuMarker(): Promise<string | null> {
  */
 export async function readMobileMenuMarker(): Promise<string | null> {
   return readMarker("mobile-menu", [TAG_MENU, TAG_SITE]);
+}
+
+/**
+ * One branch's view of a LafPOS marker (23 Kas 2026): a digest of what that
+ * branch's till would read (its bar screen, its menu), kept under the
+ * global marker in the Data Cache.
+ *
+ * The tags are per table, not per branch: the data layer's write hook knows
+ * the table it wrote, not the row's branch (an update goes by id), so
+ * `live:orders` moves for every branch's order. Handed out as it is, Marina's
+ * till pulled its (unchanged) list after every Tuzla order. Instead, when
+ * the global marker has moved, the branch's answer is read once and its
+ * digest is the branch's value: it moves only when that branch's answer
+ * does. While the global marker stands nothing is read, as before; the read
+ * follows a write by at most one poll, while the database is awake from it.
+ *
+ * `remembered-read.ts`'s rules hold (the marker read first; a digest read
+ * within five seconds of the marker's making is answered but not kept), with
+ * no hourly round (`hourly: false`). A digest that cannot be read gives the
+ * global marker back: the till pulls on every branch's write, as before,
+ * never misses its own.
+ */
+export async function readBranchMarker(opts: {
+  /** Names the entry, with the branch. */
+  name: string;
+  branch: string;
+  /** The global marker, read first. */
+  marker: string;
+  tags: readonly CacheTag[];
+  nowMs: number;
+  /** The branch's answer, digested (no personal data: it is cached). */
+  digest: () => Promise<string>;
+}): Promise<string> {
+  try {
+    const read = await rememberedRead<string, string>({
+      name: opts.name,
+      scope: opts.branch,
+      marker: opts.marker,
+      tags: opts.tags,
+      nowMs: opts.nowMs,
+      read: opts.digest,
+      remember: (digest) => (digest ? digest : null),
+      hourly: false,
+    });
+    const value = read.from === "database" ? read.live : read.remembered;
+    return typeof value === "string" && value !== "" ? value : opts.marker;
+  } catch (err) {
+    console.warn(
+      `[change-marker] ${opts.name} for ${opts.branch} unread, the global marker stands in: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return opts.marker;
+  }
 }
 
 async function readMarker(

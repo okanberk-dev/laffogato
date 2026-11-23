@@ -136,6 +136,15 @@ export interface PanelOrderLine {
   /** The member's note to the barista for this line; "" for none. */
   note: string;
   qty: number;
+  /**
+   * The line's place in the order's `items` (0 first). Stable: a line's
+   * status is written in place (`set_order_item_status`), so a cancelled
+   * line leaves the list and every other line keeps its index. LafPOS
+   * matches its own items by it and voids the one whose index is gone
+   * (lafpos docs/03-ENTEGRASYON.md "Kalem iptali"). Added 23 Kas 2026; an
+   * older reader ignores it.
+   */
+  index: number;
 }
 
 export interface PanelOrder {
@@ -167,6 +176,15 @@ export interface PanelOrder {
   /** The lines to make, the cancelled ones left out. */
   lines: PanelOrderLine[];
   totalMinor: number;
+  /**
+   * Settled at the till: one of its succeeded payment rows is
+   * `manual:nakit` or `manual:kart` (`paidAtTill` in sales-export-core.ts,
+   * the rule that puts the order under `counter` in the sales export). Its
+   * money and its fiş are the till's, so LafPOS rings it as a check and
+   * does not book it as paid online. A bank transfer ("havale") or "Diğer"
+   * stays false. Added 23 Kas 2026; an older reader ignores it.
+   */
+  paidAtTill: boolean;
   /** The order in this site's panel, "/admin/siparisler/ord-0042". */
   path: string;
 }
@@ -296,6 +314,7 @@ function clip(value: unknown, max: number): string {
 
 function lineOf(
   item: NonNullable<PanelOrderSourceRow["items"]>[number],
+  index: number,
 ): PanelOrderLine {
   return {
     menuItemId: String(item.menuItemId ?? ""),
@@ -306,6 +325,7 @@ function lineOf(
     detail: String(item.detail ?? "").trim(),
     note: clip(item.options?.note, PANEL_ORDER_LINE_NOTE_MAX),
     qty: Math.max(1, Math.trunc(Number(item.qty) || 1)),
+    index,
   };
 }
 
@@ -313,11 +333,13 @@ function lineOf(
  * The panel's view of one order, or null when it is not one for the bar
  * screen: not a café order, typed into this panel, not in an open stage
  * (a table or courier order that left the counter is done for the bar), or
- * forgotten (see the stale limits above).
+ * forgotten (see the stale limits above). `paidAtTill` is the caller's
+ * reading of the order's payment rows (`panelTillPaidIds`).
  */
 export function toPanelOrder(
   row: PanelOrderSourceRow,
   now: Date,
+  paidAtTill = false,
 ): PanelOrder | null {
   if (orderKind(row) !== "cafe") return null;
   if (row.source === "manual") return null;
@@ -335,9 +357,12 @@ export function toPanelOrder(
     const due = panelOrderDueAt(row) ?? paidAt;
     if (nowMs - due > PANEL_ORDER_STALE_MS) return null;
   }
+  // Indexed before the cancelled lines are dropped: the index is the
+  // line's place in `items`, not in this list.
   const lines = (row.items ?? [])
-    .filter((item) => item.status !== "cancelled")
-    .map(lineOf);
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => item.status !== "cancelled")
+    .map(({ item, index }) => lineOf(item, index));
   if (lines.length === 0) return null;
   return {
     id: row.id,
@@ -359,6 +384,7 @@ export function toPanelOrder(
     paidAt: String(row.paidAt),
     lines,
     totalMinor: Math.max(0, Math.round(Number(row.totalMinor) || 0)),
+    paidAtTill,
     path: `/admin/siparisler/${encodeURIComponent(row.id)}`,
   };
 }
@@ -367,4 +393,131 @@ export function toPanelOrder(
 export function sortForPanelOrders(orders: PanelOrder[]): PanelOrder[] {
   const due = (o: PanelOrder) => panelOrderDueAt(o) ?? 0;
   return [...orders].sort((a, b) => due(a) - due(b) || a.orderNo - b.orderNo);
+}
+
+// ── closed: the orders that left the screen, and why ──────────────────────
+
+/**
+ * Why a café order left the bar screen, as `closed` says it (23 Kas 2026):
+ * served or handed over (`completed`), cancelled, or refunded in full.
+ * LafPOS keeps the outcome with the order it closes ("Siteden kalktı") and
+ * leaves a cancelled or refunded one out of its online total, as this
+ * site's sales export does (lafpos docs/03-ENTEGRASYON.md "Kapanış").
+ */
+export type PanelClosedOutcome = "completed" | "cancelled" | "refunded";
+
+export interface PanelClosedOrder {
+  id: string;
+  outcome: PanelClosedOutcome;
+}
+
+/** How far back `closed` reaches: orders that left in the last 48 hours. */
+export const PANEL_CLOSED_WINDOW_MS = 48 * 60 * 60_000;
+
+/** `closed` names this many orders at most, the most recently paid first. */
+export const PANEL_CLOSED_MAX = 200;
+
+/**
+ * The statuses an order that left the screen with a known outcome is in.
+ * `shipped` is a table or courier order that left the counter (a pickup
+ * one is `ready` and still on the screen, `panelClosedOutcome` keeps it
+ * out). Not `paid` or `preparing`: an order of those that left the screen
+ * was forgotten (the stale limits above) or had every line cancelled, and
+ * its money still counts, so its outcome is not known and it is not named.
+ */
+export const PANEL_CLOSED_READ_STATUSES = [
+  "shipped",
+  "completed",
+  "cancelled",
+  "refunded",
+] as const;
+
+/** The order columns `closed` reads: no customer, no line, no amount. */
+export interface PanelClosedSourceRow {
+  id: string;
+  status: string;
+  kind?: string;
+  source?: string;
+  fulfillment?: string;
+  paidAt?: string;
+}
+
+/**
+ * The instant `closed` reads from (ISO, which sorts as text; inclusive):
+ * an order paid, handed over, completed or cancelled (its stock given
+ * back) at or after it. Every one of those instants is at or after the
+ * order left the screen's open stages, so an order that left within the
+ * window is read; one refunded in full without a cancel has no instant of
+ * its own (its refund is in the `refunds` ledger) and is read when it was
+ * paid, handed over or completed within the window.
+ */
+export function panelClosedSince(now: Date): string {
+  return new Date(now.getTime() - PANEL_CLOSED_WINDOW_MS).toISOString();
+}
+
+/**
+ * Why `row` left the screen, or null when it is not an order the screen
+ * showed (`isBarScreenOrder`, and paid: an order cancelled unpaid never
+ * reached it) or its outcome is not known (still open, or a pickup ready
+ * at the counter).
+ */
+export function panelClosedOutcome(
+  row: PanelClosedSourceRow,
+): PanelClosedOutcome | null {
+  if (!isBarScreenOrder(row)) return null;
+  if (timeOf(row.paidAt) === null) return null;
+  switch (row.status) {
+    case "completed":
+      return "completed";
+    case "shipped":
+      return orderFulfillment(row) === "pickup" ? null : "completed";
+    case "cancelled":
+      return "cancelled";
+    case "refunded":
+      return "refunded";
+    default:
+      return null;
+  }
+}
+
+/**
+ * `closed` as the response carries it: id and outcome, nothing else, no
+ * order twice and none still on the screen (`open`), at most
+ * `PANEL_CLOSED_MAX`, in the read's order (the most recently paid first).
+ */
+export function toPanelClosed(
+  rows: readonly PanelClosedSourceRow[],
+  open: ReadonlySet<string> = new Set(),
+): PanelClosedOrder[] {
+  const out: PanelClosedOrder[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const id = String(row.id ?? "");
+    if (!id || seen.has(id) || open.has(id)) continue;
+    const outcome = panelClosedOutcome(row);
+    if (!outcome) continue;
+    seen.add(id);
+    out.push({ id, outcome });
+    if (out.length >= PANEL_CLOSED_MAX) break;
+  }
+  return out;
+}
+
+/**
+ * A remembered `closed` (remembered-read.ts) read back: the same checks
+ * as the read, so a damaged entry gives `[]`, never a malformed list.
+ */
+export function parsePanelClosed(value: unknown): PanelClosedOrder[] {
+  if (!Array.isArray(value)) return [];
+  const outcomes: readonly string[] = ["completed", "cancelled", "refunded"];
+  return value
+    .filter(
+      (c): c is PanelClosedOrder =>
+        !!c &&
+        typeof (c as PanelClosedOrder).id === "string" &&
+        (c as PanelClosedOrder).id !== "" &&
+        outcomes.includes((c as PanelClosedOrder).outcome),
+    )
+    .slice(0, PANEL_CLOSED_MAX)
+    .map((c) => ({ id: c.id, outcome: c.outcome }));
 }

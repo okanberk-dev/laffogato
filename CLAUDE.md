@@ -883,7 +883,11 @@ kendi işi sayacak, tek "Satışta / Tükendi" bayrağıyla iki şube birbirinin
   panelin anahtarı Tuzla (her şube adına konuşabilir), LafPOS'unki
   `LAFPOS_BRANCHES` (varsayılan `marina`). Başka şubenin siparişi / çağrısı
   409 `wrong_branch`, başka şubenin masa kodu `PUT /api/panel/tables`'ta 409
-  `wrong_branch`, karaoke başka şube adına boş.
+  `wrong_branch`, karaoke başka şube adına boş. LafPOS'un sürüm sinyali
+  (`/api/pos/orders/version`) de şubenin (23 Kas 2026): `version` ve `menu`
+  şubenin okuyacağı listenin özeti, genel işaret değişince bir kez okunur
+  (`readBranchMarker`); Tuzla'nın siparişi Marina'nın kasasına çekim
+  yaptırmaz.
 - "Satışta / Tükendi" şubeye göre: `menu_items."isActive"` menüde mi (her
   şube; sitenin formu), `menu_item_availability` şubenin kendi Tükendi'si.
   İmzalı yazım yalnız şubenin satırını yazar; LafPOS menüden kalkmışı açamaz
