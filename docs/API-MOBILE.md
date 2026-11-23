@@ -240,6 +240,35 @@ durum yaklaşık 62 dakikadır. Fotoğraf değişince `image` URL'si de değişi
 `If-None-Match` ile gövdesiz **304** döner. Uygulama daha sık sorabilir:
 değişmemiş bir menü artık yalnızca başlık kadar maliyetli.
 
+### `?branch=` - şubenin menüsü ve fiyatı (23 Kas 2026, yalnız ekleme)
+
+İsteğe bağlı sorgu parametresi. Söylenmezse, boşsa ya da `tuzla` ise yanıt
+bugünküyle aynıdır (Tuzla köşkünün menüsü; sunucu bu istekte şube fiyatı
+okumaz). `GET /menu?branch=marina`: aynı biçim, yeni alan yok; kalemler o
+şubenin Satışta / Tükendi'si ve o şubede **şu an geçerli** fiyatıyla
+(`priceMinor`, `priceLargeMinor`). Şubenin fiyatı köşkün panelinden bir
+andan itibaren yazılır (site `docs/PANEL-MENU.md` "Şube fiyatı");
+seçeneklerin (`customization`) fiyatı her şubede aynıdır, boylar da
+(`priceLargeMinor` null olan kalem her şubede tek boydur).
+
+| Hata | Ne zaman |
+| --- | --- |
+| **400** `invalid_branch` | Şube kimliği bozuk ya da sitenin bilmediği bir şube. "Bu şubenin menüsü bulunamadı." |
+
+Önbellek, `ETag` ve 304 yukarıdaki kuraldadır; her şubenin `ETag`'i kendi yanıtınındır.
+Şubenin fiyatı anı gelince hiçbir şey yazılmadan değişir: sunucunun
+hatırladığı `ETag` o anda geçersizleşir, sonraki soru yeni menüyü (yeni
+`ETag`) alır; CDN penceresi yine en çok 120 sn.
+
+**Neden.** Masaya sipariş masanın şubesinde fiyatlanır (§3, §22): Marina'daki
+bir masanın siparişi Marina'nın fiyatıyla. Uygulama menüyü şube söylemeden
+okursa sepet Tuzla'nın fiyatını gösterir, sipariş Marina'nınkiyle
+hesaplanır: cüzdanla ödemede `expectedTotalMinor` tutmaz ve 409
+`total_changed` döner, kartla ödemede gerçek tutar ödeme adımında görünür.
+Uygulama masa ekranında menüyü masanın şubesiyle okumalı. `GET
+/tables/{code}` bugün şubeyi söylemez (yalnız `code` ve `name`, §22): o alan
+eklenene dek uygulamanın `?branch=`'i kullanacak bilgisi yok (açık iş).
+
 ### `backdrop` · `photoCutout` · `vessel` - sahne ailesi, dekupe ve kap biçimi (24 Eyl 2026, yalnız ekleme)
 
 Uygulama her ürünü, rengi içeceğin kendisinden gelen ışıklı bir sahnenin
