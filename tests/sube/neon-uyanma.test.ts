@@ -425,6 +425,30 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     expect(dbReads()).toBe(31);
   });
 
+  it("sessiz ekran `closed` ile hatırlanır: yalnız kimlik ve sonuç, aynı liste", async () => {
+    store.listPanelClosedOrderRows.mockResolvedValue([
+      { ...PAID_ORDER, status: "completed" },
+      { ...PAID_ORDER, id: "ord-0202", status: "cancelled" },
+    ]);
+    await settle();
+    const first = await pull();
+    expect(first.body.closed).toEqual([
+      { id: "ord-0201", outcome: "completed" },
+      { id: "ord-0202", outcome: "cancelled" },
+    ]);
+    expect(dbReads()).toBe(4);
+    vi.setSystemTime(Date.now() + 15 * MIN);
+    const second = await pull();
+    expect(dbReads()).toBe(4);
+    expect(second.body.closed).toEqual(first.body.closed);
+    // Hatırlanan kayıtta adı, satırı, tutarı olan hiçbir şey yok.
+    const kept = [...cache.entries.values()]
+      .map((e) => e.body)
+      .find((b) => b.includes("ord-0202"));
+    expect(kept).toBeDefined();
+    expect(kept).not.toMatch(/Ada|Affogato|18000/);
+  });
+
   it("ekran saatle boşalınca (yazma yok) sıradaki canlı okuma hatırlanır", async () => {
     store.listPanelOpenOrderRows.mockResolvedValue([PAID_ORDER]);
     await settle();
