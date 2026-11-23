@@ -40,13 +40,16 @@ import {
 } from "@/lib/admin/karaoke-money";
 import {
   PANEL_AWAITING_REOPEN_READ_MAX,
+  PANEL_CLOSED_READ_STATUSES,
   PANEL_ORDER_FULFILLMENTS,
   PANEL_ORDER_STALE_MS,
   panelOrderDueAt,
+  type PanelClosedSourceRow,
   type PanelOrderSourceRow,
 } from "@/lib/panel/orders-feed-core";
 import {
   PANEL_SALES_STATUSES,
+  paidAtTill,
   type PanelSalesBookingRow,
   type PanelSalesOrderRow,
 } from "@/lib/panel/sales-export-core";
@@ -2259,6 +2262,79 @@ export async function listPanelOpenOrderRows(
     ...rows<PanelOrderSourceRow>(open, "listPanelOpenOrderRows"),
     ...rows<PanelOrderSourceRow>(ready, "listPanelOpenOrderRows"),
   ];
+}
+
+/**
+ * Which of `orderIds` were settled at the till (`paidAtTill` in
+ * sales-export-core.ts: a succeeded `manual:nakit` or `manual:kart` payment
+ * row, the rule the sales export files them under `counter` by), for the
+ * bar screen's `paidAtTill`. Reads the ids' succeeded payment rows (the
+ * `orderId` index); only ids leave this function.
+ */
+export async function listPanelTillPaidOrderIds(
+  orderIds: readonly string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (let i = 0; i < orderIds.length; i += 500) {
+    const part = rows<{ orderId: string; provider: string; status: string }>(
+      await getDb()
+        .from(TABLES.paymentTransactions)
+        .select("orderId, provider, status")
+        .in("orderId", orderIds.slice(i, i + 500))
+        .eq("status", "succeeded"),
+      "listPanelTillPaidOrderIds",
+    );
+    for (const p of part) {
+      const payment = {
+        provider: String(p.provider),
+        status: String(p.status),
+      };
+      if (paidAtTill([payment])) out.add(String(p.orderId));
+    }
+  }
+  return out;
+}
+
+/**
+ * The café orders of `branch` that left the bar screen with a known
+ * outcome lately, for `closed` (orders-feed-core.ts `toPanelClosed`, which
+ * the route applies): handed over, completed, cancelled or refunded, not
+ * typed into this panel, a table, pickup or courier order, paid since
+ * `paidSince` (the screen's own reach, `panelOrdersSince`: an order paid
+ * earlier was never on it), and paid, handed over, completed or cancelled
+ * since `leftSince` (`panelClosedSince`). The most recently paid first, up
+ * to `limit`. The id, status and channel only: no customer, line or amount
+ * leaves the database. One read on `orders_branch_kind_paid_idx`.
+ */
+export async function listPanelClosedOrderRows(
+  paidSince: string,
+  leftSince: string,
+  limit: number,
+  branch: string = HOME_BRANCH,
+): Promise<PanelClosedSourceRow[]> {
+  const cap = Math.max(1, Math.min(500, Math.trunc(limit)));
+  return rows<PanelClosedSourceRow>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("id, status, kind, source, fulfillment, paidAt")
+      .eq("branch", branch)
+      .eq("kind", "cafe")
+      .gte("paidAt", paidSince)
+      .in("status", [...PANEL_CLOSED_READ_STATUSES])
+      .neq("source", "manual")
+      .in("fulfillment", [...PANEL_ORDER_FULFILLMENTS])
+      // Left the screen within the window: the instants an order leaves
+      // by. A cancel stamps `stockReleasedAt` (release_order_inventory).
+      .anyOf([
+        { column: "paidAt", op: "gte", value: leftSince },
+        { column: "shippedAt", op: "gte", value: leftSince },
+        { column: "completedAt", op: "gte", value: leftSince },
+        { column: "stockReleasedAt", op: "gte", value: leftSince },
+      ])
+      .order("paidAt", { ascending: false })
+      .limit(cap),
+    "listPanelClosedOrderRows",
+  );
 }
 
 /**

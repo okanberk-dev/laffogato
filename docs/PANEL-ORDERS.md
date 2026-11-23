@@ -37,7 +37,10 @@ Yalnız **kafe** siparişi (`kind: "cafe"`); mağaza kolisi, panelden elle
 girilen sipariş (`source: "manual"`: kasada zaten çalındı), ödenmemiş,
 iptal, iade ve tamamlanmış sipariş gelmez. Masaya götürülmüş ya da kuryeye
 verilmiş sipariş (`shipped`, masa / kurye) bar için bitmiştir, gelmez.
-İptal edilen satırlar (`items[].status = "cancelled"`) listeden düşer.
+İptal edilen satırlar (`items[].status = "cancelled"`) listeden düşer;
+kalanların konumu (`lines[].index`) değişmez. Ekrandan çıkan sipariş son 48
+saat boyunca yanıtın `closed` listesinde nedeniyle (tamamlandı, iptal, iade)
+adıyla geçer (aşağıda "Okuma").
 
 **Unutulmuş sipariş.** Vaktinden (planlı saati, yoksa ödeme anı) 24 saat
 geçmiş ve hâlâ ilerletilmemiş sipariş, ya da 12 saattir "teslime hazır"
@@ -133,10 +136,12 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
              "size": "M",
              "detail": "M · yulaf · +1 shot",
              "note": "şurupsuz lütfen",
-             "qty": 2
+             "qty": 2,
+             "index": 0
            }
          ],
          "totalMinor": 24000,
+         "paidAtTill": false,
          "path": "/admin/siparisler/ord-0042"
        }
      ],
@@ -149,6 +154,10 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
          "reason": "water",
          "createdAt": "2026-11-06T18:02:11.000Z"
        }
+     ],
+     "closed": [
+       { "id": "ord-0039", "outcome": "completed" },
+       { "id": "ord-0040", "outcome": "cancelled" }
      ]
    }
    ```
@@ -176,6 +185,23 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
    - `lines[].note` (23 Eki 2026, sonradan eklendi): satırın barista notu
      (`items[].options.note`), kırpılmış, en çok 200 karakter; `""` = yok.
      Adres taşımadığı için her teslimat türünde gider.
+   - `lines[].index` (23 Kas 2026, sonradan eklendi; eski okuyucu yok sayar,
+     `version` 1 kalır): satırın siparişin `items` dizisindeki yeri (0'dan).
+     Satırın durumu yerinde yazıldığı için (`set_order_item_status`)
+     sabittir: iptal edilen satır listeden düşer, kalanların konumu değişmez
+     (ilk satır iptal edilince ikincisi `1` kalır, `0` olmaz). LafPOS
+     kalemlerini bununla eşler, konumu listeden kalkan kalemi iptal eder
+     (lafpos `docs/03-ENTEGRASYON.md` "Kalem iptali").
+   - `paidAtTill` (23 Kas 2026, sonradan eklendi; eski okuyucu yok sayar):
+     siparişin ödeme satırlarında başarılı `manual:nakit` ya da
+     `manual:kart` varsa `true` (uygulamada kart düştü, müşteri kasada
+     ödedi, personel "Ödendi olarak işaretle"); havale ve "Diğer" `false`.
+     Kural satış ucununkidir (`paidAtTill`, `docs/PANEL-SALES.md`: böyle
+     sipariş `counter` altında sayılır): parası ve mali fişi kasanındır.
+     LafPOS onu "sitede ödendi" diye yazmaz, adisyon olarak çalınmasını
+     ister (lafpos "Kasada ödenen"). Ödeme yöntemi ve referansı gitmez,
+     yalnız bayrak. Aşama ucunun yanıtındaki `order` da taşır. Site:
+     `listPanelTillPaidOrderIds`.
    - `path`: siparişin bu paneldeki sayfası; panel önüne sitenin adresini
      koyar.
    - Sıra: vakti en yakın olan önce (planlı saat, yoksa ödeme), sonra
@@ -211,6 +237,40 @@ Kafenin kasası LafPOS okuma ve aşama uçlarını kendi anahtarıyla (`LAFPOS_S
      çağrıları".
    - `branch` (21 Kas 2026, sonradan eklendi; eski okuyucu yok sayar):
      listenin şubesi (yukarıda "Şube").
+   - `closed` (23 Kas 2026, sonradan eklendi; eski okuyucu yok sayar,
+     `version` 1 kalır): son 48 saatte ekrandan çıkan, şubenin kafe
+     siparişleri ve neden çıktıkları, `[{ "id", "outcome" }]`. LafPOS
+     listede artık olmayan siparişi kapatırken sonucunu buradan alır; iptal
+     ve iade edileni online toplamına saymaz (lafpos "Kapanış").
+
+     | Sitedeki durum                                            | `outcome`   |
+     | --------------------------------------------------------- | ----------- |
+     | `completed` (Teslim edildi)                               | `completed` |
+     | `shipped`, masa ya da kurye (Masaya götürüldü / Kuryeye verildi) | `completed` |
+     | `cancelled` (sonradan iade edilmiş olsa da)               | `cancelled` |
+     | `refunded` (tutarın tamamı iade)                          | `refunded`  |
+
+     Gelmeyenler: ekrandaki sipariş (teslime hazır gel-al dahil), unutulmuş
+     sipariş (24 saat, hazır gel-al'da 12 saat ilerlemeyen: parası sayılır,
+     sonucu bilinmez), bütün satırları iptal edilmiş ama kendisi açık sipariş
+     (tutar değişmez), kısmi iade (sipariş açık kalır), ödenmeden iptal
+     edilen (ekrana hiç düşmedi), elle girilen sipariş ve mağaza kolisi.
+     Pencere: siparişin ödendiği, masaya / kuryeye verildiği, tamamlandığı
+     ya da iptal edildiği (stoğun geri verildiği, `stockReleasedAt`) an son
+     48 saatte. İptalsiz tam iadenin kendi anı yoktur (iade defterindedir):
+     ödendiği, verildiği ya da tamamlandığı an penceredeyse gelir. Okuma
+     ekranınkiyle aynı 8 günlük ödeme sınırını taşır. En son ödenen önce, en
+     çok 200; yalnız kimlik ve sonuç gider. Alan her yanıtta vardır, yoksa
+     `[]`. Liste açık siparişlerden **sonra** okunur: arada kapanan sipariş
+     listede kalır, `closed`'da yazmaz (sonraki çekim söyler); hiçbirinde
+     olmayan sipariş olmaz. Tek sorgu, `orders_branch_kind_paid_idx`
+     dizininde (şube, tür, ödeme anı; göç
+     `20261123130144_orders_branch_kind_paid_idx.sql`). LafPOS'un sessiz
+     ekranı hatırlanırken `closed` da onunla hatırlanır: liste yalnız
+     sipariş yazımıyla büyür (işaret değişir), saatle yalnız kısalır;
+     hatırlanan liste en kötü 48 saatini biraz geçmiş bir siparişi de
+     söyler, ki o da doğrudur. Site: `listPanelClosedOrderRows`,
+     `panelClosedOutcome`, `toPanelClosed`.
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |
@@ -229,7 +289,8 @@ müşterinin **yalnız adı** (gel-al'da seslenmek için; sitenin personel
 e-postası ve karaoke bağlantısı da yalnız adı taşır) ve masa ya da gel-al
 siparişinde üyenin notu (alerji, "şurupsuz"; personel e-postası da yalnız
 bunu taşır). Soyad, e-posta, telefon, adres, kurye notu (kapı kodu: kurye
-siparişinin notu hiç gitmez), ödeme referansı **asla** gitmez: alanlar
+siparişinin notu hiç gitmez), ödeme yöntemi ve referansı **asla** gitmez
+(`paidAtTill` yalnız bir bayraktır; `closed` yalnız kimlik ve sonuç): alanlar
 beyaz listeyle tek tek kurulur (`toPanelOrder`), tabloya sonradan eklenen
 bir sütun kendiliğinden sızamaz. `awaitingPayment` yalnız bir sayıdır:
 ödeme bekleyen siparişin hiçbir alanı gitmez. `calls` yalnız masayı ve

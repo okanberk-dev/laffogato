@@ -244,4 +244,104 @@ describe.skipIf(!local)("şube, gerçek Postgres", () => {
       await ackTableCall(`call-${tag}-2`, "lafpos:Selin", now, "marina"),
     ).toMatchObject({ ok: true, already: false });
   });
+
+  it("closed ve kasada ödenen: şubeye göre, 48 saat, dizin (23 Kas 2026)", async () => {
+    const { listPanelClosedOrderRows, listPanelTillPaidOrderIds } =
+      await import("@/lib/admin/store");
+    const { toPanelClosed, panelClosedSince, panelOrdersSince } =
+      await import("@/lib/panel/orders-feed-core");
+    const now = new Date();
+    const ago = (h: number) =>
+      new Date(now.getTime() - h * 3_600_000).toISOString();
+    const rows: [string, string, string, Record<string, string>][] = [
+      // [kimlik eki, şube, durum, sütunlar]
+      ["c1", "marina", "completed", { paidAt: ago(2), completedAt: ago(1) }],
+      ["c2", "marina", "shipped", { paidAt: ago(3), shippedAt: ago(2) }],
+      [
+        "c3",
+        "marina",
+        "cancelled",
+        { paidAt: ago(70), stockReleasedAt: ago(5) },
+      ],
+      ["c4", "marina", "refunded", { paidAt: ago(4) }],
+      // 48 saatten eski: ödenmiş, tamamlanmış, hepsi pencerenin dışında.
+      ["c5", "marina", "completed", { paidAt: ago(80), completedAt: ago(79) }],
+      // Ödenmeden iptal, elle girilen, mağaza kolisi, Tuzla'nın.
+      ["c6", "marina", "cancelled", { paidAt: "", stockReleasedAt: ago(1) }],
+      ["c7", "marina", "completed", { paidAt: ago(2), source: "manual" }],
+      [
+        "c8",
+        "marina",
+        "completed",
+        { paidAt: ago(2), fulfillment: "shipping" },
+      ],
+      ["c9", "tuzla", "completed", { paidAt: ago(2), completedAt: ago(1) }],
+    ];
+    let n = 0;
+    for (const [suffix, branch, status, cols] of rows) {
+      n++;
+      await sql(
+        `insert into public.orders (id, "orderNo", status, kind, source, fulfillment, "paidAt", "shippedAt", "completedAt", "stockReleasedAt", "createdAt", "totalMinor", "subtotalMinor", items, branch)
+         values ($1, $2, $3, 'cafe', $4, $5, $6, $7, $8, $9, $10, 13000, 13000, '[]'::jsonb, $11)`,
+        [
+          `ord-${tag}-${suffix}`,
+          // Unique per run: the table keeps earlier runs' rows.
+          1_000_000_000 + (Date.now() % 1_000_000) * 100 + n,
+          status,
+          cols.source ?? "app",
+          cols.fulfillment ?? "table",
+          cols.paidAt ?? "",
+          cols.shippedAt ?? "",
+          cols.completedAt ?? "",
+          cols.stockReleasedAt ?? "",
+          ago(90),
+          branch,
+        ],
+      );
+    }
+    const read = await listPanelClosedOrderRows(
+      panelOrdersSince(now),
+      panelClosedSince(now),
+      200,
+      "marina",
+    );
+    const mine = read.filter((r) => r.id.startsWith(`ord-${tag}-`));
+    expect(toPanelClosed(mine)).toEqual([
+      { id: `ord-${tag}-c1`, outcome: "completed" },
+      { id: `ord-${tag}-c2`, outcome: "completed" },
+      { id: `ord-${tag}-c4`, outcome: "refunded" },
+      { id: `ord-${tag}-c3`, outcome: "cancelled" },
+    ]);
+    // SQL'in kendisi: Tuzla'nınki, elle girilen, koli ve pencere dışı gelmez.
+    expect(mine.map((r) => r.id).sort()).toEqual(
+      ["c1", "c2", "c3", "c4"].map((x) => `ord-${tag}-${x}`),
+    );
+
+    await sql(
+      `insert into public.payment_transactions ("orderId", provider, "providerRef", status, "amountMinor", "createdAt")
+       values ($1, 'manual:nakit', $2, 'succeeded', 13000, $5),
+              ($3, 'manual:havale', $4, 'succeeded', 13000, $5),
+              ($3, 'paynkolay', $6, 'failed', 13000, $5)`,
+      [
+        `ord-${tag}-c1`,
+        `manual-${tag}-c1`,
+        `ord-${tag}-c2`,
+        `manual-${tag}-c2`,
+        now.toISOString(),
+        `pnk-${tag}-c2`,
+      ],
+    );
+    expect(
+      await listPanelTillPaidOrderIds([
+        `ord-${tag}-c1`,
+        `ord-${tag}-c2`,
+        `ord-${tag}-c4`,
+      ]),
+    ).toEqual(new Set([`ord-${tag}-c1`]));
+
+    const [index] = await sql<{ indexdef: string }>(
+      `select indexdef from pg_indexes where indexname = 'orders_branch_kind_paid_idx'`,
+    );
+    expect(index?.indexdef).toMatch(/\(branch, kind, "paidAt"\)/);
+  });
 });

@@ -79,8 +79,8 @@ kasasında ürünü kilitler, Marina'nın porsiyonu biten ürünü Tuzla'nın uy
   imzanın içindedir. Söylemeyen istek çağıranın varsayılanıdır: bugünkü LafPOS hiçbir şey değiştirmeden Marina
   adına okur ve yazar. Bozuk ya da bilinmeyen şube 400 `{"error":"invalid","field":"branch"}`; anahtarın
   konuşamadığı şube 403 `{"error":"forbidden","field":"branch"}`; ikisinde de hiçbir şey okunmaz, yazılmaz.
-- **Siparişler ve çağrılar** (`GET /api/panel/orders`): yalnız o şubenin `orders`, `awaitingPayment` ve `calls`'ı;
-  yanıtta `branch`. Masa siparişi ve çağrısı masanın şubesidir (`cafe_tables.branch`, anlık görüntü). Bugün
+- **Siparişler ve çağrılar** (`GET /api/panel/orders`): yalnız o şubenin `orders`, `awaitingPayment`, `calls` ve
+  `closed`'ı; yanıtta `branch`. Masa siparişi ve çağrısı masanın şubesidir (`cafe_tables.branch`, anlık görüntü). Bugün
   Marina'nın masası sitede yoksa Marina'nın listesi boştur: Tuzla'nın siparişi Marina'ya düşmez.
 - **Aşama ve "Gördüm"** (`POST /api/panel/orders/stage`, `POST /api/panel/calls/ack`): gövdede isteğe bağlı
   `branch`; başka şubenin kaydı 409 `{"error":"wrong_branch"}`, hiçbir şey yazılmaz. LafPOS kartı düşürmelidir
@@ -167,6 +167,17 @@ bağımsız ikinci bir emniyettir: lafpos `docs/03-ENTEGRASYON.md` §2.3.
   `GET /api/panel/orders` masa siparişinde masanın kodunu da verir
   (`tableCode`, 28 Eki 2026; `docs/PANEL-ORDERS.md`): LafPOS siparişi masa
   planındaki masaya bastığı kodla eşler.
+- **Sözleşme eklemeleri (23 Kas 2026; lafpos `docs/03-ENTEGRASYON.md`
+  "Sözleşme eklemeleri", LafPOS 21 Kasım'dan beri okur).** `GET
+  /api/panel/orders` üç alan ekler, hepsi isteğe bağlı, `version` 1 kalır:
+  `orders[].paidAtTill` (kasada ödendi: `manual:nakit` / `manual:kart`;
+  LafPOS siparişi "sitede ödendi" yazmaz, adisyon olarak çalınmasını ister),
+  `orders[].lines[].index` (satırın `items`'taki sabit yeri; sitede iptal
+  edilen satırın kalemi LafPOS'ta da iptal olur) ve `closed: [{id,
+  outcome}]` (son 48 saatte ekrandan çıkan şubenin kafe siparişleri:
+  `completed`, `cancelled`, `refunded`; LafPOS kapanan siparişin sonucunu
+  yazar, iptal ve iadeyi online toplamına saymaz). Ayrıntı ve durum eşlemesi
+  `docs/PANEL-ORDERS.md` "Okuma".
 - Panel uçlarından biri, iki anahtardan en az biri tanımlıysa açıktır; ikisi
   de yoksa 503 `not_configured`. `LAFPOS_SYNC_SECRET` yoksa her şey bu
   değişiklikten önceki gibidir: uçlar yalnız panelin anahtarını tanır.

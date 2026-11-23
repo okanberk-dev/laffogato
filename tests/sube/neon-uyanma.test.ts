@@ -12,7 +12,10 @@ import { signedHeaders } from "@/lib/panel/karaoke-sync-core";
 const store = vi.hoisted(() => ({
   countPanelAwaitingPaymentOrders: vi.fn(),
   listPanelOpenOrderRows: vi.fn(),
+  listPanelClosedOrderRows: vi.fn(),
+  listPanelTillPaidOrderIds: vi.fn(),
   listMenuItems: vi.fn(),
+  listMenuItemsForPanel: vi.fn(),
   getSettings: vi.fn(),
   listOrderAlertRows: vi.fn(),
   MENU_CATEGORY_KEYS: ["espresso", "dessert"],
@@ -135,8 +138,11 @@ const PAID_ORDER = {
 const COUNTED = [
   store.countPanelAwaitingPaymentOrders,
   store.listPanelOpenOrderRows,
+  store.listPanelClosedOrderRows,
+  store.listPanelTillPaidOrderIds,
   store.listOrderAlertRows,
   store.listMenuItems,
+  store.listMenuItemsForPanel,
   store.getSettings,
   calls.listOpenTableCalls,
   availability.listBranchAvailability,
@@ -146,6 +152,11 @@ const COUNTED = [
 
 function dbReads(): number {
   return COUNTED.reduce((n, fn) => n + fn.mock.calls.length, 0);
+}
+
+/** Sayacı sıfırlar; taklitlerin yanıtları kalır. */
+function clearReads(): void {
+  for (const fn of COUNTED) fn.mockClear();
 }
 
 const env = { ...process.env };
@@ -164,8 +175,11 @@ beforeEach(() => {
   }
   store.countPanelAwaitingPaymentOrders.mockResolvedValue(0);
   store.listPanelOpenOrderRows.mockResolvedValue([]);
+  store.listPanelClosedOrderRows.mockResolvedValue([]);
+  store.listPanelTillPaidOrderIds.mockResolvedValue(new Set());
   calls.listOpenTableCalls.mockResolvedValue([]);
   store.listMenuItems.mockResolvedValue([MENU_ITEM]);
+  store.listMenuItemsForPanel.mockResolvedValue([MENU_ITEM]);
   store.getSettings.mockResolvedValue({ taxRates: { cafe: 10 } });
   availability.listBranchAvailability.mockResolvedValue(new Map());
   store.listOrderAlertRows.mockResolvedValue([]);
@@ -181,11 +195,15 @@ afterEach(() => {
   process.env = { ...env };
 });
 
-async function version() {
+async function version(path = "/api/pos/orders/version") {
   const { GET } = await import("@/app/api/pos/orders/version/route");
-  const res = await GET(signed("lafpos", "/api/pos/orders/version"));
+  const res = await GET(signed("lafpos", path));
   expect(res.status).toBe(200);
-  return (await res.json()) as { version: string; menu?: string };
+  return (await res.json()) as {
+    version: string;
+    karaoke: string;
+    menu?: string;
+  };
 }
 
 async function pull(who: "panel" | "lafpos" = "lafpos") {
@@ -242,28 +260,27 @@ async function lafposHours(hours: number) {
 }
 
 describe("ölçüm: açık iş gününde kasanın veritabanını uyandırması", () => {
-  it("önce saatte 8 istek ve 24 okuma; sonra (ilk saatten sonra) 2 istek ve 6 okuma", async () => {
+  it("önce saatte 8 istek ve 28 okuma; sonra (ilk saatten sonra) 2 istek ve 7 okuma", async () => {
     cache.on = false;
     const before = await lafposHours(3);
+    // Çekim 4 okuma (sayı, liste, çağrılar, `closed`), menü 3.
     expect(before).toEqual([
-      { requests: 8, reads: 24 },
-      { requests: 8, reads: 24 },
-      { requests: 8, reads: 24 },
+      { requests: 8, reads: 28 },
+      { requests: 8, reads: 28 },
+      { requests: 8, reads: 28 },
     ]);
 
     cache.on = true;
     vi.setSystemTime(T0);
-    for (const fn of COUNTED) {
-      fn.mockClear();
-    }
+    clearReads();
     const after = await lafposHours(3);
     // İlk saat: işaret yeni yapılmışken gelen ilk çekim hiçbir şeye kefil
     // olmaz (5 sn kuralı), ikincisi hatırlanır; menüde ilk istek ETag'siz,
     // ikincisi işareti yapar, üçüncüsü hatırlanır.
-    expect(after[0]).toEqual({ requests: 5, reads: 15 });
+    expect(after[0]).toEqual({ requests: 5, reads: 17 });
     // Sonra saatte bir canlı okuma (emniyet ağı), uç başına.
-    expect(after[1]).toEqual({ requests: 2, reads: 6 });
-    expect(after[2]).toEqual({ requests: 2, reads: 6 });
+    expect(after[1]).toEqual({ requests: 2, reads: 7 });
+    expect(after[2]).toEqual({ requests: 2, reads: 7 });
   });
 });
 
@@ -320,13 +337,14 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
   async function settle() {
     await version();
     vi.setSystemTime(Date.now() + MIN);
+    clearReads();
   }
 
   it("boş ekran ikinci çekimde veritabanına gitmez; yanıt canlı okumayla aynı", async () => {
     await settle();
     const first = await pull();
     const reads = dbReads();
-    expect(reads).toBe(3);
+    expect(reads).toBe(4);
     vi.setSystemTime(Date.now() + 15 * MIN);
     const second = await pull();
     expect(dbReads()).toBe(reads);
@@ -338,6 +356,7 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
       orders: [],
       awaitingPayment: 0,
       calls: [],
+      closed: [],
     });
     expect(second.body.now).not.toBe(first.body.now);
   });
@@ -346,7 +365,7 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     await settle();
     await pull();
     await pull();
-    expect(dbReads()).toBe(3);
+    expect(dbReads()).toBe(4);
 
     // Ödeme geldi: veri katmanı `live:orders`'ı düşürür.
     store.listPanelOpenOrderRows.mockResolvedValue([PAID_ORDER]);
@@ -354,7 +373,8 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     vi.setSystemTime(T0 + 21 * MIN);
     const moved = await version();
     const after = await pull();
-    expect(dbReads()).toBe(6);
+    // Sayı, liste, çağrılar, `closed` ve kasada ödenen.
+    expect(dbReads()).toBe(9);
     expect(after.body.orders).toHaveLength(1);
     expect(after.body.orders[0].orderNo).toBe(201);
     expect(moved.version).toBeTruthy();
@@ -366,14 +386,15 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     for (let i = 1; i <= 3; i++) {
       vi.setSystemTime(Date.now() + 5 * MIN);
       await pull();
-      expect(dbReads()).toBe(3 * i);
+      // Sayı, liste, çağrılar, `closed` ve kasada ödenen.
+      expect(dbReads()).toBe(5 * i);
     }
     // Ödeme bekleyen ya da açık çağrı da öyle.
     store.listPanelOpenOrderRows.mockResolvedValue([]);
     store.countPanelAwaitingPaymentOrders.mockResolvedValue(1);
     await pull();
     await pull();
-    expect(dbReads()).toBe(15);
+    expect(dbReads()).toBe(23);
     store.countPanelAwaitingPaymentOrders.mockResolvedValue(0);
     calls.listOpenTableCalls.mockResolvedValue([
       {
@@ -389,7 +410,7 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     ]);
     await pull();
     await pull();
-    expect(dbReads()).toBe(21);
+    expect(dbReads()).toBe(31);
   });
 
   it("ekran saatle boşalınca (yazma yok) sıradaki canlı okuma hatırlanır", async () => {
@@ -398,22 +419,23 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     await pull();
     store.listPanelOpenOrderRows.mockResolvedValue([]);
     await pull();
-    expect(dbReads()).toBe(6);
+    expect(dbReads()).toBe(9);
     await pull();
-    expect(dbReads()).toBe(6);
+    expect(dbReads()).toBe(9);
   });
 
   it("işaret yeni yapılmışken (5 sn) okunan boş ekran hatırlanmaz", async () => {
     await version();
+    clearReads();
     vi.setSystemTime(Date.now() + 1000);
     await pull();
     vi.setSystemTime(Date.now() + 1000);
     await pull();
-    expect(dbReads()).toBe(6);
+    expect(dbReads()).toBe(8);
     vi.setSystemTime(Date.now() + 10_000);
     await pull();
     await pull();
-    expect(dbReads()).toBe(9);
+    expect(dbReads()).toBe(12);
   });
 
   it("saatte bir canlı okuma: hatırlanan yanıt bir saatten uzun yaşamaz", async () => {
@@ -421,10 +443,10 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     await pull();
     vi.setSystemTime(T0 + 59 * MIN);
     await pull();
-    expect(dbReads()).toBe(3);
+    expect(dbReads()).toBe(4);
     vi.setSystemTime(T0 + 61 * MIN);
     await pull();
-    expect(dbReads()).toBe(6);
+    expect(dbReads()).toBe(8);
   });
 
   it("köşkün paneli (Tuzla) her soruşta canlı okur: davranışı değişmedi", async () => {
@@ -432,14 +454,14 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     for (let i = 1; i <= 3; i++) {
       const p = await pull("panel");
       expect(p.body.branch).toBe("tuzla");
-      expect(dbReads()).toBe(3 * i);
+      expect(dbReads()).toBe(4 * i);
     }
     // Marina'nın hatırlanan boş ekranı Tuzla'ya yanıt olmaz.
     await pull("lafpos");
     await pull("lafpos");
-    expect(dbReads()).toBe(12);
+    expect(dbReads()).toBe(16);
     await pull("panel");
-    expect(dbReads()).toBe(15);
+    expect(dbReads()).toBe(20);
   });
 
   it("önbellek kapalıyken (LAF_DATA_CACHE=off) her çekim canlı", async () => {
@@ -447,7 +469,7 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     await settle();
     await pull();
     await pull();
-    expect(dbReads()).toBe(6);
+    expect(dbReads()).toBe(8);
   });
 
   it("okuma düşerse 503 ve hiçbir şey hatırlanmaz", async () => {
@@ -459,8 +481,8 @@ describe("GET /api/panel/orders: sessiz ekran hatırlanır, yalnız LafPOS'a", (
     expect(failed.status).toBe(503);
     const ok = await pull();
     expect(ok.status).toBe(200);
-    // Düşen okumadan sonra canlı okundu: 2 (sayım, liste) + 3.
-    expect(dbReads()).toBe(5);
+    // Düşen okumadan sonra canlı okundu: 2 (sayım, liste) + 4.
+    expect(dbReads()).toBe(6);
   });
 });
 
@@ -468,6 +490,7 @@ describe("GET /api/mobile/v1/menu: 'değişmedi' veritabanına gitmez", () => {
   async function settle() {
     await version();
     vi.setSystemTime(Date.now() + MIN);
+    clearReads();
   }
 
   it("ETag'siz istek her zaman veritabanından okur", async () => {
