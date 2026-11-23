@@ -734,12 +734,14 @@ describe("GET /api/mobile/v1/menu: 'değişmedi' veritabanına gitmez", () => {
 });
 
 describe("şubenin işareti okunamazsa", () => {
+  const tries = () => store.listPanelOpenOrderRows.mock.calls.length;
+
   it("genel işaret döner; aynı işaret altında 2 dakika her soruda yeniden okunmaz, sonra yeniden denenir", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     store.listPanelOpenOrderRows.mockRejectedValue(new Error("veritabanı yok"));
     vi.setSystemTime(T0 + 10 * MIN);
     clearReads();
     const first = await version();
-    const tries = () => store.listPanelOpenOrderRows.mock.calls.length;
     const afterFirst = tries();
     expect(afterFirst).toBeGreaterThan(0);
     // 20 sn sonraki soru: okumadan genel işaret
@@ -750,7 +752,40 @@ describe("şubenin işareti okunamazsa", () => {
     // 2 dakika geçince yeniden denenir
     vi.setSystemTime(T0 + 13 * MIN);
     await version();
-    expect(tries()).toBeGreaterThan(afterFirst);
-    store.listPanelOpenOrderRows.mockResolvedValue([]);
+    const afterRetry = tries();
+    expect(afterRetry).toBeGreaterThan(afterFirst);
+    // Yeni bir yazım (genel işaret değişti): beklemeden yeniden denenir
+    cache.expire("live:orders");
+    vi.setSystemTime(T0 + 13 * MIN + 20_000);
+    await version();
+    expect(tries()).toBeGreaterThan(afterRetry);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("beklerken de başka bir örneğin önbelleğe yazdığı şube özeti okunur: iki değer dönüşümlü gelmez", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    store.listPanelOpenOrderRows.mockRejectedValue(new Error("Neon uyanıyor"));
+    vi.setSystemTime(T0 + 20 * MIN);
+    const failed = await version();
+    const afterFail = tries();
+    // Öteki örnek veritabanı uyanınca aynı genel işaretin altına şubenin özetini yazdı
+    const key = JSON.stringify([
+      "laf-remembered-pos-orders-branch",
+      "test",
+      "marina",
+      failed.version,
+      "-",
+    ]);
+    cache.entries.set(key, {
+      body: JSON.stringify("ozet-marina"),
+      tags: ["live:orders"],
+    });
+    vi.setSystemTime(T0 + 20 * MIN + 20_000);
+    const next = await version();
+    // Veritabanına gidilmez, ötekinin özeti döner
+    expect(tries()).toBe(afterFail);
+    expect(next.version).toBe("ozet-marina");
+    warn.mockRestore();
   });
 });

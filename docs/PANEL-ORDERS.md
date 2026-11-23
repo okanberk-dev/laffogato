@@ -424,8 +424,8 @@ Site çağrıya `ackedAt` ve `ackedBy` yazar: `panel:<actor>` (LafPOS'un
 anahtarıyla `lafpos:<actor>`); sitenin panelinden yanıtlanırsa
 `admin:<ad>`. Yanıtlanmamış ama süresi geçmiş çağrı da yanıtlanabilir.
 
-**İmza vektörü** (iki tarafın testi sabitler; sır ve an diğer vektörlerle
-aynı: `test-secret-0123456789-abcdefghijklmnop`, `1760000000`): `POST
+**İmza vektörü** (LafPOS `tests/signature.test.ts` sabitler; sır ve an diğer
+vektörlerle aynı: `test-secret-0123456789-abcdefghijklmnop`, `1760000000`): `POST
 /api/panel/calls/ack`, gövde
 `{"id":"tcl-3f9a0c4b7d2e1a68","actor":"Selin"}` →
 `cdda6260245ebae291a8a93e3e691144b393b3fb970335a1133e2b439df6d19a`
