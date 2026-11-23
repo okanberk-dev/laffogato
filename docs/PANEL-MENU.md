@@ -393,11 +393,21 @@ gelir, UTC saklanır. Site sırayla denetler:
 | 400 | `{"error":"invalid","field":"branchPrice.effectiveFrom"}` | Yeni satırın anı 5 dakikadan eski (geçmişe fiyat yazılmaz) ya da 90 günden ileri |
 | 404 | `{"error":"not_found"}` | Kalem sitede yok |
 | 409 | `{"error":"single_size"}` | Tek boylu kaleme L fiyatı (L'yi yalnız site açar) |
-| 409 | `{"error":"stale","item":{...}}` | O kalem, şube ve anda satır zaten var; ya da iptal edilen satır yok ya da artık yürürlükte. `item` kalemin şubedeki hâli |
+| 409 | `{"error":"stale","item":{...},"branchPrices":[...]}` | O kalem, şube ve anda **başka fiyatlı** (M ya da L farklı) satır var; ya da iptal edilen satır yok ya da artık yürürlükte. `item` kalemin şubedeki hâli, `branchPrices` kalemin o şubedeki satırları: panel sitenin ne tuttuğunu görür |
 
 Başarıda yanıt `{"item": {...}, "branchPrices": [...]}`: kalem şubenin
 okumasındaki gibi (şu an geçerli fiyat, taban, `priceFrom`) ve kalemin o
-şubedeki satırları. Yazım olay kaydına `panel:<ad>` ile `branch` ve
+şubedeki satırları.
+
+**Yeniden gönderim güvenlidir.** O kalem, şube ve anda **aynı** satır
+(aynı `priceMinor` ve `priceMinorL`) zaten varsa yazım aynı yazımın ikinci
+gelişidir (panelin isteği satır yazıldıktan sonra süresini doldurdu): 200 ve
+taze başarıyla aynı gövde; ikinci satır ve ikinci olay kaydı yok. İki eş
+istek aynı anda gelirse de öyle (birincil anahtara takılan, yeniden okuyup
+aynı satırı görür). Pencere denetimi önce gelir: anı 5 dakikadan eskiye
+düşmüş bir yeniden gönderim 400 alır, satırı ise `GET`'in `branchPrices`'ında
+durur. İptalin yeniden gönderimi (satır artık yok) 409 `stale` alır;
+`branchPrices` satırın gittiğini gösterir. Yazım olay kaydına `panel:<ad>` ile `branch` ve
 `branchPrice` olarak düşer, `pub:menu`'yu düşürür (ping, LafPOS'un menü
 işareti, önbellekler). Taban fiyat, Satışta / Tükendi ve fiyat listesinin
 tarihi (`menuPricesChangedAt`, Tuzla'nın basılı listesi) değişmez.

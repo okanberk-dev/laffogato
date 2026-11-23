@@ -40,6 +40,7 @@ import {
   branchPricesByItem,
   branchPriceTimeProblem,
   nextPriceAt,
+  sameBranchPrice,
   toPanelBranchPrice,
   withBranchPrice,
   type BranchPriceRow,
@@ -84,9 +85,11 @@ import { OPTION_MENU_ITEM_IDS } from "@/lib/mobile/customization";
  * item's `isActive` is "sold at that branch", `onMenu` the site's own flag,
  * `updatedAt` the later of the item's stamp and the branch's. A write's
  * `isActive` (`branch` in the body, the same default) writes that branch's
- * "Satışta / Tükendi" only; prices stay one for every branch. Opening an
- * item the site took off the menu: the panel puts it back on the menu,
- * LafPOS gets 409 `{error:"site_closed", item}`.
+ * "Satışta / Tükendi" only. `priceMinor` / `priceMinorL` write the item's
+ * own columns, the base price (the home branch's, and every branch's
+ * without a price of its own); a branch's own price is a `branchPrice`
+ * row (below). Opening an item the site took off the menu: the panel puts
+ * it back on the menu, LafPOS gets 409 `{error:"site_closed", item}`.
  *
  * Şube fiyatı since 23 Kas 2026 (branch-prices-core.ts): a read for a
  * branch other than the home branch gives each item's price in force there
@@ -392,10 +395,16 @@ export async function POST(request: Request) {
  * item (not an option's: those price the app's and the till's options for
  * every branch), the instant (a new row: at most five minutes ago, at most
  * 90 days ahead), the item itself (404), the site's sizes (an L for a
- * single-size item: 409 `single_size`). A row the site already has at that
- * instant, or a cancel of a row that is not there or already in force:
- * 409 `stale` with the item as the branch sees it. The answer: the item as
- * the branch's read shows it and its rows there (`branchPrices`).
+ * single-size item: 409 `single_size`). The answer: the item as the
+ * branch's read shows it and its rows there (`branchPrices`).
+ *
+ * A new row the site already holds exactly (same instant, M and L): the
+ * same write sent again, its first answer lost (the panel's request timed
+ * out after the row landed). Nothing is written or audited and the answer
+ * is the success one. A different row at that instant, or a cancel of a
+ * row that is not there or already in force: 409 `stale` with the item as
+ * the branch sees it and its rows there (`branchPrices`), so the panel
+ * sees what the site holds.
  *
  * The base price, "Satışta / Tükendi" and the price list's date
  * (`menuPricesChangedAt`, Tuzla's printed list) are not touched.
@@ -423,16 +432,14 @@ async function writeBranchPrice(
     const read = await readAtBranch(change.id, branch);
     if (!read) return deny(404, "not_found");
     const actor = panelAuditActor(change.actor, caller);
+    const held = read.prices.find(
+      (r) => r.effectiveFrom === write.effectiveFrom,
+    );
     // The item's rows after the write, should the re-read below fail.
     let rowsAfter: BranchPriceRow[];
     if (write.cancel) {
-      const held = read.prices.some(
-        (r) => r.effectiveFrom === write.effectiveFrom,
-      );
       if (!held || branchPriceTimeProblem(write.effectiveFrom, now, true)) {
-        return deny(409, "stale", {
-          item: shape(read.view, branch, read.prices, now),
-        });
+        return branchPriceStale(read, branch);
       }
       const deleted = await deleteFutureBranchPrice(
         change.id,
@@ -440,7 +447,7 @@ async function writeBranchPrice(
         write.effectiveFrom,
         now,
       );
-      if (!deleted) return await staleOrGone(change.id, branch);
+      if (!deleted) return await branchPriceSettled(change.id, branch);
       rowsAfter = read.prices.filter(
         (r) => r.effectiveFrom !== write.effectiveFrom,
       );
@@ -448,6 +455,11 @@ async function writeBranchPrice(
       // Only the site opens an L size, at every branch at once.
       if (write.priceMinorL > 0 && !(read.view.priceMinorL > 0)) {
         return deny(409, "single_size");
+      }
+      if (held) {
+        return sameBranchPrice(held, write)
+          ? branchPriceAnswer(read.view, branch, read.prices)
+          : branchPriceStale(read, branch);
       }
       const written = await insertBranchPrice({
         menuItemId: change.id,
@@ -459,16 +471,17 @@ async function writeBranchPrice(
         createdBy: actor,
       });
       if (!written.ok) {
+        // "stale": a row at that instant landed in between (the same
+        // write sent twice at once, or another).
         return written.reason === "gone"
           ? deny(404, "not_found")
-          : await staleOrGone(change.id, branch);
+          : await branchPriceSettled(change.id, branch, write);
       }
       rowsAfter = [...read.prices, written.row];
     }
 
     // From here on the write is done (as in POST above).
     const after = await readAtBranch(change.id, branch).catch(() => null);
-    const prices = after?.prices ?? rowsAfter;
     await safeAudit({
       action: "update",
       entity: "menu_item",
@@ -481,17 +494,60 @@ async function writeBranchPrice(
         via: caller,
       },
     });
-    return NextResponse.json(
-      {
-        item: shape(after?.view ?? read.view, branch, prices),
-        branchPrices: prices.map(toPanelBranchPrice),
-      },
-      { headers: NO_STORE },
+    return branchPriceAnswer(
+      after?.view ?? read.view,
+      branch,
+      after?.prices ?? rowsAfter,
     );
   } catch (err) {
     console.error("[panel-menu] branch price could not be written", err);
     return deny(503, "unavailable");
   }
+}
+
+/** A `branchPrice` answer: the item as the branch reads it, and its rows there. */
+function branchPriceAnswer(
+  view: BranchView,
+  branch: string,
+  prices: readonly BranchPriceRow[],
+) {
+  return NextResponse.json(
+    {
+      item: shape(view, branch, prices),
+      branchPrices: prices.map(toPanelBranchPrice),
+    },
+    { headers: NO_STORE },
+  );
+}
+
+/** A refused `branchPrice`: 409 `stale` with the item and its rows there. */
+function branchPriceStale(read: AtBranch, branch: string) {
+  return deny(409, "stale", {
+    item: shape(read.view, branch, read.prices),
+    branchPrices: read.prices.map(toPanelBranchPrice),
+  });
+}
+
+/**
+ * A `branchPrice` write the table did not take (a row at that instant
+ * landed in between, or the row to cancel left): read again. The row this
+ * write would add, there exactly: the same write, answered as a success
+ * (the request that wrote it audited it). Else 409 `stale` with the rows
+ * the site holds, or 404 when the item is gone.
+ */
+async function branchPriceSettled(
+  id: string,
+  branch: string,
+  write?: Extract<BranchPriceWrite, { cancel: false }>,
+) {
+  const now = await readAtBranch(id, branch);
+  if (!now) return deny(404, "not_found");
+  const held = write
+    ? now.prices.find((r) => r.effectiveFrom === write.effectiveFrom)
+    : undefined;
+  return held && write && sameBranchPrice(held, write)
+    ? branchPriceAnswer(now.view, branch, now.prices)
+    : branchPriceStale(now, branch);
 }
 
 /**

@@ -304,6 +304,25 @@ export function parseBranchPriceWrite(
   };
 }
 
+/**
+ * Whether a stored row is exactly what a new-row write would add: the same
+ * instant and the same M and L. The row being there already is then the
+ * same write landing twice (a re-send whose first answer was lost), which
+ * the route answers as a success; a different price at that instant is
+ * another write (409 `stale`). The item and branch are the caller's to
+ * match.
+ */
+export function sameBranchPrice(
+  row: BranchPriceRule,
+  write: Extract<BranchPriceWrite, { cancel: false }>,
+): boolean {
+  return (
+    row.effectiveFrom === write.effectiveFrom &&
+    row.priceMinor === write.priceMinor &&
+    row.priceMinorL === write.priceMinorL
+  );
+}
+
 /** A row as the panel reads it (`branchPrices` of the signed read). */
 export interface PanelBranchPrice {
   id: string;

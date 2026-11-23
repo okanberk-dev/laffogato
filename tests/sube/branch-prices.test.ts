@@ -9,6 +9,7 @@ import {
   parseBranchPriceWrite,
   priceAtBranch,
   priceEpoch,
+  sameBranchPrice,
   toPanelBranchPrice,
   withBranchPrice,
   type BranchPriceRow,
@@ -302,5 +303,33 @@ describe("toPanelBranchPrice: panelin gördüğü satır (beyaz liste)", () => {
       effectiveFrom: "2026-11-25T02:00:00.000Z",
       createdAt: "2026-11-23T10:00:00.000Z",
     });
+  });
+});
+
+describe("sameBranchPrice: yeniden gönderilen yazım", () => {
+  const at = "2026-11-25T02:00:00.000Z";
+  const write = (priceMinor: number | null, priceMinorL = 0) => ({
+    cancel: false as const,
+    priceMinor,
+    priceMinorL,
+    effectiveFrom: at,
+  });
+
+  it("aynı an, aynı M ve L: aynı yazım (yanıtı kaybolmuş istek)", () => {
+    expect(sameBranchPrice(row(at, 14500, 16500), write(14500, 16500))).toBe(
+      true,
+    );
+    expect(sameBranchPrice(row(at, null), write(null))).toBe(true);
+  });
+
+  it("fiyatı, L'si ya da anı farklı satır başka bir yazımdır", () => {
+    expect(sameBranchPrice(row(at, 14500, 16500), write(15000, 16500))).toBe(
+      false,
+    );
+    expect(sameBranchPrice(row(at, 14500, 16500), write(14500, 0))).toBe(false);
+    expect(sameBranchPrice(row(at, 14500), write(null))).toBe(false);
+    expect(
+      sameBranchPrice(row("2026-11-26T02:00:00.000Z", 14500), write(14500)),
+    ).toBe(false);
   });
 });

@@ -293,8 +293,9 @@ describe("POST /api/panel/menu branchPrice", () => {
         branchPrice: {
           priceMinor: 15500,
           priceMinorL: 17500,
-          // İstanbul saatiyle gelir, UTC saklanır.
-          effectiveFrom: "2026-11-25T08:00:00+03:00",
+          // İstanbul saatiyle gelir, UTC saklanır. (05:00Z'de Marina'nın
+          // yarınki satırı var: o an başka bir yazımdır.)
+          effectiveFrom: "2026-11-25T09:00:00+03:00",
         },
       }),
     );
@@ -304,7 +305,7 @@ describe("POST /api/panel/menu branchPrice", () => {
       branch: "marina",
       priceMinor: 15500,
       priceMinorL: 17500,
-      effectiveFrom: "2026-11-25T05:00:00.000Z",
+      effectiveFrom: "2026-11-25T06:00:00.000Z",
       createdAt: iso(NOW),
       createdBy: "panel:Ayşe",
     });
@@ -320,7 +321,7 @@ describe("POST /api/panel/menu branchPrice", () => {
           cancel: false,
           priceMinor: 15500,
           priceMinorL: 17500,
-          effectiveFrom: "2026-11-25T05:00:00.000Z",
+          effectiveFrom: "2026-11-25T06:00:00.000Z",
         },
         via: "panel",
       },
@@ -459,13 +460,91 @@ describe("POST /api/panel/menu branchPrice", () => {
     nothingWritten();
   });
 
-  it("aynı anda ikinci satır: 409 stale, kalemin şubedeki hâli", async () => {
+  it("ekleme çakıştı ama satır yeniden okunmuyor (araya iptal girdi): 409 stale, kalem ve satırları", async () => {
     prices.insertBranchPrice.mockResolvedValue({ ok: false, reason: "stale" });
     const res = await post("panel", write());
     expect(res.status).toBe(409);
     expect(res.body.error).toBe("stale");
     expect(res.body.item).toMatchObject({ id: "mnu-0007", priceMinor: 14500 });
+    expect(res.body.branchPrices).toEqual([IN_FORCE, TOMORROW].map(panelRow));
     expect(audit.safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("yanıtı kaybolan yazım aynen yeniden gelirse: 200, ilk başarının gövdesi; ikinci satır ve olay kaydı yok", async () => {
+    // Sitenin tablosu: eklenen satır sonraki okumalarda görünür, aynı
+    // kalem + şube + anda ikinci satır birincil anahtara takılır.
+    const rows = [IN_FORCE, TOMORROW];
+    prices.listBranchPrices.mockImplementation(
+      async (branch?: string, ids?: string[]) =>
+        rows
+          .filter(
+            (r) =>
+              (branch === undefined || r.branch === branch) &&
+              (!ids || ids.includes(r.menuItemId)),
+          )
+          .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom)),
+    );
+    prices.insertBranchPrice.mockImplementation(
+      async (row: (typeof rows)[number]) => {
+        const taken = rows.some(
+          (r) =>
+            r.menuItemId === row.menuItemId &&
+            r.branch === row.branch &&
+            r.effectiveFrom === row.effectiveFrom,
+        );
+        if (taken) return { ok: false, reason: "stale" };
+        rows.push(row);
+        return { ok: true, row };
+      },
+    );
+    const first = await post("panel", write());
+    expect(first.status).toBe(200);
+    expect(first.body.branchPrices).toHaveLength(3);
+    // Panelin isteği süresini doldurdu (8 sn), aynı gövde yeniden gelir.
+    vi.setSystemTime(NOW + 9_000);
+    const again = await post("panel", write());
+    expect(again.status).toBe(200);
+    expect(again.body).toEqual(first.body);
+    expect(rows).toHaveLength(3);
+    expect(audit.safeAudit).toHaveBeenCalledTimes(1);
+  });
+
+  it("aynı satırı araya giren eş istek yazdıysa da 200: kalem ve satırları, bu istek olay kaydı yazmaz", async () => {
+    const same = priceRow(at, 15500, 17500);
+    let landed = false;
+    prices.listBranchPrices.mockImplementation(async () =>
+      landed ? [IN_FORCE, TOMORROW, same] : [IN_FORCE, TOMORROW],
+    );
+    prices.insertBranchPrice.mockImplementation(async () => {
+      landed = true;
+      return { ok: false, reason: "stale" };
+    });
+    const res = await post("panel", write());
+    expect(res.status).toBe(200);
+    expect(res.body.item).toMatchObject({ id: "mnu-0007", priceMinor: 14500 });
+    expect(res.body.branchPrices).toEqual(
+      [IN_FORCE, TOMORROW, same].map(panelRow),
+    );
+    expect(audit.safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("o anda başka fiyatlı satır varsa 409 stale; gövdede kalem ve şubedeki satırları, hiçbir şey yazılmaz", async () => {
+    for (const other of [
+      priceRow(at, 16000, 18000),
+      // Yalnız L'si farklı: o da başka bir yazım.
+      priceRow(at, 15500, 18000),
+      priceRow(at, null),
+    ]) {
+      prices.listBranchPrices.mockResolvedValue([IN_FORCE, TOMORROW, other]);
+      const res = await post("panel", write());
+      expect(res.status).toBe(409);
+      expect(res.body).toEqual({
+        error: "stale",
+        item: expect.objectContaining({ id: "mnu-0007", priceMinor: 14500 }),
+        branchPrices: [IN_FORCE, TOMORROW, other].map(panelRow),
+      });
+    }
+    nothingWritten();
   });
 
   it("sitede olmayan kalem 404", async () => {
@@ -504,6 +583,8 @@ describe("POST /api/panel/menu branchPrice", () => {
       );
       expect(res.status).toBe(409);
       expect(res.body.error).toBe("stale");
+      // Panel sitenin ne tuttuğunu görür.
+      expect(res.body.branchPrices).toEqual([IN_FORCE, TOMORROW].map(panelRow));
       expect(prices.deleteFutureBranchPrice).not.toHaveBeenCalled();
     }
   });
