@@ -7,6 +7,13 @@ import {
   MENU_CATEGORY_KEYS,
 } from "@/lib/admin/store";
 import { listBranchAvailability } from "@/lib/admin/menu-availability";
+import { listBranchPrices } from "@/lib/admin/menu-branch-prices";
+import {
+  branchPricesByItem,
+  nextPriceAt,
+  priceAtBranch,
+  type BranchPriceRow,
+} from "@/lib/panel/branch-prices-core";
 import { HOME_BRANCH } from "@/lib/panel/branches";
 import {
   itemsSoldAtBranch,
@@ -46,40 +53,70 @@ export interface MobileMenu {
 }
 
 /**
- * The app's menu: Tuzla's (the app serves the Tuzla köşk; a Marina table's
- * order is still checked against Marina's "Satışta / Tükendi" when it is
- * placed, src/lib/admin/store.ts `resolveCafeLines`). `customization`'s
- * paid options are priced by their menu items (S8,
- * `optionPricesFromMenu`), on the menu or not.
+ * The app's menu: Tuzla's by default (the app serves the Tuzla köşk; a
+ * Marina table's order is still checked against Marina's "Satışta /
+ * Tükendi" and priced at Marina's price when it is placed,
+ * src/lib/admin/store.ts `resolveCafeLines`). `customization`'s paid
+ * options are priced by their menu items (S8, `optionPricesFromMenu`), on
+ * the menu or not.
+ *
+ * `branch` (`GET /menu?branch=`, 23 Kas 2026): the menu as that branch
+ * sells it at `now`, its "Satışta / Tükendi" and, at a branch other than
+ * home, its own prices (branch-prices-core.ts; the options stay the site's,
+ * every branch's). `validUntil`: the branch's next price instant, when the
+ * body changes with no write (null at home, or with none ahead). The home
+ * branch's menu is read exactly as before: no price rows.
  */
-export async function listMenuForMobile(): Promise<MobileMenu> {
+export async function readMobileMenu(
+  branch: string,
+  now: Date,
+): Promise<{ menu: MobileMenu; validUntil: string | null }> {
+  const home = branch === HOME_BRANCH;
   // Settings for the KDV defaults: an item with no rate of its own shows the
   // menu's, and changing it in the panel changes the body (and the ETag).
-  const [items, settings, availability] = await Promise.all([
+  const [items, settings, availability, prices] = await Promise.all([
     listMenuItems(),
     getSettings(),
-    listBranchAvailability(HOME_BRANCH),
+    listBranchAvailability(branch),
+    home ? Promise.resolve([] as BranchPriceRow[]) : listBranchPrices(branch),
   ]);
-  const active = itemsSoldAtBranch(items, availability);
+  const byItem = branchPricesByItem(prices);
+  const since = new Map<string, string>();
+  const priced = home
+    ? items
+    : items.map((it) => {
+        const price = priceAtBranch(it, byItem.get(it.id), now);
+        if (price.from) since.set(it.id, price.from);
+        return {
+          ...it,
+          priceMinor: price.priceMinor,
+          priceMinorL: price.priceMinorL,
+        };
+      });
+  const active = itemsSoldAtBranch(priced, availability);
   return {
-    categories: buildMobileMenuCategories(
-      active,
-      MENU_CATEGORY_KEYS,
-      SITE.url,
-      settings.taxRates,
-    ),
-    customization: customizationFor(optionPricesFromMenu(items)),
-    // A branch's "Tükendi" moves its own stamp, not the item's.
-    updatedAt: latestUpdatedAt(
-      active.map((it) => ({
-        ...it,
-        updatedAt: laterStamp(
-          it.updatedAt,
-          availability.get(it.id)?.updatedAt ?? "",
-        ),
-      })),
-      new Date().toISOString(),
-    ),
+    menu: {
+      categories: buildMobileMenuCategories(
+        active,
+        MENU_CATEGORY_KEYS,
+        SITE.url,
+        settings.taxRates,
+      ),
+      customization: customizationFor(optionPricesFromMenu(items)),
+      // A branch's "Tükendi" moves its own stamp, not the item's; so does
+      // the instant its own price took effect.
+      updatedAt: latestUpdatedAt(
+        active.map((it) => ({
+          ...it,
+          updatedAt: laterStamp(
+            laterStamp(it.updatedAt, availability.get(it.id)?.updatedAt ?? ""),
+            since.get(it.id) ?? "",
+          ),
+        })),
+        now.toISOString(),
+      ),
+    },
+    validUntil: home ? null : nextPriceAt(prices, now),
   };
 }
 

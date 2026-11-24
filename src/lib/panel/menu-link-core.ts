@@ -2,6 +2,10 @@ import { z } from "zod";
 
 import { CATALOG_MONEY_MAX_MINOR } from "@/lib/utils/format";
 
+import {
+  parseBranchPriceWrite,
+  type BranchPriceWrite,
+} from "./branch-prices-core";
 import type { SignedCaller } from "./signed-callers";
 
 /**
@@ -48,9 +52,16 @@ export const PANEL_MENU_ACTOR_MAX = 80;
  * A new optional field joins here in the same change that accepts it.
  * `branch` (21 Kas 2026): the write may name the branch it acts for
  * (src/lib/panel/branches.ts); without it the caller's own (the panel:
- * Tuzla, LafPOS: its `LAFPOS_BRANCHES`).
+ * Tuzla, LafPOS: its `LAFPOS_BRANCHES`). `branchPrice` (23 Kas 2026): the
+ * panel may set a branch's own selling price from an instant on
+ * (branch-prices-core.ts); lafmaliyet offers its branch prices only after
+ * a read that carried it.
  */
-export const PANEL_MENU_WRITES = { expect: true, branch: true } as const;
+export const PANEL_MENU_WRITES = {
+  expect: true,
+  branch: true,
+  branchPrice: true,
+} as const;
 
 /** One item as the panel reads it: prices, state and what names it. */
 export interface PanelMenuItem {
@@ -77,6 +88,16 @@ export interface PanelMenuItem {
   sortOrder: number;
   /** The later of the item's stamp and the branch's own (`itemAtBranch`). */
   updatedAt: string;
+  /**
+   * A read for a branch other than the home branch (23 Kas 2026,
+   * branch-prices-core.ts `withBranchPrice`): `priceMinor` / `priceMinorL`
+   * above are the price in force at that branch now, these the item's own
+   * (base) price, and `priceFrom` since when the branch's own holds (null:
+   * the base price). The home branch's read has none of the three.
+   */
+  basePriceMinor?: number;
+  basePriceMinorL?: number;
+  priceFrom?: string | null;
 }
 
 /** The fields of a stored item the panel's shape is made from. */
@@ -91,6 +112,10 @@ export interface MenuItemForPanel {
   onMenu?: boolean;
   sortOrder: number;
   updatedAt: string;
+  /** Set together, for a branch other than home (`withBranchPrice`). */
+  basePriceMinor?: number;
+  basePriceMinorL?: number;
+  priceFrom?: string | null;
 }
 
 /**
@@ -113,6 +138,14 @@ export function toPanelMenuItem(
     onMenu: item.onMenu ?? item.isActive,
     sortOrder: item.sortOrder,
     updatedAt: item.updatedAt,
+    ...(item.basePriceMinor !== undefined
+      ? {
+          basePriceMinor: item.basePriceMinor,
+          basePriceMinorL:
+            (item.basePriceMinorL ?? 0) > 0 ? item.basePriceMinorL : 0,
+          priceFrom: item.priceFrom ?? null,
+        }
+      : {}),
   };
 }
 
@@ -159,6 +192,10 @@ const expectSchema = z
  * (0 ₺ is a free cup, CAT-05), an L price of 0 for a single-size item, the
  * catalogue's ceiling. `expect` is optional and announced by the read
  * (`PANEL_MENU_WRITES`); a broken one names the field "expect".
+ *
+ * Or, instead of the three (23 Kas 2026), `branchPrice`: a branch's own
+ * price from an instant on, or taking back one not yet in force
+ * (branch-prices-core.ts `branchPriceSchema`, checked there).
  */
 export const panelMenuChangeSchema = z
   .object({
@@ -168,10 +205,17 @@ export const panelMenuChangeSchema = z
     isActive: z.boolean().optional(),
     actor: z.string().trim().min(1).max(PANEL_MENU_ACTOR_MAX),
     expect: expectSchema.optional(),
+    branchPrice: z.unknown().optional(),
   })
   .strict();
 
-export type PanelMenuChange = z.infer<typeof panelMenuChangeSchema>;
+export type PanelMenuChange = Omit<
+  z.infer<typeof panelMenuChangeSchema>,
+  "branchPrice"
+> & {
+  /** Parsed and normalised (branch-prices-core.ts `parseBranchPriceWrite`). */
+  branchPrice?: BranchPriceWrite;
+};
 
 /** The three sale fields a change may carry. */
 export type PanelMenuSaleFields = Partial<
@@ -181,7 +225,11 @@ export type PanelMenuSaleFields = Partial<
 /**
  * Parses a write's raw JSON. On a refusal, the first field that broke a
  * rule (or "body" for a body that is not an object, "fields" when none of
- * the three is there): the panel shows which one.
+ * the three is there): the panel shows which one. A `branchPrice` comes
+ * alone: with a sale field "branchPrice" (a branch's price is not the
+ * item's), with `expect` "expect" (it guards the item's own fields; the
+ * panel then tries once without it); a broken one names its key
+ * ("branchPrice.effectiveFrom").
  */
 export function parsePanelMenuChange(
   raw: unknown,
@@ -191,7 +239,20 @@ export function parsePanelMenuChange(
     const path = parsed.error.issues[0]?.path[0];
     return { ok: false, field: typeof path === "string" ? path : "body" };
   }
-  const c = parsed.data;
+  const { branchPrice, ...c } = parsed.data;
+  if (branchPrice !== undefined) {
+    if (
+      c.priceMinor !== undefined ||
+      c.priceMinorL !== undefined ||
+      c.isActive !== undefined
+    ) {
+      return { ok: false, field: "branchPrice" };
+    }
+    if (c.expect !== undefined) return { ok: false, field: "expect" };
+    const write = parseBranchPriceWrite(branchPrice);
+    if (!write.ok) return write;
+    return { ok: true, change: { ...c, branchPrice: write.write } };
+  }
   if (
     c.priceMinor === undefined &&
     c.priceMinorL === undefined &&

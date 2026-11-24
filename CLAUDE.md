@@ -638,8 +638,12 @@ docs/                        → BRAND.md (marka kimliği, tasarım kaydı) ·
   kalemi `optionGroups` taşır (`optionGroupsFor`, sözleşme §1): soda, smoothie
   ve frozen'da hiçbir seçenek, espressoda süt yok. Yalnız çizimi daraltır,
   siparişi reddetmez.
-- **Fiyat tazeliği:** fiyatın tek kaynağı `menu_items`; site paneli,
-  lafmaliyet ve LafPOS oraya yazar. 6 Kas 2026'dan beri `/menu` CDN'de 60 +
+- **Fiyat tazeliği:** taban fiyatın kaynağı `menu_items` (Tuzla'nın ve kendi
+  fiyatı olmayan her şubenin); site paneli ve lafmaliyet oraya yazar (LafPOS
+  fiyat yazamaz). Şubenin kendi fiyatı `menu_item_branch_prices` satırıdır
+  (23 Kas 2026; aşağıda "Şubeler"). Müşteriye fiyat gösteren ya da fiyatlayan
+  her yol `priceAtBranch`'ten geçer (`src/lib/panel/branch-prices-core.ts`).
+  6 Kas 2026'dan beri `/menu` CDN'de 60 +
   60 sn (`s-maxage=60, stale-while-revalidate=60`) ve uygulama menüyü 2
   dakika tutar: fiyat ve fotoğraf en kötü ~4 dakikada görünür (sözleşme §1
   "Tazelik penceresi"; fotoğraf URL'si içerikten damgalı).
@@ -894,6 +898,14 @@ kendi işi sayacak, tek "Satışta / Tükendi" bayrağıyla iki şube birbirinin
   İmzalı yazım yalnız şubenin satırını yazar; LafPOS menüden kalkmışı açamaz
   (409 `site_closed`). Site ve uygulama Tuzla'nınkini, `/masa/<kod>` masanın
   şubesininkini gösterir; sipariş siparişin şubesinde denetlenir.
+- Satış fiyatı şubeye göre (23 Kas 2026, sahibin onayı): `menu_items` taban
+  fiyat, `menu_item_branch_prices` şubenin `effectiveFrom`'dan geçerli satırı
+  (yalnız eklenir; yalnız anı gelmemiş satır iptal edilir). Köşkün paneli
+  imzalı `branchPrice` ile yazar, LafPOS 403 alır. Masa siparişi ve
+  `/masa/<kod>` masanın şubesinin o anki fiyatıyla, uygulamanın
+  `/menu?branch=`'i şubenin fiyatıyla; şubesiz menü Tuzla'nın (taban). Yeni her
+  müşteri fiyat yolu `priceAtBranch`'ten geçer. Ayrıntı `docs/PANEL-MENU.md`
+  "Şube fiyatı".
 - `GET /api/panel/sales`'a `&branch=` ve `byBranch`.
 - Seçenek ücreti (ekstra shot, şurup, ücretli süt) menü kalemlerinin
   fiyatından (S8: `mnu-0081`, `mnu-0080`, `mnu-0082`), sabit yedek.

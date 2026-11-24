@@ -42,9 +42,11 @@ import {
   type AdminStoryEvent,
   type ShopCategoryId,
 } from "@/lib/admin/store";
+import { listBranchPrices } from "@/lib/admin/menu-branch-prices";
 import { presentationCache } from "@/lib/cache/presentation";
 import { TAG_CATALOG, TAG_KARAOKE, TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
 import { isDegradedRequest, publicRead } from "@/lib/db/health";
+import { priceEpoch } from "@/lib/panel/branch-prices-core";
 import { HOME_BRANCH } from "@/lib/panel/branches";
 import { getKaraokeDayUnclocked } from "@/lib/mobile/karaoke";
 import type { KaraokeDay } from "@/components/laffogato/karaoke-today";
@@ -226,18 +228,40 @@ const cachedMenu = cache(
   presentationCache("site-menu", listMenuForCustomerLive, [TAG_MENU]),
 );
 
+/** A branch's price instants (its own price rows'), cached like the menu. */
+const cachedBranchPriceTimes = cache(
+  presentationCache(
+    "site-branch-price-times",
+    async (branch: string): Promise<string[]> =>
+      (await listBranchPrices(branch)).map((r) => r.effectiveFrom),
+    [TAG_MENU],
+  ),
+);
+
 /**
  * `listMenuForCustomer`, cached. An outage shows the bundled menu without
  * prices, never a bundled price. `branch`: whose "Satışta / Tükendi"
  * (src/lib/panel/branches.ts): the site's pages are Tuzla's, a table's QR
  * menu its table's (one cache entry per branch).
+ *
+ * A branch other than home also shows its own prices (branch-prices-core.ts),
+ * and one takes effect at its instant with nothing written, so no tag
+ * expires then: that branch's entry is keyed by its latest price instant
+ * already passed (`priceEpoch`), and the first view after the next one
+ * reads the menu once more. The home branch's key is as before.
  */
 export async function listSiteMenu(
   branch: string = HOME_BRANCH,
 ): Promise<Record<string, MenuCategory>> {
-  return publicRead("listSiteMenu", menuWithoutPrices(), () =>
-    cachedMenu(branch),
-  );
+  return publicRead("listSiteMenu", menuWithoutPrices(), async () => {
+    if (branch === HOME_BRANCH) return cachedMenu(branch);
+    const times = await cachedBranchPriceTimes(branch);
+    const epoch = priceEpoch(
+      times.map((effectiveFrom) => ({ effectiveFrom })),
+      new Date(),
+    );
+    return cachedMenu(branch, epoch);
+  });
 }
 
 // ── Editorial ────────────────────────────────────────────────────────────

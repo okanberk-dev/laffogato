@@ -37,12 +37,16 @@ Tükendi şubeye göredir; her imzalı uç bir şube adına okur ve yazar
 [PANEL-MENU.md](PANEL-MENU.md) "Şube", [PANEL-SALES.md](PANEL-SALES.md)
 "Şube kırılımı". Seçenek ücreti (ekstra shot, şurup, alternatif süt) menü
 kalemlerinin fiyatından gelir (S8, [PANEL-MENU.md](PANEL-MENU.md)).
+Satış fiyatı da 23 Kas 2026'dan beri şubeye göre değişebilir: panel bir
+şubenin fiyatını bir andan itibaren `branchPrice` ile yazar (Tuzla'nınki
+kalemin kendi, taban fiyatıdır), şubenin okuması o an geçerli fiyatı verir
+([PANEL-MENU.md](PANEL-MENU.md) "Şube fiyatı").
 
 ## Ortak kurallar
 
 - **Yön.** Site yazar, panel okur; panelin siteye yazdığı tek şey menü
-  fiyatı ile Satışta / Tükendi ve siparişin aşamasıdır, ikisi de sitenin kendi
-  kurallarından geçer. Uygulama yalnız siteden okur.
+  fiyatı (taban ve şubenin) ile Satışta / Tükendi ve siparişin aşamasıdır,
+  ikisi de sitenin kendi kurallarından geçer. Uygulama yalnız siteden okur.
 - **Mekanizma.** İçeriksiz imzalı ping (`{event, at}`), ardından imzalı
   çekme. Yeni bilgi var olan yanıta isteğe bağlı alan olarak eklenir; `version`
   değişmez (panel tanımadığı sürümü reddeder). `/api/mobile/v1` yalnız ekleme

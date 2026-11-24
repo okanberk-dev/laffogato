@@ -133,6 +133,13 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    fiyatı": önbellekte indirimin günleri durur, gösterilip gösterilmeyeceği
    her istekte `liveDiscount` ile karar bağlanır) istek başına hesaplanır.
    Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
+   Şubenin kendi fiyatı (23 Kas 2026, `menu_item_branch_prices`,
+   `docs/PANEL-MENU.md` "Şube fiyatı") anı gelince hiçbir şey yazılmadan
+   geçerli olur, etiket düşmez: Tuzla dışındaki bir şubenin `/masa/<kod>`
+   menüsünün kaydı o şubenin geçmiş son fiyat anıyla anahtarlanır
+   (`listSiteMenu`; anlar da `pub:menu` altında önbellekte), an geçince ilk
+   görüntüleme menüyü bir kez canlı okur. Tuzla'nın sayfalarının anahtarı
+   değişmedi.
 
    **Etiket düşürmeyen yazmalar.** Bu kancayı taşımayan bir koddan gelen her
    yazma: (a) Neon konsolunda elle SQL ve `scripts/*.mjs`; (b) production
@@ -191,7 +198,12 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    şubenin özetini verir: genel işaret değişince şubenin listesi ve menüsü
    bir kez okunur (işaretin ilk sorusu canlı, ikincisi saklanır), işaret
    dururken hiç, saatlik turu yok; okuma bir yazımın hemen ardındandır,
-   veritabanı uyanıkken. Açık bir panel sekmesinin zili (madde 3) saatte
+   veritabanı uyanıkken. Şubenin menü özeti 23 Kas 2026'dan beri şubenin
+   fiyat satırlarını da okur (aynı istekte, uyanma sayısı aynı; ilk saatte
+   okuma 27'den 29'a). Uygulamanın `/menu?branch=<şube>` yanıtının
+   `ETag`'i şubenin kapsamında ve yalnız şubenin bir sonraki fiyat anına
+   kadar hatırlanır; an geçince bir kez canlı okunur, o anın kapsamında
+   yeniden hatırlanır. Açık bir panel sekmesinin zili (madde 3) saatte
    360 istekten 1'e. Uyandırma başına ~5 dakika açık kalma ile kasanın payı
    14 saatlik günde yaklaşık 9,5 saatten 2,5 saate iner (0,25 CU'da günde
    ~2,4 yerine ~0,6 CU-saat). Canlı ölçüm aşağıdaki komutlarla yapılır

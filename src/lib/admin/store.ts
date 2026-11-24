@@ -26,6 +26,12 @@ import {
 } from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
 import { listBranchAvailability } from "@/lib/admin/menu-availability";
+import { listBranchPrices } from "@/lib/admin/menu-branch-prices";
+import {
+  branchPricesByItem,
+  priceAtBranch,
+  type BranchPriceRow,
+} from "@/lib/panel/branch-prices-core";
 import { HOME_BRANCH } from "@/lib/panel/branches";
 import {
   itemsSoldAtBranch,
@@ -4327,6 +4333,10 @@ type CafeLinesResult =
  * menu row's size price plus the option surcharges from the server-side
  * customisation table - nothing from the request. Cafe lines hold no stock,
  * so there is nothing to claim.
+ *
+ * At a branch other than home (a Marina table's order) the size price is
+ * the branch's own where it has one in force now (23 Kas 2026,
+ * branch-prices-core.ts `priceAtBranch`); the options stay the site's.
  */
 async function resolveCafeLines(
   lines: AppCafeLineInput[],
@@ -4339,10 +4349,12 @@ async function resolveCafeLines(
   }
   const ids = Array.from(new Set(clean.map((l) => l.menuItemId)));
   const sb = getDb();
+  const now = new Date();
   // The basket's items and the three option items whose price is the
   // option's (S8, `optionPricesFromMenu`), in one read; the branch's
-  // "Satışta / Tükendi" beside it (menu-availability-core.ts).
-  const [docs, availability] = await Promise.all([
+  // "Satışta / Tükendi" beside it (menu-availability-core.ts), and its own
+  // prices (none at home).
+  const [docs, availability, branchPrices] = await Promise.all([
     sb
       .from(TABLES.menuItems)
       .select(
@@ -4351,9 +4363,13 @@ async function resolveCafeLines(
       .in("id", [...new Set([...ids, ...OPTION_MENU_ITEM_IDS])])
       .then((res) => rows<AdminMenuItem>(res, "placeAppOrder.menuItems")),
     listBranchAvailability(branch, ids),
+    branch === HOME_BRANCH
+      ? Promise.resolve([] as BranchPriceRow[])
+      : listBranchPrices(branch, ids),
   ]);
   const byId = new Map(docs.map((d) => [d.id, d]));
   const optionPrices = optionPricesFromMenu(docs);
+  const pricesById = branchPricesByItem(branchPrices);
 
   const items: AdminOrderItem[] = [];
   for (const line of clean) {
@@ -4379,8 +4395,14 @@ async function resolveCafeLines(
         },
       };
     }
+    const price = priceAtBranch(item, pricesById.get(item.id), now);
     const priced = priceCafeLine(
-      { ...item, isActive: soldAtBranch(item, availability.get(item.id)) },
+      {
+        ...item,
+        priceMinor: price.priceMinor,
+        priceMinorL: price.priceMinorL,
+        isActive: soldAtBranch(item, availability.get(item.id)),
+      },
       line.size,
       line.options,
       optionPrices,
@@ -7488,17 +7510,38 @@ export async function listMenuForCustomer(
 
 /**
  * `listMenuForCustomer` without the outage fallback (throws instead).
- * `branch`: whose "Satışta / Tükendi" (menu-availability-core.ts): the
- * site's pages are Tuzla's, a table's QR menu its table's.
+ * `branch`: whose "Satışta / Tükendi" (menu-availability-core.ts) and,
+ * at a branch other than home, whose prices (branch-prices-core.ts): the
+ * site's pages are Tuzla's, a table's QR menu its table's. `at`: the
+ * instant the prices are those of (ISO; "" or absent: now). The cached
+ * reader passes the branch's latest price instant (site-data.ts
+ * `listSiteMenu`), which prices the same as now and keys the cache.
  */
 export async function listMenuForCustomerLive(
   branch: string = HOME_BRANCH,
+  at: string = "",
 ): Promise<Record<string, DesignMenuCategory>> {
-  const [items, availability] = await Promise.all([
+  const home = branch === HOME_BRANCH;
+  const [items, availability, prices] = await Promise.all([
     listMenuItems(),
     listBranchAvailability(branch),
+    home ? Promise.resolve([] as BranchPriceRow[]) : listBranchPrices(branch),
   ]);
-  const all = itemsSoldAtBranch(items, availability);
+  const when = at && Number.isFinite(Date.parse(at)) ? new Date(at) : new Date();
+  const byItem = branchPricesByItem(prices);
+  const all = itemsSoldAtBranch(
+    home
+      ? items
+      : items.map((it) => {
+          const price = priceAtBranch(it, byItem.get(it.id), when);
+          return {
+            ...it,
+            priceMinor: price.priceMinor,
+            priceMinorL: price.priceMinorL,
+          };
+        }),
+    availability,
+  );
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];

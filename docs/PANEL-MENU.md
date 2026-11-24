@@ -126,7 +126,7 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
          "updatedAt": "2026-10-20T08:00:00.000Z"
        }
      ],
-     "writes": { "expect": true, "branch": true }
+     "writes": { "expect": true, "branch": true, "branchPrice": true }
    }
    ```
 
@@ -135,6 +135,16 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
    (her şube), `updatedAt` kalemin ve şubenin kendi damgasından geç olanı;
    `branch` hangi şube olduğunu söyler. `?branch=` yoksa çağıranın şubesi:
    panel Tuzla, LafPOS `LAFPOS_BRANCHES` (varsayılan Marina).
+
+   23 Kasım 2026'dan beri Tuzla dışındaki bir şubenin okumasında
+   `priceMinor` / `priceMinorL` o şubede **şu an geçerli** fiyattır; her
+   kalemde yanında taban fiyat (`basePriceMinor`, `basePriceMinorL`) ve
+   şubenin kendi fiyatının başladığı an (`priceFrom`, taban geçerliyse
+   `null`), en üstte şubenin bir sonraki fiyat anı (`nextPriceAt`, yoksa
+   `null`) durur. Panelin okumasında, hangi şube için olursa olsun, en üstte
+   bütün şubelerin fiyat satırları da gelir (`branchPrices`). Tuzla'nın
+   okuması (şube söylemeyen panel) eskisi gibidir: kalemler aynı on alan,
+   taban fiyat. Ayrıntı aşağıda "Şube fiyatı".
 
    Bütün kalemler, satışta olmayanlar da (panel bağlıyı gizlemek için onu da
    görmeli). `writes` yazma ucunun ilk sürümden sonra kabul ettiği isteğe
@@ -175,11 +185,12 @@ Kafenin kasası LafPOS okuma ve yazma uçlarını kendi anahtarıyla (`LAFPOS_SY
    | 400   | `{"error":"invalid","field"}`    | Alan kurala uymuyor ya da hiçbiri yok (`expect` bozuksa `field: "expect"`) |
    | 401   | `{"error":"unauthorized"}`       | İmza yok, yanlış ya da 5 dakikadan eski                                    |
    | 400   | `{"error":"invalid","field":"branch"}` | `branch` bozuk ya da sitenin bilmediği bir şube                      |
-   | 403   | `{"error":"forbidden","field"}`  | LafPOS'un anahtarıyla fiyat yazımı (`docs/LAFPOS.md`); `field: "branch"`: anahtarın şubesi değil |
+   | 403   | `{"error":"forbidden","field"}`  | LafPOS'un anahtarıyla fiyat yazımı (`docs/LAFPOS.md`; `field`: `priceMinor`, `priceMinorL` ya da `branchPrice`); `field: "branch"`: anahtarın şubesi değil |
    | 404   | `{"error":"not_found"}`          | Kalem sitede yok (silinmiş)                                                |
    | 409   | `{"error":"single_size"}`        | Kalem tek boy, istek L fiyatı veriyor                                      |
    | 409   | `{"error":"stale","item":{...}}` | `expect` tutmuyor: alan sitede bu arada değişti; `item` güncel             |
    | 409   | `{"error":"site_closed","item":{...}}` | LafPOS menüden kalkmış (`onMenu: false`) kalemi açmak istedi; hiçbir şey yazılmadı |
+   | 400 / 409 | `branchPrice` hataları | Aşağıda "Şube fiyatı" |
    | 413   | `{"error":"too_large"}`          | Gövde 4 KB'tan büyük                                                       |
    | 503   | `{"error":"not_configured"}`     | Anahtar yok                                                                |
    | 503   | `{"error":"unavailable"}`        | Veritabanı okunamadı ya da yazılamadı                                      |
@@ -283,15 +294,18 @@ kapattığını açabiliyordu.
   `LAFPOS_BRANCHES` (varsayılan `marina`). Anahtarın konuşamadığı şube 403
   `forbidden` `field: "branch"`, bozuk ya da bilinmeyen 400.
 - **Yazım.** `isActive` yalnız o şubenin satırını yazar (koşullu: okunan
-  satırda kaldıysa, yoksa 409 `stale`). Fiyatlar her şubenindir, eskisi gibi
-  kalemin sütunlarına yazılır. Menüden kalkmış (`onMenu: false`) kalemi açmak:
+  satırda kaldıysa, yoksa 409 `stale`). `priceMinor` / `priceMinorL` eskisi
+  gibi kalemin sütunlarına, yani **taban** fiyata yazılır (Tuzla'nın ve kendi
+  fiyatı olmayan her şubenin); şubenin kendi fiyatı `branchPrice` ile yazılır
+  (aşağıda "Şube fiyatı"). Menüden kalkmış (`onMenu: false`) kalemi açmak:
   panel kalemi menüye geri koyar (önceki yetkisi; şubenin kapalı satırını da
   açar), LafPOS 409 `site_closed` alır, hiçbir şey yazılmaz.
 - **Okuma.** `isActive` şubenin gördüğü, `onMenu` sitenin bayrağı. `updatedAt`
   kalemin ve şubenin damgasından geç olanı: başka şubenin değişikliği bu şubenin
   damgasını oynatmaz (lafmaliyet'in Tükenenler kaydı `markerValid` buna bakar).
 - **Müşteri yüzleri.** Site sayfaları ve uygulamanın `/menu`'sü Tuzla'nın
-  satırını okur (uygulama Tuzla köşküne hizmet eder); `/masa/<kod>` masanın
+  satırını okur (uygulama Tuzla köşküne hizmet eder; 23 Kas 2026'dan beri
+  `/menu?branch=<şube>` o şubeninkini); `/masa/<kod>` masanın
   şubesininkini. Sipariş anındaki karar her zaman siparişin şubesine göredir:
   masa siparişi masanın şubesi, öteki her sipariş Tuzla (`resolveCafeLines`).
 - **Sitenin paneli.** Kafe menüsü listesi menünün bayrağını gösterir ve
@@ -300,11 +314,130 @@ kapattığını açabiliyordu.
   bayrağını (her şube) yazar.
 - Satır yazımı `pub:menu`'yu düşürür: ping, LafPOS'un menü işareti ve
   önbellekler kalemin kendi yazımındaki gibi.
-- Fiyat hâlâ tek: şubeye göre satış fiyatı (aynı kararın ikinci yarısı) ayrı
-  bir iştir; uygulamanın sipariş fiyatı ve sözleşmesi de değişir.
+- Şubeye göre satış fiyatı (aynı kararın ikinci yarısı) 23 Kasım 2026'da
+  geldi: aşağıda "Şube fiyatı".
 
 Testler `tests/sube/` (`npm run test:sube`; `TEST_DATABASE_URL` verilirse
 gerçek Postgres'e karşı da).
+
+## Şube fiyatı (23 Kas 2026)
+
+Sahibin 4 Kasım 2026 kararının ikinci yarısı (lafmaliyet `docs/SUBE.md`:
+"yalnız satış fiyatı ve Satışta / Tükendi şubeye göre değişir"), 23 Kasım
+2026'da yapımı onaylandı. O güne dek `menu_items."priceMinor"` /
+`"priceMinorL"` her şubenin fiyatıydı.
+
+- **Taban fiyat** kalemin kendi sütunlarıdır (sitenin formu, panelin
+  `priceMinor` / `priceMinorL` yazımı): Tuzla'nın (ana şube) ve kendi fiyatı
+  olmayan her şubenin fiyatı. Değişmedi.
+- **Şubenin fiyatı** `menu_item_branch_prices` satırıdır (göç
+  `20261123180000_menu_item_branch_prices.sql`): `menuItemId`, `branch`,
+  `priceMinor` (M ya da tek boy; `null` = o andan sonra yine taban),
+  `priceMinorL` (L; `0` = taban L), `effectiveFrom` (UTC ISO an),
+  `createdAt`, `createdBy` (`panel:<ad>`, siteden çıkmaz). Anahtar kalem +
+  şube + an. Satırlar **eklenir, silinmez**: bir satır kendi anından
+  sonrakinin anına dek geçerlidir, tablo kendi geçmişidir. Yalnız anı
+  henüz gelmemiş satır geri alınır (iptal); yürürlükteki satırın yerine yeni
+  satır yazılır. Kurallar `src/lib/panel/branch-prices-core.ts`
+  (`priceAtBranch`, `nextPriceAt`), testleri `tests/sube/branch-prices.test.ts`.
+- **Boylar sitenin.** Sitede tek boy olan kalemin hiçbir şubede L'si yoktur
+  (site L'yi sonradan kapatırsa şubenin L fiyatı da okunmaz); L'si olmayan
+  satır taban L'yi taşır.
+- **Seçenekler** (şurup `mnu-0080`, ekstra shot `mnu-0081`, alternatif süt
+  `mnu-0082`) şubeye göre fiyatlanmaz: uygulamanın ve LafPOS'un seçenek
+  ücreti her şube için menünün tabanıdır ("Seçenek fiyatları" aşağıda).
+
+**Okuma.** Yukarıda "Okuma": Tuzla dışındaki şubenin okuması şu an geçerli
+fiyatı, `basePriceMinor`, `basePriceMinorL`, `priceFrom` ve `nextPriceAt`'i
+verir; panelin her okumasında `branchPrices`:
+
+```json
+"branchPrices": [
+  {
+    "id": "mnu-0011",
+    "branch": "marina",
+    "priceMinor": 15000,
+    "priceMinorL": 0,
+    "effectiveFrom": "2026-11-25T02:00:00.000Z",
+    "createdAt": "2026-11-23T18:00:00.000Z"
+  }
+]
+```
+
+Bütün şubelerin bütün satırları, eskiden yeniye (lafmaliyet'in "Eski
+fiyattan satılanlar" raporu geçmişi buradan okur). LafPOS'un okumasında
+`branchPrices` yok.
+
+**Yazma.** Panelin anahtarıyla, Tuzla dışındaki bir şube adına, tek başına:
+
+```
+POST https://laffogato.net/api/panel/menu
+{"id":"mnu-0011","branch":"marina","actor":"Selin",
+ "branchPrice":{"priceMinor":15000,"priceMinorL":0,"effectiveFrom":"2026-11-25T05:00:00+03:00"}}
+
+{"id":"mnu-0011","branch":"marina","actor":"Selin",
+ "branchPrice":{"effectiveFrom":"2026-11-25T02:00:00.000Z","cancel":true}}
+```
+
+`effectiveFrom` saat dilimiyle (`Z` ya da `+03:00`; dilimsiz an reddedilir)
+gelir, UTC saklanır. Site sırayla denetler:
+
+| Durum | Gövde | Ne zaman |
+| ----- | ----- | -------- |
+| 400 | `{"error":"invalid","field":"branchPrice"}` | `branchPrice` `priceMinor`, `priceMinorL` ya da `isActive` ile birlikte, ya da bilinmeyen bir alan taşıyor |
+| 400 | `{"error":"invalid","field":"expect"}` | `branchPrice` `expect` ile birlikte (panel bir kez `expect`'siz yeniden dener) |
+| 400 | `{"error":"invalid","field":"branchPrice.<alan>"}` | `priceMinor` yok, 0, kesirli ya da tavanın üstünde; `priceMinor: null` iken `priceMinorL` > 0; `effectiveFrom` bozuk ya da dilimsiz; `cancel` fiyatla birlikte |
+| 403 | `{"error":"forbidden","field":"branchPrice"}` | LafPOS'un anahtarı (fiyat yazamaz) |
+| 400 | `{"error":"invalid","field":"branch"}` | Şube Tuzla (ana şube): onun fiyatı kalemin kendisidir |
+| 400 | `{"error":"invalid","field":"id"}` | Seçenek kalemi (yukarıda) |
+| 400 | `{"error":"invalid","field":"branchPrice.effectiveFrom"}` | Yeni satırın anı 5 dakikadan eski (geçmişe fiyat yazılmaz) ya da 90 günden ileri |
+| 404 | `{"error":"not_found"}` | Kalem sitede yok |
+| 409 | `{"error":"single_size"}` | Tek boylu kaleme L fiyatı (L'yi yalnız site açar) |
+| 409 | `{"error":"stale","item":{...},"branchPrices":[...]}` | O kalem, şube ve anda **başka fiyatlı** (M ya da L farklı) satır var; ya da iptal edilen satır yok ya da artık yürürlükte. `item` kalemin şubedeki hâli, `branchPrices` kalemin o şubedeki satırları: panel sitenin ne tuttuğunu görür |
+
+Başarıda yanıt `{"item": {...}, "branchPrices": [...]}`: kalem şubenin
+okumasındaki gibi (şu an geçerli fiyat, taban, `priceFrom`) ve kalemin o
+şubedeki satırları.
+
+**Yeniden gönderim güvenlidir.** O kalem, şube ve anda **aynı** satır
+(aynı `priceMinor` ve `priceMinorL`) zaten varsa yazım aynı yazımın ikinci
+gelişidir (panelin isteği satır yazıldıktan sonra süresini doldurdu): 200 ve
+taze başarıyla aynı gövde; ikinci satır ve ikinci olay kaydı yok. İki eş
+istek aynı anda gelirse de öyle (birincil anahtara takılan, yeniden okuyup
+aynı satırı görür). Pencere denetimi önce gelir: anı 5 dakikadan eskiye
+düşmüş bir yeniden gönderim 400 alır, satırı ise `GET`'in `branchPrices`'ında
+durur. İptalin yeniden gönderimi (satır artık yok) 409 `stale` alır;
+`branchPrices` satırın gittiğini gösterir. Yazım olay kaydına `panel:<ad>` ile `branch` ve
+`branchPrice` olarak düşer, `pub:menu`'yu düşürür (ping, LafPOS'un menü
+işareti, önbellekler). Taban fiyat, Satışta / Tükendi ve fiyat listesinin
+tarihi (`menuPricesChangedAt`, Tuzla'nın basılı listesi) değişmez.
+
+Tuzla dışındaki bir şube adına yapılan **her** yazımın (`isActive` dahil)
+yanıtındaki `item` o şubenin görünümüdür: `priceMinor` şubenin şu anki
+fiyatı, taban `basePriceMinor`'da. Panel kendi taban kopyasını yalnız Tuzla
+adına okuduğu ya da yazdığı kalemden günceller.
+
+**Anı gelince hiçbir şey yazılmaz.** Bu yüzden ne etiket düşer ne işaret
+oynar:
+
+- LafPOS satırın kendisiyle haberdar olur: şubenin menü özeti
+  (`/api/pos/orders/version` `menu`) şubenin fiyat satırlarını, geleceği de,
+  içerir; yeni satır yazılınca kasa menüyü çeker ve `nextPriceAt`'i okur, o
+  anda bir kez daha çeker (LafPOS tarafı).
+- Uygulamanın `/menu?branch=` yanıtının hatırlanan `ETag`'i yalnız şubenin
+  bir sonraki fiyat anına kadar geçerlidir (`docs/API-MOBILE.md` §1 "Şube").
+- `/masa/<kod>` QR menüsünün önbellek kaydı şubenin geçmiş son fiyat anıyla
+  anahtarlanır: an geçince ilk görüntüleme menüyü bir kez yeniden okur
+  (`src/lib/seo/site-data.ts` `listSiteMenu`).
+- Sipariş fiyatı zaten canlıdır: masa siparişi o anda geçerli şube fiyatıyla
+  fiyatlanır (`resolveCafeLines`); açık kalmış uygulama sepeti 409
+  `total_changed` alır.
+
+Testler: `tests/sube/branch-prices.test.ts` (çekirdek),
+`branch-price-routes.test.ts` (uçlar), `neon-uyanma.test.ts` (özet ve
+`ETag`), `site-menu-branch-price.test.ts` (QR menüsü), `db.test.ts`
+(`TEST_DATABASE_URL` ile: satırlar, Marina masasının sipariş fiyatı ve QR
+menüsü).
 
 ## Seçenek fiyatları menüden (S8, 21 Kas 2026)
 
@@ -351,5 +484,9 @@ günceller; Kafe menüsü sayfası, son değişiklik girilen günden yeniyse
   (`pos_mappings`), bu bağlantıdan etkilenmez.
 - **Kalem açmak / silmek, ad ve kategori.** Bilerek elle (yukarıda).
 - **Boy boy satış durumu.** Sitede yok; eklenmesi uygulama sözleşmesini
-  (`docs/API-MOBILE.md`) değiştirir. Şubeye göre Satışta / Tükendi var
-  (yukarıda "Şube"); şubeye göre fiyat yok.
+  (`docs/API-MOBILE.md`) değiştirir. Şubeye göre Satışta / Tükendi
+  (yukarıda "Şube") ve şubeye göre fiyat (yukarıda "Şube fiyatı") var.
+- **Şubenin basılı fiyat listesi.** Fiyat listesinin tarihi
+  (`menuPricesEffectiveDate`) tektir ve Tuzla'nındır; şube fiyatı onu ve
+  `menuPricesChangedAt`'i değiştirmez. Marina'nın basılı listesinin tarihi
+  ayrı bir iştir.

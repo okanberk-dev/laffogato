@@ -98,7 +98,17 @@ kasasında ürünü kilitler, Marina'nın porsiyonu biten ürünü Tuzla'nın uy
   şubesinin satırını yazar: Tuzla'nın Tükendi'si Marina'yı kapatmaz, Marina'nınki Tuzla'nın uygulama ve QR
   menüsünü kapatmaz. Menüden kalkmış (`onMenu: false`) kalemi açmak 409 `{"error":"site_closed","item":{…}}`,
   hiçbir şey yazılmaz. LafPOS'un `soldOutBy='site'` kilidi yalnız `onMenu: false` için anlamlıdır; kendi şubesinin
-  Tükendi'si kendisinindir. Fiyat hâlâ her şube için tektir ve LafPOS yazamaz.
+  Tükendi'si kendisinindir. LafPOS fiyat yazamaz.
+- **Şube fiyatı** (23 Kas 2026, `docs/PANEL-MENU.md` "Şube fiyatı"): köşkün paneli (lafmaliyet) bir kalemin şubedeki
+  satış fiyatını bir andan itibaren yazar (`branchPrice`; Tuzla'nın fiyatı kalemin kendisidir). Marina adına okumada
+  `priceMinor` / `priceMinorL` o an Marina'da geçerli fiyattır, yani bugünkü LafPOS (fiyatı imzalı okumadan alan)
+  hiçbir değişiklik yapmadan Marina'nın fiyatını alır. Yanında `basePriceMinor`, `basePriceMinorL`, `priceFrom`
+  (şubenin fiyatı ne zamandan beri, taban geçerliyse `null`) ve en üstte `nextPriceAt` (şubenin bir sonraki fiyat
+  anı, yoksa `null`). O an gelince site hiçbir şey yazmaz, işaret oynamaz: LafPOS menüyü o anda (gün açıkken; kapalıysa
+  gün açılınca) kendisi çeker. Yeni satır yazılınca şubenin menü özeti hemen değişir (gelecek satırlar da özettedir).
+  LafPOS'un `branchPrice` yazımı 403 `forbidden` (`field: "branchPrice"`). Seçenek ücreti (şurup, ekstra shot,
+  alternatif süt) şubeye göre değişmez. Herkese açık menü (`/api/mobile/v1/menu`) şube söylemezse Tuzla'nın
+  fiyatıdır; imzalı okuma alınamadığında Marina'nın fiyatı yerine Tuzla'nınki yazılmamalıdır (LafPOS tarafı).
 - **Menünün kendisi** (`GET /api/mobile/v1/menu`, herkese açık): uygulamanındır, Tuzla'nın Satışta'sını gösterir
   (Tuzla'da tükenen kalem yanıtta yoktur). LafPOS Satışta'yı imzalı okumadan alır (`shouldBeActive`: herkese açık
   listede olmayan ama panelde açık kalem kapanmaz), yani Marina'nın Satışta'sı doğru kalır. Tek eksik: Tuzla'da
@@ -152,8 +162,8 @@ sipariş yazılmaz ya da kapanmaz; menüde Satışta bilgisine dokunulmaz). Kara
 
 | Uç                             | Panelin anahtarı | LafPOS'un anahtarı | LafPOS ne için kullanır                                                                                                                                                                         |
 | ------------------------------ | ---------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/panel/menu`          | açar             | açar               | Tükendi kalemleri de görmek (`isActive`, kendi şubesinin; `onMenu` sitenin bayrağı)                                                                                                             |
-| `POST /api/panel/menu`         | açar             | açar               | Kasada Tükendi / Satışa aç: önce site, 2xx gelince kasa; yalnız kendi şubesinin satırı. LafPOS'un anahtarıyla yalnız `isActive`; `priceMinor` ya da `priceMinorL` 403 `forbidden` (çalınan kafe makinesi fiyat değiştiremesin); menüden kalkmış kalemi açmak 409 `site_closed` |
+| `GET /api/panel/menu`          | açar             | açar               | Tükendi kalemleri de görmek (`isActive`, kendi şubesinin; `onMenu` sitenin bayrağı); kendi şubesinin şu anki fiyatı ve `nextPriceAt` (23 Kas 2026)                                             |
+| `POST /api/panel/menu`         | açar             | açar               | Kasada Tükendi / Satışa aç: önce site, 2xx gelince kasa; yalnız kendi şubesinin satırı. LafPOS'un anahtarıyla yalnız `isActive`; `priceMinor`, `priceMinorL` ya da `branchPrice` 403 `forbidden` (çalınan kafe makinesi fiyat değiştiremesin); menüden kalkmış kalemi açmak 409 `site_closed` |
 | `GET /api/panel/orders`        | açar             | açar               | Online siparişler: bar ekranı ve masa planı (yalnız kendi şubesinin)                                                                                                                            |
 | `POST /api/panel/orders/stage` | açar             | açar               | Hazırlanıyor / Hazır / Teslim edildi                                                                                                                                                            |
 | `POST /api/panel/calls/ack`    | açar             | açar               | Masadan garson çağrısına "Gördüm" (6 Kas 2026; çağrılar `GET /api/panel/orders`'ın `calls` alanında, `docs/PANEL-ORDERS.md` "Masa çağrıları"); olay kaydında `lafpos:<ad>`                       |
@@ -264,7 +274,9 @@ x-laf-signature: v1=<hex>
   menü kaleminin fiyatı ya da durumu yazılınca LafPOS menüsünü 15 dakikalık
   yoklamayı beklemeden eşitler. 23 Kas 2026'dan beri o da şubenin özetidir:
   panel menüsünün sütunları (her yazım kalemin `updatedAt`'ını damgalar,
-  fotoğraf ve metin dahil) ve şubenin kendi Satışta / Tükendi satırları.
+  fotoğraf ve metin dahil), şubenin kendi Satışta / Tükendi satırları ve
+  (23 Kas 2026) şubenin kendi fiyat satırları, gelecektekiler de (satırı
+  olmayan şubenin özeti eskisiyle aynı).
   Kalemin kendi yazımı her şubenin değerini oynatır, başka şubenin
   Tükendi'si oynatmaz. Tek fark: Tuzla'da tükenmişken ilk kez eklenen kalem
   (yukarıda "Şube") Tuzla'da açılınca Marina'nın kasasına artık hemen değil,
