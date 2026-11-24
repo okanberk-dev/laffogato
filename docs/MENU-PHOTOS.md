@@ -1,10 +1,11 @@
 # Menü fotoğrafları
 
-> **Durum (18 Eki 2026):** 82 kalemin 68'inde fotoğraf: üçü Ağustos menüsüyle
-> geldi (`matcha-latte`, `strawberry-matcha`, `matcha-affogato`), 65'i bu
-> belgede listelenen stok fotoğraflar; 14 kalem çizimle. 17 Ekim'de 75 stok
-> fotoğraf yayına girdi, içeriği kalemle çelişen onu 18 Ekim'de kalktı.
-> Fotoğrafsız kalemler nedenleriyle aşağıda.
+> **Durum (24 Kas 2026):** 103 kalemin 78'inde operatörün kendi görsel seti
+> (`public/menu/studio/`, aşağıda "Operatörün seti"). Önceki stok fotoğraf
+> bölümleri (17-18 Eki 2026) tarihçedir: o kalemlerde canlı veritabanı artık
+> yeni seti taşır.
+
+> **Eski durum (18 Eki 2026):** 82 kalemin 68'inde stok fotoğraf.
 
 Operatör, 17 Eki 2026: _"menüdeki ürünlere telifsiz görseller bularak hem site
 hem uygulama tarafında yükle"_.
@@ -38,6 +39,48 @@ hem uygulama tarafında yükle"_.
   altında (`/menu`, `/menu/<kategori>` ve `/masa/<kod>`, hepsi `PageMenu`) ve
   ana sayfadaki "Şimdi barda olanlar" şeridinin altında. Ekranda en az bir
   fotoğraf varken çizilir.
+
+## Operatörün seti (24 Kas 2026)
+
+Operatör, 24 Kas 2026: _"ekteki görselleri ilgili ürünlere yükle ve diğer
+bağlantılı platformlara da gittiğinden emin olup maine gönder lafmobil ladmin
+lafpos vs. gibi"_. Set 85 görseldir (1280x720, L'Af baskılı bardak, kılıf ve
+kutular; üretim betiği ve istemleri zip'te `_tools/` altındaydı, repoya
+alınmadı).
+
+- **Dosyalar:** `public/menu/studio/<ad>.webp`, ortadan (ürüne göre
+  kaydırılarak) 720x720 kare kırpılmış WebP, ortalama 51 KB. Adlar yeni:
+  site-göreli fotoğrafın menü uçunda damgası yoktur ve uygulamanın disk
+  önbelleği adrese bağlıdır; eski bir adı yeniden kullanmak telefonlarda eski
+  fotoğrafı bırakırdı.
+- **Bağlama:** `db/migrations/20261124150000_menu_studio_photos.sql`, 78 satıra
+  `image = '/menu/studio/<ad>.webp'` yazar (`photoCutout` false). Satır yalnız
+  adı hâlâ migration'daki adsa yazılır; dosya bir kez çalışır (`_migrations`),
+  sonradan panelden değiştirilen fotoğraf sonraki deploy'da geri gelmez.
+  **Önceki 78 fotoğrafın yerine geçer** (panelden yüklenmiş JPEG'ler dahil),
+  eskileri repo tutmaz; geri almak için panelden yeniden yüklenir.
+- **Platformlar:** hepsi aynı alanı okur. Site, uygulama (`GET
+  /api/mobile/v1/menu`, `image` mutlak adres `https://laffogato.net/menu/studio/...`)
+  ve LafPOS (herkese açık menü ucu) değişikliği menünün önbellek penceresinde
+  (CDN 60 + 60 sn, uygulama 2 dk) görür. ladmin menüde görsel eşitlemez
+  (`docs/PANEL-MENU.md`: ad, açıklama, kategori, görsel ve alerjen eşitlenmez).
+  `docs/API-MOBILE.md` değişmedi, yalnız değerler.
+- **Eşlenmeyenler:** görsel olup kalemi olmayan yedi dosya yüklenmedi:
+  `L'Affogato 2/3/4` (aynı kalemin üç varyantı; `mnu-0004` ilkini taşır),
+  `Su (Cam)` (`mnu-0036` "0,5 lt" olduğu için PET), `Fincan Çay` (`mnu-0042`
+  "Demlik çay": bardak görseli), `Dana Jambonlu Panini`, `Ekşi Mayalı Salamlı
+  Sandviç` (menüde yok). Kalemi olup görseli olmayanlar eski fotoğrafını
+  korur (`mnu-0066`, `0067`, `0073`, `0080-0097`, `0099`, `0101-0103`).
+  `mnu-0075` "Hindi Fümeli Sandviç" kruvasanlı görseli taşır: kalem metni
+  ekmeğin cinsini söylemez, operatör teyit eder.
+- **Yapay zekâ üretimi.** Set yapay zekâ ile üretildi (zip'teki `gen.py`).
+  Aşağıdaki "Ev kuralı" bunu menü fotoğrafı olarak yasaklıyordu; operatör
+  açıkça isteyerek 24 Kas 2026'da bu istisnayı yaptı. Açık kalan: Ticari
+  Reklam Yön. m.18/8 (yapay zekâ kullanımının belirtilmesi) ve TKHK m.61-62'ye
+  göre üretilmiş görselin ürünü yanıltıp yanıltmadığı avukata sorulur;
+  "Görseller temsilidir" notu (`menu-photo-note.tsx`) bunu karşılamaz ve
+  "yapay zekâ ile üretilmiştir" ibaresi **eklenmedi**: müşteriye görünen
+  metin operatörün kararıdır.
 
 ## Lisans
 
@@ -78,7 +121,8 @@ Bir fotoğraf, kalemde olmayan bir malzemeyi, sosu, katmanı veya süslemeyi
 göstermez; kalem metninde adı geçen bir malzemeyi dışarıda bırakmaz ve hiçbir
 zaman başka bir ürün türünü göstermez. Yapay zekâ ile üretilmiş ya da kırpma,
 ışık ve renk düzeltmesi dışında değiştirilmiş bir görsel menü kalemi
-fotoğrafı olarak kullanılmaz. Kalemin tarifi değiştiğinde fotoğrafı yeniden
+fotoğrafı olarak kullanılmaz (24 Kas 2026 operatör istisnası: yukarıda
+"Operatörün seti"). Kalemin tarifi değiştiğinde fotoğrafı yeniden
 kontrol edilir. Alerjenler yalnız metinle bildirilir.
 
 "Görseller temsilidir" notu yalnız sunum farkını (bardak, süsleme düzeni,
