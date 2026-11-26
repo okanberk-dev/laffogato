@@ -2,6 +2,8 @@ import "server-only";
 
 import type { BackdropColumns } from "@/lib/admin/store";
 
+import { readStoredImage } from "@/lib/images/store";
+
 import { backdropFromImage } from "./from-image";
 import {
   decideScene,
@@ -67,10 +69,15 @@ async function readPhotoSafely(request: SceneRequest): Promise<PhotoReading> {
 
 async function readPhoto(request: SceneRequest): Promise<PhotoReading> {
   if (!request.photo) return { kind: "none" };
-  // Only an uploaded data URL is read: `backdropFromImage` never fetches an
-  // https link, and a site-relative file (`/menu/...`) is left to
-  // `scripts/backfill-backdrops.mjs`.
-  const found = await backdropFromImage(request.photo, {
+  // An uploaded photo is read: a data URL from the row itself, or one in our
+  // photo store (R2, 26 Kas 2026) from the bucket's public URL. Any other
+  // https link is never fetched, and a site-relative file (`/menu/...`) is
+  // left to `scripts/backfill-backdrops.mjs`.
+  const input = request.photo.startsWith("data:image/")
+    ? request.photo
+    : await readStoredImage(request.photo);
+  if (!input) return { kind: "unread" };
+  const found = await backdropFromImage(input, {
     hue: request.hue,
     category: request.category,
   });

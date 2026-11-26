@@ -120,9 +120,11 @@ duruma iki cevabı var (`src/lib/db/index.ts` ve aynı kurallarla
    yapılır. Bu olmadan Supabase'e HİÇBİR bağlantı kurulamaz - cutover'da değil,
    **ilk pooler bağlantısında** (yani §4 adım 2'de) gerekir.
    (Panel: Project Settings → Database → SSL Configuration → CA certificate.)
-   CA yalnızca Supabase host'larında uygulanır; Neon'a dönüşte env'in unutulmuş
-   olması hiçbir şeyi bozmaz - Node'da `ca` sistem köklerinin YERİNE geçtiği
-   için bu kapsamlama, tek adımlık geri dönüşün ta kendisidir.
+   26 Kas 2026'dan beri CA tanımlıysa her host'ta uygulanır ama sistem
+   köklerinin YANINA eklenir (`src/lib/db/ssl-config.mjs`); Neon'a dönüşte
+   env'in unutulmuş olması yine hiçbir şeyi bozmaz. (Önceden yalnız Supabase
+   host'larında uygulanıyordu: Node'da `ca` tek başına sistem köklerinin
+   YERİNE geçer, kapsamlama geri dönüşü korumak içindi.)
 2. **Ek emniyet:** `*.supabase.co` / `*.pooler.supabase.com` host'larında TLS,
    `sslmode` yazılmasa bile (hatta `sslmode=disable` yazılsa bile) **zorla
    açılır** - Supavisor düz metin oturumu kabul ettiği için aksi, üretimi
@@ -186,8 +188,8 @@ Sıfır kesinti hedefiyle, adım adım:
      yansıtmalı (paket veri değil, canlı veri kanıtı).
    Dördü de geçmeden `dbProvider` değiştirilmez, Neon kapatılmaz.
 7. **Geriye dönüş planı:** Vercel'de `DATABASE_URL`'i Neon'a geri almak tek
-   adımdır; `DATABASE_SSL_CA`'yı silmek GEREKMEZ (yalnız Supabase host'larında
-   uygulanır) ve Neon'daki veri cutover'dan sonra da silinmemiş olacak
+   adımdır; `DATABASE_SSL_CA`'yı silmek GEREKMEZ (sistem köklerinin yanına
+   eklenir) ve Neon'daki veri cutover'dan sonra da silinmemiş olacak
    (bkz. adım 8).
 8. **Söküm (en az 1 hafta sonra):** Neon projesi kapatılır. Kodda
    kaldırılacak bir şey yok: uygulama da betikler de bağlantı dizesini yalnız

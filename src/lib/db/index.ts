@@ -21,6 +21,7 @@ import { pingPanelOrders } from "@/lib/panel/orders-ping";
 
 import { createDb, type Db, type Executor } from "./client";
 import { databaseUrlFrom, isDatabaseUrlMissing } from "./database-url.mjs";
+import { sslConfigFor } from "./ssl-config.mjs";
 import type { CompiledQuery } from "./sql";
 
 export { type Db, type DbError, type DbResult } from "./client";
@@ -75,57 +76,23 @@ function resolveConnectionString(): string {
 }
 
 /**
- * DATABASE_SSL_CA is only usable when it is plainly PEM. A truncated paste
- * would fail the handshake anyway, but with an error that names X.509 innards
- * instead of the actual mistake - this names it once, loudly, at pool startup.
+ * The pool's settings for one connection string. The TLS rules (when TLS is
+ * on, `DATABASE_SSL_CA` on every host next to the system roots, full
+ * verification always) live in `./ssl-config.mjs`, shared with the scripts
+ * that open the same database.
  */
-function validCa(): boolean {
-  const ca = process.env.DATABASE_SSL_CA;
-  if (!ca) return false;
-  if (ca.includes("-----BEGIN CERTIFICATE-----")) return true;
-  console.error(
-    "[db] DATABASE_SSL_CA PEM görünmüyor (BEGIN CERTIFICATE yok) — yok sayılıyor",
-  );
-  return false;
-}
-
 export function poolConfig(connectionString: string): PoolConfig {
-  let sslmode = "";
-  let cleaned = connectionString;
-  let host = "";
-  try {
-    const url = new URL(connectionString);
-    // WHATWG URL, "özel olmayan" şemalarda (postgresql:) host'u KÜÇÜLTMEZ -
-    // https: ile küçülen aynı host burada olduğu gibi kalır. Emniyet kilidi
-    // harfe duyarlı kalsaydı, büyük harfli bir pooler host'u kilidi atlar ve
-    // DNS harfe duyarsız olduğu için bağlantı düz metin olarak BAŞARILI olurdu.
-    host = url.hostname.toLowerCase();
-    sslmode = url.searchParams.get("sslmode") ?? "";
-    // Hand pg a URL without the SSL params and configure `ssl` explicitly
-    // below. pg-connection-string treats sslmode=require as a deprecated alias
-    // and warns about it on every cold start, which shows up as an error-level
-    // line in the platform logs - noise that hides the entries that matter.
-    url.searchParams.delete("sslmode");
-    url.searchParams.delete("channel_binding");
-    cleaned = url.toString();
-  } catch {
-    // Not URL-shaped (a key=value DSN); fall back to a substring probe.
-    sslmode = /sslmode=([a-z-]+)/.exec(connectionString)?.[1] ?? "";
-  }
-  // Supabase'in uçları (doğrudan ve Supavisor pooler) TLS'siz oturumu kabul
-  // eder ama etmemeli: sslmode'suz bir Supabase dizesi yapıştırıldığında TLS'i
-  // kapatmak, üretim trafiğini sessizce düz metne düşürür. Bu satır sağlayıcı
-  // bağımlılığı değil, emniyet kilididir - ölçülen davranış için
-  // docs/SUPABASE-GECIS.md §2'ye bak.
-  const supabaseHost =
-    host.endsWith(".supabase.co") || host.endsWith(".pooler.supabase.com");
-  const wantsSsl = (sslmode !== "" && sslmode !== "disable") || supabaseHost;
-
+  const { connectionString: cleaned, ssl } = sslConfigFor(
+    connectionString,
+    process.env,
+  );
   return {
     connectionString: cleaned,
     // Serverless invocations are single-threaded and short-lived, so one
-    // connection per instance is the right shape; the provider's pooler does
-    // the real multiplexing.
+    // connection per instance is the right shape. Keep it at one: the
+    // self-hosted server (Coolify, 26 Kas 2026) has no pooler in front of it
+    // and Postgres' own `max_connections` (100) is the whole budget, shared by
+    // every warm instance, the scripts and the backups.
     max: 1,
     idleTimeoutMillis: 10_000,
     // Fail fast rather than holding a request open against a dead host: an
@@ -134,28 +101,7 @@ export function poolConfig(connectionString: string): PoolConfig {
     // itself waking a suspended compute can take longer than 5s; the first
     // request should wait rather than degrade.
     connectionTimeoutMillis: 15_000,
-    // Full verification, ALWAYS. Supabase's endpoints present a chain rooted
-    // in Supabase's own CA (measured: "self signed certificate in certificate
-    // chain" against system roots on every pooler endpoint), so a custom root
-    // can be supplied as PEM via DATABASE_SSL_CA - verification then runs
-    // against that root instead of the system set. What this deliberately does
-    // NOT offer is rejectUnauthorized:false: "encrypted but unverified" fails
-    // silently in the worst way, and the health layer would mask it as
-    // "database unreachable" and serve bundled data instead of erroring.
-    // The custom root is applied ONLY on Supabase hosts. Node's `ca` REPLACES
-    // the Mozilla roots rather than extending them, so an unscoped CA would
-    // break the documented one-step rollback: DATABASE_URL back to the old
-    // publicly-signed host while
-    // DATABASE_SSL_CA is still set would fail every publicly-signed handshake -
-    // and per the health layer, as "empty site", not as a 500.
-    ssl: wantsSsl
-      ? {
-          rejectUnauthorized: true,
-          ...(supabaseHost && validCa()
-            ? { ca: process.env.DATABASE_SSL_CA }
-            : {}),
-        }
-      : undefined,
+    ssl,
   };
 }
 
@@ -269,7 +215,10 @@ export async function dbHealth(): Promise<DbHealth> {
   try {
     const pool = getPool();
     await ensureSchemaFresh(pool);
-    return { db: "up", schema: (await schemaIsFresh(pool)) ? "fresh" : "stale" };
+    return {
+      db: "up",
+      schema: (await schemaIsFresh(pool)) ? "fresh" : "stale",
+    };
   } catch (err) {
     return {
       db: isDatabaseUrlMissing(err) ? "unconfigured" : "down",

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { canOptimizeImage } from "./local-image";
 
 /**
  * The opener every page but home shares (21 Kas 2026): the reference's
@@ -33,7 +34,7 @@ export function PageHero({
         <div className="page-hero-media media">
           <Image
             src={image.src}
-            unoptimized={image.src.startsWith("/gorsel/")}
+            unoptimized={!canOptimizeImage(image.src)}
             alt={image.alt ?? ""}
             fill
             priority

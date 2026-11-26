@@ -22,6 +22,7 @@ import { LOCATION } from "./data";
 import { openStatusDetail, useOpenStatus } from "./use-open-status";
 import { DEFAULT_PICKUP_MINUTES, type PageProps } from "./page-shared";
 import { cx } from "./cx";
+import { canOptimizeImage } from "./local-image";
 
 /**
  * /ziyaret, in the reference's cafés layout: the wide photograph and the
@@ -100,9 +101,9 @@ export function PageVisit({ visit, settings, images }: PageProps) {
               <div className="media ratio-4-3">
                 <Image
                   src={siteImage(images, "visit.tuzla").src}
-                  unoptimized={siteImage(images, "visit.tuzla").src.startsWith(
-                    "/gorsel/",
-                  )}
+                  unoptimized={
+                    !canOptimizeImage(siteImage(images, "visit.tuzla").src)
+                  }
                   alt={siteImage(images, "visit.tuzla").alt}
                   fill
                   sizes="(max-width: 767px) 100vw, 33vw"
@@ -140,10 +141,9 @@ export function PageVisit({ visit, settings, images }: PageProps) {
               <div className="media ratio-4-3">
                 <Image
                   src={siteImage(images, "visit.private").src}
-                  unoptimized={siteImage(
-                    images,
-                    "visit.private",
-                  ).src.startsWith("/gorsel/")}
+                  unoptimized={
+                    !canOptimizeImage(siteImage(images, "visit.private").src)
+                  }
                   alt={siteImage(images, "visit.private").alt}
                   fill
                   sizes="(max-width: 767px) 100vw, 33vw"

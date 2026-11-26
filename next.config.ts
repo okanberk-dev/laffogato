@@ -128,10 +128,38 @@ const DURABLE_COPY_HEADERS = [
   { key: "Referrer-Policy", value: "no-referrer" },
 ];
 
+/**
+ * The photo store's public address (Cloudflare R2, 26 Kas 2026;
+ * src/lib/images/store-core.mjs). Panel uploads live there, named by their
+ * content. next/image may resize them (and Vercel's image cache then stands
+ * in front of the bucket, so an `r2.dev` address is not hit by every visit),
+ * but only under `/img/`, the one prefix the store writes. Read at build
+ * time: a changed address takes a new deploy.
+ */
+function imageStorePattern(): URL | null {
+  const raw = (process.env.IMAGES_PUBLIC_BASE_URL ?? "").trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:") return null;
+    const base = url.pathname.replace(/\/+$/, "");
+    return new URL(`${url.origin}${base}/img/**`);
+  } catch {
+    return null;
+  }
+}
+
+const IMAGE_STORE_PATTERN = imageStorePattern();
+
 const nextConfig: NextConfig = {
   // Every response said `X-Powered-By: Next.js`: a free fingerprint for
   // whoever is matching the site against a framework advisory.
   poweredByHeader: false,
+  env: {
+    // The browser tells our photos apart from pasted links by this address
+    // (src/lib/images/public.ts). Public by nature: it is in every page.
+    NEXT_PUBLIC_IMAGES_BASE_URL: process.env.IMAGES_PUBLIC_BASE_URL ?? "",
+  },
   experimental: {
     /**
      * The admin posts a product's photos as base64 data URLs, all of them on
@@ -145,7 +173,12 @@ const nextConfig: NextConfig = {
      * whatever this says, and the panel's error page then replaces the form.
      * So the uploader keeps one save's photos under 4 MB and tells the
      * operator when a photo does not fit (`MAX_UPLOAD_TOTAL_LENGTH` in
-     * src/lib/admin/image-encode.ts). The lasting fix is object storage.
+     * src/lib/admin/image-encode.ts).
+     *
+     * With the photo store configured (26 Kas 2026) this no longer bites:
+     * each photo goes up on its own request (`/admin/gorsel-yukle`), and a
+     * save posts only their URLs. The limit stays for a deployment without
+     * the store, which still posts data URLs.
      */
     serverActions: { bodySizeLimit: "12mb" },
   },
@@ -156,6 +189,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     // A month at the edge: the sources in public/ change only on deploy.
     minimumCacheTTL: 2678400,
+    ...(IMAGE_STORE_PATTERN ? { remotePatterns: [IMAGE_STORE_PATTERN] } : {}),
   },
   async headers() {
     return [

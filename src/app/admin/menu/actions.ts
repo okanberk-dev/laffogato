@@ -18,6 +18,10 @@ import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import {
+  NEW_DATA_IMAGE_REFUSAL,
+  refusesNewDataImages,
+} from "@/lib/images/store";
+import {
   readMenuAllergens,
   tagsWithAllergens,
 } from "@/lib/admin/menu-allergens-schema";
@@ -270,6 +274,11 @@ export async function createMenuItemAction(
   const form = readMenuForm(formData);
   if (!form.ok) return form.result;
   const { input } = form;
+  if (refusesNewDataImages([input.image], [])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      image: NEW_DATA_IMAGE_REFUSAL,
+    });
+  }
   const scene = await menuScene(input, formData, null);
   const created = await createMenuItem({ ...input, ...scene });
   // A price on the menu that was not there before: the list changed.
@@ -309,6 +318,11 @@ export async function updateMenuItemAction(
   const { input } = form;
   const previous = await getMenuItem(id);
   if (!previous) return actionError("Bu kalem silinmiş; listeye dön.");
+  if (refusesNewDataImages([input.image], [previous.image])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      image: NEW_DATA_IMAGE_REFUSAL,
+    });
+  }
   const scene = await menuScene(input, formData, previous);
   // The prices and "Menüde göster" as the form loaded them: an untouched one
   // is not written back over the panel's or another tab's change, a touched

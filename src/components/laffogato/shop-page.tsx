@@ -28,6 +28,7 @@ import {
   toCartItem,
 } from "./ui";
 import { ProductSurface } from "./visuals";
+import { canOptimizeImage } from "./local-image";
 
 /** Major-unit price of a product, exact when the minor-unit figure is known. */
 function priceOf(p: Product): number {
@@ -306,9 +307,7 @@ export function PageShop({
         <div className="page-hero-media media">
           <Image
             src={siteImage(images, "hero.shop").src}
-            unoptimized={siteImage(images, "hero.shop").src.startsWith(
-              "/gorsel/",
-            )}
+            unoptimized={!canOptimizeImage(siteImage(images, "hero.shop").src)}
             alt={siteImage(images, "hero.shop").alt}
             fill
             priority

@@ -16,6 +16,10 @@ import {
   saveSiteImage,
 } from "@/lib/admin/site-images";
 import { findSiteImageSlot } from "@/lib/admin/site-images-core";
+import {
+  NEW_DATA_IMAGE_REFUSAL,
+  refusesNewDataImages,
+} from "@/lib/images/store";
 
 const ALT_MAX = 160;
 
@@ -89,6 +93,11 @@ export async function saveSiteImageAction(
   }
   if (upload === undefined && !stored) {
     return actionError("Önce bir fotoğraf seç.", { image: "Fotoğraf seç." });
+  }
+  if (upload && refusesNewDataImages([upload], [stored?.imageUrl])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      image: NEW_DATA_IMAGE_REFUSAL,
+    });
   }
   await saveSiteImage(key, upload ?? null, alt);
   await logAudit({

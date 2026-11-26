@@ -10,7 +10,7 @@ import { BUTTON, EmptyState, PageShell } from "@/components/admin/ui";
 import Link from "@/components/link";
 import { requireRole } from "@/lib/admin/auth";
 import { canAccess } from "@/lib/admin/roles";
-import { getSettings, listProducts } from "@/lib/admin/store";
+import { getSettings, listProductsForPanel } from "@/lib/admin/store";
 
 import { createManualOrderAction } from "../actions";
 
@@ -19,7 +19,10 @@ export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
   const session = await requireRole("orders");
-  const [all, settings] = await Promise.all([listProducts(), getSettings()]);
+  const [all, settings] = await Promise.all([
+    listProductsForPanel(),
+    getSettings(),
+  ]);
 
   const products: ManualProduct[] = all
     .filter((p) => p.isActive)

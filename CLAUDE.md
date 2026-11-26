@@ -34,7 +34,7 @@ yapılır.
 - **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 ·
   TypeScript · Zod
 - **Deploy hedefi:** Vercel
-- **Veri:** **Postgres**, `pg` sürücüsüyle. Veri **Neon'da** kalır, Supabase yalnız kimliktir (19 Eki 2026 incelemesi, docs/DATABASE.md; taşıma yordamı docs/SUPABASE-GECIS.md hazır ama uygulanmadı) ve koda
+- **Veri:** **Postgres**, `pg` sürücüsüyle. Veri **Neon'da** kalır, Supabase yalnız kimliktir (19 Eki 2026 incelemesi, docs/DATABASE.md; taşıma yordamı docs/SUPABASE-GECIS.md hazır ama uygulanmadı). **26 Kas 2026:** Neon'un transfer kotası base64 fotoğraflar yüzünden aşıldı; fotoğraflar Cloudflare R2'ye (`docs/GORSEL-DEPOSU.md`), veritabanı Coolify'a (Vultr Frankfurt; `docs/COOLIFY-GECIS.md`) taşınıyor. Kod hazır, iki geçiş de operatörün adımlarını bekliyor; `dbProvider` veri taşınana kadar `"Neon"`. Panel yüklemesi depo ayarlıysa `/admin/gorsel-yukle` ile R2'ye gider, satıra yalnız URL yazılır; yeni bir `data:image/` değeri o zaman reddedilir. Koda
   özgü bir bağımlılık yok — bağlantı dizesi değişince başka bir Postgres'e
   taşınır. **Taşımadan önce `docs/DATABASE.md`'deki sağlayıcı geçmişi uyarısını
   oku:** proje bir kez Supabase'den taşındı ve sebebi bir aylık kesintiydi.
@@ -1114,6 +1114,8 @@ adımlar yerelde koşturulur: typecheck, lint `--max-warnings=0`,
 | `PAYMENT_PROVIDER`               | `paynkolay` (her ortamda zorunlu)                         |
 | `PAYMENT_WEBHOOK_SECRET`         | Webhook HMAC anahtarı                                     |
 | `DATABASE_URL`                   | Postgres bağlantı dizesi (sağlayıcının pooled endpoint'i) |
+| `DATABASE_SSL_CA`                | Kendi CA'sıyla imzalı sunucunun kökü (PEM); her host'ta, sistem köklerinin yanında |
+| `IMAGES_S3_*`, `IMAGES_PUBLIC_BASE_URL` | Fotoğraf deposu (R2); beşi yoksa panel data URL saklar (`docs/GORSEL-DEPOSU.md`) |
 | `NEXT_PUBLIC_SITE_URL`           | metadataBase                                              |
 
 **NODE_ENV asla manuel set edilmez.** Next.js kendi yönetir.

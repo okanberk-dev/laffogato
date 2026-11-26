@@ -16,6 +16,7 @@
  */
 
 import type { BackdropColumns, BackdropSource } from "@/lib/admin/store";
+import { isStoreImage } from "@/lib/images/public";
 
 import {
   isBackdropKey,
@@ -41,14 +42,11 @@ export const VESSEL_FROM_CATEGORY = "";
  * change, still open in a tab): the row keeps its source and its hand choice.
  */
 export type BackdropChoice =
-  | { kind: "keep" }
-  | { kind: "auto" }
-  | { kind: "manual"; family: BackdropKey };
+  { kind: "keep" } | { kind: "auto" } | { kind: "manual"; family: BackdropKey };
 
 /** The vessel the operator asked for; `keep` when the field was not sent. */
 export type VesselChoice =
-  | { kind: "keep" }
-  | { kind: "set"; vessel: VesselKey | null };
+  { kind: "keep" } | { kind: "set"; vessel: VesselKey | null };
 
 /**
  * The form's scene value. A family key is a hand choice; `auto` and any value
@@ -81,7 +79,10 @@ export type PhotoKind = "none" | "upload" | "link";
 
 export function photoKind(photo: string | null | undefined): PhotoKind {
   if (!photo) return "none";
-  return photo.startsWith("data:image/") ? "upload" : "link";
+  // A photo in our store (R2) is an upload too: the save reads it back.
+  return photo.startsWith("data:image/") || isStoreImage(photo)
+    ? "upload"
+    : "link";
 }
 
 /**
@@ -157,8 +158,7 @@ export function decideScene(decision: SceneDecision): BackdropColumns {
     photoCutout = previous.photoCutout === true;
     hex = previous.backdropHex ?? null;
     // The stored family is an automatic pick only if the row was automatic.
-    autoFamily =
-      previousSource === "auto" ? (previous.backdrop ?? null) : null;
+    autoFamily = previousSource === "auto" ? (previous.backdrop ?? null) : null;
   }
 
   let family: string | null;

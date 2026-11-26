@@ -24,6 +24,7 @@ import {
   uploadTotalNotice,
   type EncodeSource,
 } from "@/lib/admin/image-encode";
+import { storeEncodedImage } from "@/lib/admin/image-upload-client";
 
 import { BUTTON } from "./ui/styles";
 
@@ -74,11 +75,18 @@ function canvasSource(bitmap: ImageBitmap, fileType: string): EncodeSource {
 }
 
 /**
- * The file → the stored data URL. GIFs may be animated: the first frame is
+ * The file → what the form stores. GIFs may be animated: the first frame is
  * kept. Opaque photos become JPEG; a photo with transparency keeps it as
  * WebP (PNG where the canvas cannot encode WebP), see `image-encode.ts`.
+ * The result then goes to the photo store and the form keeps its URL
+ * (`image-upload-client.ts`); without a store, the data URL itself.
  */
 async function resizeImage(file: File): Promise<string> {
+  const dataUrl = await encodeFile(file);
+  return storeEncodedImage(dataUrl, file.name);
+}
+
+async function encodeFile(file: File): Promise<string> {
   if (file.size > MAX_SOURCE_BYTES) {
     throw new Error(`${file.name} 12 MB'ı aşıyor.`);
   }

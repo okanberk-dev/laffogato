@@ -15,12 +15,17 @@ import { setAdminFlash } from "@/lib/admin/flash";
 import {
   createHomeHeroSlide,
   deleteHomeHeroSlide,
+  getHomeHeroSlide,
   importDefaultHomeSlides,
   moveHomeHeroSlide,
   setHomeHeroSlideActive,
   updateHomeHeroSlide,
 } from "@/lib/admin/home-hero";
 import { parseHomeHeroForm } from "@/lib/admin/home-hero-schema";
+import {
+  NEW_DATA_IMAGE_REFUSAL,
+  refusesNewDataImages,
+} from "@/lib/images/store";
 import { getSettings } from "@/lib/admin/store";
 
 /**
@@ -49,6 +54,11 @@ export async function createHomeSlideAction(
   await requireRole("content");
   const form = parseHomeHeroForm(formData);
   if (!form.ok) return actionError(REFUSED, form.fieldErrors);
+  if (refusesNewDataImages([form.input.image], [])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      imageUpload: NEW_DATA_IMAGE_REFUSAL,
+    });
+  }
   const created = await createHomeHeroSlide(form.input);
   await logAudit({
     action: "create",
@@ -72,6 +82,12 @@ export async function updateHomeSlideAction(
   await requireRole("content");
   const form = parseHomeHeroForm(formData);
   if (!form.ok) return actionError(REFUSED, form.fieldErrors);
+  const stored = await getHomeHeroSlide(id);
+  if (refusesNewDataImages([form.input.image], [stored?.image])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      imageUpload: NEW_DATA_IMAGE_REFUSAL,
+    });
+  }
   const updated = await updateHomeHeroSlide(id, form.input);
   // Deleted while the form was open: the audit log must not claim an edit.
   if (!updated) return actionError(GONE);

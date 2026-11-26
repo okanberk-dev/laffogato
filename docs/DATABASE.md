@@ -1,5 +1,12 @@
 # Veritabanı - Postgres (Neon)
 
+> **26 Kas 2026:** Neon ücretsiz planının aylık 5 GB transfer kotası base64
+> fotoğraflar yüzünden aşıldı (5,5 GB), site ~2 gün veritabanısız kaldı;
+> Neon Launch planına geçildi. Fotoğraflar R2'ye
+> ([GORSEL-DEPOSU.md](GORSEL-DEPOSU.md)), veri Coolify'a (Vultr Frankfurt,
+> [COOLIFY-GECIS.md](COOLIFY-GECIS.md)) taşınıyor; ikisi de operatörün
+> adımlarını bekliyor. Taşıma bitene dek aşağıdaki "Neon" durumu geçerlidir.
+
 > **Durum (23 Eyl 2026):** canlı veri **Neon**'dadır ve varsayılan orada
 > kalmaktır. 30 Ağu 2026'da veriyi mobil uygulamanın kimlik için kullandığı
 > Supabase projesine taşıma hedefi yazılmıştı; 2 Eyl 2026'dan beri iki depo
@@ -356,7 +363,8 @@ Bunun iki somut faydası var:
 > **Hangi sağlayıcı için:** aşağıdaki adımlar Supabase hedefi için
 > yazılmıştır (taşıma kararı verilirse). Bugünkü Neon kurulumunda Neon
 > panosundaki **pooled** (`-pooler`) bağlantı dizesi `DATABASE_URL`'e konur,
-> `DATABASE_SSL_CA` boş kalır (yalnız Supabase host'larında uygulanır); şema
+> `DATABASE_SSL_CA` boş kalır (tanımlıysa her host'ta sistem köklerinin
+> yanına eklenir, 26 Kas 2026; `src/lib/db/ssl-config.mjs`); şema
 > adımı (4) ve env sırası aynıdır.
 
 > **Sıra önemli: önce şemayı kur, sonra `DATABASE_URL`'i Vercel'e ekle.**

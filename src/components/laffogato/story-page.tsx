@@ -8,6 +8,7 @@ import Link from "@/components/link";
 import { PageHero } from "./page-hero";
 import { PRESS as SEED_PRESS, STORY } from "./data";
 import type { PageProps } from "./page-shared";
+import { canOptimizeImage } from "./local-image";
 
 /**
  * /hikayemiz, in the reference's story layout: the wide photograph and the
@@ -96,9 +97,9 @@ export function PageStory({
             <div className="media story-mosaic-lead">
               <Image
                 src={siteImage(images, "story.kosk").src}
-                unoptimized={siteImage(images, "story.kosk").src.startsWith(
-                  "/gorsel/",
-                )}
+                unoptimized={
+                  !canOptimizeImage(siteImage(images, "story.kosk").src)
+                }
                 alt={siteImage(images, "story.kosk").alt}
                 fill
                 sizes="(max-width: 767px) 100vw, 30vw"
@@ -149,9 +150,9 @@ export function PageStory({
           <div className="story-split-media media ratio-6-5">
             <Image
               src={siteImage(images, "story.founder").src}
-              unoptimized={siteImage(images, "story.founder").src.startsWith(
-                "/gorsel/",
-              )}
+              unoptimized={
+                !canOptimizeImage(siteImage(images, "story.founder").src)
+              }
               alt={siteImage(images, "story.founder").alt}
               fill
               sizes="(max-width: 767px) 100vw, 50vw"

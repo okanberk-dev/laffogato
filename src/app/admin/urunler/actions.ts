@@ -34,6 +34,10 @@ import { sceneColumns } from "@/lib/backdrop/scene";
 import type { MenuAllergen } from "@/lib/menu/allergens";
 import { discountRefusal, istanbulDayOf } from "@/lib/shop/discount";
 import { FOOD_LABEL_KEYS, SHOP_NUTS_TAG_ERROR } from "@/lib/shop/food-label";
+import {
+  NEW_DATA_IMAGE_REFUSAL,
+  refusesNewDataImages,
+} from "@/lib/images/store";
 
 function revalidateShop() {
   revalidatePath("/");
@@ -219,6 +223,12 @@ export async function createProductAction(
       fieldErrors: { [discount.field]: discount.message },
     };
   }
+  if (refusesNewDataImages(parsed.data.images, [])) {
+    return {
+      error: NEW_DATA_IMAGE_REFUSAL,
+      fieldErrors: { images: NEW_DATA_IMAGE_REFUSAL },
+    };
+  }
   const scene = await productScene(parsed.data, null);
   const created = await createProduct({
     ...toInput(parsed.data, form.allergens, form.tags),
@@ -248,6 +258,12 @@ export async function updateProductAction(
   // Deleted in another tab: say so instead of "kaydedildi" and an audit row
   // for a save that wrote nothing (admin audit CAT-28).
   if (!previous) return { error: PRODUCT_GONE_ERROR };
+  if (refusesNewDataImages(parsed.data.images, previous.images ?? [])) {
+    return {
+      error: NEW_DATA_IMAGE_REFUSAL,
+      fieldErrors: { images: NEW_DATA_IMAGE_REFUSAL },
+    };
+  }
   const scene = await productScene(parsed.data, previous);
   const saved = await updateProduct(
     id,

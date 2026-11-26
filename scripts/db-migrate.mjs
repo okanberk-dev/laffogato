@@ -21,6 +21,11 @@ import {
   databaseUrlFrom,
   isDatabaseUrlMissing,
 } from "../src/lib/db/database-url.mjs";
+// The app's own TLS rules (src/lib/db/index.ts poolConfig): one file, so the
+// first live step of a move (migrating the new host) cannot drift from what
+// the site will do. It also takes `sslmode` out of the string: `pg` lets the
+// parsed URL override the `ssl` object, which dropped DATABASE_SSL_CA here.
+import { sslConfigFor } from "../src/lib/db/ssl-config.mjs";
 
 const MIGRATIONS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -28,37 +33,6 @@ const MIGRATIONS_DIR = join(
   "db",
   "migrations",
 );
-
-// src/lib/db/index.ts poolConfig() ile AYNI kurallar. Bu betik TS modülünü
-// import edemediği için mantık burada tekrarlanır; iki yer ayrışırsa runbook'un
-// ilk canlı adımı (pooler'a migrate) sessizce bozulur - değişiklik ikisine
-// birden yapılır. (Ölçülmüş gerçek: Supabase uçları kendi kök CA'sını sunar ve
-// düz metin oturumu kabul eder; bkz. docs/SUPABASE-GECIS.md §2b.)
-function sslFor(connectionString) {
-  let sslmode = "";
-  let host = "";
-  try {
-    const url = new URL(connectionString);
-    // postgresql: "özel olmayan" şema - WHATWG host'u küçültmez, biz küçültürüz.
-    host = url.hostname.toLowerCase();
-    sslmode = url.searchParams.get("sslmode") ?? "";
-  } catch {
-    sslmode = /sslmode=([a-z-]+)/.exec(connectionString)?.[1] ?? "";
-  }
-  const supabaseHost =
-    host.endsWith(".supabase.co") || host.endsWith(".pooler.supabase.com");
-  const wantsSsl = (sslmode !== "" && sslmode !== "disable") || supabaseHost;
-  if (!wantsSsl) return undefined;
-  const ca = process.env.DATABASE_SSL_CA;
-  const caOk = ca && ca.includes("-----BEGIN CERTIFICATE-----");
-  if (ca && !caOk) {
-    console.error("[db:migrate] DATABASE_SSL_CA PEM görünmüyor — yok sayılıyor");
-  }
-  return {
-    rejectUnauthorized: true,
-    ...(supabaseHost && caOk ? { ca } : {}),
-  };
-}
 
 async function main() {
   // The app's own rule, from the one file both share: DATABASE_URL and
@@ -76,7 +50,8 @@ async function main() {
     process.exit(1);
   }
 
-  const client = new pg.Client({ connectionString: url, ssl: sslFor(url) });
+  const { connectionString, ssl } = sslConfigFor(url, process.env);
+  const client = new pg.Client({ connectionString, ssl });
   await client.connect();
 
   try {
@@ -110,8 +85,11 @@ async function main() {
       await client.query("begin");
       try {
         await client.query(sql);
+        // `on conflict`: a file may record itself (20261124150000 does, so
+        // the bundle's re-run sees it); a plain insert then broke the whole
+        // run on an empty database at that file.
         await client.query(
-          "insert into public._migrations (name) values ($1)",
+          "insert into public._migrations (name) values ($1) on conflict (name) do nothing",
           [file],
         );
         await client.query("commit");

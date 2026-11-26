@@ -9,6 +9,7 @@ import {
 
 import { FranchiseForm } from "./franchise-form";
 import { PageHero } from "./page-hero";
+import { canOptimizeImage } from "./local-image";
 
 /**
  * /franchise (operator, 22 Kas 2026: "franchise bölümü ekle form
@@ -224,7 +225,7 @@ export function FranchisePage({
             <div className="franchise-split-media media">
               <Image
                 src={conceptImage.src}
-                unoptimized={conceptImage.src.startsWith("/gorsel/")}
+                unoptimized={!canOptimizeImage(conceptImage.src)}
                 alt={conceptImage.alt}
                 fill
                 sizes="(max-width: 1023px) 100vw, 58vw"

@@ -47,3 +47,6 @@ next-env.d.ts
 /src/app/admin/design-lab/
 /src/app/admin/design-preview/
 /feedback-*.json
+
+# scripts/images-to-r2.mjs pre-write dumps (live data: never commit)
+/backups/

@@ -23,7 +23,7 @@ import {
   deleteCategory,
   getCategory,
   listCategories,
-  listProducts,
+  listProductsForPanel,
   restoreCategory,
   updateCategory,
   type CategoryInput,
@@ -91,7 +91,7 @@ export async function updateCategoryAction(
     // strands them, exactly as a delete would.
     const [categories, products] = await Promise.all([
       listCategories(),
-      listProducts(),
+      listProductsForPanel(),
     ]);
     const blocker =
       categorySlugTaken(form.input.slug, categories, id) ??
@@ -137,7 +137,7 @@ export async function deleteCategoryAction(
   }
   const [categories, products] = await Promise.all([
     listCategories(),
-    listProducts(),
+    listProductsForPanel(),
   ]);
   const blocker = categoryDeleteBlocker(category, categories, products);
   if (blocker) return actionError(blocker);
@@ -149,7 +149,7 @@ export async function deleteCategoryAction(
   // leave products with no category. Look again, and put this one back if so.
   const [after, productsAfter] = await Promise.all([
     listCategories(),
-    listProducts(),
+    listProductsForPanel(),
   ]);
   const stranded = categoryDeleteBlocker(category, after, productsAfter);
   if (stranded) {

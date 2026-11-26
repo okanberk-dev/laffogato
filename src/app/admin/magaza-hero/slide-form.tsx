@@ -25,6 +25,7 @@ import {
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
 import { Slide } from "@/components/laffogato/shop-hero-slider";
 import Link from "@/components/link";
+import { storeEncodedImage } from "@/lib/admin/image-upload-client";
 import { SHOP_HERO_LIMITS as L } from "@/lib/admin/shop-hero-schema";
 
 export interface SlideDefaults {
@@ -126,7 +127,9 @@ export function SlideForm({
     setProcessing(true);
     setError(null);
     try {
-      const url = await resizeImage(file);
+      // Shrunk here, then into the photo store; the form keeps its URL
+      // (the data URL itself on a deployment without the store).
+      const url = await storeEncodedImage(await resizeImage(file), file.name);
       setImageUrl(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Görsel işlenemedi.");

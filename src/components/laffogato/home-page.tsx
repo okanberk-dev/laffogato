@@ -36,6 +36,7 @@ import { splitLead } from "./split-lead";
 import { useKaraokeToday } from "./use-karaoke-today";
 import { useOpenStatus } from "./use-open-status";
 import { MenuPlate, ProductSurface } from "./visuals";
+import { canOptimizeImage } from "./local-image";
 
 /**
  * The home page (21 Kas 2026): the film (home-hero.tsx), then the
@@ -243,9 +244,9 @@ export function PageHome({
         <div className="split-media media">
           <Image
             src={siteImage(images, "home.signature").src}
-            unoptimized={siteImage(images, "home.signature").src.startsWith(
-              "/gorsel/",
-            )}
+            unoptimized={
+              !canOptimizeImage(siteImage(images, "home.signature").src)
+            }
             alt={siteImage(images, "home.signature").alt}
             fill
             sizes="(max-width: 1023px) 100vw, 63vw"
@@ -315,7 +316,7 @@ export function PageHome({
                 <div key={p.key} className="media ratio-4-3">
                   <Image
                     src={p.src}
-                    unoptimized={p.src.startsWith("/gorsel/")}
+                    unoptimized={!canOptimizeImage(p.src)}
                     alt={p.alt}
                     fill
                     sizes="(max-width: 767px) 100vw, 33vw"
@@ -580,7 +581,7 @@ function AppBlock({
             <div className="media ratio-6-5">
               <Image
                 src={photo.src}
-                unoptimized={photo.src.startsWith("/gorsel/")}
+                unoptimized={!canOptimizeImage(photo.src)}
                 alt={photo.alt}
                 fill
                 loading="lazy"
@@ -627,9 +628,9 @@ function KaraokeBlock({
         <div className="media ratio-16-9">
           <Image
             src={siteImage(images, "home.karaoke").src}
-            unoptimized={siteImage(images, "home.karaoke").src.startsWith(
-              "/gorsel/",
-            )}
+            unoptimized={
+              !canOptimizeImage(siteImage(images, "home.karaoke").src)
+            }
             alt={siteImage(images, "home.karaoke").alt}
             fill
             sizes="(max-width: 1200px) 100vw, 1216px"

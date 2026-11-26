@@ -1,6 +1,7 @@
 import "server-only";
 
 import { etagFromDigest, ifNoneMatchHits } from "@/lib/http/etag";
+import { isOwnImageUrl } from "@/lib/images/store";
 
 import {
   decodeDataImage,
@@ -33,6 +34,10 @@ export function requestedImageVersion(request: Request): string {
 /**
  * Serves one stored image.
  *
+ * - A photo moved to the photo store (R2, 26 Kas 2026) → 307 to its URL, so
+ *   a `/gorsel/...` address already out there (an app's cache, a sent
+ *   e-mail, a search result) keeps showing the photo. Five minutes of
+ *   caching: the row may get another photo, the path stays the same.
  * - No bytes (missing row, or an `https://` value that is not ours to serve) → 404.
  * - `If-None-Match` matching the content → 304 with no body.
  * - `?v=` matching the content → the bytes, cacheable forever.
@@ -42,6 +47,15 @@ export function imageResponse(
   request: Request,
   stored: string | undefined,
 ): Response {
+  if (stored && isOwnImageUrl(stored)) {
+    return new Response(null, {
+      status: 307,
+      headers: {
+        Location: stored,
+        "Cache-Control": IMAGE_CACHE_CONTROL,
+      },
+    });
+  }
   const image = decodeDataImage(stored);
   if (!image) return new Response("Not found", { status: 404 });
 

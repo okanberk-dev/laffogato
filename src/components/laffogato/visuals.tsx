@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import { isLocalStatic } from "./local-image";
+import { canOptimizeImage } from "./local-image";
 
 /*
  * Product and menu media. A photo when the panel has one; otherwise the
@@ -29,9 +29,23 @@ export function ProductSurface({
 }) {
   const cover = images?.find((u) => typeof u === "string" && u.length > 0);
   if (!cover) return <span className="media-empty" aria-hidden="true" />;
+  if (canOptimizeImage(cover)) {
+    // A photo in our store (R2): next/image sends the width the card needs,
+    // and Vercel's image cache stands in front of the bucket.
+    return (
+      <Image
+        className="media-img"
+        src={cover}
+        alt={label ?? "Ürün görseli"}
+        fill
+        sizes="(max-width: 760px) 50vw, (max-width: 1200px) 33vw, 25vw"
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : "auto"}
+      />
+    );
+  }
   return (
-    // The host of a panel URL is not known at build time, so next/image
-    // cannot whitelist it.
+    // A pasted link on some other host: next/image cannot whitelist it.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className="media-img"
@@ -58,9 +72,10 @@ export function MenuPlate({
   sizes?: string;
 }) {
   if (!image) return <span className="media-empty" aria-hidden="true" />;
-  if (isLocalStatic(image)) {
-    // The site's own photos are 900-1024 px squares; next/image sends the
-    // width the card needs instead of the whole file.
+  if (canOptimizeImage(image)) {
+    // The site's own photos (900-1024 px squares) and the photos in our
+    // store (R2, up to 1600 px): next/image sends the width the card needs
+    // instead of the whole file.
     return (
       <Image
         className="media-img media-img--contain"

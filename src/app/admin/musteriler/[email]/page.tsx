@@ -53,7 +53,7 @@ import {
   customerLifetimeOrders,
   customerOrdersByEmail,
   getSettings,
-  listProducts,
+  listProductsForPanel,
   type AdminOrder,
 } from "@/lib/admin/store";
 import { adminListCustomerCoupons } from "@/lib/customer/coupons";
@@ -195,7 +195,8 @@ export default async function CustomerDetailPage({
   // Resolve wishlist product names (best-effort).
   let wishlistNames: string[] = [];
   if (member && member.wishlist.length > 0) {
-    const products = await listProducts();
+    // Names only: the full rows carry every photo (26 Kas 2026: URLs now).
+    const products = await listProductsForPanel();
     const byId = new Map(products.map((p) => [p.id, p.name]));
     wishlistNames = member.wishlist.map((id) => byId.get(id) ?? id);
   }

@@ -26,6 +26,10 @@ import {
   setShopHeroSlideActive,
   updateShopHeroSlide,
 } from "@/lib/admin/store";
+import {
+  NEW_DATA_IMAGE_REFUSAL,
+  refusesNewDataImages,
+} from "@/lib/images/store";
 
 const PANEL = "/admin/magaza-hero";
 const REFUSED = "Formdaki uyarıları gider.";
@@ -50,6 +54,11 @@ export async function createSlideAction(
   await requireRole("shopHero");
   const form = parseShopHeroForm(formData);
   if (!form.ok) return actionError(REFUSED, form.fieldErrors);
+  if (refusesNewDataImages([form.input.imageUrl], [])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      imageUrl: NEW_DATA_IMAGE_REFUSAL,
+    });
+  }
   const created = await createShopHeroSlide(form.input);
   await logAudit({
     action: "create",
@@ -73,6 +82,12 @@ export async function updateSlideAction(
   await requireRole("shopHero");
   const form = parseShopHeroForm(formData);
   if (!form.ok) return actionError(REFUSED, form.fieldErrors);
+  const stored = await getShopHeroSlide(id);
+  if (refusesNewDataImages([form.input.imageUrl], [stored?.imageUrl])) {
+    return actionError(NEW_DATA_IMAGE_REFUSAL, {
+      imageUrl: NEW_DATA_IMAGE_REFUSAL,
+    });
+  }
   const updated = await updateShopHeroSlide(id, form.input);
   // Deleted in another tab while the form was open: say so, and do not
   // write an audit row for an edit that saved nothing (admin audit CAT-28).

@@ -23,6 +23,7 @@ import {
   GridToggle,
   SortMenu,
 } from "./ui";
+import { canOptimizeImage } from "./local-image";
 
 const SORTS = [
   { value: "featured", label: "Menü sırası" },
@@ -163,7 +164,7 @@ export function PageMenu({ menu, settings, images }: PageProps) {
       <div className="page-hero-media media">
         <Image
           src={heroImage.src}
-          unoptimized={heroImage.src.startsWith("/gorsel/")}
+          unoptimized={!canOptimizeImage(heroImage.src)}
           alt={heroImage.alt ?? ""}
           fill
           priority
