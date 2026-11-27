@@ -133,6 +133,7 @@ sipariş yazılmaz ya da kapanmaz; menüde Satışta bilgisine dokunulmaz). Kara
 | Değişken                | Nerede        | Açıklama                                                                                            |
 | ----------------------- | ------------- | --------------------------------------------------------------------------------------------------- |
 | `LAFPOS_SYNC_SECRET`    | site (Vercel) | LafPOS'un anahtarı, en az 32 karakter; daha kısası tanımsız sayılır. Yoksa LafPOS kapalı (aşağıda). |
+| `LAFPOS_SYNC_SECRET_ONCEKI` | site (Vercel) | Yalnız anahtar değişirken: LafPOS'un **önceki** değeri; LafPOS ikisinden biriyle imzalayabilir. Kuralları `LAFPOS_SYNC_SECRET`'ınki; o yoksa sayılmaz. Değişim bitince silinir (aşağıda "Anahtarı değiştirmek"). |
 | `LAFFOGATO_SYNC_SECRET` | LafPOS `.env` | Sitedekiyle **aynı** değer.                                                                         |
 | `LAFPOS_BRANCHES`       | site (Vercel) | LafPOS'un anahtarının konuştuğu şubeler, virgüllü; yoksa `marina`. İlki varsayılan (yukarıda "Şube"). |
 | `SITE_BRANCHES`         | site (Vercel) | Sitenin bildiği şubeler, virgüllü; yoksa `tuzla,marina` (Tuzla her zaman listede).                   |
@@ -157,6 +158,9 @@ sipariş yazılmaz ya da kapanmaz; menüde Satışta bilgisine dokunulmaz). Kara
   `docs/PANEL-KARAOKE.md` "Güvenlik"te. İsteği hangi anahtarın imzaladığını
   site iki anahtarı da deneyerek bulur (`src/lib/panel/signed-callers.ts`):
   her istekte ikisi de denenir, yanıtın süresi hangisinin tuttuğunu söylemez.
+  `LAFPOS_SYNC_SECRET_ONCEKI` tanımlıyken o da denenir; onunla imzalanan
+  istek de LafPOS'undur, aynı yetkiyle (olay kaydında `lafpos:<ad>`, fiyat
+  yazımı 403, karaoke dünden yarına).
 
 ## Hangi uçlar
 
@@ -484,24 +488,52 @@ kasanın işi bugünün odasıdır.
 
 ## Anahtarı değiştirmek
 
-1. Yeni değeri üretin (`openssl rand -base64 48`).
-2. Sitede `LAFPOS_SYNC_SECRET`'ı (Vercel, Production, Sensitive) ve LafPOS'ta
-   `.env`'deki `LAFFOGATO_SYNC_SECRET`'ı aynı değere çevirin; siteyi yeniden
-   yayımlayın, LafPOS sunucusunu yeniden başlatın. Arada geçen birkaç dakikada
-   LafPOS'un istekleri 401 alır; bar ekranı sonraki çekmede eşitlenir, sipariş
-   kaybolmaz (siparişin tek kaynağı sitedir).
-3. Panelin anahtarı bundan etkilenmez; o da kendi başına değişir
-   (`docs/PANEL-KARAOKE.md` "Anahtarı değiştirmek").
-4. Kafedeki makine çalınırsa ya da anahtarın sızdığından şüphelenirseniz hemen
-   değiştirin. Sitede değeri silmek LafPOS'u bütünüyle kapatır: sürüm ucu 503,
-   panel uçları LafPOS'a 401.
-5. LafPOS bu değişiklik yayına girmeden önce geçici olarak panelin anahtarıyla
-   çalıştıysa o anahtar kafedeki makinede durmuştur: kendi anahtarına geçince
-   panelinkini de değiştirin.
+**Önce site, sonra kasa, en son eski değerin silinmesi** (27 Kasım 2026). Kasa sitenin anahtarını artık ladmin'den
+alır: lafmaliyet'te kasanın site anahtarı (`ASILPOS_SITE_SECRET`, eski adı `LAFPOS_SITE_SECRET`) 10 dakikada bir
+`GET /api/panel/pos/baglanti` ile kasaya gider, kasa onu bekletir ve **gün kapanınca** `LAFFOGATO_SYNC_SECRET` olarak
+uygular (lafpos `docs/03-ENTEGRASYON.md` "Anahtar değişimi"). Kasanın yeni değere geçtiği anı site bilmez. 26 Kasım'da
+anahtar ladmin'de değişti, kasa onu gün sonunda uyguladı, sitede ise eski değer duruyordu: kasanın siteye her isteği
+reddedildi (Uzaktan'a da, kendi anahtarıyla), değerler elle kopyalanana dek. Bunun olmaması için site değişim boyunca iki değeri
+birden kabul eder: `LAFPOS_SYNC_SECRET` (yeni) ve `LAFPOS_SYNC_SECRET_ONCEKI` (önceki). Sıra:
+
+1. Yeni değeri üretin (`openssl rand -base64 48`). Panelin `KARAOKE_SYNC_SECRET`'ından ve lafmaliyet'in kendi
+   anahtarından (`ASILPOS_SYNC_SECRET`, eski adı `LAFPOS_SYNC_SECRET`) farklı olsun (yukarıda "Anahtar").
+2. **Önce site.** laffogato'nun Vercel projesinde, Production'da:
+   - `LAFPOS_SYNC_SECRET_ONCEKI` adıyla, "Sensitive", **bugünkü** değeri ekleyin. Vercel "Sensitive" değeri geri
+     göstermez: değeri kasanın `.env`'indeki `LAFFOGATO_SYNC_SECRET`'tan (ya da henüz değiştirmediğiniz ladmin'deki
+     `ASILPOS_SITE_SECRET`'tan) alın.
+   - `LAFPOS_SYNC_SECRET`'ı yeni değere çevirin.
+   - Siteyi yeniden yayımlayın: değişkenler yalnız yeni yayında okunur.
+
+   Denetleyin: aşağıdaki "Elle denemek" önce eski, sonra yeni değerle; ikisi de 200. Kasa hâlâ eski değerle imzalar ve
+   kabul edilir.
+3. **Sonra kasa.** ladmin'de `ASILPOS_SITE_SECRET`'ı yeni değere çevirin, paneli yeniden yayımlayın. Kasa yeni değeri
+   ilk gün sonunda uygular (gün açık değilse hemen) ve o andan sonra yeni değerle imzalar; site onu da kabul eder. Elle
+   kurulan kasada `.env`'deki `LAFFOGATO_SYNC_SECRET`'ı çevirip LafPOS'u yeniden başlatmak aynı adımdır.
+4. **En son önceki değeri silin.** Kasa yeni değeri uyguladıktan sonra (ladmin kasanın uyguladığı bağlantı sürümünü,
+   `uygulanan`, günlüğünde gösterir; birden çok kasa varsa hepsi) `LAFPOS_SYNC_SECRET_ONCEKI`'yi Vercel'den silin ve
+   siteyi yeniden yayımlayın. Silinmezse eski değer de geçerli kalır, değişimin anlamı kalmaz. Erken silinirse kasa 401
+   alır: önceki değeri geri ekleyip yeniden yayımlamak düzeltir, sipariş kaybolmaz (siparişin tek kaynağı sitedir).
+
+Ters sıra 26 Kasım'ın kesintisidir: kasa yeni değeri sitenin yayınından önce uygularsa site onu tanımaz. Önceki değer
+yalnız bugünkünün yanında sayılır (`signedCallerKeys`): `LAFPOS_SYNC_SECRET` silinince LafPOS `LAFPOS_SYNC_SECRET_ONCEKI`
+dursa da kapalıdır, aynı kurallar (en az 32 karakter, panelin değeriyle aynıysa yok sayılır) önceki değer için de
+geçerlidir. Aynı gün değişen Uzaktan anahtarı (`LAFPOS_CLOUD_SECRET`) bu sitede değil, lafpos'un bulut projesinde
+durur; onun sırası lafpos'ta.
+
+- **Anahtar sızdıysa önceki değer kullanılmaz.** Kafedeki makine çalınır ya da anahtarın sızdığından şüphelenirseniz
+  sitede `LAFPOS_SYNC_SECRET`'ı hemen yeni değere çevirin, `LAFPOS_SYNC_SECRET_ONCEKI`'yi eklemeyin (varsa silin) ve
+  yeniden yayımlayın: sızan değer önceki değer olarak kalırsa onu bilen de kabul edilir. Kasa yeni değeri alana dek
+  401 alır; bar ekranı sonraki çekmede eşitlenir. Sitede `LAFPOS_SYNC_SECRET`'ı silmek LafPOS'u bütünüyle kapatır:
+  sürüm ucu 503, panel uçları LafPOS'a 401.
+- Panelin anahtarı bundan etkilenmez; o da kendi başına değişir (`docs/PANEL-KARAOKE.md` "Anahtarı değiştirmek").
+- LafPOS bu değişiklik yayına girmeden önce geçici olarak panelin anahtarıyla çalıştıysa o anahtar kafedeki makinede
+  durmuştur: kendi anahtarına geçince panelinkini de değiştirin.
 
 Panelin anahtarını (`KARAOKE_SYNC_SECRET`) `LAFPOS_SYNC_SECRET` olarak yapıştırmak işe yaramaz: aynı değer LafPOS'un
 anahtarı sayılmaz (`signedCallerKeys`), `GET /api/pos/orders/version` 503 `not_configured` verir ve karışıklık
-hemen görünür. İki anahtar her zaman farklı olmalıdır.
+hemen görünür. `LAFPOS_SYNC_SECRET_ONCEKI` olarak yapıştırılan panel anahtarı da yok sayılır. İki anahtar her zaman
+farklı olmalıdır.
 
 ## Elle denemek
 
@@ -528,4 +560,5 @@ açık olması), `tests/panel-karaoke-sync-core.test.ts`
 (sürüm ucu ve karaoke işareti, veritabanısız), `tests/panel-tables-link.test.ts`
 (liste kuralları, plan, uç; veritabanısız) ve
 `tests/db-integration-panel-tables.test.ts` (`importCafeTables`, gerçek
-Postgres; `TEST_DATABASE_URL` yoksa atlanır).
+Postgres; `TEST_DATABASE_URL` yoksa atlanır). Anahtar değişimi (önceki değer):
+`tests/anahtar/` (`npm run test:anahtar`, CI'da değil).

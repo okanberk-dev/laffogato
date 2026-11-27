@@ -865,7 +865,10 @@ uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/orders/stage`,
 `/api/panel/calls/ack`, `/api/panel/karaoke`, `/api/pos/orders/version`, `/api/panel/tables`)
 **kendi anahtarıyla** çağırır: `LAFPOS_SYNC_SECRET`
 (`src/lib/panel/signed-callers.ts`; `KARAOKE_SYNC_SECRET`'e eşitse kapalı sayılır;
-lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar yokken LafPOS'un imzalı her
+lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar değişirken
+`LAFPOS_SYNC_SECRET_ONCEKI` önceki değeri de kabul ettirir: kasa yeni değeri gün
+sonunda aldığı için sıra önce site, sonra kasa, en son önceki değerin silinmesi
+(27 Kas 2026; `docs/LAFPOS.md` "Anahtarı değiştirmek"). Anahtar yokken LafPOS'un imzalı her
 isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı); açılışta sitenin adımı
 `docs/LAFPOS.md` "Varsayılan kapalı". LafPOS fiyat yazamaz (403), yalnız
 Tükendi / Satışta; karaokeyi yalnız dünden yarına okur (daha genişi 403); olay kaydında
