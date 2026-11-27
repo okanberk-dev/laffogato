@@ -14,7 +14,7 @@ import type { CacheTag } from "./tags";
  * minutes and its monthly compute ran out in September; most wakes were
  * public pages read by nobody in particular (docs/DATABASE.md "Uyanmalar").
  *
- * `unstable_cache` is the Data Cache of this Next (16.3.8) without
+ * `unstable_cache` is the Data Cache of this Next (16.4.6) without
  * `cacheComponents` and works inside `force-dynamic` pages (node_modules/
  * next/dist/docs/01-app/02-guides/caching-without-cache-components.md). On
  * Vercel it is the regional Runtime Cache, shared by every function
