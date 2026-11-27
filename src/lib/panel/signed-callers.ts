@@ -20,6 +20,8 @@ import {
  *   a request signed with either is LafPOS's (docs/LAFPOS.md "Anahtarı
  *   değiştirmek"): the till takes the new value at its day close, not at
  *   the moment this site is redeployed, and must not be refused in between.
+ *   Every 2xx answer names the value that signed (`SIGNED_KEY_HEADER`), so
+ *   ladmin can tell "taken as today's" from "taken as the previous one".
  *
  * Both sign the same way (karaoke-sync-core.ts); only the key differs. A
  * route names the callers it takes: the menu routes, the bar screen's two
@@ -36,6 +38,32 @@ export type SignedCaller = "panel" | "lafpos";
 
 /** The order a tie is settled in: two keys of the same value are the panel's. */
 const CALLERS: readonly SignedCaller[] = ["panel", "lafpos"];
+
+/**
+ * Which of the caller's values signed: `simdiki` (today's) or `onceki`
+ * (LafPOS's previous value, `LAFPOS_SYNC_SECRET_ONCEKI`). The panel's key
+ * has one value only, so a panel request is always `simdiki`.
+ */
+export type SignedKey = "simdiki" | "onceki";
+
+/** Who signed a request, and with which of its values. */
+export interface SignedBy {
+  caller: SignedCaller;
+  key: SignedKey;
+}
+
+/**
+ * The answer header that says which value signed (27 Kas 2026): every 2xx
+ * answer of a route that takes these keys carries it, the panel's too
+ * (always `simdiki`). ladmin checks the value it hands the till against
+ * `/api/pos/orders/version` and reads this: a 200 with `onceki` means the
+ * site takes that value only as the previous one (ladmin still hands out
+ * the old value), so deleting `LAFPOS_SYNC_SECRET_ONCEKI` then would cut
+ * the till off. A 2xx without it is an older site that cannot tell. It
+ * names the value, never carries it: only a caller holding a valid key
+ * gets a 2xx, and it knows which value it signed with.
+ */
+export const SIGNED_KEY_HEADER = "x-laf-anahtar";
 
 /**
  * The secrets of each caller a route takes that this deployment has: one
@@ -114,8 +142,39 @@ export function signedCallerKeys(
  * signed; each comparison is constant-time (`verifySignature`, CLAUDE.md
  * rule 7). Either LafPOS value makes the caller `lafpos`, with the same
  * rights. One value set as both keys is the panel's: such a deployment
- * cannot tell the two apart (docs/LAFPOS.md keeps them different).
+ * cannot tell the two apart (docs/LAFPOS.md keeps them different). `key`
+ * says which of the caller's values signed (`SignedKey`).
  */
+export function signedBy(
+  keys: SignedCallerKeys,
+  request: { headers: Headers },
+  method: "GET" | "POST" | "PUT",
+  url: URL,
+  body: string,
+): SignedBy | null {
+  const timestamp = request.headers.get(TIMESTAMP_HEADER);
+  const signature = request.headers.get(SIGNATURE_HEADER);
+  let found: SignedBy | null = null;
+  for (const name of CALLERS) {
+    const secrets = keys[name] ?? [];
+    for (let index = 0; index < secrets.length; index += 1) {
+      const signed = verifySignature(secrets[index], {
+        method,
+        url,
+        body,
+        timestamp,
+        signature,
+      });
+      // The current value is listed first (`signedCallerKeys`).
+      if (signed && found === null) {
+        found = { caller: name, key: index === 0 ? "simdiki" : "onceki" };
+      }
+    }
+  }
+  return found;
+}
+
+/** `signedBy` without the value: who signed `request`, or null (401). */
 export function signedCaller(
   keys: SignedCallerKeys,
   request: { headers: Headers },
@@ -123,20 +182,10 @@ export function signedCaller(
   url: URL,
   body: string,
 ): SignedCaller | null {
-  const timestamp = request.headers.get(TIMESTAMP_HEADER);
-  const signature = request.headers.get(SIGNATURE_HEADER);
-  let caller: SignedCaller | null = null;
-  for (const name of CALLERS) {
-    for (const secret of keys[name] ?? []) {
-      const signed = verifySignature(secret, {
-        method,
-        url,
-        body,
-        timestamp,
-        signature,
-      });
-      if (signed && caller === null) caller = name;
-    }
-  }
-  return caller;
+  return signedBy(keys, request, method, url, body)?.caller ?? null;
+}
+
+/** `SIGNED_KEY_HEADER` for a 2xx answer to a request `by` signed. */
+export function signedKeyHeader(by: SignedBy): Record<string, string> {
+  return { [SIGNED_KEY_HEADER]: by.key };
 }

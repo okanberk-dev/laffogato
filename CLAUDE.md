@@ -868,7 +868,9 @@ uçlarını (`/api/panel/menu`, `/api/panel/orders`, `/api/panel/orders/stage`,
 lafmaliyet'teki aynı adlı anahtardan ayrı değer). Anahtar değişirken
 `LAFPOS_SYNC_SECRET_ONCEKI` önceki değeri de kabul ettirir: kasa yeni değeri gün
 sonunda aldığı için sıra önce site, sonra kasa, en son önceki değerin silinmesi
-(27 Kas 2026; `docs/LAFPOS.md` "Anahtarı değiştirmek"). Anahtar yokken LafPOS'un imzalı her
+(27 Kas 2026; `docs/LAFPOS.md` "Anahtarı değiştirmek"). Bu uçların her 2xx yanıtı
+hangi değerin tuttuğunu `x-laf-anahtar: simdiki | onceki` ile söyler (`SIGNED_KEY_HEADER`):
+ladmin'in değeri `onceki` alıyorsa önceki değer silinmez. Anahtar yokken LafPOS'un imzalı her
 isteği reddedilir (sahip, 26 Eki 2026: varsayılan kapalı); açılışta sitenin adımı
 `docs/LAFPOS.md` "Varsayılan kapalı". LafPOS fiyat yazamaz (403), yalnız
 Tükendi / Satışta; karaokeyi yalnız dünden yarına okur (daha genişi 403); olay kaydında

@@ -15,8 +15,9 @@ import type { BranchPriceRow } from "@/lib/panel/branch-prices-core";
 import { chooseBranch, HOME_BRANCH } from "@/lib/panel/branches";
 import { digestOf, panelOrdersDigest } from "@/lib/panel/orders-feed";
 import {
-  signedCaller,
+  signedBy,
   signedCallerKeys,
+  signedKeyHeader,
   type SignedCaller,
 } from "@/lib/panel/signed-callers";
 
@@ -79,6 +80,13 @@ import {
  * `LAFPOS_SYNC_SECRET` only: the panel's key gets 401 here. No LafPOS key:
  * 503 `not_configured`. Bad, missing or stale signature: 401, nothing more
  * said. `src/proxy.ts` lets every `/api/*` path through untouched.
+ *
+ * The 200 names the LafPOS value that signed, `x-laf-anahtar: simdiki` or
+ * `onceki` (27 Kas 2026; signed-callers.ts `SIGNED_KEY_HEADER`). ladmin
+ * checks the value it hands the till here: `onceki` while
+ * `LAFPOS_SYNC_SECRET_ONCEKI` is still set means ladmin was not moved to
+ * the new value, and deleting the previous one would cut the till off
+ * (docs/LAFPOS.md "Anahtarı değiştirmek").
  */
 
 /**
@@ -145,13 +153,14 @@ export async function GET(request: Request) {
     );
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "GET", url, "");
-  if (!caller) {
+  const signer = signedBy(keys, request, "GET", url, "");
+  if (!signer) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },
     );
   }
+  const { caller } = signer;
   const choice = chooseBranch(
     process.env,
     caller,
@@ -201,6 +210,6 @@ export async function GET(request: Request) {
       // every 20 seconds); LafPOS keeps its 15-minute poll
       ...(menu ? { menu } : {}),
     },
-    { headers: NO_STORE },
+    { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
   );
 }

@@ -161,6 +161,16 @@ sipariş yazılmaz ya da kapanmaz; menüde Satışta bilgisine dokunulmaz). Kara
   `LAFPOS_SYNC_SECRET_ONCEKI` tanımlıyken o da denenir; onunla imzalanan
   istek de LafPOS'undur, aynı yetkiyle (olay kaydında `lafpos:<ad>`, fiyat
   yazımı 403, karaoke dünden yarına).
+- **Yanıt hangi değerin tuttuğunu söyler** (27 Kasım 2026). Aşağıdaki "Hangi
+  uçlar"ın her 2xx yanıtı (satış ucu dışında) `x-laf-anahtar` başlığını
+  taşır: `simdiki` (`LAFPOS_SYNC_SECRET` ya da panelin anahtarı) ya da
+  `onceki` (`LAFPOS_SYNC_SECRET_ONCEKI`). Değer değil, yalnız adıdır; 2xx'i
+  ancak geçerli bir anahtarla imzalayan alır, o da hangisiyle imzaladığını
+  bilir. 401 ve 503'te yoktur, ötekiler (400, 403, 409) taşımaz. ladmin
+  değişim sırasında kasaya verdiği değeri sürüm ucunda sınar ve bu başlığı
+  okur (aşağıda "Anahtarı değiştirmek"); başlıksız 2xx bu değişiklikten
+  önceki bir sitedir, söyleyemez. Kural `SIGNED_KEY_HEADER`,
+  `src/lib/panel/signed-callers.ts`.
 
 ## Hangi uçlar
 
@@ -505,15 +515,20 @@ birden kabul eder: `LAFPOS_SYNC_SECRET` (yeni) ve `LAFPOS_SYNC_SECRET_ONCEKI` (�
    - `LAFPOS_SYNC_SECRET`'ı yeni değere çevirin.
    - Siteyi yeniden yayımlayın: değişkenler yalnız yeni yayında okunur.
 
-   Denetleyin: aşağıdaki "Elle denemek" önce eski, sonra yeni değerle; ikisi de 200. Kasa hâlâ eski değerle imzalar ve
-   kabul edilir.
+   Denetleyin: aşağıdaki "Elle denemek" önce eski, sonra yeni değerle; ikisi de 200, `x-laf-anahtar` eskiyle `onceki`,
+   yeniyle `simdiki`. Kasa hâlâ eski değerle imzalar ve kabul edilir.
 3. **Sonra kasa.** ladmin'de `ASILPOS_SITE_SECRET`'ı yeni değere çevirin, paneli yeniden yayımlayın. Kasa yeni değeri
    ilk gün sonunda uygular (gün açık değilse hemen) ve o andan sonra yeni değerle imzalar; site onu da kabul eder. Elle
-   kurulan kasada `.env`'deki `LAFFOGATO_SYNC_SECRET`'ı çevirip LafPOS'u yeniden başlatmak aynı adımdır.
-4. **En son önceki değeri silin.** Kasa yeni değeri uyguladıktan sonra (ladmin kasanın uyguladığı bağlantı sürümünü,
-   `uygulanan`, günlüğünde gösterir; birden çok kasa varsa hepsi) `LAFPOS_SYNC_SECRET_ONCEKI`'yi Vercel'den silin ve
-   siteyi yeniden yayımlayın. Silinmezse eski değer de geçerli kalır, değişimin anlamı kalmaz. Erken silinirse kasa 401
-   alır: önceki değeri geri ekleyip yeniden yayımlamak düzeltir, sipariş kaybolmaz (siparişin tek kaynağı sitedir).
+   kurulan kasada `.env`'deki `LAFFOGATO_SYNC_SECRET`'ı çevirip LafPOS'u yeniden başlatmak aynı adımdır. ladmin'in
+   sınaması bu adımdan sonra siteden `x-laf-anahtar: simdiki` almalıdır; `onceki` alıyorsa ladmin hâlâ eski değeri
+   dağıtıyor (değişken çevrilmedi ya da panel yeniden yayımlanmadı): kasa yeni değeri hiç almayacak.
+4. **En son önceki değeri silin.** İki koşul birden: ladmin'in sınaması siteden `x-laf-anahtar: simdiki` alıyor (ladmin
+   yeni değeri dağıtıyor; `onceki` ise silmeyin, önce 3. adımı tamamlayın) ve kasa yeni değeri uyguladı (ladmin kasanın
+   uyguladığı bağlantı sürümünü, `uygulanan`, günlüğünde gösterir; birden çok kasa varsa hepsi). Elle de görülür:
+   "Elle denemek" kasanın `.env`'indeki `LAFFOGATO_SYNC_SECRET` ile 200 ve `simdiki` veriyorsa kasa yeni değerle
+   imzalıyor. Sonra `LAFPOS_SYNC_SECRET_ONCEKI`'yi Vercel'den silin ve siteyi yeniden yayımlayın. Silinmezse eski değer
+   de geçerli kalır, değişimin anlamı kalmaz. Erken silinirse kasa 401 alır: önceki değeri geri ekleyip yeniden
+   yayımlamak düzeltir, sipariş kaybolmaz (siparişin tek kaynağı sitedir).
 
 Ters sıra 26 Kasım'ın kesintisidir: kasa yeni değeri sitenin yayınından önce uygularsa site onu tanımaz. Önceki değer
 yalnız bugünkünün yanında sayılır (`signedCallerKeys`): `LAFPOS_SYNC_SECRET` silinince LafPOS `LAFPOS_SYNC_SECRET_ONCEKI`
@@ -543,11 +558,12 @@ TS=$(date +%s)
 CANON=$(printf '%s\nGET\n/api/pos/orders/version\n\n%s' \
   "$TS" "$(printf '' | sha256sum | cut -d' ' -f1)")
 SIG=$(printf '%s' "$CANON" | openssl dgst -sha256 -hmac "$SECRET" -hex | sed 's/^.* //')
-curl -s "https://laffogato.net/api/pos/orders/version" \
+curl -si "https://laffogato.net/api/pos/orders/version" \
   -H "x-laf-timestamp: $TS" -H "x-laf-signature: v1=$SIG"
 ```
 
-Sorgu boş olduğu için yolun ardından boş bir satır gelir.
+Sorgu boş olduğu için yolun ardından boş bir satır gelir. `-i` yanıt başlıklarını da basar: 200'de
+`x-laf-anahtar: simdiki` ya da `onceki` (yukarıda "Anahtar").
 
 Site: `src/lib/panel/signed-callers.ts` (hangi anahtar kimin),
 `src/app/api/pos/orders/version/route.ts`, `src/app/api/panel/karaoke/route.ts`,

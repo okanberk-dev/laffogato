@@ -4,8 +4,11 @@ import { signedHeaders, verifySignature } from "@/lib/panel/karaoke-sync-core";
 import {
   lafposPreviousSyncSecret,
   lafposSyncSecret,
+  SIGNED_KEY_HEADER,
+  signedBy,
   signedCaller,
   signedCallerKeys,
+  signedKeyHeader,
   type SignedCallerKeys,
 } from "@/lib/panel/signed-callers";
 
@@ -175,5 +178,78 @@ describe("signedCaller: önceki değer", () => {
     vi.mocked(verifySignature).mockClear();
     callerOf(plain, request(OLD_KEY));
     expect(verifySignature).toHaveBeenCalledTimes(2);
+  });
+});
+
+// Hangi değer tuttu (27 Kas 2026, uyum incelemesi 3. sorun): her 2xx aynı
+// görünüyordu, ladmin kendi değerinin sitede yalnız önceki değer olarak
+// kabul edildiğini göremiyordu. Panel adımı atlanmışken önceki değer
+// silinirse kasa kesilirdi.
+describe("signedBy: hangi değer tuttu (x-laf-anahtar)", () => {
+  const keys = signedCallerKeys(ROTATING, BOTH)!;
+
+  function byOf(k: SignedCallerKeys, key: string) {
+    const path = "/api/pos/orders/version";
+    return signedBy(k, request(key, path), "GET", new URL(path, BASE), "");
+  }
+
+  it("bugünkü değer simdiki, önceki değer onceki, panelinki simdiki", () => {
+    expect(byOf(keys, NEW_KEY)).toEqual({ caller: "lafpos", key: "simdiki" });
+    expect(byOf(keys, OLD_KEY)).toEqual({ caller: "lafpos", key: "onceki" });
+    expect(byOf(keys, PANEL_KEY)).toEqual({ caller: "panel", key: "simdiki" });
+    expect(byOf(keys, OTHER_KEY)).toBeNull();
+    expect(
+      signedBy(
+        keys,
+        { headers: new Headers() },
+        "GET",
+        new URL("/api/pos/orders/version", BASE),
+        "",
+      ),
+    ).toBeNull();
+  });
+
+  it("ladmin eski değeri dağıtmayı sürdürürse sınaması onceki görür; çevrilince simdiki", () => {
+    // Site: yeni + önceki. ladmin'in değeri hâlâ eski: kabul, ama `onceki`.
+    expect(byOf(keys, OLD_KEY)?.key).toBe("onceki");
+    // ladmin yeni değere çevrildi: `simdiki`; önceki artık silinebilir.
+    expect(byOf(keys, NEW_KEY)?.key).toBe("simdiki");
+    // Önceki silinince eski değer hiç geçmez.
+    const after = signedCallerKeys(
+      { KARAOKE_SYNC_SECRET: PANEL_KEY, LAFPOS_SYNC_SECRET: NEW_KEY },
+      BOTH,
+    )!;
+    expect(byOf(after, OLD_KEY)).toBeNull();
+    expect(byOf(after, NEW_KEY)).toEqual({ caller: "lafpos", key: "simdiki" });
+  });
+
+  it("signedCaller aynı kararı verir; yalnız değeri söylemez", () => {
+    for (const key of [PANEL_KEY, NEW_KEY, OLD_KEY, OTHER_KEY]) {
+      expect(callerOf(keys, request(key))).toBe(
+        byOf(keys, key)?.caller ?? null,
+      );
+    }
+  });
+
+  it("hangisi tutarsa tutsun her anahtar denenir", () => {
+    for (const key of [PANEL_KEY, NEW_KEY, OLD_KEY, OTHER_KEY]) {
+      vi.mocked(verifySignature).mockClear();
+      byOf(keys, key);
+      expect(verifySignature).toHaveBeenCalledTimes(3);
+    }
+  });
+
+  it("başlık yalnız değerin adını taşır, değeri değil", () => {
+    expect(SIGNED_KEY_HEADER).toBe("x-laf-anahtar");
+    expect(signedKeyHeader({ caller: "lafpos", key: "onceki" })).toEqual({
+      "x-laf-anahtar": "onceki",
+    });
+    expect(signedKeyHeader(byOf(keys, NEW_KEY)!)).toEqual({
+      "x-laf-anahtar": "simdiki",
+    });
+    const values = Object.values(signedKeyHeader(byOf(keys, OLD_KEY)!));
+    for (const secret of [PANEL_KEY, NEW_KEY, OLD_KEY]) {
+      expect(values.join("")).not.toContain(secret);
+    }
   });
 });
