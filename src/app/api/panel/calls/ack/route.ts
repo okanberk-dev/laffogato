@@ -8,8 +8,9 @@ import {
 } from "@/lib/panel/calls-ack-core";
 import { chooseBranch, splitBranch } from "@/lib/panel/branches";
 import {
-  signedCaller,
+  signedBy,
   signedCallerKeys,
+  signedKeyHeader,
   type SignedCaller,
 } from "@/lib/panel/signed-callers";
 
@@ -60,8 +61,9 @@ export async function POST(request: Request) {
     return deny(413, "too_large");
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "POST", url, body);
-  if (!caller) return deny(401, "unauthorized");
+  const signer = signedBy(keys, request, "POST", url, body);
+  if (!signer) return deny(401, "unauthorized");
+  const { caller } = signer;
   let raw: unknown;
   try {
     raw = JSON.parse(body);
@@ -91,7 +93,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { ok: true, call: { id: result.call.id, status: "acked" } },
-      { headers: NO_STORE },
+      { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
     );
   } catch (err) {
     console.error("[panel-calls] ack could not be written", err);

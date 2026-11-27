@@ -53,8 +53,10 @@ import {
   type BranchAvailability,
 } from "@/lib/panel/menu-availability-core";
 import {
-  signedCaller,
+  signedBy,
   signedCallerKeys,
+  signedKeyHeader,
+  type SignedBy,
   type SignedCaller,
 } from "@/lib/panel/signed-callers";
 import { OPTION_MENU_ITEM_IDS } from "@/lib/mobile/customization";
@@ -169,8 +171,9 @@ export async function GET(request: Request) {
   const keys = signedCallerKeys(process.env, CALLERS);
   if (!keys) return deny(503, "not_configured");
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "GET", url, "");
-  if (!caller) return deny(401, "unauthorized");
+  const signer = signedBy(keys, request, "GET", url, "");
+  if (!signer) return deny(401, "unauthorized");
+  const { caller } = signer;
   const choice = chooseBranch(
     process.env,
     caller,
@@ -229,7 +232,7 @@ export async function GET(request: Request) {
           }
         : {}),
     },
-    { headers: NO_STORE },
+    { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
   );
 }
 
@@ -243,8 +246,9 @@ export async function POST(request: Request) {
     return deny(413, "too_large");
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "POST", url, body);
-  if (!caller) return deny(401, "unauthorized");
+  const signer = signedBy(keys, request, "POST", url, body);
+  if (!signer) return deny(401, "unauthorized");
+  const { caller } = signer;
   let raw: unknown;
   try {
     raw = JSON.parse(body);
@@ -275,7 +279,7 @@ export async function POST(request: Request) {
   }
   const { branch } = choice;
   if (change.branchPrice) {
-    return writeBranchPrice(change, change.branchPrice, branch, caller);
+    return writeBranchPrice(change, change.branchPrice, branch, signer);
   }
 
   try {
@@ -292,7 +296,7 @@ export async function POST(request: Request) {
     if (Object.keys(fields).length === 0) {
       return NextResponse.json(
         { item: shape(view, branch, read.prices) },
-        { headers: NO_STORE },
+        { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
       );
     }
     // A field the writer would change moved here after it read it: its
@@ -380,7 +384,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(
       { item: shape(item, branch, after?.prices ?? read.prices) },
-      { headers: NO_STORE },
+      { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
     );
   } catch (err) {
     console.error("[panel-menu] change could not be written", err);
@@ -413,8 +417,9 @@ async function writeBranchPrice(
   change: PanelMenuChange,
   write: BranchPriceWrite,
   branch: string,
-  caller: SignedCaller,
+  signer: SignedBy,
 ) {
+  const { caller } = signer;
   if (branch === HOME_BRANCH) {
     return deny(400, "invalid", { field: "branch" });
   }
@@ -447,7 +452,7 @@ async function writeBranchPrice(
         write.effectiveFrom,
         now,
       );
-      if (!deleted) return await branchPriceSettled(change.id, branch);
+      if (!deleted) return await branchPriceSettled(change.id, branch, signer);
       rowsAfter = read.prices.filter(
         (r) => r.effectiveFrom !== write.effectiveFrom,
       );
@@ -458,7 +463,7 @@ async function writeBranchPrice(
       }
       if (held) {
         return sameBranchPrice(held, write)
-          ? branchPriceAnswer(read.view, branch, read.prices)
+          ? branchPriceAnswer(read.view, branch, read.prices, signer)
           : branchPriceStale(read, branch);
       }
       const written = await insertBranchPrice({
@@ -475,7 +480,7 @@ async function writeBranchPrice(
         // write sent twice at once, or another).
         return written.reason === "gone"
           ? deny(404, "not_found")
-          : await branchPriceSettled(change.id, branch, write);
+          : await branchPriceSettled(change.id, branch, signer, write);
       }
       rowsAfter = [...read.prices, written.row];
     }
@@ -498,6 +503,7 @@ async function writeBranchPrice(
       after?.view ?? read.view,
       branch,
       after?.prices ?? rowsAfter,
+      signer,
     );
   } catch (err) {
     console.error("[panel-menu] branch price could not be written", err);
@@ -510,13 +516,14 @@ function branchPriceAnswer(
   view: BranchView,
   branch: string,
   prices: readonly BranchPriceRow[],
+  signer: SignedBy,
 ) {
   return NextResponse.json(
     {
       item: shape(view, branch, prices),
       branchPrices: prices.map(toPanelBranchPrice),
     },
-    { headers: NO_STORE },
+    { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
   );
 }
 
@@ -538,6 +545,7 @@ function branchPriceStale(read: AtBranch, branch: string) {
 async function branchPriceSettled(
   id: string,
   branch: string,
+  signer: SignedBy,
   write?: Extract<BranchPriceWrite, { cancel: false }>,
 ) {
   const now = await readAtBranch(id, branch);
@@ -546,7 +554,7 @@ async function branchPriceSettled(
     ? now.prices.find((r) => r.effectiveFrom === write.effectiveFrom)
     : undefined;
   return held && write && sameBranchPrice(held, write)
-    ? branchPriceAnswer(now.view, branch, now.prices)
+    ? branchPriceAnswer(now.view, branch, now.prices, signer)
     : branchPriceStale(now, branch);
 }
 

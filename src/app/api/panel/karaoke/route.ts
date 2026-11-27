@@ -12,8 +12,9 @@ import {
 import { chooseBranch, KARAOKE_BRANCH } from "@/lib/panel/branches";
 import { panelAuditActor } from "@/lib/panel/menu-link-core";
 import {
-  signedCaller,
+  signedBy,
   signedCallerKeys,
+  signedKeyHeader,
   type SignedCaller,
 } from "@/lib/panel/signed-callers";
 
@@ -71,13 +72,14 @@ export async function GET(request: Request) {
     );
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "GET", url, "");
-  if (!caller) {
+  const signer = signedBy(keys, request, "GET", url, "");
+  if (!signer) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },
     );
   }
+  const { caller } = signer;
   const choice = chooseBranch(
     process.env,
     caller,
@@ -118,7 +120,7 @@ export async function GET(request: Request) {
         complete: true,
         reservations: [],
       },
-      { headers: NO_STORE },
+      { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
     );
   }
 
@@ -158,7 +160,7 @@ export async function GET(request: Request) {
       complete: rows.length <= PANEL_MAX_ROWS,
       reservations,
     },
-    { headers: NO_STORE },
+    { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
   );
 }
 
@@ -204,8 +206,9 @@ export async function POST(request: Request) {
     return deny(413, "too_large");
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "POST", url, body);
-  if (!caller) return deny(401, "unauthorized");
+  const signer = signedBy(keys, request, "POST", url, body);
+  if (!signer) return deny(401, "unauthorized");
+  const { caller } = signer;
   let raw: Record<string, unknown>;
   try {
     const parsed: unknown = JSON.parse(body);
@@ -255,7 +258,10 @@ export async function POST(request: Request) {
         const status = res.error === "not_found" ? 404 : 409;
         return deny(status, res.error);
       }
-      return NextResponse.json({ ok: true }, { headers: NO_STORE });
+      return NextResponse.json(
+        { ok: true },
+        { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
+      );
     }
     if (raw.action !== "create")
       return deny(400, "invalid", { field: "action" });
@@ -278,7 +284,7 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { reservation: toPanelReservation(res.reservation) },
-      { status: 201, headers: NO_STORE },
+      { status: 201, headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
     );
   } catch (err) {
     console.error("[panel-karaoke] desk write failed", err);

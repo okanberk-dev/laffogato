@@ -15,6 +15,7 @@
     "test:saved-cards": "bash scripts/test-saved-cards.sh",
     "test:sube": "vitest run --config tests/sube/vitest.config.mts",
     "test:gecis": "vitest run --config tests/gecis/vitest.config.mts",
+    "test:anahtar": "vitest run --config tests/anahtar/vitest.config.mts",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:bundle": "node scripts/db-bundle.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md,css}\"",

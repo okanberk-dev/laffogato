@@ -17,8 +17,9 @@ import {
   type PanelClosedOrder,
 } from "@/lib/panel/orders-feed-core";
 import {
-  signedCaller,
+  signedBy,
   signedCallerKeys,
+  signedKeyHeader,
   type SignedCaller,
 } from "@/lib/panel/signed-callers";
 
@@ -134,13 +135,14 @@ export async function GET(request: Request) {
     );
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "GET", url, "");
-  if (!caller) {
+  const signer = signedBy(keys, request, "GET", url, "");
+  if (!signer) {
     return NextResponse.json(
       { error: "unauthorized" },
       { status: 401, headers: NO_STORE },
     );
   }
+  const { caller } = signer;
   const choice = chooseBranch(
     process.env,
     caller,
@@ -195,6 +197,6 @@ export async function GET(request: Request) {
       calls: answer.calls,
       closed: answer.closed,
     },
-    { headers: NO_STORE },
+    { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
   );
 }

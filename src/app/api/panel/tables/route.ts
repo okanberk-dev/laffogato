@@ -7,8 +7,9 @@ import {
 } from "@/lib/admin/cafe-tables";
 import { chooseBranch, splitBranch } from "@/lib/panel/branches";
 import {
-  signedCaller,
+  signedBy,
   signedCallerKeys,
+  signedKeyHeader,
   type SignedCaller,
 } from "@/lib/panel/signed-callers";
 import {
@@ -77,8 +78,9 @@ export async function PUT(request: Request) {
     return deny(413, "too_large");
   }
   const url = new URL(request.url);
-  const caller = signedCaller(keys, request, "PUT", url, body);
-  if (!caller) return deny(401, "unauthorized");
+  const signer = signedBy(keys, request, "PUT", url, body);
+  if (!signer) return deny(401, "unauthorized");
+  const { caller } = signer;
   let raw: unknown;
   try {
     raw = JSON.parse(body);
@@ -150,6 +152,6 @@ export async function PUT(request: Request) {
       updated: result.updated.length,
       unchanged: result.unchanged,
     },
-    { headers: NO_STORE },
+    { headers: { ...NO_STORE, ...signedKeyHeader(signer) } },
   );
 }
