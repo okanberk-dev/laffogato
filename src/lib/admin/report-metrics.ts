@@ -53,14 +53,19 @@ export const REPORT_METRICS: Readonly<Record<ReportMetric, ReportMetricSpec>> =
       of: (b) => b.orderCount,
     },
     // Gross per order, as the strip's figure: a bucket with no order has no
-    // basket (0, not a division by nothing).
+    // basket (0, not a division by nothing). Prepaid karaoke is in the
+    // bucket's gross but is not an order's: it is taken out first.
     basket: {
       key: "basket",
       chart: "ortalama sepet",
       column: "Ortalama sepet",
       unit: "money",
       of: (b) =>
-        b.orderCount > 0 ? Math.round(b.grossMinor / b.orderCount) : 0,
+        b.orderCount > 0
+          ? Math.round(
+              (b.grossMinor - (b.karaokeGrossMinor ?? 0)) / b.orderCount,
+            )
+          : 0,
     },
   };
 

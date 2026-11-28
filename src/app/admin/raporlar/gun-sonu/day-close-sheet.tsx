@@ -93,7 +93,8 @@ export function DayCloseSheet({
       <header className="hidden print:block">
         <h2 className="text-lg font-semibold">Gün sonu · {dayLabel}</h2>
         <p className="text-xs">
-          Hazırlandı: {printedAt}. Ciro Raporlar ile aynı sayılır.
+          Hazırlandı: {printedAt}. Ciro kutuları siparişlerindir;
+          Raporlar&apos;ın bu günü karaoke ön ödemesini de sayar.
         </p>
       </header>
 
@@ -338,6 +339,20 @@ export function DayCloseSheet({
                   </>
                 ),
                 strong: true,
+              },
+              {
+                // Raporlar's bar for the day: the orders' net and this one.
+                label: "Siparişlerle birlikte günün neti",
+                value: (
+                  <>
+                    <Money
+                      minor={headline.netRevenueMinor + karaoke.netMinor}
+                    />
+                    <span className="block text-xs font-normal text-[var(--admin-text-soft)]">
+                      Raporlar&apos;ın bu günü
+                    </span>
+                  </>
+                ),
               },
             ]}
           />

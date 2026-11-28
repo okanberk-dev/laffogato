@@ -160,10 +160,12 @@ açılmaz).
 
 **Ne yazar.**
 
-- **Ciro kutuları** Raporlar'ın o günkü çubuğunun aynısıdır: ödemesi alınmış
-  siparişler, ödeme bekleyen ve iptal edilen sayılmaz, iade siparişin
-  verildiği günden düşülür. Aynı fonksiyonlar sayar (`headlineFrom`,
-  `reportPeriodFilter`), bir test ikisini eşit tutar.
+- **Ciro kutuları** günün siparişleridir: ödemesi alınmış siparişler, ödeme
+  bekleyen ve iptal edilen sayılmaz, iade siparişin verildiği günden
+  düşülür. Aynı fonksiyonlar sayar (`headlineFrom`, `reportPeriodFilter`).
+  Raporlar'ın o günkü çubuğu 22 Kas 2026'dan beri buna karaoke ön ödemesini
+  ekler: Karaoke bölümündeki "Siparişlerle birlikte günün neti" satırı o
+  çubuğun aynısıdır.
 - **Siparişler**: kanala (Web, Uygulama, Panelden) ve duruma göre.
 - **İadeler**: o gün yapılan iadeler, sipariş hangi gün verilmiş olursa
   olsun, saatiyle ve nereye gittiğiyle. "Kayıt: para hareket etmez" satırının
@@ -560,7 +562,7 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   ve Profil sekmesi yok.
 - **Raporlar**: dönem başlıkta segment denetimi (`ui/segmented.tsx`); beş
   rakam şeritte, her biri **bir önceki aynı uzunluktaki dönemle**
-  (`analyticsHeadlineCompared`, iki dönemin tek okuması); önceki dönem
+  (`reportsOverview`, iki dönemin tek okuması); önceki dönem
   şimdiki gibi yarım kalan son kovasının aynı noktasında kesilir
   (`previousPeriodEnd`: aynı saat, gün, hafta ya da ay geri; ayın 31'i
   kısa ayın son günü), yoksa düz satış pazartesi sabahı ve ayın 1'inde
@@ -570,7 +572,17 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   ortalama sepet), başlığı ve "en yüksek"i ona göre yazılır, başka dönem
   seçilince seçim kalır. Kovalar net yanında brüt ve iadeyi de taşır,
   şeritle aynı kuralla toplanır. En çok satanlar ve karaoke ön ödemesi
-  xl'den yan yana.
+  xl'den yan yana. **Sitede kartla ödenen karaoke ciroya dahildir** (22 Kas
+  2026, operatör: _"raporlarda karaoke cirosu onlineda gözükmüyor"_): Net
+  ciro, Brüt ciro ve İade kutuları, grafiğin kovaları ve Genel bakış'ın 14
+  günlük ciro grafiği ile "geçen hafta bu saatte" kıyası POS'un tahsil
+  ettiği ön ödemeyi de sayar (`reportsOverview`, `withKaraokeBuckets`,
+  `karaokeShares`; ödendiği güne, iadesi aynı günden, `karaokeMoneyOf`).
+  Sipariş sayısı ve ortalama sepet yalnız siparişlerdendir (kova karaoke
+  payını `karaokeGrossMinor` olarak ayrıca taşır); şeridin altındaki satır
+  net cironun ne kadarının karaoke olduğunu yazar. Köşkte ödenen (elle
+  eklenen, `paymentStatus: "none"`) rezervasyon ciroya girmez: parası
+  kasadadır. `GET /api/panel/sales` ve Gün sonu'nun ciro kutuları değişmedi.
 - **Karaoke: liste ve takvim** (`karaoke-calendar.tsx`): başlıkta Liste /
   Takvim. Takvim haftayı gösterir (`?gorunum=takvim&hafta=`): günler sütun,
   saatler satır, her rezervasyon ilk saatinden son saatine bir blok;
